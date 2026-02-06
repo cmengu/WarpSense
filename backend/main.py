@@ -5,6 +5,7 @@ Configures CORS, registers routes, and starts the server
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from routes.dashboard import router as dashboard_router
 from routes.sessions import router as sessions_router
 
@@ -24,6 +25,8 @@ app.add_middleware(
     allow_methods=["*"],  # Allow all HTTP methods
     allow_headers=["*"],  # Allow all headers
 )
+
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 # Register routes
 app.include_router(dashboard_router)

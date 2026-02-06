@@ -4,7 +4,8 @@ Handles all database operations for welding sessions
 """
 
 from typing import Optional, List
-from models.session_model import WeldingSession
+
+from models.session import Session
 
 
 class DatabaseClient:
@@ -24,12 +25,12 @@ class DatabaseClient:
         # TODO: Initialize database connection
         pass
     
-    def save_session(self, session: WeldingSession) -> str:
+    def save_session(self, session: Session) -> str:
         """
         Save a welding session to the database
         
         Args:
-            session: WeldingSession to save
+            session: Session to save
             
         Returns:
             Session ID of saved session
@@ -39,7 +40,7 @@ class DatabaseClient:
         # Placeholder - implementation will be added later
         raise NotImplementedError("Not implemented yet")
     
-    def get_session(self, session_id: str) -> Optional[WeldingSession]:
+    def get_session(self, session_id: str) -> Optional[Session]:
         """
         Retrieve a welding session by ID
         
@@ -47,14 +48,14 @@ class DatabaseClient:
             session_id: Session ID to retrieve
             
         Returns:
-            WeldingSession if found, None otherwise
+            Session if found, None otherwise
             
         TODO: Implement session retrieval logic
         """
         # Placeholder - implementation will be added later
         raise NotImplementedError("Not implemented yet")
     
-    def list_sessions(self, limit: int = 100, offset: int = 0) -> List[WeldingSession]:
+    def list_sessions(self, limit: int = 100, offset: int = 0) -> List[Session]:
         """
         List all welding sessions
         
@@ -63,7 +64,7 @@ class DatabaseClient:
             offset: Number of sessions to skip
             
         Returns:
-            List of WeldingSession objects
+            List of Session objects
             
         TODO: Implement session listing logic
         """

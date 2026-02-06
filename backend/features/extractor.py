@@ -4,15 +4,16 @@ Computes features like pressure, heat, torch angle from raw sensor readings
 """
 
 from typing import List, Dict, Any
-from models.session_model import WeldingSession
+
+from models.session import Session
 
 
-def extract_features(session: WeldingSession) -> Dict[str, Any]:
+def extract_features(session: Session) -> Dict[str, Any]:
     """
     Extract features from a welding session
     
     Args:
-        session: WeldingSession with raw sensor data
+        session: Session with raw sensor data
         
     Returns:
         Dictionary of extracted features
