@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import HeatMap from '@/components/welding/HeatMap';
 import TorchAngleGraph from '@/components/welding/TorchAngleGraph';
 import ScorePanel from '@/components/welding/ScorePanel';
-import type { WeldingSession } from '@/types/session';
+import type { Session } from '@/types/session';
 
 /**
  * Replay Page
@@ -13,19 +13,13 @@ import type { WeldingSession } from '@/types/session';
  * @param params - Route parameters containing sessionId
  */
 export default function ReplayPage({ params }: { params: { sessionId: string } }) {
-  const [sessionData, setSessionData] = useState<WeldingSession | null>(null);
+  const [sessionData, setSessionData] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // TODO: Fetch session data from API
-    // fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/sessions/${params.sessionId}`)
-    //   .then(res => res.json())
-    //   .then(setSessionData)
-    //   .catch(err => setError(err.message))
-    //   .finally(() => setLoading(false));
-    
-    // Placeholder: show loading then empty state
+    // NOTE: Replay visualization deferred to Phase 2 (after live session validation).
+    // Will wire fetchSession() → extractHeatmapData() / extractAngleData() → components in next iteration.
     setLoading(false);
   }, [params.sessionId]);
 

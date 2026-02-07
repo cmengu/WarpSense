@@ -1,0 +1,215 @@
+/**
+ * Safe extraction utilities for Frame data.
+ *
+ * These functions centralize null-checking and optional-field access
+ * so that components don't need scattered `?.` and `??` checks.
+ *
+ * ALWAYS use these instead of accessing thermal fields directly.
+ * They handle every edge case documented in the plan:
+ *   - First frame (no previous thermal data)
+ *   - Missing thermal frames (empty thermal_snapshots)
+ *   - Empty readings array
+ *   - Null sensor readings
+ *
+ * Mirrors the backend utility logic in `backend/services/thermal_service.py`.
+ */
+
+import type { Frame } from "@/types/frame";
+import type { TemperaturePoint, ThermalDirection } from "@/types/thermal";
+
+// ---------------------------------------------------------------------------
+// extractCenterTemperature
+// ---------------------------------------------------------------------------
+
+/**
+ * Safely extract center temperature from a frame.
+ *
+ * ALWAYS check `has_thermal_data` before accessing thermal fields!
+ * Not all frames have thermal data (only every ~100ms).
+ *
+ * Edge cases handled:
+ *   - Frame has no thermal data → null
+ *   - Empty thermal_snapshots array → null
+ *   - Empty readings array → null
+ *   - No center reading found → null
+ *
+ * @param frame - Frame to extract temperature from.
+ * @returns Center temperature in degrees Celsius, or null if not available.
+ */
+export function extractCenterTemperature(frame: Frame): number | null {
+  // Guard 1: check flag first (backend-computed, trusted)
+  if (!frame.has_thermal_data) {
+    return null;
+  }
+
+  // Guard 2: empty thermal_snapshots array
+  if (!frame.thermal_snapshots || frame.thermal_snapshots.length === 0) {
+    return null;
+  }
+
+  // Guard 3: empty readings array in first snapshot
+  const firstSnapshot = frame.thermal_snapshots[0];
+  if (!firstSnapshot.readings || firstSnapshot.readings.length === 0) {
+    return null;
+  }
+
+  // Guard 4: find center reading by direction (not by index)
+  const center = firstSnapshot.readings.find(
+    (r) => r.direction === "center"
+  );
+
+  return center?.temp_celsius ?? null;
+}
+
+// ---------------------------------------------------------------------------
+// extractTemperatureByDirection
+// ---------------------------------------------------------------------------
+
+/**
+ * Safely extract a temperature reading at a specific direction from a frame.
+ *
+ * Generalizes `extractCenterTemperature` to any direction.
+ *
+ * @param frame - Frame to extract from.
+ * @param direction - Thermal direction to look up.
+ * @param snapshotIndex - Which snapshot to use (default: 0 = primary distance).
+ * @returns Temperature in degrees Celsius, or null if not available.
+ */
+export function extractTemperatureByDirection(
+  frame: Frame,
+  direction: ThermalDirection,
+  snapshotIndex: number = 0
+): number | null {
+  if (!frame.has_thermal_data) {
+    return null;
+  }
+
+  if (
+    !frame.thermal_snapshots ||
+    snapshotIndex >= frame.thermal_snapshots.length
+  ) {
+    return null;
+  }
+
+  const snapshot = frame.thermal_snapshots[snapshotIndex];
+  if (!snapshot.readings || snapshot.readings.length === 0) {
+    return null;
+  }
+
+  const reading = snapshot.readings.find((r) => r.direction === direction);
+  return reading?.temp_celsius ?? null;
+}
+
+// ---------------------------------------------------------------------------
+// extractAllTemperatures
+// ---------------------------------------------------------------------------
+
+/**
+ * Extract all temperature readings from the primary snapshot of a frame.
+ *
+ * Returns an empty array if the frame has no thermal data.
+ *
+ * @param frame - Frame to extract from.
+ * @param snapshotIndex - Which snapshot to use (default: 0 = primary distance).
+ * @returns Array of TemperaturePoint objects, or empty array.
+ */
+export function extractAllTemperatures(
+  frame: Frame,
+  snapshotIndex: number = 0
+): TemperaturePoint[] {
+  if (!frame.has_thermal_data) {
+    return [];
+  }
+
+  if (
+    !frame.thermal_snapshots ||
+    snapshotIndex >= frame.thermal_snapshots.length
+  ) {
+    return [];
+  }
+
+  return frame.thermal_snapshots[snapshotIndex].readings ?? [];
+}
+
+// ---------------------------------------------------------------------------
+// extractHeatDissipation
+// ---------------------------------------------------------------------------
+
+/**
+ * Safely extract heat dissipation rate from a frame.
+ *
+ * Edge cases handled:
+ *   - First frame: no prev_frame → dissipation = null
+ *   - Missing thermal frames: dissipation = null
+ *
+ * @param frame - Frame to extract dissipation from.
+ * @returns Dissipation rate in °C/sec, or null if not available.
+ *          Positive = cooling. Negative = heating.
+ */
+export function extractHeatDissipation(frame: Frame): number | null {
+  // Backend pre-calculates this. Just null-guard it.
+  return frame.heat_dissipation_rate_celsius_per_sec ?? null;
+}
+
+// ---------------------------------------------------------------------------
+// hasRequiredSensors
+// ---------------------------------------------------------------------------
+
+/**
+ * Check if a frame has all required sensor data (volts, amps, angle).
+ *
+ * A frame missing any of the core electrical sensor readings is considered
+ * a partial frame. This is valid (the backend allows it) but components
+ * should handle the missing data gracefully.
+ *
+ * @param frame - Frame to check.
+ * @returns True if all three core sensors (volts, amps, angle) are present.
+ */
+export function hasRequiredSensors(frame: Frame): boolean {
+  return (
+    frame.volts !== null &&
+    frame.amps !== null &&
+    frame.angle_degrees !== null
+  );
+}
+
+// ---------------------------------------------------------------------------
+// filterThermalFrames
+// ---------------------------------------------------------------------------
+
+/**
+ * Filter a frame array to only those with thermal data.
+ *
+ * Useful for thermal-specific visualizations (heatmaps) where
+ * you need to skip the 9/10 frames that lack thermal snapshots.
+ *
+ * @param frames - Array of frames to filter.
+ * @returns Only frames where `has_thermal_data === true`.
+ */
+export function filterThermalFrames(frames: Frame[]): Frame[] {
+  return frames.filter((f) => f.has_thermal_data);
+}
+
+// ---------------------------------------------------------------------------
+// filterFramesByTimeRange
+// ---------------------------------------------------------------------------
+
+/**
+ * Filter frames to a specific time range (inclusive).
+ *
+ * @param frames - Array of frames to filter.
+ * @param startMs - Start of range in milliseconds (inclusive). Null = no lower bound.
+ * @param endMs - End of range in milliseconds (inclusive). Null = no upper bound.
+ * @returns Frames within the specified time range.
+ */
+export function filterFramesByTimeRange(
+  frames: Frame[],
+  startMs: number | null,
+  endMs: number | null
+): Frame[] {
+  return frames.filter((f) => {
+    if (startMs !== null && f.timestamp_ms < startMs) return false;
+    if (endMs !== null && f.timestamp_ms > endMs) return false;
+    return true;
+  });
+}

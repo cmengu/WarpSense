@@ -5,6 +5,9 @@ Set up DB connection & sessions
 """
 
 import os
+from pathlib import Path
+
+from dotenv import load_dotenv
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -12,7 +15,15 @@ from sqlalchemy.orm import sessionmaker
 from .base import Base
 
 
+def load_env_from_backend() -> None:
+    backend_dir = Path(__file__).resolve().parent.parent
+    env_path = backend_dir / ".env"
+    if env_path.exists():
+        load_dotenv(dotenv_path=env_path)
+
+
 def get_database_url() -> str:
+    load_env_from_backend()
     database_url = os.getenv("DATABASE_URL")
     if not database_url:
         raise ValueError("DATABASE_URL is not set")
