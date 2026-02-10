@@ -2,7 +2,7 @@
 Frame model for canonical time-series welding data.
 Everything we know about the weld at one 10ms instant.
 there are some optional data, adapt for next time
-Key points of failure: 
+Key points of failure:
 Welding does require back-and-forth passes, so a strictly increasing distance validator is a simplification for AI/plotting convenience, not a reflection of the true motion.
 timestamp should had strictly increasing validator
 """
@@ -54,20 +54,30 @@ class Frame(BaseModel):
 
     @field_validator("thermal_snapshots")
     @classmethod
-    def validate_snapshot_distances(cls, value: List[ThermalSnapshot]) -> List[ThermalSnapshot]:
+    def validate_snapshot_distances(
+        cls, value: List[ThermalSnapshot]
+    ) -> List[ThermalSnapshot]:
         if not value:
             return value
         distances = [snapshot.distance_mm for snapshot in value]
         for i in range(1, len(distances)):
             if distances[i] <= distances[i - 1]:
-                raise ValueError("Thermal snapshot distances must be strictly increasing with no duplicates")
+                raise ValueError(
+                    "Thermal snapshot distances must be strictly increasing with no duplicates"
+                )
         return value
 
     @field_validator("thermal_snapshots")
     @classmethod
-    def validate_center_reading_per_snapshot(cls, value: List[ThermalSnapshot]) -> List[ThermalSnapshot]:
+    def validate_center_reading_per_snapshot(
+        cls, value: List[ThermalSnapshot]
+    ) -> List[ThermalSnapshot]:
         for snapshot in value:
-            center_count = sum(1 for reading in snapshot.readings if reading.direction == "center")
+            center_count = sum(
+                1 for reading in snapshot.readings if reading.direction == "center"
+            )
             if center_count != 1:
-                raise ValueError("Each thermal snapshot must contain exactly one center reading")
+                raise ValueError(
+                    "Each thermal snapshot must contain exactly one center reading"
+                )
         return value

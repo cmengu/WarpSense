@@ -18,28 +18,23 @@ mock_dashboard_data = {
             "title": "Total Users",
             "value": 12543,
             "change": 12.5,
-            "trend": "up"
+            "trend": "up",
         },
         {
             "id": "2",
             "title": "Revenue",
             "value": "$45,231",
             "change": -2.3,
-            "trend": "down"
+            "trend": "down",
         },
         {
             "id": "3",
             "title": "Active Sessions",
             "value": 892,
             "change": 5.2,
-            "trend": "up"
+            "trend": "up",
         },
-        {
-            "id": "4",
-            "title": "Conversion Rate",
-            "value": "3.2%",
-            "trend": "neutral"
-        }
+        {"id": "4", "title": "Conversion Rate", "value": "3.2%", "trend": "neutral"},
     ],
     "charts": [
         {
@@ -53,8 +48,8 @@ mock_dashboard_data = {
                 {"date": "2024-03", "value": 1500},
                 {"date": "2024-04", "value": 1800},
                 {"date": "2024-05", "value": 2100},
-                {"date": "2024-06", "value": 2400}
-            ]
+                {"date": "2024-06", "value": 2400},
+            ],
         },
         {
             "id": "2",
@@ -65,8 +60,8 @@ mock_dashboard_data = {
                 {"category": "Product A", "value": 12000},
                 {"category": "Product B", "value": 19000},
                 {"category": "Product C", "value": 8000},
-                {"category": "Product D", "value": 15000}
-            ]
+                {"category": "Product D", "value": 15000},
+            ],
         },
         {
             "id": "3",
@@ -75,8 +70,8 @@ mock_dashboard_data = {
             "data": [
                 {"name": "Desktop", "value": 45},
                 {"name": "Mobile", "value": 35},
-                {"name": "Tablet", "value": 20}
-            ]
-        }
-    ]
+                {"name": "Tablet", "value": 20},
+            ],
+        },
+    ],
 }

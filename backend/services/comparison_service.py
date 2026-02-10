@@ -21,13 +21,17 @@ def _temperature_deltas(frame_a: Frame, frame_b: Frame) -> List[ThermalDelta]:
         return []
 
     deltas: List[ThermalDelta] = []
-    b_snapshots_by_distance = {snap.distance_mm: snap for snap in frame_b.thermal_snapshots}
+    b_snapshots_by_distance = {
+        snap.distance_mm: snap for snap in frame_b.thermal_snapshots
+    }
 
     for snapshot_a in frame_a.thermal_snapshots:
         snapshot_b = b_snapshots_by_distance.get(snapshot_a.distance_mm)
         if snapshot_b is None:
             continue
-        b_readings_by_direction = {reading.direction: reading for reading in snapshot_b.readings}
+        b_readings_by_direction = {
+            reading.direction: reading for reading in snapshot_b.readings
+        }
         temp_deltas: List[TemperatureDelta] = []
         for reading_a in snapshot_a.readings:
             reading_b = b_readings_by_direction.get(reading_a.direction)
@@ -70,7 +74,9 @@ def compare_sessions(session_a: Session, session_b: Session) -> List[FrameDelta]
                 timestamp_ms=timestamp,
                 amps_delta=_delta_optional(frame_a.amps, frame_b.amps),
                 volts_delta=_delta_optional(frame_a.volts, frame_b.volts),
-                angle_degrees_delta=_delta_optional(frame_a.angle_degrees, frame_b.angle_degrees),
+                angle_degrees_delta=_delta_optional(
+                    frame_a.angle_degrees, frame_b.angle_degrees
+                ),
                 heat_dissipation_rate_celsius_per_sec_delta=_delta_optional(
                     frame_a.heat_dissipation_rate_celsius_per_sec,
                     frame_b.heat_dissipation_rate_celsius_per_sec,

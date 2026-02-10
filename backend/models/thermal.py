@@ -46,7 +46,9 @@ class ThermalSnapshot(BaseModel):
 
     @field_validator("readings")
     @classmethod
-    def validate_readings_count(cls, value: List[TemperaturePoint]) -> List[TemperaturePoint]:
+    def validate_readings_count(
+        cls, value: List[TemperaturePoint]
+    ) -> List[TemperaturePoint]:
         if len(value) != 5:
             raise ValueError("ThermalSnapshot must contain exactly 5 readings")
         return value

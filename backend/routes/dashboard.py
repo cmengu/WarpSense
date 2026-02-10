@@ -14,10 +14,10 @@ router = APIRouter()
 async def get_dashboard_data():
     """
     Returns dashboard data from mock_data.py
-    
+
     This endpoint reads from backend/data/mock_data.py and returns
     the data as a validated DashboardData Pydantic model.
-    
+
     To update the data, edit backend/data/mock_data.py and refresh
     the frontend.
     """

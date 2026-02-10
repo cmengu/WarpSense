@@ -9,6 +9,7 @@ from pydantic import BaseModel
 
 class MetricData(BaseModel):
     """Metric data model matching TypeScript MetricData interface"""
+
     id: str
     title: str
     value: Union[int, str]  # Can be number or string (e.g., "$45,231" or "3.2%")
@@ -18,6 +19,7 @@ class MetricData(BaseModel):
 
 class ChartDataPoint(BaseModel):
     """Chart data point model - flexible to support different chart types"""
+
     date: Optional[str] = None  # For line charts
     category: Optional[str] = None  # For bar charts
     name: Optional[str] = None  # For pie charts
@@ -28,6 +30,7 @@ class ChartDataPoint(BaseModel):
 
 class ChartData(BaseModel):
     """Chart data model matching TypeScript ChartData interface"""
+
     id: str
     type: Literal["line", "bar", "pie"]
     title: str
@@ -37,5 +40,6 @@ class ChartData(BaseModel):
 
 class DashboardData(BaseModel):
     """Complete dashboard data model matching TypeScript DashboardData interface"""
+
     metrics: List[MetricData]
     charts: List[ChartData]

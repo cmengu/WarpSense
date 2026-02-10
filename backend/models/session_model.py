@@ -9,6 +9,7 @@ from pydantic import BaseModel
 
 class SessionMeta(BaseModel):
     """Session metadata"""
+
     session_id: str
     start_timestamp_ms: int
     firmware_version: str
@@ -16,6 +17,7 @@ class SessionMeta(BaseModel):
 
 class HeatMapPoint(BaseModel):
     """Heat map data point"""
+
     x_mm: float
     y_mm: float
     intensity_norm: float
@@ -23,6 +25,7 @@ class HeatMapPoint(BaseModel):
 
 class ScoreRule(BaseModel):
     """Individual scoring rule result"""
+
     rule_id: str
     threshold: float
     passed: bool
@@ -30,12 +33,14 @@ class ScoreRule(BaseModel):
 
 class SessionScore(BaseModel):
     """Session scoring result"""
+
     total: int
     rules: List[ScoreRule]
 
 
 class WeldingSession(BaseModel):
     """Complete welding session model"""
+
     meta: SessionMeta
     heat_map: Optional[List[HeatMapPoint]] = None
     torch_angle_deg: Optional[List[float]] = None

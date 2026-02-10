@@ -13,7 +13,7 @@ from routes.sessions import router as sessions_router
 app = FastAPI(
     title="Dashboard API",
     description="API for serving dashboard data to Next.js frontend",
-    version="1.0.0"
+    version="1.0.0",
 )
 
 # Configure CORS middleware
@@ -45,6 +45,7 @@ async def health_check():
 
 if __name__ == "__main__":
     import uvicorn
+
     # Run with auto-reload for development
     # In production, use: uvicorn main:app --host 0.0.0.0 --port 8000
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

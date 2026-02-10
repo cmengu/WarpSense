@@ -7,7 +7,16 @@ This is separate from Pydantic — Pydantic is for validation in Python, SQLAlch
 
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy import Boolean, Column, DateTime, Float, ForeignKey, Integer, JSON, String
+from sqlalchemy import (
+    Boolean,
+    Column,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    JSON,
+    String,
+)
 from sqlalchemy.orm import relationship
 
 from .base import Base
@@ -105,7 +114,9 @@ class FrameModel(Base):
     __tablename__ = "frames"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    session_id = Column(String, ForeignKey("sessions.session_id", ondelete="CASCADE"), nullable=False)
+    session_id = Column(
+        String, ForeignKey("sessions.session_id", ondelete="CASCADE"), nullable=False
+    )
     timestamp_ms = Column(Integer, nullable=False)
     frame_data = Column(JSON, nullable=False)
 

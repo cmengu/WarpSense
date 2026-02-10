@@ -12,7 +12,9 @@ from database.models import FrameModel
 from models.frame import Frame
 
 
-def get_previous_frame(session_id: str, timestamp_ms: int, db: OrmSession) -> Optional[Frame]:
+def get_previous_frame(
+    session_id: str, timestamp_ms: int, db: OrmSession
+) -> Optional[Frame]:
     """Fetch the most recent frame before timestamp_ms for a session."""
     stmt = (
         select(FrameModel)
@@ -35,10 +37,18 @@ def _extract_center_temperature_celsius(frame: Frame) -> Optional[float]:
     first_snapshot = frame.thermal_snapshots[0]
     if not first_snapshot.readings:
         return None
-    center = next((reading for reading in first_snapshot.readings if reading.direction == "center"), None)
+    center = next(
+        (
+            reading
+            for reading in first_snapshot.readings
+            if reading.direction == "center"
+        ),
+        None,
+    )
     if center is None:
         return None
     return center.temp_celsius
+
 
 def calculate_heat_dissipation(
     prev_frame: Optional[Frame],
@@ -52,7 +62,9 @@ def calculate_heat_dissipation(
     Assumes thermal snapshots appear every 100ms (0.1s).
     """
     if prev_frame is None and db is not None and session_id is not None:
-        prev_frame = get_previous_frame(session_id=session_id, timestamp_ms=curr_frame.timestamp_ms, db=db)
+        prev_frame = get_previous_frame(
+            session_id=session_id, timestamp_ms=curr_frame.timestamp_ms, db=db
+        )
 
     if prev_frame is None:
         return None

@@ -41,10 +41,10 @@ def get_db():
 async def list_sessions():
     """
     List all welding sessions - Not implemented yet
-    
+
     Returns:
         List of welding sessions
-        
+
     Raises:
         HTTPException: 501 Not Implemented
     """
@@ -64,13 +64,13 @@ async def get_session(
 ):
     """
     Get a specific welding session - Not implemented yet
-    
+
     Args:
         session_id: Session ID to retrieve
-        
+
     Returns:
         Session object
-        
+
     Raises:
         HTTPException: 501 Not Implemented
     """
@@ -122,6 +122,7 @@ async def get_session(
         return frame_data
 
     if stream and total_frame_count > 1000:
+
         def generate():
             payload_prefix = session_payload([])
             payload_prefix.pop("frames", None)
@@ -129,7 +130,9 @@ async def get_session(
             yield prefix[:-1]
             yield ',"frames":['
             first = True
-            stream_query = base_query.order_by(FrameModel.timestamp_ms.asc()).yield_per(1000)
+            stream_query = base_query.order_by(FrameModel.timestamp_ms.asc()).yield_per(
+                1000
+            )
             for frame_model in stream_query:
                 if not first:
                     yield ","
@@ -157,13 +160,13 @@ async def get_session(
 async def get_session_features(session_id: str):
     """
     Get extracted features for a session - Not implemented yet
-    
+
     Args:
         session_id: Session ID
-        
+
     Returns:
         Dictionary of extracted features
-        
+
     Raises:
         HTTPException: 501 Not Implemented
     """
@@ -174,13 +177,13 @@ async def get_session_features(session_id: str):
 async def get_session_score(session_id: str):
     """
     Get scoring for a session - Not implemented yet
-    
+
     Args:
         session_id: Session ID
-        
+
     Returns:
         SessionScore object
-        
+
     Raises:
         HTTPException: 501 Not Implemented
     """
@@ -196,7 +199,9 @@ async def add_frames(
     if not frames:
         raise HTTPException(status_code=400, detail="No frames provided")
     if len(frames) < 1000 or len(frames) > 5000:
-        raise HTTPException(status_code=400, detail="Frames per request must be between 1000 and 5000")
+        raise HTTPException(
+            status_code=400, detail="Frames per request must be between 1000 and 5000"
+        )
 
     now = datetime.now(timezone.utc)
     errors = []
@@ -215,14 +220,19 @@ async def add_frames(
             if session_row is None:
                 raise HTTPException(status_code=404, detail="Session not found")
             if session_row.status == SessionStatus.COMPLETE.value:
-                raise HTTPException(status_code=400, detail="Cannot add frames to a complete session")
+                raise HTTPException(
+                    status_code=400, detail="Cannot add frames to a complete session"
+                )
             if session_row.locked_until:
                 locked_until = session_row.locked_until
                 compare_now = now
                 if locked_until.tzinfo is None:
                     compare_now = now.replace(tzinfo=None)
                 if locked_until > compare_now:
-                    raise HTTPException(status_code=409, detail="Session is locked for concurrent upload")
+                    raise HTTPException(
+                        status_code=409,
+                        detail="Session is locked for concurrent upload",
+                    )
 
             session_row.locked_until = now + timedelta(seconds=30)
 
@@ -240,9 +250,21 @@ async def add_frames(
 
             timestamps = [frame.timestamp_ms for frame in frames]
             if timestamps != sorted(timestamps):
-                errors.append({"index": None, "timestamp_ms": None, "error": "Frames must be sorted by timestamp"})
+                errors.append(
+                    {
+                        "index": None,
+                        "timestamp_ms": None,
+                        "error": "Frames must be sorted by timestamp",
+                    }
+                )
             if len(timestamps) != len(set(timestamps)):
-                errors.append({"index": None, "timestamp_ms": None, "error": "Duplicate frame timestamps in request"})
+                errors.append(
+                    {
+                        "index": None,
+                        "timestamp_ms": None,
+                        "error": "Duplicate frame timestamps in request",
+                    }
+                )
 
             if last_timestamp is not None:
                 expected_first = last_timestamp + 10
@@ -271,7 +293,9 @@ async def add_frames(
                     "status": "failed",
                     "successful_count": 0,
                     "failed_frames": errors,
-                    "next_expected_timestamp": (last_timestamp + 10) if last_timestamp is not None else None,
+                    "next_expected_timestamp": (
+                        (last_timestamp + 10) if last_timestamp is not None else None
+                    ),
                     "can_resume": False,
                 }
 
@@ -312,7 +336,13 @@ async def add_frames(
         return {
             "status": "failed",
             "successful_count": 0,
-            "failed_frames": [{"index": None, "timestamp_ms": None, "error": "Database constraint violated"}],
+            "failed_frames": [
+                {
+                    "index": None,
+                    "timestamp_ms": None,
+                    "error": "Database constraint violated",
+                }
+            ],
             "next_expected_timestamp": None,
             "can_resume": False,
         }

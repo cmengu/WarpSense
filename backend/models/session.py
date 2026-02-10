@@ -75,7 +75,9 @@ class Session(BaseModel):
     )
 
     @staticmethod
-    def is_valid_status_transition(previous: "SessionStatus", new: "SessionStatus") -> bool:
+    def is_valid_status_transition(
+        previous: "SessionStatus", new: "SessionStatus"
+    ) -> bool:
         # Assumption: linear progression with archive as terminal state.
         if previous == new:
             return True
@@ -142,11 +144,17 @@ class Session(BaseModel):
     def validate_complete_session(self) -> "Session":
         if self.status == SessionStatus.COMPLETE:
             if self.expected_frame_count is None:
-                raise ValueError("expected_frame_count is required when status is COMPLETE")
+                raise ValueError(
+                    "expected_frame_count is required when status is COMPLETE"
+                )
             if self.frame_count != self.expected_frame_count:
-                raise ValueError("frame_count must equal expected_frame_count when status is COMPLETE")
+                raise ValueError(
+                    "frame_count must equal expected_frame_count when status is COMPLETE"
+                )
             if self.last_successful_frame_index != self.frame_count - 1:
-                raise ValueError("last_successful_frame_index must match final frame index when COMPLETE")
+                raise ValueError(
+                    "last_successful_frame_index must match final frame index when COMPLETE"
+                )
             if self.completed_at is None:
                 raise ValueError("completed_at is required when status is COMPLETE")
         return self
@@ -161,17 +169,25 @@ class Session(BaseModel):
             if prev.amps is not None and curr.amps is not None:
                 if prev.amps == 0:
                     if curr.amps != 0:
-                        raise ValueError("Amps jumped from 0 to non-zero between frames")
+                        raise ValueError(
+                            "Amps jumped from 0 to non-zero between frames"
+                        )
                 else:
                     change_ratio = abs(curr.amps - prev.amps) / abs(prev.amps)
                     if change_ratio > 0.20:
-                        raise ValueError("Amps jump exceeded 20% between consecutive frames")
+                        raise ValueError(
+                            "Amps jump exceeded 20% between consecutive frames"
+                        )
             if prev.volts is not None and curr.volts is not None:
                 if prev.volts == 0:
                     if curr.volts != 0:
-                        raise ValueError("Volts jumped from 0 to non-zero between frames")
+                        raise ValueError(
+                            "Volts jumped from 0 to non-zero between frames"
+                        )
                 else:
                     change_ratio = abs(curr.volts - prev.volts) / abs(prev.volts)
                     if change_ratio > 0.10:
-                        raise ValueError("Volts jump exceeded 10% between consecutive frames")
+                        raise ValueError(
+                            "Volts jump exceeded 10% between consecutive frames"
+                        )
         return self
