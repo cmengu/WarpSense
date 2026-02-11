@@ -12,9 +12,11 @@ Streaming threshold: Total frames > 1000 triggers streaming; otherwise uses pagi
 
 from datetime import datetime, timedelta, timezone
 import json
+import uuid
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel, Field
 from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -29,12 +31,69 @@ from services.thermal_service import calculate_heat_dissipation, get_previous_fr
 router = APIRouter()
 
 
+# ---------------------------------------------------------------------------
+# POST /sessions request body
+# ---------------------------------------------------------------------------
+
+
+class CreateSessionRequest(BaseModel):
+    """Request body for creating a new recording session."""
+
+    operator_id: str = Field(..., description="Operator identifier for audit.")
+    weld_type: str = Field(..., description="Weld type identifier.")
+    session_id: Optional[str] = Field(
+        None,
+        description="Optional session ID. If omitted, a UUID is generated.",
+    )
+
+
 def get_db():
     db = SessionLocal()
     try:
         yield db
     finally:
         db.close()
+
+
+@router.post("/sessions")
+async def create_session(
+    body: CreateSessionRequest,
+    db: OrmSession = Depends(get_db),
+):
+    """
+    Create a new welding session in RECORDING status.
+    Use the returned session_id when calling POST /sessions/{session_id}/frames.
+    """
+    session_id = body.session_id or f"sess_{uuid.uuid4().hex[:12]}"
+    existing = db.query(SessionModel).filter_by(session_id=session_id).first()
+    if existing:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Session {session_id} already exists",
+        )
+
+    model = SessionModel(
+        session_id=session_id,
+        operator_id=body.operator_id,
+        start_time=datetime.now(timezone.utc),
+        weld_type=body.weld_type,
+        thermal_sample_interval_ms=100,
+        thermal_directions=["center", "north", "south", "east", "west"],
+        thermal_distance_interval_mm=10.0,
+        sensor_sample_rate_hz=100,
+        status=SessionStatus.RECORDING.value,
+        frame_count=0,
+        expected_frame_count=None,
+        last_successful_frame_index=None,
+        validation_errors=[],
+        completed_at=None,
+        disable_sensor_continuity_checks=False,
+        locked_until=None,
+        version=1,
+    )
+    db.add(model)
+    db.commit()
+    return {"session_id": session_id}
 
 
 @router.get("/sessions")
@@ -124,21 +183,38 @@ async def get_session(
     if stream and total_frame_count > 1000:
 
         def generate():
-            payload_prefix = session_payload([])
-            payload_prefix.pop("frames", None)
-            prefix = json.dumps(payload_prefix)
-            yield prefix[:-1]
-            yield ',"frames":['
-            first = True
-            stream_query = base_query.order_by(FrameModel.timestamp_ms.asc()).yield_per(
-                1000
-            )
-            for frame_model in stream_query:
-                if not first:
-                    yield ","
-                first = False
-                yield json.dumps(frame_to_dict(frame_model))
-            yield "]}"
+            # Use a dedicated session so stream lifecycle is independent of
+            # request-scoped db (avoids "session closed" if teardown runs early).
+            stream_db = SessionLocal()
+            try:
+                payload_prefix = session_payload([])
+                payload_prefix.pop("frames", None)
+                prefix = json.dumps(payload_prefix)
+                yield prefix[:-1]
+                yield ',"frames":['
+                first = True
+                stream_query = stream_db.query(FrameModel).filter(
+                    FrameModel.session_id == session_id
+                )
+                if time_range_start is not None:
+                    stream_query = stream_query.filter(
+                        FrameModel.timestamp_ms >= time_range_start
+                    )
+                if time_range_end is not None:
+                    stream_query = stream_query.filter(
+                        FrameModel.timestamp_ms <= time_range_end
+                    )
+                stream_query = stream_query.order_by(
+                    FrameModel.timestamp_ms.asc()
+                ).yield_per(1000)
+                for frame_model in stream_query:
+                    if not first:
+                        yield ","
+                    first = False
+                    yield json.dumps(frame_to_dict(frame_model))
+                yield "]}"
+            finally:
+                stream_db.close()
 
         return StreamingResponse(
             generate(),

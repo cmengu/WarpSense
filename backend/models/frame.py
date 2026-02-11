@@ -14,6 +14,20 @@ from pydantic import BaseModel, Field, computed_field, field_validator
 from .thermal import ThermalSnapshot
 
 
+def _validate_optional_positive(name: str, value: Optional[float]) -> Optional[float]:
+    """Reject negative volts or amps when present."""
+    if value is not None and value < 0:
+        raise ValueError(f"{name} must be non-negative, got {value}")
+    return value
+
+
+def _validate_angle_degrees(value: Optional[float]) -> Optional[float]:
+    """Reject angle outside 0–360 when present."""
+    if value is not None and (value < 0 or value > 360):
+        raise ValueError(f"angle_degrees must be in [0, 360], got {value}")
+    return value
+
+
 class Frame(BaseModel):
     """Single sensor frame at 100Hz (10ms interval)."""
 
@@ -81,3 +95,18 @@ class Frame(BaseModel):
                     "Each thermal snapshot must contain exactly one center reading"
                 )
         return value
+
+    @field_validator("volts")
+    @classmethod
+    def validate_volts_non_negative(cls, value: Optional[float]) -> Optional[float]:
+        return _validate_optional_positive("volts", value)
+
+    @field_validator("amps")
+    @classmethod
+    def validate_amps_non_negative(cls, value: Optional[float]) -> Optional[float]:
+        return _validate_optional_positive("amps", value)
+
+    @field_validator("angle_degrees")
+    @classmethod
+    def validate_angle_range(cls, value: Optional[float]) -> Optional[float]:
+        return _validate_angle_degrees(value)

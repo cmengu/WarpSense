@@ -68,8 +68,6 @@ def test_thermal_snapshot_distance_out_of_order_rejected():
 
 
 def test_thermal_missing_center_rejected():
-    snapshots = [
-        ThermalSnapshot(distance_mm=10.0, readings=_readings_without_center()),
-    ]
+    """ThermalSnapshot rejects readings without exactly one center direction."""
     with pytest.raises(ValidationError):
-        Frame(timestamp_ms=0, thermal_snapshots=snapshots)
+        ThermalSnapshot(distance_mm=10.0, readings=_readings_without_center())

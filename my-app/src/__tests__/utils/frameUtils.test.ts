@@ -1,15 +1,16 @@
 /**
- * Tests for frontend utility functions (Step 14).
+ * Tests for frontend utility functions (Step 14, Step 19).
  * This file proves that every frontend data utility behaves safely, predictably, and defensively no matter how messy the backend data gets.
  *
  * Validates:
  *   - extractCenterTemperature() — all edge cases
  *   - extractTemperatureByDirection() — all directions + edge cases
  *   - extractAllTemperatures() — normal and edge cases
- *   - extractHeatDissipation() — null, positive, negative
- *   - hasRequiredSensors() — all combinations
- *   - filterThermalFrames() — mixed arrays
+ *   - extractHeatDissipation() — null, undefined, positive, negative
+ *   - hasRequiredSensors() — all combinations, optional_sensors handling
+ *   - filterThermalFrames() — mixed arrays, empty input
  *   - filterFramesByTimeRange() — inclusive bounds, null bounds
+ *   - Data transformation edge cases: empty frames, missing data
  */
 
 import type { Frame } from "@/types/frame";
@@ -90,6 +91,13 @@ describe("extractCenterTemperature", () => {
     expect(extractCenterTemperature(frame)).toBeNull();
   });
 
+  it("returns null when thermal_snapshots is undefined", () => {
+    const frame = makeThermalFrame({
+      thermal_snapshots: undefined as unknown as ThermalSnapshot[],
+    });
+    expect(extractCenterTemperature(frame)).toBeNull();
+  });
+
   it("returns null when thermal_snapshots is empty array", () => {
     const frame = makeThermalFrame({
       thermal_snapshots: [],
@@ -148,6 +156,21 @@ describe("extractTemperatureByDirection", () => {
     const frame = makeThermalFrame();
     // north = baseTemp - 20 = 425.3 - 20 = 405.3
     expect(extractTemperatureByDirection(frame, "north")).toBe(425.3 - 20);
+  });
+
+  it("extracts south temperature", () => {
+    const frame = makeThermalFrame();
+    expect(extractTemperatureByDirection(frame, "south")).toBe(425.3 - 10);
+  });
+
+  it("extracts east temperature", () => {
+    const frame = makeThermalFrame();
+    expect(extractTemperatureByDirection(frame, "east")).toBe(425.3 - 30);
+  });
+
+  it("extracts west temperature", () => {
+    const frame = makeThermalFrame();
+    expect(extractTemperatureByDirection(frame, "west")).toBe(425.3 - 25);
   });
 
   it("extracts from a specific snapshot index", () => {
@@ -248,6 +271,21 @@ describe("extractHeatDissipation", () => {
     expect(extractHeatDissipation(frame)).toBeNull();
   });
 
+  it("returns null when heat_dissipation_rate_celsius_per_sec is undefined", () => {
+    // Simulates omitted/malformed API response where field is absent (not null)
+    const frame = makeThermalFrame();
+    (frame as { heat_dissipation_rate_celsius_per_sec?: number | null })
+      .heat_dissipation_rate_celsius_per_sec = undefined;
+    expect(extractHeatDissipation(frame)).toBeNull();
+  });
+
+  it("returns rate when set (e.g. 200.5)", () => {
+    const frame = makeThermalFrame({
+      heat_dissipation_rate_celsius_per_sec: 200.5,
+    });
+    expect(extractHeatDissipation(frame)).toBe(200.5);
+  });
+
   it("returns positive value for cooling", () => {
     const frame = makeThermalFrame({
       heat_dissipation_rate_celsius_per_sec: 8.3,
@@ -314,6 +352,27 @@ describe("hasRequiredSensors", () => {
       amps: 0,
       angle_degrees: 0,
     });
+    expect(hasRequiredSensors(frame)).toBe(true);
+  });
+
+  it("returns true when optional_sensors is null (does not affect check)", () => {
+    const frame = makeSensorOnlyFrame({
+      optional_sensors: null,
+      volts: 22.5,
+      amps: 150.0,
+      angle_degrees: 45.0,
+    });
+    expect(hasRequiredSensors(frame)).toBe(true);
+  });
+
+  it("returns true when optional_sensors is undefined (does not affect check)", () => {
+    const frame = makeSensorOnlyFrame({
+      volts: 22.5,
+      amps: 150.0,
+      angle_degrees: 45.0,
+    });
+    (frame as { optional_sensors?: Record<string, boolean> | null }).optional_sensors =
+      undefined;
     expect(hasRequiredSensors(frame)).toBe(true);
   });
 });
@@ -410,5 +469,36 @@ describe("filterFramesByTimeRange", () => {
 
   it("handles empty input array", () => {
     expect(filterFramesByTimeRange([], 0, 100)).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Data transformation edge cases (Step 19)
+// ---------------------------------------------------------------------------
+
+describe("Data transformation edge cases", () => {
+  it("handles session with 0 frames (empty frames array)", () => {
+    const frames: Frame[] = [];
+    expect(filterThermalFrames(frames)).toEqual([]);
+    expect(filterFramesByTimeRange(frames, null, null)).toEqual([]);
+    expect(filterFramesByTimeRange(frames, 0, 10000)).toEqual([]);
+  });
+
+  it("handles empty thermal_snapshots in frame", () => {
+    const frame = makeThermalFrame({
+      thermal_snapshots: [],
+      has_thermal_data: false,
+    });
+    expect(extractCenterTemperature(frame)).toBeNull();
+    expect(extractAllTemperatures(frame)).toEqual([]);
+  });
+
+  it("filterThermalFrames returns only frames with thermal_snapshots.length > 0", () => {
+    const thermalFrame = makeThermalFrame({ timestamp_ms: 100 });
+    const sensorFrame = makeSensorOnlyFrame({ timestamp_ms: 10 });
+    const result = filterThermalFrames([sensorFrame, thermalFrame, sensorFrame]);
+    expect(result).toHaveLength(1);
+    expect(result[0].timestamp_ms).toBe(100);
+    expect(result[0].has_thermal_data).toBe(true);
   });
 });

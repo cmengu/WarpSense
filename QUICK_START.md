@@ -6,6 +6,8 @@
 ```bash
 cd /Users/ngchenmeng/test/backend
 source venv/bin/activate
+# Enable dev seed route (required for Step 3)
+export ENV=development
 python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
@@ -26,8 +28,19 @@ npm run dev
 - Local: http://localhost:3000
 ```
 
-### Step 3: Open Browser
+### Step 3: Seed Mock Sessions (for Replay)
+To view session replays, seed mock data into the database (backend must be started with `ENV=development`):
+```bash
+curl -X POST http://localhost:8000/api/dev/seed-mock-sessions
+```
+
+Response: `{"seeded":["sess_expert_001","sess_novice_001"]}`
+
+### Step 4: Open Browser
 Go to: **http://localhost:3000**
+- Dashboard: http://localhost:3000
+- Replay expert: http://localhost:3000/replay/sess_expert_001
+- Replay novice: http://localhost:3000/replay/sess_novice_001
 
 ---
 
@@ -66,6 +79,7 @@ npm run dev
 2. **Backend runs on port 8000** - Don't change this
 3. **Frontend runs on port 3000** - May use 3001 if 3000 is busy
 4. **Virtual environment must be activated** for backend to work
+5. **Run backend from `backend/`** - Imports (`models`, `data`) require the backend directory as the working directory
 
 ---
 
@@ -99,3 +113,4 @@ lsof -ti:8000 | xargs kill -9
 - **Backend API:** http://localhost:8000
 - **API Docs:** http://localhost:8000/docs
 - **Health Check:** http://localhost:8000/health
+- **Seed Mock Data:** POST http://localhost:8000/api/dev/seed-mock-sessions (ENV=development or DEBUG=1)

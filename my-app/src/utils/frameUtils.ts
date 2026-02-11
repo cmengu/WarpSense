@@ -36,9 +36,16 @@ import type { TemperaturePoint, ThermalDirection } from "@/types/thermal";
  * @param frame - Frame to extract temperature from.
  * @returns Center temperature in degrees Celsius, or null if not available.
  */
+/**
+ * Check if a frame has thermal data.
+ * Fallback: when has_thermal_data is undefined (legacy API), use thermal_snapshots length.
+ */
+export function hasThermalData(frame: Frame): boolean {
+  return frame.has_thermal_data ?? (frame.thermal_snapshots?.length ?? 0) > 0;
+}
+
 export function extractCenterTemperature(frame: Frame): number | null {
-  // Guard 1: check flag first (backend-computed, trusted)
-  if (!frame.has_thermal_data) {
+  if (!hasThermalData(frame)) {
     return null;
   }
 
@@ -80,7 +87,7 @@ export function extractTemperatureByDirection(
   direction: ThermalDirection,
   snapshotIndex: number = 0
 ): number | null {
-  if (!frame.has_thermal_data) {
+  if (!hasThermalData(frame)) {
     return null;
   }
 
@@ -117,7 +124,7 @@ export function extractAllTemperatures(
   frame: Frame,
   snapshotIndex: number = 0
 ): TemperaturePoint[] {
-  if (!frame.has_thermal_data) {
+  if (!hasThermalData(frame)) {
     return [];
   }
 
@@ -183,11 +190,14 @@ export function hasRequiredSensors(frame: Frame): boolean {
  * Useful for thermal-specific visualizations (heatmaps) where
  * you need to skip the 9/10 frames that lack thermal snapshots.
  *
+ * Fallback: if `has_thermal_data` is undefined (legacy/incomplete API response),
+ * treat frames with non-empty thermal_snapshots as having thermal data.
+ *
  * @param frames - Array of frames to filter.
- * @returns Only frames where `has_thermal_data === true`.
+ * @returns Only frames where `has_thermal_data === true` or thermal_snapshots has data.
  */
 export function filterThermalFrames(frames: Frame[]): Frame[] {
-  return frames.filter((f) => f.has_thermal_data);
+  return frames.filter((f) => hasThermalData(f));
 }
 
 // ---------------------------------------------------------------------------

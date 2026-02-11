@@ -52,7 +52,7 @@ class Session(BaseModel):
     frames: List[Frame] = Field(default_factory=list, description="Ordered frame list.")
 
     status: SessionStatus = Field(default=SessionStatus.RECORDING)
-    frame_count: int = Field(..., description="Total frame count ingested.")
+    frame_count: int = Field(..., ge=0, description="Total frame count ingested.")
     expected_frame_count: Optional[int] = Field(
         None,
         description="Expected total frame count for the session.",

@@ -1,6 +1,7 @@
 """
-Pydantic models for welding session data structures.
-Will match TypeScript interfaces for type safety.
+Legacy Pydantic models for old welding session format (meta, heat_map, torch_angle_deg, score).
+DEPRECATED: Use models.session.Session with Frame[] for canonical time-series contract.
+Kept for backwards compatibility with session_001.json-style data only.
 """
 
 from typing import List, Optional
@@ -39,8 +40,7 @@ class SessionScore(BaseModel):
 
 
 class WeldingSession(BaseModel):
-    """Complete welding session model"""
-
+    """DEPRECATED. Use models.session.Session for canonical time-series format."""
     meta: SessionMeta
     heat_map: Optional[List[HeatMapPoint]] = None
     torch_angle_deg: Optional[List[float]] = None
