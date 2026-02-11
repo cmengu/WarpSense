@@ -9,8 +9,8 @@ from sqlalchemy import pool
 from alembic import context
 from dotenv import load_dotenv
 
+# backend/ when running from backend/alembic/env.py
 BASE_DIR = Path(__file__).resolve().parents[1]
-REPO_ROOT = BASE_DIR.parent
 sys.path.insert(0, str(BASE_DIR))
 
 # this is the Alembic Config object, which provides
@@ -22,7 +22,9 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-load_dotenv(REPO_ROOT / ".env")
+# Load backend/.env — same location as database/connection.py. Works regardless of
+# where you run `alembic` from (repo root or backend/).
+load_dotenv(dotenv_path=BASE_DIR / ".env")
 
 database_url = os.getenv("DATABASE_URL")
 if not database_url:

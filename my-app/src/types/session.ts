@@ -234,6 +234,12 @@ export interface Session {
    * Required when status is "complete".
    */
   completed_at: string | null;
+
+  /**
+   * When true, disables sensor continuity checks (amps/volts jump limits).
+   * Used for test data (e.g. novice sessions with realistic spikes).
+   */
+  disable_sensor_continuity_checks?: boolean;
 }
 
 // ---------------------------------------------------------------------------

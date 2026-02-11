@@ -17,6 +17,9 @@ from typing import List, Literal
 from pydantic import BaseModel, Field, field_validator
 
 
+ABSOLUTE_ZERO_CELSIUS = -273.15
+
+
 class TemperaturePoint(BaseModel):
     """Single temperature reading at a named direction."""
 
@@ -27,7 +30,11 @@ class TemperaturePoint(BaseModel):
     temp_celsius: float = Field(
         ...,
         description="Temperature in Celsius at the specified direction.",
+        ge=ABSOLUTE_ZERO_CELSIUS,
     )
+
+
+THERMAL_DIRECTIONS = ("center", "north", "south", "east", "west")
 
 
 class ThermalSnapshot(BaseModel):
@@ -36,6 +43,7 @@ class ThermalSnapshot(BaseModel):
     distance_mm: float = Field(
         ...,
         description="Distance along weld in millimeters for this snapshot.",
+        gt=0,
     )
     readings: List[TemperaturePoint] = Field(
         ...,
@@ -51,4 +59,17 @@ class ThermalSnapshot(BaseModel):
     ) -> List[TemperaturePoint]:
         if len(value) != 5:
             raise ValueError("ThermalSnapshot must contain exactly 5 readings")
+        return value
+
+    @field_validator("readings")
+    @classmethod
+    def validate_canonical_directions(cls, value: List[TemperaturePoint]) -> List[TemperaturePoint]:
+        """Each canonical direction must appear exactly once."""
+        seen = [r.direction for r in value]
+        for direction in THERMAL_DIRECTIONS:
+            if seen.count(direction) != 1:
+                raise ValueError(
+                    f"ThermalSnapshot must have exactly one reading per direction; "
+                    f"'{direction}' appears {seen.count(direction)} time(s)"
+                )
         return value

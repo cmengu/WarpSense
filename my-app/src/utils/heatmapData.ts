@@ -11,6 +11,7 @@
 
 import type { Frame } from "@/types/frame";
 import type { ThermalDirection } from "@/types/thermal";
+import { hasThermalData } from "@/utils/frameUtils";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -69,7 +70,7 @@ export function extractHeatmapData(
   const distanceSet = new Set<number>();
 
   for (const frame of frames) {
-    if (!frame.has_thermal_data) continue;
+    if (!hasThermalData(frame)) continue;
 
     for (const snapshot of frame.thermal_snapshots) {
       if (!snapshot.readings || snapshot.readings.length === 0) continue;

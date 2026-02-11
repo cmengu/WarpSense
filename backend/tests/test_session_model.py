@@ -83,9 +83,10 @@ def test_frame_timestamp_validation_rejects_duplicates_and_misordered_frames():
 
 
 def test_thermal_distance_consistency_validation_enforces_canonical_set():
+    """Distances [10, 25, 40] violate 10mm interval (gaps of 15mm)."""
     frames = [
-        _frame(0, distances_mm=[0.0, 10.0]),
-        _frame(10, distances_mm=[0.0, 12.0]),
+        _frame(0, distances_mm=[10.0, 25.0, 40.0]),
+        _frame(10, distances_mm=[10.0, 25.0, 40.0]),
     ]
     data = _base_session(frames=frames)
     with pytest.raises(ValidationError):

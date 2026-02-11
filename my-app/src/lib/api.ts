@@ -163,6 +163,46 @@ export async function fetchDashboardData(): Promise<DashboardData> {
 // ---------------------------------------------------------------------------
 
 /**
+ * Request body for creating a new session.
+ */
+export interface CreateSessionRequest {
+  /** Operator identifier for audit. */
+  operator_id: string;
+  /** Weld type identifier (e.g. "mild_steel"). */
+  weld_type: string;
+  /** Optional session ID. If omitted, backend generates one. */
+  session_id?: string;
+}
+
+/**
+ * Response from POST /api/sessions.
+ */
+export interface CreateSessionResponse {
+  /** The created session ID. Use with addFrames() and fetchSession(). */
+  session_id: string;
+}
+
+/**
+ * Create a new welding session in RECORDING status.
+ *
+ * Use the returned session_id when calling addFrames() to ingest frame data.
+ *
+ * @param body - Operator ID, weld type, and optional session ID.
+ * @returns Created session ID.
+ * @throws Error if session_id already exists (409) or request fails.
+ */
+export async function createSession(
+  body: CreateSessionRequest
+): Promise<CreateSessionResponse> {
+  const url = buildUrl("/api/sessions");
+  return apiFetch<CreateSessionResponse>(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+/**
  * Fetch a single welding session with its frames.
  *
  * Supports pagination (limit/offset), time range filtering,

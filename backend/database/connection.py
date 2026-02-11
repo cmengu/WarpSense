@@ -9,7 +9,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 
 from .base import Base
@@ -36,3 +36,16 @@ def create_engine_from_env():
 
 engine = create_engine_from_env()
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
+
+
+def check_db_connectivity() -> bool:
+    """
+    Verify database connectivity with a simple query.
+    Returns True if OK, False if connection fails.
+    """
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        return True
+    except Exception:
+        return False

@@ -55,12 +55,17 @@ def calculate_heat_dissipation(
     curr_frame: Frame,
     db: Optional[OrmSession] = None,
     session_id: Optional[str] = None,
+    sample_interval_seconds: float = 0.1,
 ) -> Optional[float]:
     """Calculate heat dissipation rate with null-safe checks.
 
-    Formula: (prev_center_temp - curr_center_temp) / 0.1 seconds
-    Assumes thermal snapshots appear every 100ms (0.1s).
+    Formula: (prev_center_temp - curr_center_temp) / sample_interval_seconds
+    Default: thermal snapshots every 100ms (0.1s). Can override for testing.
+    Raises ZeroDivisionError if sample_interval_seconds == 0.
     """
+    if sample_interval_seconds == 0:
+        raise ZeroDivisionError("sample_interval_seconds must be non-zero")
+
     if prev_frame is None and db is not None and session_id is not None:
         prev_frame = get_previous_frame(
             session_id=session_id, timestamp_ms=curr_frame.timestamp_ms, db=db
@@ -80,5 +85,4 @@ def calculate_heat_dissipation(
     if prev_center is None or curr_center is None:
         return None
 
-    sample_interval_seconds = 0.1
     return (prev_center - curr_center) / sample_interval_seconds

@@ -27,6 +27,15 @@ pip install -r requirements.txt
 uvicorn main:app --reload
 ```
 
+## Environment Setup
+
+Copy the example env file and configure:
+
+```bash
+cp .env.example .env
+# Edit .env: set DATABASE_URL (PostgreSQL connection string)
+```
+
 ## Verify Installation
 
 After installation, verify everything works:
@@ -98,3 +107,9 @@ source venv/bin/activate
 # Verify you're using the venv Python
 which python  # Should show: .../backend/venv/bin/python
 ```
+
+### Python Path for Mock Data & Tests
+The backend uses `models`, `data`, `database` as top-level imports. These resolve when:
+- **Running the server**: Start from `backend/` so `uvicorn main:app` has backend as the working directory.
+- **Running tests**: Use `PYTHONPATH=.` from `backend/`, e.g. `PYTHONPATH=. pytest tests/`
+- **Running mock_sessions**: From `backend/`, `python -c "from data.mock_sessions import generate_expert_session"` works.
