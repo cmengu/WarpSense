@@ -1,16 +1,39 @@
 'use client';
 
 import { Suspense, use, useEffect, useState } from 'react';
+import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import HeatMap from '@/components/welding/HeatMap';
 import TorchAngleGraph from '@/components/welding/TorchAngleGraph';
 import ScorePanel from '@/components/welding/ScorePanel';
-import { fetchSession } from '@/lib/api';
+import { fetchSession, fetchScore, type SessionScore } from '@/lib/api';
+import { alertOnReplayFailure, logWarn } from '@/lib/logger';
+import { FRAME_INTERVAL_MS } from '@/constants/validation';
 import { extractHeatmapData } from '@/utils/heatmapData';
 import { extractAngleData } from '@/utils/angleData';
 import { useSessionMetadata } from '@/hooks/useSessionMetadata';
 import { useFrameData } from '@/hooks/useFrameData';
+import { getFrameAtTimestamp, extractCenterTemperatureWithCarryForward } from '@/utils/frameUtils';
 import type { Session } from '@/types/session';
+
+// Dynamic import for TorchViz3D to avoid SSR issues with three.js/WebGL
+const TorchViz3D = dynamic(
+  () => import('@/components/welding/TorchViz3D').then((m) => m.default),
+  { ssr: false }
+);
+
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+/**
+ * Hardcoded comparison session ID for side-by-side 3D visualization (incubation demo).
+ * Used to fetch a novice session for comparison with the primary (expert) session.
+ *
+ * @see .cursor/plans/side-by-side_3d_comparison_f15447b8.plan.md — Step 4
+ */
+const COMPARISON_SESSION_ID = 'sess_novice_001';
 
 type ReplayParams = { sessionId: string } | Promise<{ sessionId: string }>;
 
@@ -58,9 +81,28 @@ function ReplayPageInner({ sessionId }: { sessionId: string }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Comparison session state (for side-by-side 3D visualization)
+  const [comparisonSession, setComparisonSession] = useState<Session | null>(null);
+  const [showComparison, setShowComparison] = useState(true); // Default: show comparison
+
+  // Score state for both sessions (for 3D block score comparison)
+  const [primaryScore, setPrimaryScore] = useState<SessionScore | null>(null);
+  const [comparisonScore, setComparisonScore] = useState<SessionScore | null>(null);
+
+  const [currentTimestamp, setCurrentTimestamp] = useState<number | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [playbackSpeed, setPlaybackSpeed] = useState(1);
+
   const metadata = useSessionMetadata(sessionData);
   const frameData = useFrameData(
     sessionData?.frames ?? [],
+    null,
+    null
+  );
+
+  // Frame data for comparison session (used by 3D visualization in Step 5)
+  const comparisonFrameData = useFrameData(
+    comparisonSession?.frames ?? [],
     null,
     null
   );
@@ -72,33 +114,182 @@ function ReplayPageInner({ sessionId }: { sessionId: string }) {
     ? extractAngleData(sessionData.frames)
     : null;
 
+  const firstTimestamp = frameData.first_timestamp_ms;
+  const lastTimestamp = frameData.last_timestamp_ms;
+
+  useEffect(() => {
+    if (firstTimestamp != null && lastTimestamp != null) {
+      setCurrentTimestamp((prev) => {
+        if (prev == null || prev < firstTimestamp || prev > lastTimestamp) {
+          return firstTimestamp;
+        }
+        return prev;
+      });
+    } else {
+      setCurrentTimestamp(null);
+    }
+  }, [firstTimestamp, lastTimestamp]);
+
+  // Playback loop: advance currentTimestamp every FRAME_INTERVAL_MS at 1× speed.
+  // Uses setInterval (not RAF) for 100 updates/sec to match 100Hz frame rate.
+  useEffect(() => {
+    if (!isPlaying || lastTimestamp == null || firstTimestamp == null) return;
+
+    const intervalMs = FRAME_INTERVAL_MS / playbackSpeed;
+    const id = setInterval(() => {
+      setCurrentTimestamp((prev) => {
+        const base = prev ?? firstTimestamp;
+        const next = base + FRAME_INTERVAL_MS;
+        if (next >= lastTimestamp) {
+          setIsPlaying(false);
+          return lastTimestamp;
+        }
+        return next;
+      });
+    }, intervalMs);
+
+    return () => clearInterval(id);
+  }, [isPlaying, playbackSpeed, firstTimestamp, lastTimestamp]);
+
+  // Keyboard shortcuts: Space = toggle play; ArrowLeft/Right = step ±FRAME_INTERVAL_MS
+  useEffect(() => {
+    if (firstTimestamp == null || lastTimestamp == null || lastTimestamp <= firstTimestamp) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLElement && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+
+      if (e.code === 'Space') {
+        e.preventDefault();
+        setIsPlaying((p) => !p);
+        return;
+      }
+      if (e.code === 'ArrowLeft') {
+        e.preventDefault();
+        setIsPlaying(false);
+        setCurrentTimestamp((prev) => {
+          const base = prev ?? firstTimestamp;
+          return Math.max(firstTimestamp, base - FRAME_INTERVAL_MS);
+        });
+        return;
+      }
+      if (e.code === 'ArrowRight') {
+        e.preventDefault();
+        setIsPlaying(false);
+        setCurrentTimestamp((prev) => {
+          const base = prev ?? firstTimestamp;
+          return Math.min(lastTimestamp, base + FRAME_INTERVAL_MS);
+        });
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [firstTimestamp, lastTimestamp]);
+
+  // Fetch primary session
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setError(null);
 
-    fetchSession(sessionId)
-      .then((session) => {
-        if (!cancelled) {
-          setSessionData(session);
-        }
-      })
+    const load = async () => {
+      // CRITICAL: Pass limit to get full session (expert has ~1500 frames; default 1000 truncates)
+      const data = await fetchSession(sessionId, { limit: 2000 });
+      if (!cancelled) setSessionData(data);
+    };
+    load()
       .catch((err) => {
         if (!cancelled) {
+          alertOnReplayFailure(sessionId, err, { source: "primary_session" });
           setError(err instanceof Error ? err.message : String(err));
           setSessionData(null);
         }
       })
       .finally(() => {
-        if (!cancelled) {
-          setLoading(false);
-        }
+        if (!cancelled) setLoading(false);
       });
 
     return () => {
       cancelled = true;
     };
   }, [sessionId]);
+
+  // Fetch comparison session (for side-by-side 3D visualization)
+  // Handles 404 gracefully: comparison is optional; page still works if missing.
+  useEffect(() => {
+    if (!showComparison) {
+      setComparisonSession(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadComparison = async () => {
+      try {
+        const data = await fetchSession(COMPARISON_SESSION_ID, { limit: 2000 });
+        if (!cancelled) setComparisonSession(data);
+      } catch (err) {
+        // 404 or other error: comparison is optional, don't break the page
+        if (!cancelled) {
+          logWarn(
+            "ReplayPage",
+            `Comparison session ${COMPARISON_SESSION_ID} not found or failed to load`,
+            { error: err instanceof Error ? err.message : String(err) }
+          );
+          setComparisonSession(null);
+        }
+      }
+    };
+
+    loadComparison();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [showComparison]);
+
+  // Fetch scores for both sessions (for 3D block score comparison)
+  useEffect(() => {
+    let cancelled = false;
+
+    // Fetch primary session score
+    fetchScore(sessionId)
+      .then((data) => {
+        if (!cancelled) setPrimaryScore(data);
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          logWarn("ReplayPage", `Failed to fetch score for ${sessionId}`, {
+            error: err instanceof Error ? err.message : String(err),
+          });
+          setPrimaryScore(null);
+        }
+      });
+
+    // Fetch comparison session score (if comparison is enabled and loaded)
+    if (showComparison && comparisonSession) {
+      fetchScore(COMPARISON_SESSION_ID)
+        .then((data) => {
+          if (!cancelled) setComparisonScore(data);
+        })
+        .catch((err) => {
+          if (!cancelled) {
+            logWarn(
+              "ReplayPage",
+              `Failed to fetch score for ${COMPARISON_SESSION_ID}`,
+              { error: err instanceof Error ? err.message : String(err) }
+            );
+            setComparisonScore(null);
+          }
+        });
+    } else {
+      setComparisonScore(null);
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionId, showComparison, comparisonSession]);
 
   // Loading state
   if (loading) {
@@ -139,19 +330,166 @@ function ReplayPageInner({ sessionId }: { sessionId: string }) {
         <h1 className="text-3xl font-semibold mb-6 text-black dark:text-zinc-50">
           Session Replay: {sessionId}
         </h1>
-        
+
         {metadata && (
-          <div className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
-            {metadata.weld_type_label} • {metadata.duration_display} •{' '}
-            {metadata.frame_count} frames
+          <div className="text-sm text-zinc-600 dark:text-zinc-400 mb-4 flex flex-wrap items-center gap-3">
+            <span>
+              {metadata.weld_type_label} • {metadata.duration_display} •{' '}
+              {metadata.frame_count} frames
+            </span>
+            <Link
+              href={`/compare?sessionA=${encodeURIComponent(sessionId)}`}
+              className="text-blue-600 dark:text-blue-400 hover:underline"
+            >
+              Compare with another session
+            </Link>
+            <button
+              type="button"
+              onClick={() => setShowComparison((prev) => !prev)}
+              className="px-3 py-1 text-xs rounded-md bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-700"
+            >
+              {showComparison ? 'Hide' : 'Show'} Comparison
+            </button>
           </div>
         )}
+
+        {firstTimestamp != null && lastTimestamp != null && lastTimestamp > firstTimestamp && (
+          <div className="mb-4 space-y-2">
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setIsPlaying((p) => !p)}
+                className="px-4 py-2 rounded-md bg-blue-500 text-white text-sm font-medium hover:bg-blue-600 disabled:opacity-50"
+                aria-label={isPlaying ? 'Pause playback' : 'Play playback'}
+              >
+                {isPlaying ? 'Pause' : 'Play'}
+              </button>
+              <label htmlFor="replay-slider" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                Timeline
+              </label>
+            </div>
+            <input
+              id="replay-slider"
+              type="range"
+              min={firstTimestamp}
+              max={lastTimestamp}
+              step={10}
+              value={currentTimestamp ?? firstTimestamp}
+              onChange={(e) => {
+                setIsPlaying(false);
+                setCurrentTimestamp(Number(e.target.value));
+              }}
+              className="w-full max-w-2xl h-2 bg-zinc-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+            />
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              {(currentTimestamp ?? firstTimestamp) / 1000} s
+            </p>
+          </div>
+        )}
+
+        {/* 3D Torch Visualization Block — Side-by-side comparison (Expert | Novice) */}
+        {currentTimestamp != null && sessionData?.frames && (
+          <ErrorBoundary>
+            <div className="mb-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Left: Current Session (Expert) */}
+                <div>
+                  {(() => {
+                    const frame = getFrameAtTimestamp(sessionData.frames, currentTimestamp);
+                    const angle = frame?.angle_degrees ?? 45;
+                    const temp = extractCenterTemperatureWithCarryForward(
+                      sessionData.frames,
+                      currentTimestamp
+                    );
+                    return (
+                      <>
+                        <TorchViz3D
+                          angle={angle}
+                          temp={temp}
+                          label={`Current Session (${sessionId})`}
+                        />
+                        {/* Inline score display */}
+                        {primaryScore ? (
+                          <div className="mt-2 p-3 bg-white dark:bg-zinc-900 rounded border border-zinc-200 dark:border-zinc-800">
+                            <div className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
+                              Score: {primaryScore.total} / 100
+                            </div>
+                            <div className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
+                              {primaryScore.rules.filter((r) => r.passed).length} / 5 rules passed
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="mt-2 p-3 bg-zinc-50 dark:bg-zinc-900/50 rounded border border-zinc-200 dark:border-zinc-800">
+                            <div className="text-xs text-zinc-500 dark:text-zinc-400">
+                              Loading score...
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
+                </div>
+
+                {/* Right: Comparison Session (Novice) */}
+                {showComparison && comparisonSession?.frames ? (
+                  <div>
+                    {(() => {
+                      const frame = getFrameAtTimestamp(
+                        comparisonSession.frames,
+                        currentTimestamp
+                      );
+                      const angle = frame?.angle_degrees ?? 45;
+                      const temp = extractCenterTemperatureWithCarryForward(
+                        comparisonSession.frames,
+                        currentTimestamp
+                      );
+                      return (
+                        <>
+                          <TorchViz3D
+                            angle={angle}
+                            temp={temp}
+                            label={`Comparison (${COMPARISON_SESSION_ID})`}
+                          />
+                          {/* Inline score display */}
+                          {comparisonScore ? (
+                            <div className="mt-2 p-3 bg-white dark:bg-zinc-900 rounded border border-zinc-200 dark:border-zinc-800">
+                              <div className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
+                                Score: {comparisonScore.total} / 100
+                              </div>
+                              <div className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
+                                {comparisonScore.rules.filter((r) => r.passed).length} / 5 rules
+                                passed
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="mt-2 p-3 bg-zinc-50 dark:bg-zinc-900/50 rounded border border-zinc-200 dark:border-zinc-800">
+                              <div className="text-xs text-zinc-500 dark:text-zinc-400">
+                                Loading score...
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      );
+                    })()}
+                  </div>
+                ) : showComparison ? (
+                  <div className="flex items-center justify-center h-64 bg-zinc-50 dark:bg-zinc-900/50 rounded-lg border border-zinc-200 dark:border-zinc-800">
+                    <div className="text-sm text-zinc-500 dark:text-zinc-400">
+                      Comparison session not available
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          </ErrorBoundary>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           <ErrorBoundary>
-            <HeatMap sessionId={sessionId} data={heatmapData} />
+            <HeatMap sessionId={sessionId} data={heatmapData} activeTimestamp={currentTimestamp} />
           </ErrorBoundary>
           <ErrorBoundary>
-            <TorchAngleGraph sessionId={sessionId} data={angleData} />
+            <TorchAngleGraph sessionId={sessionId} data={angleData} activeTimestamp={currentTimestamp} />
           </ErrorBoundary>
         </div>
 

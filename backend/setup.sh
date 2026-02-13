@@ -38,6 +38,17 @@ python3 -c "from fastapi import FastAPI; print('  ✓ FastAPI installed')" || (e
 python3 -c "from pydantic import BaseModel; print('  ✓ Pydantic installed')" || (echo "  ✗ Pydantic installation failed" && exit 1)
 python3 -c "import uvicorn; print('  ✓ Uvicorn installed')" || (echo "  ✗ Uvicorn installation failed" && exit 1)
 
+# Create .env from .env.example if missing
+if [ ! -f ".env" ]; then
+  echo ""
+  echo "📝 Creating .env from .env.example (you must edit .env to set DATABASE_URL)"
+  cp .env.example .env
+  echo "  → Edit $(pwd)/.env and set your PostgreSQL connection string."
+else
+  echo ""
+  echo "✅ .env already exists"
+fi
+
 echo ""
 echo "🎉 Setup complete!"
 echo ""

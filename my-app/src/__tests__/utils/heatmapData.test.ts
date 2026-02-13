@@ -7,6 +7,8 @@
 
 import {
   extractHeatmapData,
+  tempToColor,
+  tempToColorRange,
   type HeatmapDataPoint,
   type HeatmapData,
 } from "@/utils/heatmapData";
@@ -260,6 +262,77 @@ describe("extractHeatmapData", () => {
       // But unique timestamps/distances: 1 each
       expect(result.timestamps_ms).toEqual([100]);
       expect(result.distances_mm).toEqual([10.0]);
+    });
+  });
+
+  describe("tempToColor", () => {
+    it("returns blue (#3b82f6) at 20°C", () => {
+      expect(tempToColor(20).toLowerCase()).toBe("#3b82f6");
+    });
+
+    it("returns yellow (#eab308) at 320°C (anchor)", () => {
+      expect(tempToColor(320).toLowerCase()).toBe("#eab308");
+    });
+
+    it("returns red (#ef4444) at 600°C", () => {
+      expect(tempToColor(600).toLowerCase()).toBe("#ef4444");
+    });
+
+    it("interpolates between anchors", () => {
+      const low = tempToColor(100);
+      const mid = tempToColor(310);
+      const high = tempToColor(450);
+      expect(low).toMatch(/^#[0-9a-f]{6}$/i);
+      expect(mid).toMatch(/^#[0-9a-f]{6}$/i);
+      expect(high).toMatch(/^#[0-9a-f]{6}$/i);
+    });
+
+    it("clamps temps below 20 to 20", () => {
+      expect(tempToColor(0).toLowerCase()).toBe("#3b82f6");
+    });
+
+    it("clamps temps above 600 to 600", () => {
+      expect(tempToColor(800).toLowerCase()).toBe("#ef4444");
+    });
+
+    it("expert ~490°C at center distance yields yellow-ish (between 310 and 600)", () => {
+      const color = tempToColor(490).toLowerCase();
+      const hexToRgb = (h: string) => ({
+        r: parseInt(h.slice(1, 3), 16),
+        g: parseInt(h.slice(3, 5), 16),
+        b: parseInt(h.slice(5, 7), 16),
+      });
+      const rgb = hexToRgb(color);
+      const yellow = hexToRgb("#eab308");
+      const red = hexToRgb("#ef4444");
+      expect(rgb.g).toBeGreaterThan(50);
+      expect(rgb.r).toBeGreaterThan(rgb.b);
+    });
+
+    it("novice spike ~520°C yields red-ish (high R, low B)", () => {
+      const color520 = tempToColor(520).toLowerCase();
+      const r = parseInt(color520.slice(1, 3), 16);
+      const g = parseInt(color520.slice(3, 5), 16);
+      const b = parseInt(color520.slice(5, 7), 16);
+      expect(r).toBeGreaterThan(150);
+      expect(b).toBeLessThan(100);
+      expect(r).toBeGreaterThan(g);
+      expect(r).toBeGreaterThan(b);
+    });
+  });
+
+  describe("tempToColorRange", () => {
+    it("maps min to blue and max to red over the given range", () => {
+      const fn = tempToColorRange(400, 550);
+      const atMin = fn(400).toLowerCase();
+      const atMax = fn(550).toLowerCase();
+      expect(atMin).toBe("#3b82f6");
+      expect(atMax).toBe("#ef4444");
+    });
+
+    it("returns tempToColor when range is invalid (span <= 0)", () => {
+      const fn = tempToColorRange(500, 500);
+      expect(fn(450)).toBe(tempToColor(450));
     });
   });
 

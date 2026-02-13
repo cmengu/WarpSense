@@ -29,12 +29,18 @@ uvicorn main:app --reload
 
 ## Environment Setup
 
-Copy the example env file and configure:
+**Location**: `backend/.env` (relative to project root). From inside `backend/`, the file is `.env`.
+
+Create it from the template:
 
 ```bash
+cd backend
 cp .env.example .env
-# Edit .env: set DATABASE_URL (PostgreSQL connection string)
+# Edit .env: set DATABASE_URL=postgresql://user:password@localhost:5432/welding_sessions
 ```
+
+Without this, the server will fail with `ValueError: DATABASE_URL is not set`.  
+See `backend/ENV_SETUP.md` for rationale and path details.
 
 ## Verify Installation
 
@@ -49,12 +55,13 @@ python3 -c "import uvicorn; print('Uvicorn OK')"
 
 ## Start the Server
 
-Once dependencies are installed:
+→ See **../STARTME.md** for run commands (includes ENV=development for seed/wipe).
 
 ```bash
-cd /Users/ngchenmeng/test/backend
+cd backend
 source venv/bin/activate
-uvicorn main:app --reload
+export ENV=development
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 You should see:
@@ -81,16 +88,11 @@ If you see "nodename nor servname provided, or not known":
 - Try using a different network
 
 ### Port Already in Use
-If port 8000 is busy:
+→ See **../STARTME.md** for kill commands. Or use a different port:
 ```bash
-# Find what's using port 8000
-lsof -i :8000
-
-# Kill the process or use a different port
 uvicorn main:app --reload --port 8001
 ```
-
-Then update `.env.local` in `my-app/`:
+Then update `NEXT_PUBLIC_API_URL` in `my-app/.env.local`:
 ```
 NEXT_PUBLIC_API_URL=http://localhost:8001
 ```

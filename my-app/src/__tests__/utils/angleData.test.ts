@@ -76,6 +76,36 @@ describe("extractAngleData", () => {
     });
   });
 
+  describe("Step 3 verification: expert flat vs novice drift", () => {
+    it("expert-like data: flat ~44-46° across session", () => {
+      const frames = [
+        makeFrame(0, 44.0),
+        makeFrame(5000, 45.0),
+        makeFrame(10000, 46.0),
+        makeFrame(15000, 45.0),
+      ];
+      const result = extractAngleData(frames);
+      expect(result.min_angle_degrees).toBe(44.0);
+      expect(result.max_angle_degrees).toBe(46.0);
+      expect(result.max_angle_degrees! - result.min_angle_degrees!).toBeLessThanOrEqual(5);
+    });
+
+    it("novice-like data: drifts 45° to 65° over time", () => {
+      const frames = [
+        makeFrame(0, 45.0),
+        makeFrame(5000, 52.0),
+        makeFrame(10000, 60.0),
+        makeFrame(15000, 65.0),
+      ];
+      const result = extractAngleData(frames);
+      expect(result.min_angle_degrees).toBe(45.0);
+      expect(result.max_angle_degrees).toBe(65.0);
+      expect(result.points[result.points.length - 1].angle_degrees).toBeGreaterThan(
+        result.points[0].angle_degrees
+      );
+    });
+  });
+
   describe("multiple frames", () => {
     it("extracts data points and computes statistics", () => {
       const frames = [

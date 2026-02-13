@@ -277,6 +277,23 @@ else:
         assert len(thermal_frames) > 0
         assert len(thermal_frames[0]["thermal_snapshots"][0]["readings"]) == 5
 
+    def test_limit_2000_returns_full_1500_frame_session(client, db_session):
+        """Step 1 verification: limit=2000 allows full 1500-frame expert session (no truncation)."""
+        session_id = "sess_expert_001"
+        db_session.add(_make_session(session_id, frame_count=1500))
+        db_session.commit()
+        _insert_frames(db_session, session_id, 1500, with_thermal_every=10)
+
+        response = client.get(
+            f"/api/sessions/{session_id}",
+            params={"limit": 2000},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data["frames"]) == 1500, "limit=2000 must return all 1500 frames"
+        thermal_count = sum(1 for f in data["frames"] if f.get("has_thermal_data"))
+        assert thermal_count >= 100, "expert has ~150 thermal frames"
+
     def test_limit_offset_pagination(client, db_session):
         """GET with limit and offset returns paginated frames."""
         session_id = "sess-pag"

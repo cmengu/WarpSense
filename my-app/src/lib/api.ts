@@ -248,6 +248,50 @@ export async function fetchSession(
 }
 
 /**
+ * Score for a single rule (actual vs threshold).
+ */
+export interface ScoreRule {
+  /** Rule identifier (e.g. amps_stability). */
+  rule_id: string;
+  /** Threshold value; pass when actual_value <= threshold. */
+  threshold: number;
+  /** Whether the rule passed. */
+  passed: boolean;
+  /** Measured value for "actual vs threshold" display. */
+  actual_value: number | null;
+}
+
+/**
+ * Session score with total and per-rule breakdown.
+ */
+export interface SessionScore {
+  /** Total score 0–100 (passed_rules * 20). */
+  total: number;
+  /** Per-rule results with actual_value. */
+  rules: ScoreRule[];
+}
+
+/**
+ * Fetch score for a welding session.
+ *
+ * Backend loads session, extracts features, runs 5 rules, returns total + rules.
+ *
+ * @param sessionId - Session to score.
+ * @returns SessionScore with total (0–100) and rules (✓/✗, threshold, actual_value).
+ * @throws Error if session not found (404) or request fails.
+ */
+export async function fetchScore(
+  sessionId: string
+): Promise<SessionScore> {
+  const url = buildUrl(`/api/sessions/${encodeURIComponent(sessionId)}/score`);
+  return apiFetch<SessionScore>(url);
+}
+
+// ---------------------------------------------------------------------------
+// Frames
+// ---------------------------------------------------------------------------
+
+/**
  * Add frames to an existing session (incremental ingestion).
  *
  * Sends 1,000–5,000 frames per request. The backend validates
@@ -263,10 +307,10 @@ export async function fetchSession(
  * ```typescript
  * const result = await addFrames("sess_001", framesBatch);
  * if (result.status === "success") {
- *   console.log(`Ingested ${result.successful_count} frames`);
- *   console.log(`Next expected: ${result.next_expected_timestamp}ms`);
+ *   // Use centralized logger for production
+ *   // logError("addFrames", null, { count: result.successful_count, next: result.next_expected_timestamp });
  * } else {
- *   console.error("Failed frames:", result.failed_frames);
+ *   // logError("addFrames", "Ingestion failed", { failed_frames: result.failed_frames });
  * }
  * ```
  */
