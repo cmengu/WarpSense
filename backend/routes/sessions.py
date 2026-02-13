@@ -20,12 +20,14 @@ from pydantic import BaseModel, Field
 from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session as OrmSession
+from sqlalchemy.orm import Session as OrmSession, joinedload
 
 from database.connection import SessionLocal
 from database.models import FrameModel, SessionModel
+from features.extractor import extract_features
 from models.frame import Frame
-from models.session import SessionStatus
+from models.session import Session, SessionStatus
+from scoring.rule_based import score_session
 from services.thermal_service import calculate_heat_dissipation, get_previous_frame
 
 router = APIRouter()
@@ -250,20 +252,33 @@ async def get_session_features(session_id: str):
 
 
 @router.get("/sessions/{session_id}/score")
-async def get_session_score(session_id: str):
+async def get_session_score(
+    session_id: str,
+    db: OrmSession = Depends(get_db),
+):
     """
-    Get scoring for a session - Not implemented yet
+    Get rule-based score for a welding session.
 
-    Args:
-        session_id: Session ID
+    Loads session with frames (joinedload), extracts 5 features, runs 5 rules,
+    returns { total, rules } with actual_value per rule for "actual vs threshold" display.
 
     Returns:
-        SessionScore object
-
-    Raises:
-        HTTPException: 501 Not Implemented
+        200: { total: 0-100, rules: [{ rule_id, threshold, passed, actual_value }] }
+        404: Session not found
     """
-    raise HTTPException(status_code=501, detail="Not implemented yet")
+    session_model = (
+        db.query(SessionModel)
+        .options(joinedload(SessionModel.frames))
+        .filter_by(session_id=session_id)
+        .first()
+    )
+    if not session_model:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    session = session_model.to_pydantic()
+    features = extract_features(session)
+    score = score_session(session, features)
+    return score.model_dump()
 
 
 @router.post("/sessions/{session_id}/frames")
@@ -422,12 +437,15 @@ async def add_frames(
             "next_expected_timestamp": None,
             "can_resume": False,
         }
-    except Exception as exc:
+    except Exception:
         db.rollback()
+        # Sanitize: do not expose internal exception details to client
         return {
             "status": "failed",
             "successful_count": 0,
-            "failed_frames": [{"index": None, "timestamp_ms": None, "error": str(exc)}],
+            "failed_frames": [
+                {"index": None, "timestamp_ms": None, "error": "Internal error during frame ingestion"}
+            ],
             "next_expected_timestamp": None,
             "can_resume": False,
         }

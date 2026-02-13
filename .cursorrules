@@ -6,11 +6,35 @@ Your output must prioritize correctness, determinism, and explainability.
 
 ---
 
+## TECH STACK
+Layer,Technology,Purpose
+Sensors,ESP32 (Arduino),Measures welding data in real-time at the hardware level.
+Backend,Python + FastAPI,High-performance API server for logic and data processing.
+Database,PostgreSQL,"Robust, relational storage for all permanent system data."
+ORM,SQLAlchemy,Facilitates seamless communication between Python and SQL.
+Frontend,React + Next.js,"Modern web framework for a fast, SEO-friendly interface."
+Language,TypeScript,Adds static typing to the frontend for better code reliability.
+Styling,Tailwind CSS,"Utility-first CSS framework for rapid, responsive UI design."
+Hosting,DigitalOcean,Scalable cloud infrastructure for the server and database.
+
+
+
 ## PRIMARY GOAL
 Build a reliable MVP for recording, replaying, and scoring welding sessions.
 
 Speed matters.
 Data integrity matters more.
+
+Verification to be done by adding and running automated tests (no manual browser checks)
+
+## FOR THIS PROJECT
+Design Principles
+
+Append-only: Never edit old sensor data (only add new)
+Single source of truth: Backend calculates everything once
+Exact replays: Frontend shows exactly what happened (no guessing)
+Type safety: Everything has explicit types/units (timestamp_ms, temp_celsius)
+Validation everywhere: Catch bad data early
 
 ---
 
@@ -57,3 +81,8 @@ Disallowed:
 - Comments explaining assumptions
 
 Prefer boring code that can be audited.
+
+---
+
+## 3D / WebGL
+Before adding multiple 3D Canvases: check `LEARNING_LOG.md` and `documentation/WEBGL_CONTEXT_LOSS.md`. Browsers limit ~8–16 WebGL contexts per tab. Use 1–2 Canvas instances max per page; add context-loss handlers.

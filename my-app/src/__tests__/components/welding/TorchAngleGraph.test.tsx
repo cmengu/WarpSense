@@ -30,7 +30,7 @@ describe('TorchAngleGraph', () => {
     expect(screen.getByText(/no angle data available/i)).toBeInTheDocument();
   });
 
-  it('displays data summary when data is provided', () => {
+  it('displays data summary and LineChart when data is provided', () => {
     const data: AngleData = {
       points: [
         { timestamp_ms: 0, angle_degrees: 40.0 },
@@ -43,15 +43,34 @@ describe('TorchAngleGraph', () => {
       avg_angle_degrees: 45.0,
     };
     render(<TorchAngleGraph sessionId="test-session-123" data={data} />);
-    expect(screen.getByText(/3 data points/i)).toBeInTheDocument();
+    expect(screen.getByText(/3 points/i)).toBeInTheDocument();
     expect(screen.getByText(/40\.0°/)).toBeInTheDocument();
     expect(screen.getByText(/50\.0°/)).toBeInTheDocument();
     expect(screen.getByText(/45\.0°/)).toBeInTheDocument();
-    expect(screen.getByText(/visualization rendering coming soon/i)).toBeInTheDocument();
+    expect(screen.queryByText(/visualization rendering coming soon/i)).not.toBeInTheDocument();
   });
 
   it('displays torch angle title', () => {
     render(<TorchAngleGraph sessionId="test-session-123" />);
     expect(screen.getByText(/torch angle over time/i)).toBeInTheDocument();
+  });
+
+  it('Step 3 verification: renders LineChart (no placeholder), accepts activeTimestamp', () => {
+    const expertLikeData: AngleData = {
+      points: [
+        { timestamp_ms: 0, angle_degrees: 44.0 },
+        { timestamp_ms: 5000, angle_degrees: 45.0 },
+        { timestamp_ms: 10000, angle_degrees: 46.0 },
+      ],
+      point_count: 3,
+      min_angle_degrees: 44.0,
+      max_angle_degrees: 46.0,
+      avg_angle_degrees: 45.0,
+    };
+    render(
+      <TorchAngleGraph sessionId="verify" data={expertLikeData} activeTimestamp={5000} />
+    );
+    expect(screen.queryByText(/visualization rendering coming soon/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/Range: 44\.0° – 46\.0°/)).toBeInTheDocument();
   });
 });

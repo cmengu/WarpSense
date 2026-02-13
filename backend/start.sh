@@ -12,6 +12,13 @@ fi
 # Activate virtual environment
 source venv/bin/activate
 
+# Check .env exists
+if [ ! -f ".env" ]; then
+  echo "❌ backend/.env not found. Run: cp .env.example .env"
+  echo "   Then edit .env and set DATABASE_URL."
+  exit 1
+fi
+
 # Install dependencies if needed
 if [ ! -f "venv/.installed" ]; then
     echo "Installing dependencies..."

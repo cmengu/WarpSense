@@ -201,6 +201,106 @@ export function filterThermalFrames(frames: Frame[]): Frame[] {
 }
 
 // ---------------------------------------------------------------------------
+// getFrameAtTimestamp
+// ---------------------------------------------------------------------------
+
+/**
+ * Return the frame at or before a given timestamp for replay consistency.
+ *
+ * Used by the replay page and 3D visualization to resolve the single frame
+ * that represents the weld state at `currentTimestamp`. Deterministic: no
+ * interpolation; exact replay contract.
+ *
+ * Assumption: `frames` is sorted by `timestamp_ms` ascending (backend guarantee).
+ *
+ * Logic:
+ *   1. Exact match: frame where timestamp_ms === timestamp.
+ *   2. Else: nearest frame with timestamp_ms <= timestamp (latest at or before).
+ *   3. Else: all frames are after timestamp (e.g. timestamp before session start)
+ *      → return frames[0].
+ *
+ * @param frames - Sorted array of frames (timestamp_ms ascending).
+ * @param timestamp - Target time in milliseconds.
+ * @returns The resolved frame, or null if frames array is empty.
+ */
+export function getFrameAtTimestamp(
+  frames: Frame[],
+  timestamp: number
+): Frame | null {
+  if (frames.length === 0) {
+    return null;
+  }
+
+  // Exact match first
+  const exact = frames.find((f) => f.timestamp_ms === timestamp);
+  if (exact) {
+    return exact;
+  }
+
+  // Nearest frame with timestamp_ms <= timestamp (walk backwards from end)
+  for (let i = frames.length - 1; i >= 0; i--) {
+    if (frames[i].timestamp_ms <= timestamp) {
+      return frames[i];
+    }
+  }
+
+  // All frames are after timestamp → use first frame
+  return frames[0];
+}
+
+// ---------------------------------------------------------------------------
+// extractCenterTemperatureWithCarryForward
+// ---------------------------------------------------------------------------
+
+/** Fallback center temperature (°C) when no thermal data is available. */
+const CENTER_TEMP_FALLBACK_CELSIUS = 450;
+
+/**
+ * Center temperature at currentTimestamp with carry-forward from last thermal frame.
+ *
+ * Thermal data is sparse (~100 ms); weld pool color should not flash on every
+ * non-thermal frame. This walks backwards from the frame at currentTimestamp
+ * to the most recent frame with thermal data and uses its center temperature.
+ *
+ * Assumption: `frames` sorted by `timestamp_ms` ascending.
+ *
+ * @param frames - Sorted array of frames.
+ * @param currentTimestamp - Current replay time in milliseconds.
+ * @returns Center temperature in °C, or CENTER_TEMP_FALLBACK_CELSIUS (450) if
+ *   no thermal data found or frames empty.
+ */
+export function extractCenterTemperatureWithCarryForward(
+  frames: Frame[],
+  currentTimestamp: number
+): number {
+  if (frames.length === 0) {
+    return CENTER_TEMP_FALLBACK_CELSIUS;
+  }
+
+  // Find index of frame at or before currentTimestamp (same logic as getFrameAtTimestamp)
+  let idx = -1;
+  for (let i = frames.length - 1; i >= 0; i--) {
+    if (frames[i].timestamp_ms <= currentTimestamp) {
+      idx = i;
+      break;
+    }
+  }
+  if (idx < 0) {
+    idx = 0;
+  }
+
+  // Walk backwards from idx to find last frame with thermal data
+  for (let i = idx; i >= 0; i--) {
+    if (hasThermalData(frames[i])) {
+      const temp = extractCenterTemperature(frames[i]);
+      return temp ?? CENTER_TEMP_FALLBACK_CELSIUS;
+    }
+  }
+
+  return CENTER_TEMP_FALLBACK_CELSIUS;
+}
+
+// ---------------------------------------------------------------------------
 // filterFramesByTimeRange
 // ---------------------------------------------------------------------------
 

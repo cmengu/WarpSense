@@ -1,5 +1,5 @@
 /**
- * Tests for frontend utility functions (Step 14, Step 19).
+ * Tests for frontend utility functions (Step 14, Step 19, Side-by-side 3D plan).
  * This file proves that every frontend data utility behaves safely, predictably, and defensively no matter how messy the backend data gets.
  *
  * Validates:
@@ -10,6 +10,8 @@
  *   - hasRequiredSensors() — all combinations, optional_sensors handling
  *   - filterThermalFrames() — mixed arrays, empty input
  *   - filterFramesByTimeRange() — inclusive bounds, null bounds
+ *   - getFrameAtTimestamp() — exact match, nearest (<=), empty, before first frame
+ *   - extractCenterTemperatureWithCarryForward() — has thermal, carry forward, empty, no thermal, null center
  *   - Data transformation edge cases: empty frames, missing data
  */
 
@@ -23,6 +25,8 @@ import {
   hasRequiredSensors,
   filterThermalFrames,
   filterFramesByTimeRange,
+  getFrameAtTimestamp,
+  extractCenterTemperatureWithCarryForward,
 } from "@/utils/frameUtils";
 
 // ---------------------------------------------------------------------------
@@ -469,6 +473,132 @@ describe("filterFramesByTimeRange", () => {
 
   it("handles empty input array", () => {
     expect(filterFramesByTimeRange([], 0, 100)).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getFrameAtTimestamp (Side-by-side 3D plan — frame resolution for replay)
+// ---------------------------------------------------------------------------
+
+describe("getFrameAtTimestamp", () => {
+  it("returns exact match when a frame has timestamp_ms === timestamp", () => {
+    const frames = [
+      makeSensorOnlyFrame({ timestamp_ms: 0 }),
+      makeSensorOnlyFrame({ timestamp_ms: 10 }),
+      makeThermalFrame({ timestamp_ms: 100 }),
+      makeSensorOnlyFrame({ timestamp_ms: 110 }),
+    ];
+    const frame = getFrameAtTimestamp(frames, 100);
+    expect(frame).not.toBeNull();
+    expect(frame!.timestamp_ms).toBe(100);
+    expect(frame!.has_thermal_data).toBe(true);
+  });
+
+  it("returns nearest frame with timestamp_ms <= timestamp when no exact match", () => {
+    const frames = [
+      makeSensorOnlyFrame({ timestamp_ms: 0 }),
+      makeSensorOnlyFrame({ timestamp_ms: 10 }),
+      makeThermalFrame({ timestamp_ms: 100 }),
+      makeSensorOnlyFrame({ timestamp_ms: 110 }),
+      makeSensorOnlyFrame({ timestamp_ms: 120 }),
+    ];
+    // 115 is between 110 and 120 → nearest at or before is 110
+    const frame = getFrameAtTimestamp(frames, 115);
+    expect(frame).not.toBeNull();
+    expect(frame!.timestamp_ms).toBe(110);
+  });
+
+  it("returns frames[0] when timestamp is before first frame", () => {
+    const frames = [
+      makeThermalFrame({ timestamp_ms: 100 }),
+      makeSensorOnlyFrame({ timestamp_ms: 110 }),
+    ];
+    const frame = getFrameAtTimestamp(frames, 50);
+    expect(frame).not.toBeNull();
+    expect(frame!.timestamp_ms).toBe(100);
+  });
+
+  it("returns null for empty frames array", () => {
+    expect(getFrameAtTimestamp([], 100)).toBeNull();
+  });
+
+  it("uses <= not < for nearest (frame at exactly timestamp is included)", () => {
+    const frames = [
+      makeSensorOnlyFrame({ timestamp_ms: 10 }),
+      makeThermalFrame({ timestamp_ms: 20 }),
+    ];
+    const frame = getFrameAtTimestamp(frames, 20);
+    expect(frame).not.toBeNull();
+    expect(frame!.timestamp_ms).toBe(20);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// extractCenterTemperatureWithCarryForward (3D weld pool color continuity)
+// ---------------------------------------------------------------------------
+
+describe("extractCenterTemperatureWithCarryForward", () => {
+  it("returns center temp when current frame has thermal data", () => {
+    const frames = [
+      makeSensorOnlyFrame({ timestamp_ms: 0 }),
+      makeThermalFrame({ timestamp_ms: 100 }), // center = 425.3 from makeThermalFrame
+    ];
+    expect(
+      extractCenterTemperatureWithCarryForward(frames, 100)
+    ).toBe(425.3);
+  });
+
+  it("carries forward from last thermal frame when current frame has no thermal data", () => {
+    const frames = [
+      makeSensorOnlyFrame({ timestamp_ms: 0 }),
+      makeThermalFrame({ timestamp_ms: 100 }), // center 425.3
+      makeSensorOnlyFrame({ timestamp_ms: 110 }),
+      makeSensorOnlyFrame({ timestamp_ms: 120 }),
+    ];
+    // At 110 and 120 there is no thermal data; should carry forward 425.3 from 100
+    expect(
+      extractCenterTemperatureWithCarryForward(frames, 110)
+    ).toBe(425.3);
+    expect(
+      extractCenterTemperatureWithCarryForward(frames, 120)
+    ).toBe(425.3);
+  });
+
+  it("returns 450 fallback for empty frames array", () => {
+    expect(
+      extractCenterTemperatureWithCarryForward([], 100)
+    ).toBe(450);
+  });
+
+  it("returns 450 when no frame has thermal data", () => {
+    const frames = [
+      makeSensorOnlyFrame({ timestamp_ms: 0 }),
+      makeSensorOnlyFrame({ timestamp_ms: 10 }),
+    ];
+    expect(
+      extractCenterTemperatureWithCarryForward(frames, 10)
+    ).toBe(450);
+  });
+
+  it("returns 450 when thermal frame has no center reading (extractCenterTemperature returns null)", () => {
+    const frameNoCenter = makeThermalFrame({
+      timestamp_ms: 100,
+      thermal_snapshots: [
+        {
+          distance_mm: 10.0,
+          readings: [
+            { direction: "north", temp_celsius: 380 },
+            { direction: "south", temp_celsius: 390 },
+            { direction: "east", temp_celsius: 370 },
+            { direction: "west", temp_celsius: 375 },
+          ],
+        },
+      ],
+    });
+    const frames = [frameNoCenter];
+    expect(
+      extractCenterTemperatureWithCarryForward(frames, 100)
+    ).toBe(450);
   });
 });
 

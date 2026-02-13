@@ -1,116 +1,44 @@
-# Quick Start Guide - Get Both Servers Running
+# Quick Start — First-Time Setup
 
-## 🚀 Fastest Way (2 Terminal Windows)
+## Step 0: Backend `.env` (required once)
 
-### Step 1: Open Terminal 1 (Backend)
 ```bash
-cd /Users/ngchenmeng/test/backend
-source venv/bin/activate
-# Enable dev seed route (required for Step 3)
-export ENV=development
-python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000
+cp backend/.env.example backend/.env
+# Edit: DATABASE_URL=postgresql://user:pass@localhost:5432/welding_sessions
 ```
 
-**Wait until you see:**
-```
-INFO:     Application startup complete.
-```
+See `backend/ENV_SETUP.md` for details.
 
-### Step 2: Open Terminal 2 (Frontend)
+## Step 1–4: Run the app
+
+→ See **STARTME.md** for backend/frontend start, seed/wipe, and port-kill commands.
+
+## Verify
+
 ```bash
-cd /Users/ngchenmeng/test
-npm run dev
+curl http://localhost:8000/health   # → {"status":"ok",...}
 ```
 
-**Wait until you see:**
-```
-✓ Ready in [time]
-- Local: http://localhost:3000
-```
+Open http://localhost:3000
 
-### Step 3: Seed Mock Sessions (for Replay)
-To view session replays, seed mock data into the database (backend must be started with `ENV=development`):
+## npm scripts (from repo root)
+
 ```bash
-curl -X POST http://localhost:8000/api/dev/seed-mock-sessions
+npm run dev:backend   # Backend (includes ENV=development for seed/wipe)
+npm run dev:frontend  # Frontend
+npm run dev           # Both at once
 ```
 
-Response: `{"seeded":["sess_expert_001","sess_novice_001"]}`
+## Troubleshooting
 
-### Step 4: Open Browser
-Go to: **http://localhost:3000**
-- Dashboard: http://localhost:3000
-- Replay expert: http://localhost:3000/replay/sess_expert_001
-- Replay novice: http://localhost:3000/replay/sess_novice_001
+| Issue | Fix |
+|-------|-----|
+| Port in use | See STARTME.md |
+| `command not found: python` | Use `python3 -m uvicorn main:app --reload` |
+| Failed to fetch | Backend running? `curl http://localhost:8000/health` |
+| Seed/wipe 403 | Start backend with `ENV=development` (see STARTME.md) |
 
----
+## Notes
 
-## ✅ Verify Everything Works
-
-**Test Backend:**
-```bash
-curl http://localhost:8000/health
-```
-Should return: `{"status":"ok","message":"Dashboard API is running"}`
-
-**Test Frontend:**
-Open browser to: http://localhost:3000
-
----
-
-## 🔧 Using npm Scripts (Alternative)
-
-**Terminal 1:**
-```bash
-cd /Users/ngchenmeng/test
-npm run dev:backend
-```
-
-**Terminal 2:**
-```bash
-cd /Users/ngchenmeng/test
-npm run dev
-```
-
----
-
-## 📝 Important Notes
-
-1. **Keep both terminals open** - Don't close them or press Ctrl+C
-2. **Backend runs on port 8000** - Don't change this
-3. **Frontend runs on port 3000** - May use 3001 if 3000 is busy
-4. **Virtual environment must be activated** for backend to work
-5. **Run backend from `backend/`** - Imports (`models`, `data`) require the backend directory as the working directory
-
----
-
-## 🛠️ Troubleshooting
-
-**"command not found: python"**
-```bash
-# Use python3 instead
-python3 -m uvicorn main:app --reload
-```
-
-**"Port already in use"**
-```bash
-# Kill process on port 3000
-lsof -ti:3000 | xargs kill -9
-
-# Kill process on port 8000  
-lsof -ti:8000 | xargs kill -9
-```
-
-**"Failed to fetch" in browser**
-- Make sure backend is running (check Terminal 1)
-- Verify: `curl http://localhost:8000/health`
-- Check browser console for errors
-
----
-
-## 🎯 URLs
-
-- **Frontend:** http://localhost:3000
-- **Backend API:** http://localhost:8000
-- **API Docs:** http://localhost:8000/docs
-- **Health Check:** http://localhost:8000/health
-- **Seed Mock Data:** POST http://localhost:8000/api/dev/seed-mock-sessions (ENV=development or DEBUG=1)
+- Backend must run from `backend/` (imports depend on it)
+- Keep both terminals open when using manual start

@@ -68,3 +68,24 @@ async def seed_mock_sessions(db: OrmSession = Depends(get_db)):
     db.commit()
 
     return {"seeded": session_ids}
+
+
+@router.post("/wipe-mock-sessions")
+async def wipe_mock_sessions(db: OrmSession = Depends(get_db)):
+    """
+    Delete mock sessions (sess_expert_001, sess_novice_001).
+    Only available when ENV=development or DEBUG=1.
+    """
+    if not _is_dev_mode():
+        raise HTTPException(
+            status_code=403,
+            detail="Wipe route is only available in development (ENV=development or DEBUG=1)",
+        )
+
+    session_ids = ["sess_expert_001", "sess_novice_001"]
+    deleted = db.query(SessionModel).filter(
+        SessionModel.session_id.in_(session_ids)
+    ).delete(synchronize_session=False)
+    db.commit()
+
+    return {"deleted": deleted, "ids": session_ids}

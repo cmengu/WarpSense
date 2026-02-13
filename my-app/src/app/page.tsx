@@ -12,12 +12,22 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Fetch dashboard data from FastAPI backend on component mount
-    // Backend is the single source of truth - no fallback mock data
+    let cancelled = false;
     fetchDashboardData()
-      .then(setData)
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
+      .then((d) => {
+        if (!cancelled) setData(d);
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : String(err));
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Loading state - show simple loading message
@@ -56,7 +66,9 @@ export default function Home() {
               setLoading(true);
               fetchDashboardData()
                 .then(setData)
-                .catch((err) => setError(err.message))
+                .catch((err) =>
+                  setError(err instanceof Error ? err.message : String(err))
+                )
                 .finally(() => setLoading(false));
             }}
             className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
@@ -93,17 +105,21 @@ export default function Home() {
             </h2>
             <div className="space-y-2">
               <div className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
-                Mock sessions for development
+                Mock sessions for development (seed via: curl -X POST
+                http://localhost:8000/api/dev/seed-mock-sessions)
               </div>
-              {['a1b2c3', 'd4e5f6'].map((sessionId) => (
+              {[
+                { id: 'sess_expert_001', label: 'Expert' },
+                { id: 'sess_novice_001', label: 'Novice' },
+              ].map(({ id, label }) => (
                 <a
-                  key={sessionId}
-                  href={`/replay/${sessionId}`}
+                  key={id}
+                  href={`/replay/${id}`}
                   className="block p-4 bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors"
                 >
                   <div className="flex items-center justify-between">
                     <span className="font-medium text-black dark:text-zinc-50">
-                      Session {sessionId}
+                      {label} ({id})
                     </span>
                     <span className="text-xs text-zinc-500 dark:text-zinc-400">
                       (mock)

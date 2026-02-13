@@ -12,17 +12,17 @@ global.fetch = jest.fn(() =>
 describe('Home Page Session List', () => {
   it('renders session list links with correct hrefs', async () => {
     render(<Home />);
-    
+
     // Wait for component to render and session links to appear
     await waitFor(() => {
-      expect(screen.getByRole('link', { name: /session a1b2c3/i })).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: /expert \(sess_expert_001\)/i })).toBeInTheDocument();
     });
-    
-    const link1 = screen.getByRole('link', { name: /session a1b2c3/i });
-    expect(link1).toHaveAttribute('href', '/replay/a1b2c3');
-    
-    const link2 = screen.getByRole('link', { name: /session d4e5f6/i });
-    expect(link2).toHaveAttribute('href', '/replay/d4e5f6');
+
+    const link1 = screen.getByRole('link', { name: /expert \(sess_expert_001\)/i });
+    expect(link1).toHaveAttribute('href', '/replay/sess_expert_001');
+
+    const link2 = screen.getByRole('link', { name: /novice \(sess_novice_001\)/i });
+    expect(link2).toHaveAttribute('href', '/replay/sess_novice_001');
   });
 
   it('displays mock label for sessions', async () => {
