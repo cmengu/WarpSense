@@ -253,4 +253,36 @@ describe('ReplayPage', () => {
     unmount();
     expect(() => fireEvent.keyDown(window, { code: 'Space' })).not.toThrow();
   });
+
+  /**
+   * Copy Session ID button verification (session-replay-small-button plan).
+   *
+   * - Button renders in metadata row with aria-label
+   * - Click calls navigator.clipboard.writeText(sessionId)
+   * - Brief "Copied!" feedback appears after successful copy
+   */
+  it('Copy Session ID button copies sessionId to clipboard and shows Copied feedback', async () => {
+    const writeText = jest.fn().mockResolvedValue(undefined);
+    Object.assign(navigator, {
+      clipboard: { writeText },
+    });
+
+    render(<ReplayPage params={{ sessionId: 'test-session-123' }} />);
+    await waitFor(() => {
+      expect(screen.getByText(/session replay: test-session-123/i)).toBeInTheDocument();
+    });
+
+    const copyBtn = screen.getByRole('button', { name: /copy session id to clipboard/i });
+    expect(copyBtn).toBeInTheDocument();
+    expect(copyBtn).toHaveTextContent('Copy Session ID');
+
+    fireEvent.click(copyBtn);
+
+    await waitFor(() => {
+      expect(writeText).toHaveBeenCalledWith('test-session-123');
+    });
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /copy session id to clipboard/i })).toHaveTextContent('Copied!');
+    });
+  });
 });

@@ -14,7 +14,7 @@ Create a complete issue with:
 - How this will further our vision of the product
 
 ## How to Get There
-
+/
 **Ask questions** to fill gaps - be concise, respect the user's time. They're mid-flow and want to capture this quickly. Usually need:
 - What's the issue/feature
 - Current behavior vs desired behavior
