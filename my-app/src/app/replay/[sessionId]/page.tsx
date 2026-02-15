@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, use, useEffect, useState } from 'react';
+import { Suspense, use, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -28,12 +28,16 @@ const TorchViz3D = dynamic(
 // ---------------------------------------------------------------------------
 
 /**
- * Hardcoded comparison session ID for side-by-side 3D visualization (incubation demo).
+ * Comparison session ID for side-by-side 3D visualization (incubation demo).
  * Used to fetch a novice session for comparison with the primary (expert) session.
+ * Overridable via NEXT_PUBLIC_DEMO_COMPARISON_SESSION_ID for deployment-specific config.
  *
  * @see .cursor/plans/side-by-side_3d_comparison_f15447b8.plan.md — Step 4
  */
-const COMPARISON_SESSION_ID = 'sess_novice_001';
+const COMPARISON_SESSION_ID =
+  (typeof process !== 'undefined' &&
+    process.env?.NEXT_PUBLIC_DEMO_COMPARISON_SESSION_ID) ||
+  'sess_novice_001';
 
 type ReplayParams = { sessionId: string } | Promise<{ sessionId: string }>;
 
@@ -92,6 +96,20 @@ function ReplayPageInner({ sessionId }: { sessionId: string }) {
   const [currentTimestamp, setCurrentTimestamp] = useState<number | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
+
+  /** Brief "Copied!" feedback for Copy Session ID button. Resets after 2s. */
+  const [copyFeedback, setCopyFeedback] = useState(false);
+  const copyFeedbackTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Clear copy-feedback timer on unmount to avoid state update on unmounted component.
+  useEffect(() => {
+    return () => {
+      if (copyFeedbackTimeoutRef.current != null) {
+        clearTimeout(copyFeedbackTimeoutRef.current);
+        copyFeedbackTimeoutRef.current = null;
+      }
+    };
+  }, []);
 
   const metadata = useSessionMetadata(sessionData);
   const frameData = useFrameData(
@@ -349,6 +367,36 @@ function ReplayPageInner({ sessionId }: { sessionId: string }) {
               className="px-3 py-1 text-xs rounded-md bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-700"
             >
               {showComparison ? 'Hide' : 'Show'} Comparison
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  if (typeof navigator?.clipboard?.writeText === 'function') {
+                    await navigator.clipboard.writeText(sessionId);
+                    if (copyFeedbackTimeoutRef.current != null) {
+                      clearTimeout(copyFeedbackTimeoutRef.current);
+                    }
+                    setCopyFeedback(true);
+                    copyFeedbackTimeoutRef.current = setTimeout(
+                      () => {
+                        setCopyFeedback(false);
+                        copyFeedbackTimeoutRef.current = null;
+                      },
+                      2000
+                    );
+                  }
+                } catch (err) {
+                  logWarn('ReplayPage', 'Clipboard copy failed', {
+                    sessionId,
+                    error: err instanceof Error ? err.message : String(err),
+                  });
+                }
+              }}
+              className="px-3 py-1 text-xs rounded-md bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-700"
+              aria-label="Copy session ID to clipboard"
+            >
+              {copyFeedback ? 'Copied!' : 'Copy Session ID'}
             </button>
           </div>
         )}
