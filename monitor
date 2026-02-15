@@ -1,0 +1,36 @@
+#!/bin/bash
+while true; do
+    clear
+    echo "========================================"
+    echo "   AGENT TASK MONITOR"
+    echo "========================================"
+    echo ""
+    
+    if [[ ! -d ".cursor/agents" ]]; then
+        echo "No tasks yet..."
+    else
+        for task_dir in .cursor/agents/task_*/; do
+            if [[ -d "$task_dir" ]]; then
+                task_id=$(basename "$task_dir")
+                task_desc=$(cat "$task_dir/task.txt" 2>/dev/null || echo "Unknown")
+                
+                echo "Task: $task_desc"
+                echo "ID: $task_id"
+                
+                # Count files
+                files=$(ls "$task_dir"/*-output.md 2>/dev/null | wc -l)
+                echo "Progress: $files/11 stages"
+                
+                if [[ -f "$task_dir/context-output.md" ]]; then
+                    echo "Status: COMPLETE"
+                else
+                    echo "Status: Running..."
+                fi
+                echo ""
+            fi
+        done
+    fi
+    
+    echo "Press Ctrl+C to exit"
+    sleep 2
+done
