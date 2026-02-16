@@ -6,8 +6,12 @@
  *
  * Configure NEXT_PUBLIC_ALERT_WEBHOOK_URL to receive alerts (e.g. Slack, PagerDuty).
  * Alerts are always sent regardless of NODE_ENV when the webhook is set.
+ *
+ * Production guard: console.* is never called when NODE_ENV === "production".
+ * Next.js sets NODE_ENV at build time; production builds have no console output.
  */
 
+/** True only when NODE_ENV is strictly "development". No console in production. */
 const isDev = process.env.NODE_ENV === "development";
 const ALERT_WEBHOOK_URL = process.env.NEXT_PUBLIC_ALERT_WEBHOOK_URL?.trim() || "";
 

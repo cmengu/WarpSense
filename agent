@@ -5,66 +5,509 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SCRIPTS_DIR="$REPO_ROOT/.cursor/scripts"
 
 if [[ ! -f "$SCRIPTS_DIR/agent-workflow-auto.sh" ]]; then
-    echo "Error: Scripts not found"
+    echo "❌ Error: agent-workflow-auto.sh not found in $SCRIPTS_DIR"
     exit 1
 fi
 
-show_menu() {
+show_banner() {
     clear
-    echo "========================================="
-    echo "   AGENT WORKFLOW LAUNCHER"
-    echo "========================================="
     echo ""
-    echo "1) Run single task"
-    echo "2) Run multiple tasks in parallel"
-    echo "3) Exit"
+    echo "╔═══════════════════════════════════════════════════════════╗"
+    echo "║                                                           ║"
+    echo "║        🤖  AUTONOMOUS AGENT WORKFLOW LAUNCHER  🤖        ║"
+    echo "║                                                           ║"
+    echo "║           Powered by Composer 1.5 + Claude               ║"
+    echo "║         With Autonomous Quality Refinement               ║"
+    echo "║                                                           ║"
+    echo "╚═══════════════════════════════════════════════════════════╝"
     echo ""
 }
 
-run_single() {
+show_menu() {
+    echo "┌───────────────────────────────────────────────────────────┐"
+    echo "│                       MAIN MENU                           │"
+    echo "└───────────────────────────────────────────────────────────┘"
     echo ""
-    read -p "Enter task: " task
+    
+    echo "  [1] 🚀 Run New Task (Quick)"
+    echo "  [2] 📝 Run Task from File"
+    echo "  [3] ✏️  Run Task (Multi-line Input)"
+    echo "  [4] 📁 View Recent Outputs"
+    echo "  [5] 📊 Show Statistics"
+    echo "  [6] ⚙️  Settings"
+    echo "  [7] ❌ Exit"
+    echo ""
+    echo "───────────────────────────────────────────────────────────"
+    echo ""
+}
+
+# Clear input buffer - macOS compatible version
+clear_input_buffer() {
+    while IFS= read -r -t 0.001 -n 1; do :; done 2>/dev/null
+}
+
+run_quick_task() {
+    echo ""
+    echo "┌───────────────────────────────────────────────────────────┐"
+    echo "│                   QUICK TASK INPUT                        │"
+    echo "└───────────────────────────────────────────────────────────┘"
+    echo ""
+    echo "💡 Examples:"
+    echo "   • Add session export to CSV feature"
+    echo "   • Create real-time monitoring dashboard"
+    echo "   • Fix authentication bug in login flow"
+    echo ""
+    read -p "📝 Enter task description: " task
+    
     if [[ -z "$task" ]]; then
-        echo "Task cannot be empty"
+        echo ""
+        echo "⚠️  Task cannot be empty"
+        sleep 2
         return
     fi
-    "$SCRIPTS_DIR/agent-workflow-auto.sh" "$task"
-    read -p "Press ENTER to continue..."
+    
+    execute_task "$task"
 }
 
-run_multiple() {
+run_task_from_file() {
     echo ""
-    echo "Enter tasks (one per line, empty line when done):"
-    tasks=()
-    task_num=1
-    while true; do
-        read -p "Task $task_num: " task
-        if [[ -z "$task" ]]; then
+    echo "┌───────────────────────────────────────────────────────────┐"
+    echo "│                   LOAD TASK FROM FILE                     │"
+    echo "└───────────────────────────────────────────────────────────┘"
+    echo ""
+    echo "💡 Provide the path to a text file containing your task"
+    echo "   Examples:"
+    echo "   • /Users/name/Documents/task.txt"
+    echo "   • ./tasks/feature-request.txt"
+    echo "   • ~/task-description.md"
+    echo ""
+    read -p "📁 Enter file path: " filepath
+    
+    if [[ -z "$filepath" ]]; then
+        echo ""
+        echo "⚠️  File path cannot be empty"
+        sleep 2
+        return
+    fi
+    
+    filepath="${filepath/#\~/$HOME}"
+    
+    if [[ ! -f "$filepath" ]]; then
+        echo ""
+        echo "❌ Error: File not found: $filepath"
+        sleep 2
+        return
+    fi
+    
+    task=$(cat "$filepath")
+    
+    if [[ -z "$task" ]]; then
+        echo ""
+        echo "⚠️  File is empty"
+        sleep 2
+        return
+    fi
+    
+    echo ""
+    echo "┌───────────────────────────────────────────────────────────┐"
+    echo "│                      TASK PREVIEW                         │"
+    echo "└───────────────────────────────────────────────────────────┘"
+    echo ""
+    echo "$task" | head -20
+    
+    if [[ $(echo "$task" | wc -l) -gt 20 ]]; then
+        echo ""
+        echo "... (showing first 20 lines)"
+    fi
+    
+    echo ""
+    echo "───────────────────────────────────────────────────────────"
+    echo ""
+    echo "📊 Total lines: $(echo "$task" | wc -l | tr -d ' ')"
+    echo "📝 Characters: $(echo "$task" | wc -c | tr -d ' ')"
+    echo ""
+    
+    read -p "Execute this task? (yes/no): " confirm
+    
+    if [[ ! "$confirm" =~ ^[Yy] ]]; then
+        echo ""
+        echo "❌ Task cancelled"
+        sleep 1
+        return
+    fi
+    
+    execute_task "$task"
+}
+
+run_multiline_task() {
+    echo ""
+    echo "┌───────────────────────────────────────────────────────────┐"
+    echo "│                 MULTI-LINE TASK INPUT                     │"
+    echo "└───────────────────────────────────────────────────────────┘"
+    echo ""
+    echo "💡 Paste or type your task description (multiple lines OK)"
+    echo "   Press Ctrl+D when finished (or type END on a new line)"
+    echo ""
+    echo "───────────────────────────────────────────────────────────"
+    echo ""
+    
+    task=""
+    echo "Start typing/pasting (Ctrl+D or 'END' to finish):"
+    echo ""
+    
+    while IFS= read -r line; do
+        if [[ "$line" == "END" ]]; then
             break
         fi
-        tasks+=("$task")
-        task_num=$((task_num + 1))
+        task="${task}${line}
+"
     done
     
-    if [[ ${#tasks[@]} -eq 0 ]]; then
-        echo "No tasks entered"
-        read -p "Press ENTER to continue..."
+    if [[ -z "$task" ]]; then
+        echo ""
+        echo "⚠️  Task cannot be empty"
+        sleep 2
         return
     fi
     
     echo ""
-    echo "Starting ${#tasks[@]} tasks in parallel..."
-    "$SCRIPTS_DIR/run-parallel-tasks.sh" "${tasks[@]}"
-    read -p "Press ENTER to continue..."
+    echo "┌───────────────────────────────────────────────────────────┐"
+    echo "│                      TASK PREVIEW                         │"
+    echo "└───────────────────────────────────────────────────────────┘"
+    echo ""
+    echo "$task" | head -20
+    
+    if [[ $(echo "$task" | wc -l) -gt 20 ]]; then
+        echo ""
+        echo "... (showing first 20 lines)"
+    fi
+    
+    echo ""
+    echo "───────────────────────────────────────────────────────────"
+    echo ""
+    echo "📊 Total lines: $(echo "$task" | wc -l | tr -d ' ')"
+    echo "📝 Characters: $(echo "$task" | wc -c | tr -d ' ')"
+    echo ""
+    
+    read -p "Execute this task? (yes/no): " confirm
+    
+    if [[ ! "$confirm" =~ ^[Yy] ]]; then
+        echo ""
+        echo "❌ Task cancelled"
+        sleep 1
+        return
+    fi
+    
+    execute_task "$task"
 }
 
+execute_task() {
+    local task="$1"
+    
+    echo ""
+    echo "┌───────────────────────────────────────────────────────────┐"
+    echo "│                   STARTING WORKFLOW                       │"
+    echo "└───────────────────────────────────────────────────────────┘"
+    echo ""
+    echo "📋 Task: ${task:0:80}$([ ${#task} -gt 80 ] && echo '...')"
+    echo "⏰ Started: $(date '+%Y-%m-%d %H:%M:%S')"
+    echo ""
+    echo "───────────────────────────────────────────────────────────"
+    echo ""
+    
+    "$SCRIPTS_DIR/agent-workflow-auto.sh" "$task"
+    local workflow_exit_code=$?
+    
+    clear_input_buffer
+    
+    echo ""
+    
+    if [[ $workflow_exit_code -eq 0 ]]; then
+        echo "┌───────────────────────────────────────────────────────────┐"
+        echo "│                   ✅ TASK COMPLETE                        │"
+        echo "└───────────────────────────────────────────────────────────┘"
+    else
+        echo "┌───────────────────────────────────────────────────────────┐"
+        echo "│                   ⚠️  TASK INTERRUPTED                    │"
+        echo "└───────────────────────────────────────────────────────────┘"
+    fi
+    echo ""
+    echo "💡 Outputs saved in: .cursor/agents/"
+    echo ""
+    
+    echo "Returning to menu in 2 seconds (or press any key)..."
+    read -t 2 -n 1 2>/dev/null || true
+}
+
+view_recent() {
+    echo ""
+    echo "┌───────────────────────────────────────────────────────────┐"
+    echo "│                   RECENT OUTPUTS                          │"
+    echo "└───────────────────────────────────────────────────────────┘"
+    echo ""
+    
+    if [[ ! -d ".cursor/agents" ]]; then
+        echo "📁 No outputs found yet. Run a task first!"
+        echo ""
+        echo "Returning to menu in 2 seconds..."
+        read -t 2 -n 1 2>/dev/null || true
+        return
+    fi
+    
+    echo "📂 Last 5 tasks:"
+    echo ""
+    ls -dt .cursor/agents/task_* 2>/dev/null | head -5 | while IFS= read -r dir; do
+        if [[ -f "$dir/task.txt" ]]; then
+            task_name=$(head -1 "$dir/task.txt")
+            if [[ ${#task_name} -gt 60 ]]; then
+                task_name="${task_name:0:60}..."
+            fi
+            dir_name=$(basename "$dir")
+            echo "  📁 $dir_name"
+            echo "     📝 Task: $task_name"
+            
+            # Show refinement stats if available
+            if [[ -f "$dir/refinement-summary.md" ]]; then
+                quality=$(grep "Final Score:" "$dir/refinement-summary.md" | grep -o '[0-9.]*' | head -1 || echo "N/A")
+                iterations=$(grep "Total Iterations:" "$dir/refinement-summary.md" | grep -o '[0-9]*' | head -1 || echo "N/A")
+                echo "     ✨ Quality: $quality/10 ($iterations iterations)"
+            fi
+            echo ""
+        fi
+    done
+    
+    echo "───────────────────────────────────────────────────────────"
+    echo ""
+    echo "💡 Full path: $(pwd)/.cursor/agents/"
+    echo ""
+    echo "Returning to menu in 3 seconds (or press any key)..."
+    read -t 3 -n 1 2>/dev/null || true
+}
+
+show_stats() {
+    echo ""
+    echo "┌───────────────────────────────────────────────────────────┐"
+    echo "│                     STATISTICS                            │"
+    echo "└───────────────────────────────────────────────────────────┘"
+    echo ""
+    
+    if [[ ! -d ".cursor/agents" ]]; then
+        echo "📊 No tasks run yet"
+        echo ""
+        echo "Returning to menu in 2 seconds..."
+        read -t 2 -n 1 2>/dev/null || true
+        return
+    fi
+    
+    total_tasks=$(ls -d .cursor/agents/task_* 2>/dev/null | wc -l | tr -d ' ')
+    
+    echo "  📊 Total Tasks Run: $total_tasks"
+    echo ""
+    
+    if [[ $total_tasks -gt 0 ]]; then
+        # Calculate quality stats
+        total_quality=0
+        quality_count=0
+        for dir in .cursor/agents/task_*; do
+            if [[ -f "$dir/refinement-summary.md" ]]; then
+                quality=$(grep "Final Score:" "$dir/refinement-summary.md" | grep -o '[0-9.]*' | head -1)
+                if [[ -n "$quality" ]]; then
+                    total_quality=$(echo "$total_quality + $quality" | bc -l 2>/dev/null || echo "$total_quality")
+                    quality_count=$((quality_count + 1))
+                fi
+            fi
+        done
+        
+        if [[ $quality_count -gt 0 ]]; then
+            avg_quality=$(echo "scale=1; $total_quality / $quality_count" | bc -l 2>/dev/null || echo "N/A")
+            echo "  ✨ Average Plan Quality: $avg_quality/10"
+            echo ""
+        fi
+        
+        total_lines=0
+        count=0
+        for dir in .cursor/agents/task_*; do
+            if [[ -d "$dir" ]]; then
+                lines=$(cat "$dir"/*.md 2>/dev/null | wc -l | tr -d ' ')
+                total_lines=$((total_lines + lines))
+                count=$((count + 1))
+            fi
+        done
+        
+        if [[ $count -gt 0 ]]; then
+            avg_lines=$((total_lines / count))
+            echo "  📝 Average Output: ~$avg_lines lines per task"
+            echo ""
+        fi
+        
+        latest_dir=$(ls -dt .cursor/agents/task_* 2>/dev/null | head -1)
+        if [[ -f "$latest_dir/task.txt" ]]; then
+            latest_task=$(head -1 "$latest_dir/task.txt")
+            if [[ ${#latest_task} -gt 50 ]]; then
+                latest_task="${latest_task:0:50}..."
+            fi
+            echo "  🕐 Most Recent Task:"
+            echo "     \"$latest_task\""
+            if [[ -f "$latest_dir/refinement-summary.md" ]]; then
+                quality=$(grep "Final Score:" "$latest_dir/refinement-summary.md" | grep -o '[0-9.]*' | head -1)
+                echo "     ✨ Quality: $quality/10"
+            fi
+            echo ""
+        fi
+    fi
+    
+    echo "───────────────────────────────────────────────────────────"
+    echo ""
+    echo "Returning to menu in 3 seconds (or press any key)..."
+    read -t 3 -n 1 2>/dev/null || true
+}
+
+show_settings() {
+    echo ""
+    echo "┌───────────────────────────────────────────────────────────┐"
+    echo "│                      SETTINGS                             │"
+    echo "└───────────────────────────────────────────────────────────┘"
+    echo ""
+    
+    # Load current settings
+    config_file=".cursor/agent-config.sh"
+    if [[ -f "$config_file" ]]; then
+        source "$config_file"
+    fi
+    
+    # Defaults
+    REFINE_MAX_ITERATIONS=${REFINE_MAX_ITERATIONS:-5}
+    REFINE_TARGET_SCORE=${REFINE_TARGET_SCORE:-9.0}
+    ENABLE_REFINEMENT=${ENABLE_REFINEMENT:-true}
+    
+    echo "  Current Configuration:"
+    echo ""
+    echo "  🔄 Plan Refinement: $ENABLE_REFINEMENT"
+    echo "  🎯 Target Quality Score: $REFINE_TARGET_SCORE/10"
+    echo "  🔢 Max Refinement Iterations: $REFINE_MAX_ITERATIONS"
+    echo ""
+    echo "───────────────────────────────────────────────────────────"
+    echo ""
+    echo "  [1] Toggle Plan Refinement"
+    echo "  [2] Set Target Quality Score"
+    echo "  [3] Set Max Iterations"
+    echo "  [4] Reset to Defaults"
+    echo "  [5] Back to Main Menu"
+    echo ""
+    
+    read -p "Choose option [1-5]: " setting_choice
+    
+    case $setting_choice in
+        1)
+            if [[ "$ENABLE_REFINEMENT" == "true" ]]; then
+                ENABLE_REFINEMENT="false"
+                echo "✅ Plan refinement disabled"
+            else
+                ENABLE_REFINEMENT="true"
+                echo "✅ Plan refinement enabled"
+            fi
+            save_settings
+            sleep 1
+            show_settings
+            ;;
+        2)
+            read -p "Enter target score (1-10): " new_score
+            if [[ "$new_score" =~ ^[0-9]+\.?[0-9]*$ ]] && (( $(echo "$new_score >= 1 && $new_score <= 10" | bc -l) )); then
+                REFINE_TARGET_SCORE=$new_score
+                echo "✅ Target score set to $REFINE_TARGET_SCORE"
+                save_settings
+                sleep 1
+            else
+                echo "⚠️  Invalid score. Must be between 1 and 10."
+                sleep 2
+            fi
+            show_settings
+            ;;
+        3)
+            read -p "Enter max iterations (1-10): " new_max
+            if [[ "$new_max" =~ ^[0-9]+$ ]] && [[ $new_max -ge 1 ]] && [[ $new_max -le 10 ]]; then
+                REFINE_MAX_ITERATIONS=$new_max
+                echo "✅ Max iterations set to $REFINE_MAX_ITERATIONS"
+                save_settings
+                sleep 1
+            else
+                echo "⚠️  Invalid number. Must be between 1 and 10."
+                sleep 2
+            fi
+            show_settings
+            ;;
+        4)
+            REFINE_MAX_ITERATIONS=5
+            REFINE_TARGET_SCORE=9.0
+            ENABLE_REFINEMENT=true
+            save_settings
+            echo "✅ Settings reset to defaults"
+            sleep 1
+            show_settings
+            ;;
+        5)
+            return
+            ;;
+        *)
+            echo "⚠️  Invalid choice"
+            sleep 1
+            show_settings
+            ;;
+    esac
+}
+
+save_settings() {
+    mkdir -p .cursor
+    cat > .cursor/agent-config.sh << SETTINGS_EOF
+# Agent Workflow Configuration
+export REFINE_MAX_ITERATIONS=$REFINE_MAX_ITERATIONS
+export REFINE_TARGET_SCORE=$REFINE_TARGET_SCORE
+export ENABLE_REFINEMENT=$ENABLE_REFINEMENT
+SETTINGS_EOF
+}
+
+# Main loop
 while true; do
+    show_banner
     show_menu
-    read -p "Choose [1-3]: " choice
+    
+    clear_input_buffer
+    
+    read -p "Choose option [1-7]: " choice
+    
+    if [[ ! "1234567" =~ "$choice" ]]; then
+        echo ""
+        echo "⚠️  Invalid choice"
+        sleep 1
+        continue
+    fi
+    
     case $choice in
-        1) run_single ;;
-        2) run_multiple ;;
-        3) echo "Goodbye!"; exit 0 ;;
-        *) echo "Invalid choice"; sleep 1 ;;
+        1)
+            run_quick_task
+            ;;
+        2)
+            run_task_from_file
+            ;;
+        3)
+            run_multiline_task
+            ;;
+        4)
+            view_recent
+            ;;
+        5)
+            show_stats
+            ;;
+        6)
+            show_settings
+            ;;
+        7)
+            echo ""
+            echo "┌───────────────────────────────────────────────────────────┐"
+            echo "│                      GOODBYE! 👋                          │"
+            echo "└───────────────────────────────────────────────────────────┘"
+            echo ""
+            exit 0
+            ;;
     esac
 done

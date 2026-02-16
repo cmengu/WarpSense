@@ -2,7 +2,7 @@
  * FeedbackPanel — Renders AI feedback items with severity styling.
  *
  * Used by WelderReport page to display per-rule feedback.
- * Info items (passed rules): blue. Warning items (failed rules): amber.
+ * Info items (passed rules): blue. Warning items (failed rules): violet.
  */
 
 import type { FeedbackItem } from "@/types/ai-feedback";
@@ -21,7 +21,7 @@ export default function FeedbackPanel({ items }: FeedbackPanelProps) {
             p-4 rounded-lg border-l-4
             ${
               item.severity === "warning"
-                ? "bg-amber-50 dark:bg-amber-950/20 border-amber-500"
+                ? "bg-violet-50 dark:bg-violet-950/20 border-violet-500"
                 : "bg-blue-50 dark:bg-blue-950/20 border-blue-500"
             }
           `}

@@ -2,7 +2,7 @@
  * Step 13 verification: delta heatmap data extraction and color scale.
  *
  * Verification result (when PASS):
- *   - deltaTempToColor: blue at -50, white at 0, red at +50
+ *   - deltaTempToColor: blue at -50, white at 0, purple at +50
  *   - extractDeltaHeatmapData: returns HeatmapData shape; points have temp_celsius = delta_temp_celsius
  *   - empty deltas return zero point_count
  */
@@ -14,16 +14,15 @@ import {
 import type { FrameDelta } from '@/types/comparison';
 
 describe('deltaTempToColor', () => {
-  it('Step 13: maps -50 to blue, 0 to white, +50 to red', () => {
+  it('maps -50 to blue, 0 to white, +50 to purple', () => {
     const blueHex = deltaTempToColor(-50);
     const whiteHex = deltaTempToColor(0);
-    const redHex = deltaTempToColor(50);
+    const purpleHex = deltaTempToColor(50);
 
     expect(blueHex).toMatch(/^#[0-9a-f]{6}$/i);
     expect(whiteHex).toMatch(/^#[0-9a-f]{6}$/i);
-    expect(redHex).toMatch(/^#[0-9a-f]{6}$/i);
+    expect(purpleHex).toMatch(/^#[0-9a-f]{6}$/i);
 
-    // Blue: low R, high B
     const parse = (hex: string) => ({
       r: parseInt(hex.slice(1, 3), 16),
       g: parseInt(hex.slice(3, 5), 16),
@@ -31,20 +30,24 @@ describe('deltaTempToColor', () => {
     });
     const b = parse(blueHex);
     const w = parse(whiteHex);
-    const r = parse(redHex);
+    const p = parse(purpleHex);
 
     expect(b.b).toBeGreaterThan(b.r);
     expect(w.r).toBe(255);
     expect(w.g).toBe(255);
     expect(w.b).toBe(255);
-    expect(r.r).toBe(255);
-    expect(r.g).toBeLessThan(255);
-    expect(r.b).toBeLessThan(255);
+    expect(p.r).toBeCloseTo(168, -1);
+    expect(p.g).toBeCloseTo(85, -1);
+    expect(p.b).toBeCloseTo(247, -1);
   });
 
   it('clamps values outside -50 to +50', () => {
     expect(deltaTempToColor(-100)).toBe(deltaTempToColor(-50));
     expect(deltaTempToColor(100)).toBe(deltaTempToColor(50));
+  });
+
+  it('returns white for NaN input', () => {
+    expect(deltaTempToColor(NaN)).toBe('#ffffff');
   });
 });
 

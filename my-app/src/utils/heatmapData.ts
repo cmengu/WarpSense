@@ -12,6 +12,7 @@
 import type { Frame } from "@/types/frame";
 import type { ThermalDirection } from "@/types/thermal";
 import { hasThermalData } from "@/utils/frameUtils";
+import { THERMAL_COLOR_ANCHORS } from "@/constants/theme";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -48,40 +49,18 @@ export interface HeatmapData {
 }
 
 // ---------------------------------------------------------------------------
-// Color mapping: visible change every 50°C (20°C → 600°C)
+// Color mapping: WarpSense blue→purple gradient (0–500°C)
 // ---------------------------------------------------------------------------
 
 /**
- * Anchors every 50°C from 20 to 600 for a varied gradient:
- * blue → sky → cyan → teal → green → lime → yellow → amber → orange → red → dark red.
- * [temp_celsius, r, g, b]
- */
-const TEMP_COLOR_ANCHORS: [number, number, number, number][] = [
-  [20, 59, 130, 246],    // blue
-  [70, 14, 165, 233],    // sky
-  [120, 6, 182, 212],    // cyan
-  [170, 20, 184, 166],   // teal
-  [220, 34, 197, 94],    // green
-  [270, 132, 204, 22],   // lime
-  [320, 234, 179, 8],    // yellow
-  [370, 245, 158, 11],   // amber
-  [420, 249, 115, 22],   // orange
-  [470, 239, 68, 68],    // red
-  [520, 220, 38, 38],    // red-600
-  [570, 185, 28, 28],    // red-700
-  [600, 239, 68, 68],    // red (same as 470 for consistent “max”)
-];
-
-/**
- * Map temperature in Celsius to hex color with a varied scale: visible change every 50°C.
- * Progression: blue → sky → cyan → teal → green → lime → yellow → amber → orange → red → dark red.
- * Clamps to [20, 600]°C. Linear interpolation between consecutive anchors.
+ * Map temperature in Celsius to hex color. Blue (cold) → purple (hot).
+ * Clamps to [0, 500]°C. Linear interpolation between theme anchors.
  */
 export function tempToColor(temp_celsius: number): string {
-  const t = Math.max(20, Math.min(600, temp_celsius));
-  for (let i = 0; i < TEMP_COLOR_ANCHORS.length - 1; i++) {
-    const [t0, r0, g0, b0] = TEMP_COLOR_ANCHORS[i];
-    const [t1, r1, g1, b1] = TEMP_COLOR_ANCHORS[i + 1];
+  const t = Math.max(0, Math.min(500, temp_celsius));
+  for (let i = 0; i < THERMAL_COLOR_ANCHORS.length - 1; i++) {
+    const [t0, r0, g0, b0] = THERMAL_COLOR_ANCHORS[i];
+    const [t1, r1, g1, b1] = THERMAL_COLOR_ANCHORS[i + 1];
     if (t >= t0 && t <= t1) {
       const p = (t - t0) / (t1 - t0);
       const r = Math.round(r0 + (r1 - r0) * p);
@@ -90,18 +69,19 @@ export function tempToColor(temp_celsius: number): string {
       return `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
     }
   }
-  const [_, r, g, b] = TEMP_COLOR_ANCHORS[TEMP_COLOR_ANCHORS.length - 1];
+  const last = THERMAL_COLOR_ANCHORS[THERMAL_COLOR_ANCHORS.length - 1];
+  const [, r, g, b] = last;
   return `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
 }
 
 /**
- * Create a color function that maps a specific temperature range to blue→yellow→red.
+ * Create a color function that maps a specific temperature range to blue→purple.
  * Use on compare page so Session A and Session B share the same scale: min (both) → blue,
- * max (both) → red. Makes small differences between sessions visible (otherwise both
+ * max (both) → purple. Makes small differences between sessions visible (otherwise both
  * sit in the same 400–550°C band and look similar).
  *
  * @param minTemp - Temperature that maps to blue (cold).
- * @param maxTemp - Temperature that maps to red (hot). Must be > minTemp.
+ * @param maxTemp - Temperature that maps to purple (hot). Must be > minTemp.
  * @returns (temp_celsius: number) => string, or tempToColor if range is invalid.
  */
 export function tempToColorRange(
@@ -114,7 +94,7 @@ export function tempToColorRange(
   }
   return (temp_celsius: number) => {
     const p = Math.max(0, Math.min(1, (temp_celsius - minTemp) / span));
-    const t = 20 + p * (600 - 20);
+    const t = p * 500;
     return tempToColor(t);
   };
 }

@@ -2,7 +2,7 @@
  * Tests for FeedbackPanel (Seagull pilot Step 4).
  *
  * Validates:
- *   - Renders items with severity styling (info → blue, warning → amber)
+ *   - Renders items with severity styling (info → blue, warning → violet)
  *   - Layout: space-y-3, rounded card, border-l-4
  *   - Icons: ℹ️ (info), ⚠️ (warning)
  *   - Suggestion appears when present
@@ -34,11 +34,11 @@ describe("FeedbackPanel", () => {
     expect(card).toHaveClass("bg-blue-50");
   });
 
-  it("renders warning item with amber styling", () => {
+  it("renders warning item with violet styling", () => {
     render(<FeedbackPanel items={[mockWarningItem]} />);
     expect(screen.getByText(/Current fluctuated/)).toBeInTheDocument();
-    const card = screen.getByText(/Current fluctuated/).closest(".border-amber-500");
-    expect(card).toHaveClass("bg-amber-50");
+    const card = screen.getByText(/Current fluctuated/).closest(".border-violet-500");
+    expect(card).toHaveClass("bg-violet-50");
   });
 
   it("shows info icon for info items", () => {
@@ -49,7 +49,7 @@ describe("FeedbackPanel", () => {
 
   it("shows warning icon for warning items", () => {
     render(<FeedbackPanel items={[mockWarningItem]} />);
-    const card = screen.getByText(/Current fluctuated/).closest(".border-amber-500");
+    const card = screen.getByText(/Current fluctuated/).closest(".border-violet-500");
     expect(card?.textContent).toContain("⚠️");
   });
 

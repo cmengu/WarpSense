@@ -1,0 +1,1988 @@
+# Explore Feature (Deep Dive Mode) - ENHANCED VERSION
+
+**Time Budget:** 45-90 minutes MINIMUM for deep exploration.
+**If you finish in less than 45 minutes, you didn't explore deeply enough.**
+
+**Context:** You have a complete issue specification. Now you need to explore HOW to implement it before creating a step-by-step plan.
+
+**Your Mission:** Conduct exhaustive technical exploration to answer every "how might we" question. This isn't planning yet - it's researching, prototyping, analyzing, and making architectural decisions.
+
+---
+
+## Phase 0: Understand Your Role in the Workflow
+
+**This is Step 2 of 3:**
+1. **Create Issue** (COMPLETE - the WHAT and WHY)
+2. **Explore Feature** ← You are here (deep dive into HOW)
+3. **Create Plan** (step-by-step implementation)
+
+**Your job right now:**
+- Research technical approaches
+- Prototype critical paths
+- Make architectural decisions
+- Document trade-offs
+- Identify risks and edge cases
+- Answer ALL open questions
+- Test assumptions
+- Find the simplest path
+
+**NOT your job right now:**
+- Write the step-by-step implementation plan (that's next)
+- Write production code (that's after planning)
+- Solve every detail (plan will handle that)
+
+---
+
+## MANDATORY PRE-EXPLORATION THINKING SESSION (20 minutes minimum)
+
+**🛑 STOP. Before exploring anything, spend 20 minutes thinking.**
+
+### A. Exploration Scope Understanding (5 minutes)
+
+**Read the issue specification completely. Then answer:**
+
+1. **What's the core technical challenge?**
+   - In one sentence: _____
+   - Why it's hard: _____
+   - What makes it non-trivial: _____
+
+2. **What are the major unknowns?**
+   - Unknown #1: _____
+   - Unknown #2: _____
+   - Unknown #3: _____
+   [List at least 5]
+
+3. **What questions MUST be answered in this exploration?**
+   - Question #1: _____
+   - Question #2: _____
+   - Question #3: _____
+   [List at least 10]
+
+4. **What could we get wrong?**
+   - Mistake #1: _____
+   - Mistake #2: _____
+   - Mistake #3: _____
+   [List at least 5]
+
+**Write at least 300 words here:**
+```
+[Your scope understanding]
+```
+
+### B. Approach Brainstorm (5 minutes)
+
+**Don't commit to an approach yet. Just brainstorm possibilities.**
+
+**Possible approaches:**
+1. **Approach A:** _____
+   - **Quick description:** _____
+   - **Gut feeling:** Good/Bad/Uncertain
+   - **First concern:** _____
+
+2. **Approach B:** _____
+   - **Quick description:** _____
+   - **Gut feeling:** Good/Bad/Uncertain
+   - **First concern:** _____
+
+3. **Approach C:** _____
+   - **Quick description:** _____
+   - **Gut feeling:** Good/Bad/Uncertain
+   - **First concern:** _____
+
+[List at least 4 approaches]
+
+**Don't evaluate deeply yet. Just get ideas on paper.**
+
+**Write at least 200 words:**
+```
+[Your approach brainstorm]
+```
+
+### C. Constraint Mapping (5 minutes)
+
+**What limits our options?**
+
+**Technical constraints that will shape the solution:**
+1. _____
+2. _____
+3. _____
+[List all constraints from issue]
+
+**How these constraints eliminate approaches:**
+- Constraint "____" eliminates Approach ___ because _____
+- Constraint "____" makes Approach ___ harder because _____
+
+**Write at least 200 words:**
+```
+[Your constraint analysis]
+```
+
+### D. Risk Preview (5 minutes)
+
+**What are the 3 scariest things about this feature?**
+
+1. **Scary thing #1:** _____
+   - **Why scary:** _____
+   - **Likelihood:** ____%
+   - **Could kill the project:** Yes/No
+
+2. **Scary thing #2:** _____
+   - **Why scary:** _____
+   - **Likelihood:** ____%
+   - **Could kill the project:** Yes/No
+
+3. **Scary thing #3:** _____
+   - **Why scary:** _____
+   - **Likelihood:** ____%
+   - **Could kill the project:** Yes/No
+
+**Write at least 200 words:**
+```
+[Your risk preview]
+```
+
+**Quality gate:** Cannot start exploration until you've spent 20+ minutes here and written 900+ words.
+
+---
+
+## Exploration Structure
+
+**You will explore in this order:**
+1. Research existing solutions (15+ min)
+2. Prototype critical paths (15+ min)
+3. Evaluate approaches (15+ min)
+4. Make architectural decisions (15+ min)
+5. Document edge cases (10+ min)
+6. Risk analysis (10+ min)
+
+**Total minimum: 90 minutes of deep exploration**
+
+---
+
+## 1. Research Existing Solutions (15+ minutes minimum)
+
+**Find out how others have solved this.**
+
+### A. Internal Codebase Research
+
+**Search for similar implementations:**
+```bash
+# Find similar features
+grep -rn "similar_pattern" src/ --include="*.ts" --include="*.tsx"
+
+# Find similar components
+find src/ -name "*Similar*" -type f
+
+# Find similar utilities
+grep -rn "similar_function" src/utils/
+
+# Find similar API patterns
+find src/app/api -type f -name "*.ts"
+
+# Find similar hooks
+find src/hooks -type f -name "*.ts"
+
+# Find similar types
+grep -rn "similar_type" src/types/
+```
+
+**Document EVERY similar implementation you find:**
+
+**Similar Implementation #1:**
+- **Location:** `path/to/file.tsx`
+- **What it does:** _____
+- **How it works (high-level):**
+```
+  1. _____
+  2. _____
+  3. _____
+```
+- **Key code snippets:**
+```typescript
+  // Show the most relevant parts
+```
+- **Patterns used:**
+  - Pattern #1: _____
+  - Pattern #2: _____
+- **Libraries/dependencies:**
+  - Lib: _____ (version: _____, purpose: _____)
+- **What we can reuse:**
+  - Code: _____
+  - Pattern: _____
+  - Approach: _____
+- **What we should avoid:**
+  - Anti-pattern: _____ (why: _____)
+  - Mistake: _____ (consequence: _____)
+- **Performance characteristics:**
+  - Speed: _____
+  - Memory: _____
+  - Scalability: _____
+- **Edge cases handled:**
+  - Case #1: _____ (how: _____)
+  - Case #2: _____ (how: _____)
+- **Edge cases NOT handled:**
+  - Case #1: _____ (consequence: _____)
+- **Code quality assessment:**
+  - Good: _____
+  - Bad: _____
+  - Tech debt: _____
+
+**Similar Implementation #2:**
+[Same detailed structure]
+
+**Similar Implementation #3:**
+[Same detailed structure]
+
+**Quality gate:** Find and document at least 3 similar implementations with full detail.
+
+### B. Pattern Analysis
+
+**What patterns emerge from similar implementations?**
+
+**Pattern #1: [Name]**
+- **Used in:** _____, _____, _____ (files)
+- **Description:** _____
+- **When to use:** _____
+- **How it works:**
+```
+  Step 1: _____
+  Step 2: _____
+  Step 3: _____
+```
+- **Pros:**
+  - _____
+  - _____
+- **Cons:**
+  - _____
+  - _____
+- **Example code:**
+```typescript
+  // Show pattern implementation
+```
+- **Applicability to our feature:** High/Medium/Low
+- **Reasoning:** _____
+
+**Pattern #2:** [Same structure]
+
+**Pattern #3:** [Same structure]
+
+**Quality gate:** Document at least 3 patterns with code examples.
+
+### C. External Research
+
+**Research how others outside our codebase solve this:**
+
+**Research Query #1:** "_____"
+
+- **Source:** _____ (library docs / blog / Stack Overflow / GitHub)
+- **URL:** _____
+- **Key insights:**
+  1. _____
+  2. _____
+  3. _____
+- **Code examples found:**
+```typescript
+  // Copy relevant examples
+```
+- **Applicability:** High/Medium/Low
+- **Why applicable/not:** _____
+
+**Research Query #2:** "_____"
+[Same structure]
+
+**Research Query #3:** "_____"
+[Same structure]
+
+**Libraries discovered:**
+
+**Library #1:** _____
+- **Version:** _____
+- **What it does:** _____
+- **Why it exists:** _____
+- **Bundle size:** _____ KB
+- **Dependencies:** _____
+- **Last updated:** _____
+- **GitHub stars:** _____
+- **Issues count:** _____ (open: _____)
+- **Maintenance status:** Active/Stale
+- **License:** _____
+- **Pros:**
+  1. _____
+  2. _____
+  3. _____
+- **Cons:**
+  1. _____
+  2. _____
+  3. _____
+- **Example usage:**
+```typescript
+  // Show how to use
+```
+- **Integration complexity:** Low/Medium/High
+- **Why complex/simple:** _____
+- **Should we use it?** Yes/No/Maybe
+- **Reasoning:** _____
+
+**Library #2:** [Same structure]
+
+**Library #3:** [Same structure]
+
+**Best practices found:**
+
+1. **Best practice:** _____
+   - **Source:** _____
+   - **Why it's best practice:** _____
+   - **How to apply:** _____
+   - **Example:** _____
+
+2. **Best practice:** _____
+   [Same structure]
+
+[List at least 5]
+
+**Common pitfalls found:**
+
+1. **Pitfall:** _____
+   - **Source:** _____
+   - **Why it's a pitfall:** _____
+   - **How to avoid:** _____
+   - **Signs you've fallen into it:** _____
+
+2. **Pitfall:** _____
+   [Same structure]
+
+[List at least 5]
+
+**Quality gate for this section:**
+- [ ] At least 3 similar internal implementations documented
+- [ ] At least 3 patterns identified with code examples
+- [ ] At least 3 external research queries completed
+- [ ] At least 3 libraries evaluated in depth
+- [ ] At least 5 best practices documented
+- [ ] At least 5 pitfalls documented
+- [ ] Spent at least 15 minutes
+- [ ] Written at least 1000 words
+
+**Your research findings (minimum 1000 words):**
+```
+[Complete research documentation]
+```
+
+---
+
+## 🧠 THINKING CHECKPOINT #1 (10 minutes minimum)
+
+**Stop. Reflect on what you learned.**
+
+### What did research reveal?
+
+1. **Most surprising finding:** _____
+   - **Why surprising:** _____
+   - **How this changes approach:** _____
+
+2. **Most concerning finding:** _____
+   - **Why concerning:** _____
+   - **How to mitigate:** _____
+
+3. **Most encouraging finding:** _____
+   - **Why encouraging:** _____
+   - **How to leverage:** _____
+
+### What approaches are emerging as viable?
+
+1. **Approach:** _____
+   - **Evidence supporting it:** _____
+   - **Evidence against it:** _____
+   - **Confidence level:** Low/Medium/High
+
+2. **Approach:** _____
+   [Same]
+
+### What questions do you still have?
+
+1. _____
+2. _____
+3. _____
+[At least 5]
+
+### What should you prototype to answer questions?
+
+1. **Prototype:** _____
+   - **Will answer question:** _____
+   - **Time to build:** _____ minutes
+   - **Success criteria:** _____
+
+2. **Prototype:** _____
+   [Same]
+
+[At least 3]
+
+**Quality gate:** Spend 10+ minutes, write 400+ words.
+
+---
+
+## 2. Prototype Critical Paths (15+ minutes minimum)
+
+**Build quick prototypes to test assumptions.**
+
+### A. Identify Critical Paths
+
+**Critical path = anything that could make/break the feature**
+
+**Critical Path #1:** _____
+- **Why critical:** _____
+- **If this doesn't work:** _____
+- **Confidence it will work:** Low/Medium/High
+- **Need to prototype:** Yes/No
+
+**Critical Path #2:** _____
+[Same structure]
+
+**Critical Path #3:** _____
+[Same structure]
+
+[List at least 5 critical paths]
+
+**Rank by risk:**
+1. **Highest risk:** _____ (must prototype)
+2. **High risk:** _____ (should prototype)
+3. **Medium risk:** _____ (consider prototyping)
+
+### B. Build Prototypes
+
+**For each high/highest risk critical path, build a minimal prototype.**
+
+**Prototype #1: [Name]**
+
+**Purpose:** Test if _____
+
+**Time budgeted:** _____ minutes
+
+**Setup:**
+```bash
+# Commands to set up prototype
+```
+
+**Code:**
+```typescript
+// FULL working prototype code
+// Not pseudocode - actual runnable code
+
+// Example structure:
+// 1. Imports
+import { useState, useEffect } from 'react';
+
+// 2. Types
+interface ProtoType {
+  field: string;
+}
+
+// 3. Implementation
+function Prototype() {
+  const [state, setState] = useState<ProtoType | null>(null);
+  
+  useEffect(() => {
+    // Test critical path
+    testCriticalPath();
+  }, []);
+  
+  const testCriticalPath = async () => {
+    try {
+      // Actual test logic
+      const result = await criticalOperation();
+      setState(result);
+    } catch (error) {
+      console.error('Critical path failed:', error);
+    }
+  };
+  
+  return (
+    <div>
+      <h1>Prototype: Testing Critical Path</h1>
+      <pre>{JSON.stringify(state, null, 2)}</pre>
+    </div>
+  );
+}
+
+// 4. Helper functions
+async function criticalOperation() {
+  // Actual implementation to test
+}
+```
+
+**Test procedure:**
+1. _____
+2. _____
+3. _____
+
+**Expected result:** _____
+
+**Actual result:** _____
+
+**Time taken:** _____ minutes
+
+**Findings:**
+- **Did it work?** Yes/No/Partially
+- **Performance:** _____
+- **Complexity:** Lower/Higher than expected
+- **Blockers discovered:** _____
+- **Edge cases found:** _____
+- **Confidence after testing:** Low/Medium/High
+
+**Decision:**
+- [ ] ✅ This approach works - proceed
+- [ ] ⚠️ Works with modifications - document changes needed
+- [ ] ❌ Doesn't work - try different approach
+
+**If doesn't work:**
+- **Why it failed:** _____
+- **Alternative to try:** _____
+
+**Code snippets to keep:**
+```typescript
+// Any useful code from prototype
+```
+
+**Code snippets to avoid:**
+```typescript
+// Any problematic code
+// Explain why problematic
+```
+
+**Prototype #2:** [Same detailed structure]
+
+**Prototype #3:** [Same detailed structure]
+
+### C. Prototype Learnings Summary
+
+**What we proved:**
+1. _____ (works)
+2. _____ (works)
+3. _____ (works)
+
+**What we disproved:**
+1. _____ (doesn't work because _____)
+2. _____ (doesn't work because _____)
+
+**What we're still uncertain about:**
+1. _____ (need to: _____)
+2. _____ (need to: _____)
+
+**Approaches eliminated by prototyping:**
+- Approach: _____ (reason: _____)
+- Approach: _____ (reason: _____)
+
+**Approaches validated by prototyping:**
+- Approach: _____ (evidence: _____)
+- Approach: _____ (evidence: _____)
+
+**New concerns raised:**
+1. Concern: _____ (severity: Low/Medium/High)
+2. Concern: _____ (severity: Low/Medium/High)
+
+**Quality gate for this section:**
+- [ ] At least 5 critical paths identified
+- [ ] At least 3 prototypes built (actual working code)
+- [ ] Each prototype fully documented
+- [ ] Learnings extracted
+- [ ] Decisions made (proceed/modify/abandon)
+- [ ] Spent at least 15 minutes
+- [ ] Written at least 800 words + code
+
+**Your prototyping findings (minimum 800 words + code):**
+```
+[Complete prototyping documentation]
+```
+
+---
+
+## 🧠 THINKING CHECKPOINT #2 (10 minutes minimum)
+
+**Stop. Synthesize what you learned from prototyping.**
+
+### What's now clear?
+
+**Technically feasible:**
+- _____
+- _____
+- _____
+
+**Technically risky:**
+- _____
+- _____
+- _____
+
+**Technically impossible (with current approach):**
+- _____
+- _____
+
+### What approach is emerging as best?
+
+**Leading approach:** _____
+
+**Evidence supporting it:**
+1. _____
+2. _____
+3. _____
+
+**Concerns remaining:**
+1. _____
+2. _____
+3. _____
+
+**Alternative approaches still viable:**
+1. _____
+2. _____
+
+### What needs deeper evaluation?
+
+**Still need to evaluate:**
+1. _____ (approach/library/pattern)
+   - **Why:** _____
+   - **How:** _____
+   - **Time needed:** _____
+
+2. _____ (approach/library/pattern)
+   [Same]
+
+**Quality gate:** Spend 10+ minutes, write 300+ words.
+
+---
+
+## 3. Evaluate Approaches (15+ minutes minimum)
+
+**Rigorously compare all viable approaches.**
+
+### A. Approach Comparison Matrix
+
+**List all viable approaches:**
+1. Approach A: _____
+2. Approach B: _____
+3. Approach C: _____
+4. Approach D: _____
+
+**Evaluation criteria:**
+
+| Criterion | Weight | Approach A | Approach B | Approach C | Approach D |
+|-----------|--------|------------|------------|------------|------------|
+| **Implementation complexity** | 20% | Low (5) | High (2) | Medium (3) | Low (5) |
+| **Performance** | 20% | Fast (5) | Slow (2) | Fast (5) | Medium (3) |
+| **Maintainability** | 15% | Good (4) | Poor (2) | Good (4) | Excellent (5) |
+| **Bundle size** | 10% | Small (5) | Large (2) | Medium (3) | Small (5) |
+| **Browser compatibility** | 10% | Good (4) | Excellent (5) | Good (4) | Good (4) |
+| **Error handling** | 10% | Good (4) | Poor (2) | Excellent (5) | Good (4) |
+| **Extensibility** | 10% | Good (4) | Poor (2) | Good (4) | Excellent (5) |
+| **Risk** | 5% | Low (5) | High (2) | Medium (3) | Low (5) |
+| **TOTAL SCORE** | 100% | 4.45 | 2.35 | 4.05 | 4.55 |
+
+**Scoring:** 5 = Excellent, 4 = Good, 3 = Acceptable, 2 = Poor, 1 = Unacceptable
+
+**Analysis:**
+- **Winner:** Approach ___ (score: ___)
+- **Runner-up:** Approach ___ (score: ___)
+- **Eliminated:** Approach ___ (score: ___)
+
+### B. Deep Dive on Top 3 Approaches
+
+**Approach #1: [Name] (Score: ___)**
+
+**Description (100+ words):**
+```
+[Detailed description of how this approach works]
+```
+
+**Architecture diagram:**
+```
+┌─────────────┐
+│   User      │
+└──────┬──────┘
+       │
+       ▼
+┌─────────────┐
+│ Component A │
+└──────┬──────┘
+       │
+       ▼
+┌─────────────┐      ┌─────────────┐
+│  Service B  │─────▶│  Utility C  │
+└─────────────┘      └─────────────┘
+       │
+       ▼
+┌─────────────┐
+│    API D    │
+└─────────────┘
+```
+
+**Data flow:**
+```
+Input: _____
+  ↓
+Transform: _____
+  ↓
+Process: _____
+  ↓
+Output: _____
+```
+
+**File structure:**
+```
+src/
+├── components/
+│   └── NewComponent.tsx
+├── utils/
+│   └── newUtil.ts
+├── hooks/
+│   └── useNewHook.ts
+└── types/
+    └── newTypes.ts
+```
+
+**Key code pattern:**
+```typescript
+// Show core implementation pattern
+```
+
+**Dependencies needed:**
+- Package: _____ (version: _____, size: _____ KB)
+- Package: _____ (version: _____, size: _____ KB)
+- **Total bundle impact:** _____ KB
+
+**Pros (list 5+):**
+1. **Pro:** _____
+   - **Why it matters:** _____
+   - **Impact:** High/Medium/Low
+
+2. **Pro:** _____
+   - **Why it matters:** _____
+   - **Impact:** High/Medium/Low
+
+[List at least 5]
+
+**Cons (list 5+):**
+1. **Con:** _____
+   - **Why it matters:** _____
+   - **Impact:** High/Medium/Low
+   - **Mitigation:** _____
+
+2. **Con:** _____
+   [Same]
+
+[List at least 5]
+
+**Trade-offs:**
+- **Trading:** _____ (what we give up)
+- **For:** _____ (what we gain)
+- **Worth it because:** _____
+
+**Risks (list 5+):**
+1. **Risk:** _____
+   - **Probability:** ___%
+   - **Impact:** High/Medium/Low
+   - **Mitigation:** _____
+
+2. **Risk:** _____
+   [Same]
+
+[List at least 5]
+
+**Edge cases:**
+1. **Edge case:** _____
+   - **How approach handles:** _____
+   - **Graceful:** Yes/No
+
+2. **Edge case:** _____
+   [Same]
+
+[List at least 5]
+
+**Performance characteristics:**
+- **Time complexity:** O(___)
+- **Space complexity:** O(___)
+- **Network requests:** ___ per operation
+- **Database queries:** ___ per operation
+- **Render count:** ___ per interaction
+- **Expected response time:** ___ms
+- **Memory usage:** ___MB
+- **CPU usage:** Low/Medium/High
+
+**Scalability:**
+- **10 items:** _____
+- **100 items:** _____
+- **1,000 items:** _____
+- **10,000 items:** _____
+- **Bottleneck:** _____
+
+**Testing strategy:**
+- **Unit tests:** _____
+- **Integration tests:** _____
+- **E2E tests:** _____
+- **Mockable:** Yes/No
+- **Test complexity:** Low/Medium/High
+
+**Why this might be the best approach:**
+```
+[Write 200+ words explaining the case FOR this approach]
+```
+
+**Why this might NOT be the best approach:**
+```
+[Write 200+ words explaining the case AGAINST this approach]
+```
+
+**Approach #2:** [Same detailed structure]
+
+**Approach #3:** [Same detailed structure]
+
+### C. Decision Matrix with Scenarios
+
+**Test each approach against real scenarios:**
+
+**Scenario #1: [Typical use case]**
+- **User does:** _____
+- **Expected result:** _____
+
+| Aspect | Approach A | Approach B | Approach C |
+|--------|------------|------------|------------|
+| Implementation steps | 1. ___<br>2. ___<br>3. ___ | 1. ___<br>2. ___<br>3. ___ | 1. ___<br>2. ___<br>3. ___ |
+| Lines of code | ~___ | ~___ | ~___ |
+| Performance | ___ms | ___ms | ___ms |
+| Edge cases handled | X/Y | X/Y | X/Y |
+| Error handling | Good/Bad | Good/Bad | Good/Bad |
+| Winner | ✅/❌ | ✅/❌ | ✅/❌ |
+
+**Scenario #2: [Edge case]**
+[Same structure]
+
+**Scenario #3: [Stress case - 10x normal load]**
+[Same structure]
+
+**Scenario #4: [Error case]**
+[Same structure]
+
+**Scenario #5: [Mobile/responsive case]**
+[Same structure]
+
+**Scenario winner count:**
+- Approach A: ___ wins
+- Approach B: ___ wins
+- Approach C: ___ wins
+
+### D. Final Recommendation
+
+**Recommended approach:** _____
+
+**Confidence level:** Low/Medium/High (___%)
+
+**Reasoning (minimum 300 words):**
+```
+[Detailed reasoning for recommendation]
+
+Cover:
+- Why this beats alternatives
+- What trade-offs we accept
+- What risks remain
+- Why risks are acceptable
+- What we gain
+- How this aligns with constraints
+- How this serves users
+- How this serves developers
+- Long-term maintainability
+- Extensibility for future features
+```
+
+**Runner-up approach:** _____
+- **Use if:** _____
+- **Advantage over winner:** _____
+
+**Backup approach:** _____
+- **Use if:** _____
+- **When to switch:** _____
+
+**Quality gate for this section:**
+- [ ] All viable approaches compared in matrix
+- [ ] Top 3 approaches deeply analyzed
+- [ ] Each approach has 5+ pros, 5+ cons, 5+ risks, 5+ edge cases
+- [ ] Tested against 5+ scenarios
+- [ ] Final recommendation made with 300+ word justification
+- [ ] Spent at least 15 minutes
+- [ ] Written at least 1500 words
+
+**Your approach evaluation (minimum 1500 words):**
+```
+[Complete approach analysis]
+```
+
+---
+
+## 🧠 THINKING CHECKPOINT #3 (10 minutes minimum)
+
+**Stop. Challenge your recommendation.**
+
+### Devil's Advocate
+
+**Play devil's advocate. Try to tear down your recommendation.**
+
+**Argument against recommended approach:**
+```
+[Write 200+ words arguing AGAINST your choice]
+
+Be brutal. What could go wrong?
+What are you overlooking?
+What bias might be affecting your judgment?
+```
+
+**Response to argument:**
+```
+[Write 200+ words defending your choice]
+
+Address each concern raised.
+Provide evidence.
+Show why concerns are manageable.
+```
+
+### Alternative Universe
+
+**If you had to pick a DIFFERENT approach, which and why?**
+- **Approach:** _____
+- **Why:** _____
+- **When it would be better:** _____
+
+### Confidence Check
+
+**On a scale of 1-10, how confident are you?**
+- **Confidence:** ___/10
+
+**If < 8, why low confidence?**
+- Uncertainty #1: _____
+- Uncertainty #2: _____
+
+**What would increase confidence?**
+- Action #1: _____
+- Action #2: _____
+
+### Gut Check
+
+**Does this feel right?**
+- Yes/No/Unsure
+
+**If No or Unsure:**
+- **What feels wrong:** _____
+- **Why it feels wrong:** _____
+- **What would feel right:** _____
+
+**Quality gate:** Spend 10+ minutes, write 500+ words.
+
+---
+
+## 4. Make Architectural Decisions (15+ minutes minimum)
+
+**Document EVERY significant decision.**
+
+### A. Decision Template
+
+**For each major decision, use this template:**
+
+**Decision #1: [Topic]**
+
+**Question:** What are we deciding?
+- _____
+
+**Context (200+ words):**
+```
+[Explain the situation that requires this decision]
+- What's the current state?
+- Why do we need to decide this?
+- What are the constraints?
+- What's at stake?
+```
+
+**Options considered:**
+
+**Option A:** _____
+- **Description:** _____
+- **Pros:**
+  1. _____
+  2. _____
+  3. _____
+- **Cons:**
+  1. _____
+  2. _____
+  3. _____
+- **Cost:** _____
+- **Risk:** Low/Medium/High
+- **Complexity:** Low/Medium/High
+- **Reversibility:** Easy/Hard/Impossible
+- **Example:**
+```typescript
+  // Show what this looks like
+```
+
+**Option B:** _____
+[Same structure]
+
+**Option C:** _____
+[Same structure]
+
+**Decision made:** We chose Option ___
+
+**Rationale (200+ words):**
+```
+[Explain WHY this option won]
+- Why is this better than alternatives?
+- What evidence supports this?
+- What trade-offs are we accepting?
+- What risks are we taking?
+- Why are these trade-offs worth it?
+- How does this align with project goals?
+- What does this enable/prevent?
+```
+
+**Trade-offs accepted:**
+- **Giving up:** _____
+- **To gain:** _____
+- **Worth it because:** _____
+
+**Risks assumed:**
+1. **Risk:** _____
+   - **Probability:** ___%
+   - **Impact:** High/Medium/Low
+   - **Mitigation:** _____
+
+**Downstream impact:**
+- **Affects:** _____ (list components/systems)
+- **Enables:** _____ (future capabilities)
+- **Prevents:** _____ (future options closed)
+
+**Reversibility:**
+- **How hard to reverse:** Easy/Medium/Hard
+- **Cost to reverse:** _____ hours
+- **Files to rewrite:** ___ files
+- **When we'd reverse:** _____
+
+**Success metrics:**
+- **How we'll know this was right:** _____
+- **Metric #1:** _____
+- **Metric #2:** _____
+- **Timeline to evaluate:** _____
+
+**Alternatives if this fails:**
+- **Plan B:** _____
+- **Trigger to switch:** _____
+
+---
+
+### B. Key Architectural Decisions (Minimum 8 Required)
+
+Document decisions for:
+
+**Decision #1: Primary Approach**
+- Topic: Which implementation approach?
+[Full decision template]
+
+**Decision #2: State Management**
+- Topic: How do we manage state?
+- Options: Context API / Redux / Zustand / Local state / URL state
+[Full decision template]
+
+**Decision #3: Data Fetching**
+- Topic: How do we fetch data?
+- Options: fetch / axios / react-query / SWR / server components
+[Full decision template]
+
+**Decision #4: Error Handling**
+- Topic: How do we handle errors?
+- Options: Error boundaries / try-catch / error states / toast notifications
+[Full decision template]
+
+**Decision #5: Validation**
+- Topic: Where and how do we validate?
+- Options: Client-side / server-side / both / Zod / Yup / custom
+[Full decision template]
+
+**Decision #6: File Structure**
+- Topic: How do we organize files?
+- Options: Feature-based / type-based / hybrid
+[Full decision template]
+
+**Decision #7: Styling Approach**
+- Topic: How do we style components?
+- Options: CSS Modules / Styled Components / Tailwind / Inline styles
+[Full decision template]
+
+**Decision #8: Testing Strategy**
+- Topic: What do we test and how?
+- Options: Unit / Integration / E2E / All
+[Full decision template]
+
+**Additional decisions as needed:**
+[Continue with any other significant decisions]
+
+### C. Decision Dependency Map
+
+**Show how decisions relate:**
+```
+Decision #1 (Primary Approach)
+    ↓
+    ├─→ Decision #2 (State Management)
+    │       ↓
+    │       └─→ Decision #4 (Error Handling)
+    │
+    └─→ Decision #3 (Data Fetching)
+            ↓
+            └─→ Decision #5 (Validation)
+
+Decision #6 (File Structure)
+    ↓
+    └─→ Decision #7 (Styling)
+```
+
+**Critical path:**
+- Decision __ must be made first
+- Blocks decisions: __, __, __
+
+**Reversible decisions (low commitment):**
+- Decision __: Can change easily
+- Decision __: Can change easily
+
+**Irreversible decisions (high commitment):**
+- Decision __: Hard to change later
+- Decision __: Hard to change later
+
+### D. Decision Summary Table
+
+| Decision | Choice | Confidence | Risk | Reversibility | Impact |
+|----------|--------|-----------|------|---------------|--------|
+| #1: Primary Approach | ___ | High | Medium | Hard | High |
+| #2: State Management | ___ | High | Low | Easy | Medium |
+| #3: Data Fetching | ___ | Medium | Medium | Medium | High |
+| #4: Error Handling | ___ | High | Low | Easy | Medium |
+| #5: Validation | ___ | High | Low | Easy | Low |
+| #6: File Structure | ___ | High | Low | Easy | Low |
+| #7: Styling | ___ | High | Low | Easy | Low |
+| #8: Testing | ___ | Medium | Low | Easy | Medium |
+
+**Quality gate for this section:**
+- [ ] At least 8 major decisions documented
+- [ ] Each decision uses full template
+- [ ] Each has 200+ word context and rationale
+- [ ] Trade-offs explicitly stated
+- [ ] Risks identified
+- [ ] Reversibility assessed
+- [ ] Dependencies mapped
+- [ ] Spent at least 15 minutes
+- [ ] Written at least 2000 words
+
+**Your architectural decisions (minimum 2000 words):**
+```
+[Complete decision documentation]
+```
+
+---
+
+## 🧠 THINKING CHECKPOINT #4 (10 minutes minimum)
+
+**Stop. Validate your decisions.**
+
+### Consistency Check
+
+**Do decisions work together?**
+- Decision __ + Decision __ = Conflict? Yes/No
+  - If yes, which one changes? _____
+
+**Is there a simpler path?**
+- If we made different decision on __: _____
+- Would that simplify?: Yes/No
+
+### Experience Check
+
+**Have you made similar decisions before?**
+- Decision: _____
+- Past experience: _____
+- What happened: _____
+- Lessons applied here: _____
+
+### Team Check
+
+**Will team agree with these decisions?**
+- **Likely controversial:** Decision #__
+  - **Why controversial:** _____
+  - **Counter-argument:** _____
+  - **How to address:** _____
+
+### Future Check
+
+**In 6 months, will you regret any decision?**
+- **Possible regret:** Decision #__
+  - **Why might regret:** _____
+  - **How to prevent regret:** _____
+
+**Quality gate:** Spend 10+ minutes, write 300+ words.
+
+---
+
+## 5. Document Edge Cases (10+ minutes minimum)
+
+**Exhaustively list edge cases.**
+
+### A. Edge Case Categories
+
+**For each category, list at least 5 edge cases:**
+
+#### Data Edge Cases
+
+**Edge case #1:** Empty data
+- **Scenario:** User has no ___
+- **Current behavior:** _____
+- **Desired behavior:** _____
+- **How we'll handle:**
+```typescript
+  // Show code
+  if (data.length === 0) {
+    return <EmptyState />;
+  }
+```
+- **Test case:** _____
+
+**Edge case #2:** Null/undefined
+- **Scenario:** Data field is null
+- **Current behavior:** _____
+- **Desired behavior:** _____
+- **How we'll handle:**
+```typescript
+  // Show code
+```
+- **Test case:** _____
+
+**Edge case #3:** Malformed data
+**Edge case #4:** Extremely large data
+**Edge case #5:** Extremely small data
+[Same detail for each]
+
+#### User Interaction Edge Cases
+
+**Edge case #1:** Rapid clicking
+**Edge case #2:** Double submit
+**Edge case #3:** Navigation during operation
+**Edge case #4:** Keyboard shortcuts
+**Edge case #5:** Touch gestures
+[Same detail for each]
+
+#### Network Edge Cases
+
+**Edge case #1:** Network timeout
+**Edge case #2:** Intermittent connection
+**Edge case #3:** Offline mode
+**Edge case #4:** Slow connection
+**Edge case #5:** Failed upload
+[Same detail for each]
+
+#### Browser Edge Cases
+
+**Edge case #1:** Old browser version
+**Edge case #2:** JavaScript disabled
+**Edge case #3:** Cookies disabled
+**Edge case #4:** Ad blocker
+**Edge case #5:** Private browsing
+[Same detail for each]
+
+#### Device Edge Cases
+
+**Edge case #1:** Small screen (320px)
+**Edge case #2:** Large screen (4K)
+**Edge case #3:** Touch device
+**Edge case #4:** Keyboard-only
+**Edge case #5:** Screen reader
+[Same detail for each]
+
+#### State Edge Cases
+
+**Edge case #1:** Component unmounted during async
+**Edge case #2:** Race condition
+**Edge case #3:** Stale closure
+**Edge case #4:** Memory leak
+**Edge case #5:** Infinite loop
+[Same detail for each]
+
+#### Permission Edge Cases
+
+**Edge case #1:** User lacks permission
+**Edge case #2:** Permission changes mid-session
+**Edge case #3:** Session expires
+**Edge case #4:** Concurrent sessions
+**Edge case #5:** Account deleted
+[Same detail for each]
+
+#### Performance Edge Cases
+
+**Edge case #1:** 10,000+ items
+**Edge case #2:** Complex nested data
+**Edge case #3:** Slow render
+**Edge case #4:** Memory pressure
+**Edge case #5:** CPU throttling
+[Same detail for each]
+
+### B. Edge Case Handling Strategy
+
+**For each edge case, document:**
+
+| Edge Case | Severity | Probability | Handling Strategy | Test Coverage |
+|-----------|----------|-------------|------------------|---------------|
+| Empty data | Medium | High (40%) | Show empty state | ✅ Unit test |
+| Null data | High | Medium (20%) | Use optional chaining | ✅ Unit test |
+| Rapid clicks | Medium | High (30%) | Debounce/disable | ✅ Integration |
+| Network timeout | High | Medium (15%) | Retry 3x + error | ✅ Integration |
+| Old browser | Low | Low (5%) | Polyfill + warning | ⬜ Manual |
+[All edge cases]
+
+**Severity definitions:**
+- **Critical:** Crashes, data loss, security breach
+- **High:** Major functionality broken
+- **Medium:** Degraded experience
+- **Low:** Minor inconvenience
+
+**Priority edge cases (must handle in MVP):**
+1. _____
+2. _____
+3. _____
+[Top 10]
+
+**Deferred edge cases (handle in future iteration):**
+1. _____
+2. _____
+3. _____
+
+### C. Edge Case Test Plan
+
+**How we'll test edge cases:**
+
+**Automated tests:**
+- Unit tests: _____
+- Integration tests: _____
+- E2E tests: _____
+
+**Manual tests:**
+- Test case #1: _____
+- Test case #2: _____
+- Test case #3: _____
+
+**Exploratory testing:**
+- Focus areas: _____
+- Time budget: _____ hours
+
+**Quality gate for this section:**
+- [ ] At least 40 edge cases documented (5 per category × 8 categories)
+- [ ] Each edge case has handling strategy
+- [ ] Each edge case has test plan
+- [ ] Severity and probability assessed
+- [ ] Priority edge cases identified
+- [ ] Spent at least 10 minutes
+- [ ] Written at least 1000 words
+
+**Your edge cases (minimum 1000 words):**
+```
+[Complete edge case documentation]
+```
+
+---
+
+## 6. Risk Analysis (10+ minutes minimum)
+
+**Deep dive into what could go wrong.**
+
+### A. Risk Identification
+
+**Identify risks in these categories:**
+
+#### Technical Risks
+
+**Risk #1:** _____
+- **Description:** _____
+- **Category:** Performance/Security/Compatibility/Scalability/Integration
+- **Why risky:** _____
+- **Probability:** ___% (based on: _____)
+- **Impact if occurs:**
+  - User: _____
+  - Business: _____
+  - Technical: _____
+- **Impact severity:** Critical/High/Medium/Low
+- **Early warning signs:**
+  1. _____
+  2. _____
+  3. _____
+- **Detection method:** _____
+- **Prevention strategy:**
+  - Step 1: _____
+  - Step 2: _____
+  - Step 3: _____
+- **Mitigation strategy (if occurs):**
+  - Immediate: _____
+  - Short-term: _____
+  - Long-term: _____
+- **Contingency plan:** _____
+- **Owner:** _____
+- **Review frequency:** Daily/Weekly/Per milestone
+
+**Risk #2:** [Same detailed structure]
+**Risk #3:** [Same detailed structure]
+[At least 5 technical risks]
+
+#### Execution Risks
+
+**Risk #1:** Timeline slippage
+[Same detailed structure]
+
+**Risk #2:** Scope creep
+[Same detailed structure]
+
+**Risk #3:** Resource unavailability
+[Same detailed structure]
+
+**Risk #4:** Skill gaps
+[Same detailed structure]
+
+**Risk #5:** Dependency delays
+[Same detailed structure]
+
+[Same detail for each]
+
+#### User Experience Risks
+
+**Risk #1:** Confusing UI
+**Risk #2:** Poor performance perception
+**Risk #3:** Low adoption
+**Risk #4:** Negative feedback
+**Risk #5:** Accessibility barriers
+[Same detail for each]
+
+#### Business Risks
+
+**Risk #1:** Priority change
+**Risk #2:** Budget constraints
+**Risk #3:** Competitive pressure
+**Risk #4:** Regulatory issues
+**Risk #5:** Stakeholder misalignment
+[Same detail for each]
+
+### B. Risk Matrix
+
+**Plot risks by probability × impact:**
+```
+HIGH IMPACT
+│
+│  🔴 Risk #3        🔴 Risk #1
+│  (60% × High)     (40% × Critical)
+│
+│  🟡 Risk #5        🟡 Risk #2
+│  (50% × Medium)   (30% × High)
+│
+│  🟢 Risk #7        🟢 Risk #4
+│  (30% × Low)      (20% × Medium)
+│
+└────────────────────────────────► HIGH PROBABILITY
+```
+
+**Priority order (probability × impact):**
+1. 🔴 **P0 - Immediate attention:** Risk #__
+2. 🔴 **P0 - Immediate attention:** Risk #__
+3. 🟡 **P1 - Monitor closely:** Risk #__
+4. 🟡 **P1 - Monitor closely:** Risk #__
+5. 🟢 **P2 - Watch:** Risk #__
+
+### C. Risk Response Plan
+
+**For top 5 risks, detailed response plan:**
+
+**Risk #1 Response Plan:**
+
+**Prevention checklist:**
+- [ ] Action 1: _____ (timeline: _____)
+- [ ] Action 2: _____ (timeline: _____)
+- [ ] Action 3: _____ (timeline: _____)
+
+**Monitoring plan:**
+- **Metric to watch:** _____
+- **Warning threshold:** _____
+- **Check frequency:** _____
+- **Alert mechanism:** _____
+
+**Trigger for response:**
+- **Trigger #1:** If _____ happens
+- **Trigger #2:** If _____ exceeds _____
+- **Trigger #3:** If _____ by _____
+
+**Response playbook:**
+```
+IF risk occurs:
+  THEN:
+    1. Immediate actions (0-24 hours):
+       - _____
+       - _____
+    2. Short-term actions (1-7 days):
+       - _____
+       - _____
+    3. Long-term actions (1+ weeks):
+       - _____
+       - _____
+```
+
+**Communication plan:**
+- **Who to notify:** _____
+- **When to notify:** _____
+- **How to notify:** _____
+- **What to communicate:** _____
+
+**Success criteria:**
+- [ ] Risk contained
+- [ ] Impact limited to _____
+- [ ] Recovery completed
+- [ ] Lessons documented
+
+**Risk #2 Response Plan:** [Same detail]
+**Risk #3 Response Plan:** [Same detail]
+**Risk #4 Response Plan:** [Same detail]
+**Risk #5 Response Plan:** [Same detail]
+
+### D. Risk Acceptance
+
+**For risks we're accepting (not mitigating):**
+
+**Accepted Risk #1:** _____
+- **Why accepting:** _____
+- **Who approved:** _____
+- **Acceptable because:** _____
+- **Monitoring anyway:** Yes/No
+- **Trigger to reconsider:** _____
+
+### E. Lessons from Past Projects
+
+**Similar risks in past projects:**
+1. **Past project:** _____
+   - **Risk that materialized:** _____
+   - **Impact:** _____
+   - **How we handled:** _____
+   - **Lesson:** _____
+   - **Applied here:** _____
+
+2. **Past project:** _____
+   [Same]
+
+[At least 3 examples]
+
+**Quality gate for this section:**
+- [ ] At least 20 risks identified (5 per category × 4 categories)
+- [ ] Each risk fully detailed
+- [ ] Top 5 risks have response plans
+- [ ] Risk matrix created
+- [ ] Accepted risks documented
+- [ ] Past lessons applied
+- [ ] Spent at least 10 minutes
+- [ ] Written at least 1200 words
+
+**Your risk analysis (minimum 1200 words):**
+```
+[Complete risk documentation]
+```
+
+---
+
+## 🧠 FINAL THINKING CHECKPOINT (15 minutes minimum)
+
+**Stop. Review everything you've explored.**
+
+### Completeness Check
+
+**Have you answered all questions from the issue?**
+- [ ] Question 1: _____ (answered: Yes/No)
+- [ ] Question 2: _____ (answered: Yes/No)
+[Check every question from issue]
+
+**If any "No", why not?**
+- _____
+
+**New questions raised by exploration:**
+1. _____
+2. _____
+3. _____
+
+**Can planning proceed without answers?**
+- Yes/No
+- If No, what's needed: _____
+
+### Confidence Assessment
+
+**Overall confidence in exploration:**
+- **Confidence:** ___/10
+
+**Breakdown:**
+- Technical feasibility: ___/10
+- Approach selection: ___/10
+- Risk understanding: ___/10
+- Edge case coverage: ___/10
+- Timeline estimate: ___/10
+
+**If any < 8:**
+- What's uncertain: _____
+- What would increase confidence: _____
+- Can we proceed anyway: Yes/No
+
+### Simplicity Check
+
+**Is this the simplest approach that could work?**
+- Yes/No
+
+**If No:**
+- **Simpler approach:** _____
+- **Why not choosing it:** _____
+
+**Can we reduce scope and still deliver value?**
+- Yes/No
+- If Yes: _____
+
+### Reality Check
+
+**Can we actually build this?**
+- Yes/No/Maybe
+
+**Honest effort estimate:**
+- **Best case:** _____ hours
+- **Likely case:** _____ hours
+- **Worst case:** _____ hours
+- **Confidence in estimate:** ____%
+
+**What could make it take 2x longer?**
+1. _____
+2. _____
+3. _____
+
+### Team Check
+
+**Can the team implement this?**
+- **Skills needed:** _____
+- **Skills available:** _____
+- **Skills missing:** _____
+- **Training needed:** _____
+
+**Will team understand the approach?**
+- Yes/No
+- If No: _____
+
+### User Check
+
+**Will this actually solve the user problem?**
+- Yes/No/Partially
+
+**Did we stay focused on the user need?**
+- Yes/No
+
+**Are we over-engineering?**
+- Yes/No
+- If Yes: _____
+
+### Bias Check
+
+**What biases might be affecting judgment?**
+- Bias #1: _____ (impact: _____)
+- Bias #2: _____ (impact: _____)
+- Bias #3: _____ (impact: _____)
+
+**Corrective actions:**
+- _____
+
+**Quality gate:** Spend 15+ minutes, write 600+ words.
+
+---
+
+## Exploration Summary
+
+**Create a concise summary for the planning phase.**
+
+### TL;DR (5-7 sentences)
+```
+[Summarize entire exploration in 5-7 sentences]
+- What was explored
+- What was decided
+- What approach won
+- Key risks
+- Confidence level
+- Ready for planning: Yes/No
+```
+
+### Recommended Approach
+
+**Name:** _____
+
+**One-sentence description:** _____
+
+**Why this approach:**
+1. _____
+2. _____
+3. _____
+
+**Key decisions:**
+1. _____
+2. _____
+3. _____
+
+**Major risks:**
+1. _____ (mitigation: _____)
+2. _____ (mitigation: _____)
+3. _____ (mitigation: _____)
+
+### Files to Create/Modify
+
+**New files (with purpose):**
+1. `path/to/file.tsx` - _____
+2. `path/to/file.ts` - _____
+[Complete list]
+
+**Files to modify (with changes):**
+1. `path/to/file.tsx` - _____
+2. `path/to/file.ts` - _____
+[Complete list]
+
+### Key Code Patterns
+
+**Pattern #1:**
+```typescript
+// Show key pattern that will be used
+```
+
+**Pattern #2:**
+```typescript
+// Show another key pattern
+```
+
+### Dependencies
+
+**New packages needed:**
+1. Package: _____ (version: _____, reason: _____)
+2. Package: _____ (version: _____, reason: _____)
+
+**Total bundle impact:** _____ KB
+
+### Critical Path
+
+**Must happen in this order:**
+1. _____
+2. _____
+3. _____
+4. _____
+5. _____
+
+### Effort Estimate
+
+**Breakdown:**
+- Research/setup: _____ hours
+- Implementation: _____ hours
+- Testing: _____ hours
+- Review/iteration: _____ hours
+- **Total: _____ hours**
+
+**Confidence: ____%**
+
+### Open Items for Planning
+
+**Planning phase needs to address:**
+1. _____
+2. _____
+3. _____
+
+### Success Criteria
+
+**Exploration was successful if:**
+- [ ] All critical questions answered
+- [ ] Approach validated with prototypes
+- [ ] Risks identified and mitigated
+- [ ] Edge cases understood
+- [ ] Ready to create detailed plan
+
+---
+
+## Quality Metrics (Must Meet Before Finishing)
+
+**Quantifiable requirements:**
+
+| Metric | Minimum | Your Count | Pass? |
+|--------|---------|------------|-------|
+| Total words | 8,000 | _____ | ⬜ |
+| Time spent (minutes) | 90 | _____ | ⬜ |
+| Similar implementations documented | 3 | _____ | ⬜ |
+| Prototypes built | 3 | _____ | ⬜ |
+| Approaches evaluated | 3 | _____ | ⬜ |
+| Architectural decisions | 8 | _____ | ⬜ |
+| Edge cases documented | 40 | _____ | ⬜ |
+| Risks identified | 20 | _____ | ⬜ |
+| Code examples shown | 15 | _____ | ⬜ |
+| Thinking checkpoints completed | 5 | _____ | ⬜ |
+| Questions from issue answered | All | ___/__ | ⬜ |
+
+**HARD RULE:** If ANY metric is below minimum, exploration is INCOMPLETE. Go back and add depth.
+
+---
+
+## Final Checklist
+
+**Before moving to planning:**
+
+**Content completeness:**
+- [ ] Pre-exploration thinking completed (20+ min, 900+ words)
+- [ ] Research completed (15+ min, 1000+ words, 3+ implementations)
+- [ ] Prototyping completed (15+ min, 800+ words, 3+ prototypes)
+- [ ] Approach evaluation completed (15+ min, 1500+ words)
+- [ ] Architectural decisions documented (15+ min, 2000+ words, 8+ decisions)
+- [ ] Edge cases documented (10+ min, 1000+ words, 40+ cases)
+- [ ] Risk analysis completed (10+ min, 1200+ words, 20+ risks)
+- [ ] All thinking checkpoints completed (60+ min total, 2600+ words)
+
+**Quality verification:**
+- [ ] All questions from issue answered
+- [ ] Recommended approach clear
+- [ ] Decisions justified with evidence
+- [ ] Prototypes validated assumptions
+- [ ] Risks have mitigation plans
+- [ ] Edge cases have handling strategy
+- [ ] Code examples provided
+- [ ] Effort estimated
+
+**Readiness:**
+- [ ] Confident in approach (7+/10)
+- [ ] Team can implement this
+- [ ] Users will benefit
+- [ ] Risks are acceptable
+- [ ] Scope is clear
+- [ ] No major blockers
+- [ ] Ready to plan step-by-step
+
+**Time check:**
+- [ ] Time spent: _____ minutes (minimum: 90)
+- [ ] If < 90 minutes, go back and deepen exploration
+
+**If ANY checkbox is unchecked, improve exploration before moving to planning.**
+
+---
+
+## After Exploration
+
+**Next steps:**
+1. [ ] Review exploration with team (15 minutes)
+2. [ ] Get buy-in on approach
+3. [ ] Get answers to remaining questions
+4. [ ] Move to **Planning Phase**
+
+**Planning will reference this exploration extensively.**
+- Every decision made here informs planning
+- Every risk identified here shapes contingencies
+- Every edge case here becomes test cases
+
+---
+
+⚠️ **FINAL REMINDER**
+
+**Don't rush exploration.**
+
+**Time spent here: Saves 5x time in planning and implementation**
+- Rushed exploration → Vague plan → Blocked implementation → Rework
+- Deep exploration → Clear plan → Smooth implementation → Success
+
+**Quality gate:**
+- [ ] I spent at least 90 minutes
+- [ ] I wrote at least 8000 words
+- [ ] I completed all 5 thinking checkpoints
+- [ ] I met all quality metrics
+- [ ] I validated with prototypes
+- [ ] Someone could plan from this without questions
+
+**If any checkbox is unchecked, STOP and add more depth.**
+
+**Remember:** This exploration is the foundation for your plan. The better your exploration, the easier your planning and implementation will be.
+
+---
+# Task Context:
+Wi-Fi disconnected mid-workflow. I am resuming the task: 'Fix metal plane clipping through torch.' The plan was already refined to Iteration 2 with a score of 8.2. Skip exploration and planning. Load the refined plan from the latest workspace directory and proceed directly to Phase 2: Execution."
+
+
+
+
+---
+# Issue Details:
+
+
+Implementation for **Fix metal plane clipping through torch** is done according to the plan. Summary:
+
+## Summary of Changes
+
+### Phase 1: Foundation
+
+1. **`my-app/src/constants/welding3d.ts`**
+   - Constants: `TORCH_GROUP_Y`, `WELD_POOL_OFFSET_Y`, `WELD_POOL_CENTER_Y`, `MAX_THERMAL_DISPLACEMENT`, `METAL_TO_TORCH_GAP`, `WORKPIECE_BASE_Y`, `ANGLE_RING_Y`, `GRID_Y`, `CONTACT_SHADOWS_Y`
+   - Math: `WORKPIECE_BASE_Y = -0.85` so max metal surface ≈ -0.35, below weld pool at -0.2, with a 0.15 gap
+
+2. **`my-app/src/__tests__/constants/welding3d.test.ts`**
+   - Checks `metal_surface_max_Y < WELD_POOL_CENTER_Y`
+   - Checks gap ≥ 0.1
+   - Checks `METAL_TO_TORCH_GAP` matches derived gap
+
+### Phase 2: TorchWithHeatmap3D
+
+3. **`my-app/src/components/welding/TorchWithHeatmap3D.tsx`**
+   - Imports `WORKPIECE_BASE_Y`, `ANGLE_RING_Y`, `GRID_Y`, `CONTACT_SHADOWS_Y`
+   - Defines `WORKPIECE_GROUP_Y = WORKPIECE_BASE_Y` and exports it for tests
+   - Updates positions:
+     - Workpiece group: `[0, -0.6, 0]` → `[0, WORKPIECE_GROUP_Y, 0]`
+     - Angle ring: `[0, -0.59, 0]` → `[0, ANGLE_RING_Y, 0]`
+     - Grid: `[0, -0.6, 0]` → `[0, GRID_Y, 0]`
+     - ContactShadows: `[0, -0.59, 0]` → `[0, CONTACT_SHADOWS_Y, 0]`
+   - Torch internal -0.6 left as-is (weld pool sphere relative position)
+
+### Phase 3: Verification & docs
+
+4. **`my-app/src/__tests__/components/welding/TorchWithHeatmap3D.test.tsx`**
+   - New test ensures `WORKPIECE_GROUP_Y === WORKPIECE_BASE_Y` and `=== -0.85`
+
+5. **`my-app/src/components/welding/ThermalPlate.tsx`**
+   - JSDoc updated to reference `WORKPIECE_BASE_Y` from welding3d
+   - Comment added for `uMaxDisplacement` to link it to `welding3d.ts`
+
+---
+
+## Verification
+
+Run:
+
+```bash
+cd my-app && npm test -- welding3d TorchWithHeatmap3D HeatmapPlate3D
+```
+
+Visual checks (per plan):
+
+- Replay page with thermal data: scrub to a hot frame (e.g. 400°C+), rotate the view, confirm no metal clipping
+- Demo page with expert session: same check
+
+The metal base is now at Y = -0.85 instead of -0.6, so the maximum metal surface (with 0.5 displacement) is about -0.35, below the weld pool at -0.2, with a 0.15 gap between metal and torch.
+
+---
+# Past Learnings (for reference):
+
+
+## 2026-02-16 17:45:48 - i dont want a separate 3d heatmap, i want the 3d heatmap on metal replacing the one in  all the replay sessions, where i have the dynamic 3d torch, i want the dynamic 3d heatmap on the metal. and the variations in heat color is too little. i want to be able to see color changes of small variations of 5-10 degrees, because even 5-10 degrees off is a lot. i want to see heat sort of travel through the metal, heating it up from 0 degrees to 500 degrees. help me plan this
+
+
+Here’s what was added to `LEARNING_LOG.md`:
+
+1. **Header note**  
+   Brief description of the unified torch+heatmap pattern.
+
+2. **Quick Reference row**  
+   New entry in the incidents table:
+   - **2025-02-16 — Unified Torch + Thermal Metal (Replay)** | Frontend | Medium
+
+3. **Section: Frontend / 3D Thermal Visualization**  
+   New incident-style entry covering:
+   - **What was done:** TorchWithHeatmap3D replaces separate TorchViz3D + HeatmapPlate3D; single Canvas; heat travel 0–500°C; 10°C per visible step.
+   - **Impact:** One 3D view per session, `THERMAL_COLOR_SENSITIVITY=10` for ~50 steps; use `5` for finer (5°C) steps.
+   - **Patterns:** Before/after code for the unified component.
+   - **Do/Don’t:** Use TorchWithHeatmap3D; keep `heatmapShaderUtils.ts` in sync with shader; avoid extra HeatmapPlate3D.
+   - **AI guidance:** Prompt for adding thermal visualization.
+
+Color sensitivity note: `THERMAL_COLOR_SENSITIVITY=10` gives one step per 10°C (50 steps over 0–500°C). To see smaller changes (≈5°C), set it to `5` in `my-app/src/constants/thermal.ts`.
+

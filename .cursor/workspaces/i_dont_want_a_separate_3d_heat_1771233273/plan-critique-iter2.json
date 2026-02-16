@@ -1,0 +1,44 @@
+
+```json
+{
+  "score": 8.4,
+  "dimension_scores": {
+    "completeness": 8.5,
+    "clarity": 8.5,
+    "verification": 8.0,
+    "dependencies": 9.0,
+    "risk_management": 8.5,
+    "edge_cases": 8.0,
+    "production_ready": 7.5
+  },
+  "critical_issues": [],
+  "minor_issues": [
+    "Step 2.2a: ThermalPlate props are described but no interface snippet. Add explicit PlateProps: `frame, maxTemp?, minTemp?, plateSize?, colorSensitivity?` to avoid ambiguity during extraction.",
+    "Step 3.3 vs 4.4: Smoke test target file 'TorchWithHeatmap3D.test.tsx' is referenced as '(create in Phase 4.4, or add here)' but Phase 3 runs before Phase 4. Clarify: create the file in Step 3.3 with the smoke test, then Phase 4.4 adds mount/flat/thermal/context-loss tests.",
+    "extractFivePointFromFrame (Step 2.1): No unit test for edge cases (null frame, empty readings, missing directions). Add `frameUtils.test.ts` cases for extractFivePointFromFrame to lock behavior.",
+    "Step 2.5: webgl.ts has MAX_TORCHVIZ3D_PER_PAGE and MAX_CANVAS_PER_PAGE. Plan updates MAX_CANVAS_PER_PAGE only. Consider updating MAX_TORCHVIZ3D_PER_PAGE comment to: 'TorchViz3D or TorchWithHeatmap3D (Canvas-equivalent)'.",
+    "Replay Row 2 condition: Step 2.3 uses `frameData.thermal_frames.length > 0` for primary session only. Document that comparison session thermal does not affect Row 2 layout (primary drives full-width vs 2-col)."
+  ],
+  "strengths": [
+    "Part 0 pre-planning: exploration synthesis, dependency graph, risk-based planning, Gap 1 LUT spec, and Red Team exercise give a strong base.",
+    "Step 1.2: Full GLSL stepped gradient plus LUT fallback spec; Step 1.4: Full TS mirror for unit testing.",
+    "Step 2.1: Complete extractFivePointFromFrame with correct null handling and DEFAULT_AMBIENT_CELSIUS.",
+    "Explicit Replay layout spec (Step 2.3) with table for Row 1/Row 2 and thermal vs non-thermal cases.",
+    "Shared ThermalPlate extraction (Step 2.2a) with sync contract avoids copy/drift.",
+    "Step 2.6: ESLint update is marked required and given concrete logic; rule covers both components.",
+    "Phase 3 failure modes and carry-forward logic are documented and verified.",
+    "Pre-flight checklists, dependency table (Section 9), and risk heatmap match implementation.",
+    "Implementability section (Section 12) answers 10 common questions."
+  ],
+  "reasoning": "The plan is strong and executable. Phase layout (1→2→3→4), dependency graph, full code for shader/TS mirror/extractFivePointFromFrame, and explicit layout and ESLint specs make it implementable. Codebase checks confirm: extractFivePointFromFrame exists in HeatmapPlate3D (lines 37–51); comparisonFrameData exists (useFrameData for comparisonSession); demo-data generates thermal for both expert and novice; SceneContent in TorchViz3D lines 63–189; heatmapFragment.glsl.ts has only uMaxTemp; ESLint rule counts TorchViz3D. There are no blocking issues. The 8.4 score reflects minor clarity and ordering gaps: ThermalPlate interface could be explicit; Phase 3.3/4.4 sequencing should be clarified; extractFivePointFromFrame lacks dedicated unit tests; one layout assumption could be documented. Production readiness is slightly lower because there are no explicit performance checks or new monitoring, which is acceptable for this feature.",
+  "improvement_priority": [
+    "Minor: Clarify Step 3.3/4.4 — create TorchWithHeatmap3D.test.tsx in 3.3 with smoke test; Phase 4.4 adds the other tests.",
+    "Minor: Add ThermalPlate interface snippet to Step 2.2a.",
+    "Minor: Add extractFivePointFromFrame unit tests to Step 2.1 or create frameUtils.test.ts.",
+    "Minor: Document Row 2 layout rule (primary session thermal only) in Step 2.3.",
+    "Minor: Update MAX_TORCHVIZ3D_PER_PAGE comment in Step 2.5 to include TorchWithHeatmap3D."
+  ],
+  "recommended_action": "refine",
+  "rationale_for_action": "Score 8.4 is in the 8.0–8.9 range. No critical issues; 4–5 minor clarifications would improve execution. Refine-plan.md is the right tool to polish these before implementation."
+}
+```

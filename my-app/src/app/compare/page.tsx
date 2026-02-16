@@ -24,7 +24,7 @@ function CompareForm() {
     <div className="min-h-screen bg-zinc-50 dark:bg-black p-6">
       <div className="max-w-md mx-auto">
         <Link
-          href="/"
+          href="/dashboard"
           className="text-sm text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300 mb-4 inline-block"
         >
           Dashboard

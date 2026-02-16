@@ -76,7 +76,7 @@ export const mockDashboardData: DashboardData = {
       id: '2',
       type: 'bar',
       title: 'Revenue by Category',
-      color: '#10b981',
+      color: '#4f46e5',
       data: [
         { category: 'Product A', value: 12000 },
         { category: 'Product B', value: 19000 },
@@ -115,7 +115,7 @@ export const mockDashboardData: DashboardData = {
       id: '5',
       type: 'bar',
       title: 'Top Clicked Elements',
-      color: '#f59e0b',
+      color: '#7c3aed',
       data: [
         { category: 'Login Button', value: 1250 },
         { category: 'Search Bar', value: 980 },

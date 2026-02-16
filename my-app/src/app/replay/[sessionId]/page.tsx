@@ -10,6 +10,11 @@ import ScorePanel from '@/components/welding/ScorePanel';
 import { fetchSession, fetchScore, type SessionScore } from '@/lib/api';
 import { alertOnReplayFailure, logWarn } from '@/lib/logger';
 import { FRAME_INTERVAL_MS } from '@/constants/validation';
+import {
+  THERMAL_MAX_TEMP,
+  THERMAL_MIN_TEMP,
+  THERMAL_COLOR_SENSITIVITY,
+} from '@/constants/thermal';
 import { extractHeatmapData } from '@/utils/heatmapData';
 import { extractAngleData } from '@/utils/angleData';
 import { useSessionMetadata } from '@/hooks/useSessionMetadata';
@@ -17,10 +22,22 @@ import { useFrameData } from '@/hooks/useFrameData';
 import { getFrameAtTimestamp, extractCenterTemperatureWithCarryForward } from '@/utils/frameUtils';
 import type { Session } from '@/types/session';
 
-// Dynamic import for TorchViz3D to avoid SSR issues with three.js/WebGL
-const TorchViz3D = dynamic(
-  () => import('@/components/welding/TorchViz3D').then((m) => m.default),
-  { ssr: false }
+// Dynamic import for TorchWithHeatmap3D — unified torch + thermal metal (replaces TorchViz3D + HeatmapPlate3D)
+// Per WEBGL_CONTEXT_LOSS.md: max 2 instances (see constants/webgl.ts)
+const TorchWithHeatmap3D = dynamic(
+  () => import('@/components/welding/TorchWithHeatmap3D').then((m) => m.default),
+  {
+    ssr: false,
+    loading: () => (
+      <div
+        className="flex h-64 w-full items-center justify-center rounded-xl border-2 border-blue-400/40 bg-neutral-900"
+        role="status"
+        aria-live="polite"
+      >
+        <span className="text-blue-400/80 animate-pulse">Loading 3D…</span>
+      </div>
+    ),
+  }
 );
 
 // ---------------------------------------------------------------------------
@@ -28,16 +45,25 @@ const TorchViz3D = dynamic(
 // ---------------------------------------------------------------------------
 
 /**
- * Comparison session ID for side-by-side 3D visualization (incubation demo).
- * Used to fetch a novice session for comparison with the primary (expert) session.
- * Overridable via NEXT_PUBLIC_DEMO_COMPARISON_SESSION_ID for deployment-specific config.
+ * Safe getter for comparison session ID — avoids process undefined in edge runtimes.
+ * Returns undefined when env is empty or unset; falls back to default for demo.
  *
  * @see .cursor/plans/side-by-side_3d_comparison_f15447b8.plan.md — Step 4
  */
-const COMPARISON_SESSION_ID =
-  (typeof process !== 'undefined' &&
-    process.env?.NEXT_PUBLIC_DEMO_COMPARISON_SESSION_ID) ||
-  'sess_novice_001';
+function getComparisonSessionId(): string | undefined {
+  try {
+    const val =
+      typeof process !== 'undefined'
+        ? process.env?.NEXT_PUBLIC_DEMO_COMPARISON_SESSION_ID
+        : undefined;
+    if (val === undefined) return 'sess_novice_001';
+    return val === '' ? undefined : val;
+  } catch {
+    return 'sess_novice_001';
+  }
+}
+
+const COMPARISON_SESSION_ID = getComparisonSessionId();
 
 type ReplayParams = { sessionId: string } | Promise<{ sessionId: string }>;
 
@@ -211,21 +237,21 @@ function ReplayPageInner({ sessionId }: { sessionId: string }) {
     setError(null);
 
     const load = async () => {
-      // CRITICAL: Pass limit to get full session (expert has ~1500 frames; default 1000 truncates)
-      const data = await fetchSession(sessionId, { limit: 2000 });
-      if (!cancelled) setSessionData(data);
-    };
-    load()
-      .catch((err) => {
+      try {
+        // CRITICAL: Pass limit to get full session (expert has ~1500 frames; default 1000 truncates)
+        const data = await fetchSession(sessionId, { limit: 2000 });
+        if (!cancelled) setSessionData(data);
+      } catch (err) {
         if (!cancelled) {
           alertOnReplayFailure(sessionId, err, { source: "primary_session" });
           setError(err instanceof Error ? err.message : String(err));
           setSessionData(null);
         }
-      })
-      .finally(() => {
+      } finally {
         if (!cancelled) setLoading(false);
-      });
+      }
+    };
+    load();
 
     return () => {
       cancelled = true;
@@ -234,8 +260,9 @@ function ReplayPageInner({ sessionId }: { sessionId: string }) {
 
   // Fetch comparison session (for side-by-side 3D visualization)
   // Handles 404 gracefully: comparison is optional; page still works if missing.
+  // Explicit: COMPARISON_SESSION_ID is undefined when env is empty (disables comparison).
   useEffect(() => {
-    if (!showComparison) {
+    if (!showComparison || COMPARISON_SESSION_ID === '' || COMPARISON_SESSION_ID == null) {
       setComparisonSession(null);
       return;
     }
@@ -243,8 +270,10 @@ function ReplayPageInner({ sessionId }: { sessionId: string }) {
     let cancelled = false;
 
     const loadComparison = async () => {
+      const sid = COMPARISON_SESSION_ID;
+      if (sid === '' || sid == null) return;
       try {
-        const data = await fetchSession(COMPARISON_SESSION_ID, { limit: 2000 });
+        const data = await fetchSession(sid, { limit: 2000 });
         if (!cancelled) setComparisonSession(data);
       } catch (err) {
         // 404 or other error: comparison is optional, don't break the page
@@ -264,7 +293,7 @@ function ReplayPageInner({ sessionId }: { sessionId: string }) {
     return () => {
       cancelled = true;
     };
-  }, [showComparison]);
+  }, [showComparison, COMPARISON_SESSION_ID]);
 
   // Fetch scores for both sessions (for 3D block score comparison)
   useEffect(() => {
@@ -285,7 +314,12 @@ function ReplayPageInner({ sessionId }: { sessionId: string }) {
       });
 
     // Fetch comparison session score (if comparison is enabled and loaded)
-    if (showComparison && comparisonSession) {
+    if (
+      showComparison &&
+      COMPARISON_SESSION_ID !== '' &&
+      COMPARISON_SESSION_ID != null &&
+      comparisonSession
+    ) {
       fetchScore(COMPARISON_SESSION_ID)
         .then((data) => {
           if (!cancelled) setComparisonScore(data);
@@ -307,7 +341,7 @@ function ReplayPageInner({ sessionId }: { sessionId: string }) {
     return () => {
       cancelled = true;
     };
-  }, [sessionId, showComparison, comparisonSession]);
+  }, [sessionId, showComparison, comparisonSession, COMPARISON_SESSION_ID]);
 
   // Loading state
   if (loading) {
@@ -329,11 +363,11 @@ function ReplayPageInner({ sessionId }: { sessionId: string }) {
   if (error) {
     return (
       <div className="min-h-screen bg-zinc-50 dark:bg-black flex items-center justify-center p-6">
-        <div className="max-w-md w-full bg-white dark:bg-zinc-900 rounded-lg border border-red-200 dark:border-red-800 p-6">
-          <h2 className="text-lg font-semibold text-red-800 dark:text-red-400 mb-2">
+        <div className="max-w-md w-full bg-white dark:bg-zinc-900 rounded-lg border border-violet-200 dark:border-violet-800 p-6">
+          <h2 className="text-lg font-semibold text-violet-800 dark:text-violet-400 mb-2">
             Failed to load session
           </h2>
-          <p className="text-sm text-red-600 dark:text-red-500 mb-4">
+          <p className="text-sm text-violet-600 dark:text-violet-500 mb-4">
             {error}
           </p>
         </div>
@@ -425,9 +459,18 @@ function ReplayPageInner({ sessionId }: { sessionId: string }) {
               value={currentTimestamp ?? firstTimestamp}
               onChange={(e) => {
                 setIsPlaying(false);
-                setCurrentTimestamp(Number(e.target.value));
+                const raw = e.target.value;
+                const val = raw === '' ? currentTimestamp ?? firstTimestamp ?? 0 : Number(raw);
+                setCurrentTimestamp(
+                  Number.isFinite(val)
+                    ? Math.max(
+                        firstTimestamp ?? 0,
+                        Math.min(lastTimestamp ?? 0, val)
+                      )
+                    : currentTimestamp ?? firstTimestamp ?? 0
+                );
               }}
-              className="w-full max-w-2xl h-2 bg-zinc-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+              className="w-full max-w-2xl h-2 bg-zinc-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2"
             />
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
               {(currentTimestamp ?? firstTimestamp) / 1000} s
@@ -451,10 +494,15 @@ function ReplayPageInner({ sessionId }: { sessionId: string }) {
                     );
                     return (
                       <>
-                        <TorchViz3D
+                        <TorchWithHeatmap3D
                           angle={angle}
                           temp={temp}
                           label={`Current Session (${sessionId})`}
+                          frames={frameData.thermal_frames}
+                          activeTimestamp={currentTimestamp}
+                          maxTemp={THERMAL_MAX_TEMP}
+                          minTemp={THERMAL_MIN_TEMP}
+                          colorSensitivity={THERMAL_COLOR_SENSITIVITY}
                         />
                         {/* Inline score display */}
                         {primaryScore ? (
@@ -493,10 +541,15 @@ function ReplayPageInner({ sessionId }: { sessionId: string }) {
                       );
                       return (
                         <>
-                          <TorchViz3D
+                          <TorchWithHeatmap3D
                             angle={angle}
                             temp={temp}
-                            label={`Comparison (${COMPARISON_SESSION_ID})`}
+                            label={`Comparison (${COMPARISON_SESSION_ID ?? 'unknown'})`}
+                            frames={comparisonFrameData.thermal_frames}
+                            activeTimestamp={currentTimestamp}
+                            maxTemp={THERMAL_MAX_TEMP}
+                            minTemp={THERMAL_MIN_TEMP}
+                            colorSensitivity={THERMAL_COLOR_SENSITIVITY}
                           />
                           {/* Inline score display */}
                           {comparisonScore ? (
@@ -533,8 +586,24 @@ function ReplayPageInner({ sessionId }: { sessionId: string }) {
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          <ErrorBoundary>
-            <HeatMap sessionId={sessionId} data={heatmapData} activeTimestamp={currentTimestamp} />
+          <ErrorBoundary
+            fallback={
+              <div className="min-h-[200px] flex items-center justify-center rounded-xl border-2 border-violet-400/40 bg-neutral-900 text-violet-400">
+                Heat map unavailable
+              </div>
+            }
+          >
+            {frameData.thermal_frames.length > 0 ? (
+              <div className="min-h-[200px] flex items-center justify-center rounded-xl border-2 border-blue-400/40 bg-neutral-900/50 text-blue-400/80 text-sm">
+                Thermal data shown in 3D view above
+              </div>
+            ) : (
+              <HeatMap
+                sessionId={sessionId}
+                data={heatmapData}
+                activeTimestamp={currentTimestamp}
+              />
+            )}
           </ErrorBoundary>
           <ErrorBoundary>
             <TorchAngleGraph sessionId={sessionId} data={angleData} activeTimestamp={currentTimestamp} />

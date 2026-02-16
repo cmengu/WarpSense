@@ -43,6 +43,10 @@ dist/
 .env.local
 .env*.local
 
+# Docker deploy
+backend/logs/
+backend/reports/
+
 # Logs
 logs/
 *.log

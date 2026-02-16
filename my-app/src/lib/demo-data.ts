@@ -18,10 +18,11 @@ import type { ThermalSnapshot } from "@/types/thermal";
 
 // ---------------------------------------------------------------------------
 // Constants (per plan: 15s duration, 10ms frames, thermal every 100ms)
+// Exported for demo page playback; single source of truth to prevent desync.
 // ---------------------------------------------------------------------------
 
-const DURATION_MS = 15000;
-const FRAME_INTERVAL_MS = 10;
+export const DURATION_MS = 15000;
+export const FRAME_INTERVAL_MS = 10;
 const THERMAL_INTERVAL_MS = 100;
 const DISTANCES_MM = [10, 20, 30, 40, 50];
 
@@ -99,9 +100,15 @@ function expertAngle(t_ms: number): number {
 // Signal generators — Novice: spiky amps, drifting volts/angle
 // ---------------------------------------------------------------------------
 
+/** Amplitude spike threshold: sine wave position > this triggers current spike. */
+const NOVICE_SPIKE_THRESHOLD = 0.95;
+/** Extra amps when novice triggers spike (simulates arc instability). */
+const NOVICE_SPIKE_AMPS = 30;
+
 function noviceAmps(t_ms: number): number {
   const t_sec = t_ms / 1000;
-  const spike = Math.sin(t_sec * Math.PI) > 0.95 ? 30 : 0;
+  const spike =
+    Math.sin(t_sec * Math.PI) > NOVICE_SPIKE_THRESHOLD ? NOVICE_SPIKE_AMPS : 0;
   return 150 + spike + Math.sin(t_sec * 3) * 10; // ±10A base noise
 }
 

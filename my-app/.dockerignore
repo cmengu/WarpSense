@@ -1,0 +1,9 @@
+# Exclude from Docker build context
+node_modules/
+.next/
+.git/
+.gitignore
+*.md
+.env*
+coverage/
+.nyc_output/

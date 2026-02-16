@@ -12,8 +12,18 @@ import {
   type HeatmapDataPoint,
   type HeatmapData,
 } from "@/utils/heatmapData";
+import { temperatureToColor } from "@/utils/heatmapShaderUtils";
 import type { Frame } from "@/types/frame";
 import type { ThermalSnapshot } from "@/types/thermal";
+
+/** RGB 0–1 to hex. */
+function rgbToHex(r: number, g: number, b: number): string {
+  const toHex = (c: number) =>
+    Math.round(Math.max(0, Math.min(255, c * 255)))
+      .toString(16)
+      .padStart(2, "0");
+  return "#" + toHex(r) + toHex(g) + toHex(b);
+}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -266,16 +276,16 @@ describe("extractHeatmapData", () => {
   });
 
   describe("tempToColor", () => {
-    it("returns blue (#3b82f6) at 20°C", () => {
-      expect(tempToColor(20).toLowerCase()).toBe("#3b82f6");
+    it("returns dark blue (#1e3a8a) at 0°C", () => {
+      expect(tempToColor(0).toLowerCase()).toBe("#1e3a8a");
     });
 
-    it("returns yellow (#eab308) at 320°C (anchor)", () => {
-      expect(tempToColor(320).toLowerCase()).toBe("#eab308");
+    it("returns violet (#7c3aed) at 250°C", () => {
+      expect(tempToColor(250).toLowerCase()).toBe("#7c3aed");
     });
 
-    it("returns red (#ef4444) at 600°C", () => {
-      expect(tempToColor(600).toLowerCase()).toBe("#ef4444");
+    it("returns purple (#a855f7) at 500°C", () => {
+      expect(tempToColor(500).toLowerCase()).toBe("#a855f7");
     });
 
     it("interpolates between anchors", () => {
@@ -287,52 +297,63 @@ describe("extractHeatmapData", () => {
       expect(high).toMatch(/^#[0-9a-f]{6}$/i);
     });
 
-    it("clamps temps below 20 to 20", () => {
-      expect(tempToColor(0).toLowerCase()).toBe("#3b82f6");
+    it("clamps temps below 0 to 0", () => {
+      expect(tempToColor(-50).toLowerCase()).toBe("#1e3a8a");
     });
 
-    it("clamps temps above 600 to 600", () => {
-      expect(tempToColor(800).toLowerCase()).toBe("#ef4444");
+    it("clamps temps above 500 to 500", () => {
+      expect(tempToColor(800).toLowerCase()).toBe("#a855f7");
     });
 
-    it("expert ~490°C at center distance yields yellow-ish (between 310 and 600)", () => {
+    it("expert ~490°C yields purple-ish (b > r)", () => {
       const color = tempToColor(490).toLowerCase();
-      const hexToRgb = (h: string) => ({
-        r: parseInt(h.slice(1, 3), 16),
-        g: parseInt(h.slice(3, 5), 16),
-        b: parseInt(h.slice(5, 7), 16),
-      });
-      const rgb = hexToRgb(color);
-      const yellow = hexToRgb("#eab308");
-      const red = hexToRgb("#ef4444");
-      expect(rgb.g).toBeGreaterThan(50);
-      expect(rgb.r).toBeGreaterThan(rgb.b);
+      const r = parseInt(color.slice(1, 3), 16);
+      const b = parseInt(color.slice(5, 7), 16);
+      expect(b).toBeGreaterThan(r);
+      expect(r).toBeGreaterThan(100);
     });
 
-    it("novice spike ~520°C yields red-ish (high R, low B)", () => {
+    it("novice spike ~520°C yields purple-ish (clamped to 500)", () => {
       const color520 = tempToColor(520).toLowerCase();
       const r = parseInt(color520.slice(1, 3), 16);
-      const g = parseInt(color520.slice(3, 5), 16);
       const b = parseInt(color520.slice(5, 7), 16);
-      expect(r).toBeGreaterThan(150);
-      expect(b).toBeLessThan(100);
-      expect(r).toBeGreaterThan(g);
-      expect(r).toBeGreaterThan(b);
+      expect(b).toBeGreaterThan(r);
+      expect(r).toBeGreaterThan(100);
     });
   });
 
   describe("tempToColorRange", () => {
-    it("maps min to blue and max to red over the given range", () => {
+    it("maps min to blue and max to purple over the given range", () => {
       const fn = tempToColorRange(400, 550);
       const atMin = fn(400).toLowerCase();
       const atMax = fn(550).toLowerCase();
-      expect(atMin).toBe("#3b82f6");
-      expect(atMax).toBe("#ef4444");
+      expect(atMin).toBe("#1e3a8a");
+      expect(atMax).toBe("#a855f7");
     });
 
     it("returns tempToColor when range is invalid (span <= 0)", () => {
       const fn = tempToColorRange(500, 500);
       expect(fn(450)).toBe(tempToColor(450));
+    });
+  });
+
+  describe("thermal sync: heatmapData vs heatmapShaderUtils", () => {
+    it("tempToColor and temperatureToColor produce matching colors for sample temps", () => {
+      const samples = [0, 62, 125, 250, 375, 500];
+      for (const t of samples) {
+        const hexFromHeatmap = tempToColor(t).toLowerCase();
+        const [r, g, b] = temperatureToColor(0, 500, 10, t);
+        const hexFromShader = rgbToHex(r, g, b).toLowerCase();
+        const r1 = parseInt(hexFromHeatmap.slice(1, 3), 16);
+        const g1 = parseInt(hexFromHeatmap.slice(3, 5), 16);
+        const b1 = parseInt(hexFromHeatmap.slice(5, 7), 16);
+        const r2 = Math.round(r * 255);
+        const g2 = Math.round(g * 255);
+        const b2 = Math.round(b * 255);
+        expect(Math.abs(r1 - r2)).toBeLessThanOrEqual(2);
+        expect(Math.abs(g1 - g2)).toBeLessThanOrEqual(2);
+        expect(Math.abs(b1 - b2)).toBeLessThanOrEqual(2);
+      }
     });
   });
 

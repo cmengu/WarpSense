@@ -18,7 +18,7 @@ interface BarChartProps {
   horizontal?: boolean;
 }
 
-export function BarChart({ data, color = '#10b981', height = 300, horizontal = false }: BarChartProps) {
+export function BarChart({ data, color = '#3b82f6', height = 300, horizontal = false }: BarChartProps) {
   // Handle empty data state
   if (!data || data.length === 0) {
     return (

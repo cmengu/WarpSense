@@ -1,0 +1,374 @@
+# Project Context
+
+> **Purpose:** High-level project state for AI tools. What exists, what patterns to follow, what constraints to respect.  
+> **For AI:** Reference with `@CONTEXT.md` to avoid reimplementing features or violating patterns.  
+> **Last Updated:** [DATE]
+
+---
+
+## Project Overview
+
+**Name:** [Project Name]  
+**Type:** [Web App | API | etc.]  
+**Stack:** [Main technologies]  
+**Stage:** [Incubation | MVP | Production]
+
+**Purpose:** [1-2 sentences]
+
+**Current State:**
+- ✅ [Milestone 1]
+- ✅ [Milestone 2]
+- 🔄 [In progress]
+- 📋 [Planned]
+
+---
+
+## Architecture
+
+### System Pattern
+[e.g., Client-Server, Jamstack, Microservices]
+
+```
+Frontend → Backend → Database → Storage
+```
+
+**Key Decisions:**
+- [Decision 1]: [Why]
+- [Decision 2]: [Why]
+
+### Tech Stack
+
+**Frontend:** [Framework], [UI lib], [State], [Viz libs]  
+**Backend:** [Framework], [Language], [API style]  
+**Database:** [Primary], [Cache], [ORM]  
+**Infrastructure:** [Hosting], [CI/CD]
+
+**Critical Dependencies:**
+- [package@version] (~size) — [purpose]
+- [package@version] — [purpose]
+
+
+---
+
+## Implemented Features
+
+> **AI Rule:** Don't reimplement what's listed here.
+
+### [Feature 1]: [e.g., 3D Visualization]
+**Status:** ✅  
+**What:** [Brief description]  
+**Location:** [File/folder]  
+**Pattern:** [High-level approach]  
+**Integration:** [What uses it]
+
+### [Feature 2]: [e.g., Playback System]
+**Status:** ✅  
+**What:** [Brief description]  
+**State:** [How managed]  
+**Integration:** [What syncs to it]
+
+### [Feature 3]: [e.g., Data Processing]
+**Status:** ✅  
+**What:** [Brief description]  
+**Utilities:** `func1()`, `func2()` in [file]
+
+---
+
+## Data Models
+
+### [Model 1]: [e.g., Session]
+```typescript
+{ id, timestamp, frames[], metadata }
+```
+**Used by:** [Components/APIs]  
+**Flow:** [Source → Transform → Consumer]
+
+### [Model 2]: [e.g., Frame]
+```typescript
+{ timestamp_ms, sensor_data, thermal_data? }
+```
+**Sparse data:** [How handled, e.g., carry-forward]
+
+---
+
+## Patterns
+
+> **AI Rule:** Follow these for consistency.
+
+### [Pattern 1]: [e.g., Frame Resolution]
+**Use when:** [Scenario]  
+**How:** Find exact match, else nearest before timestamp, else first frame  
+**Location:** `utils/[file].ts`
+
+### [Pattern 2]: [e.g., SSR Safety]
+**Use when:** Browser-only components (WebGL, Canvas)  
+**How:** Dynamic import with `ssr: false`  
+**Why:** Prevents Next.js SSR errors
+
+### [Pattern 3]: [e.g., Visual Consistency]
+**Use when:** Adding color-based features  
+**How:** [Temperature ranges → color bands]  
+**Alignment:** Matches [existing feature]
+
+---
+
+## Integration Points
+
+> **AI Rule:** Use these, don't recreate.
+
+### [Integration 1]: [e.g., Timeline State]
+**What:** Shared playback timestamp  
+**State:** `{ currentTimestamp, isPlaying, ... }`  
+**Consumers:** [Component A], [Component B]  
+**How to use:** [Brief integration steps]
+
+### [Integration 2]: [e.g., Utilities]
+**What:** Shared helper functions  
+**Available:**
+- `util1()` — [Purpose] — [File]
+- `util2()` — [Purpose] — [File]
+
+---
+
+## Constraints
+
+> **AI Rule:** Respect these, don't work around them.
+
+### [Constraint 1]: [e.g., SSR Limitations]
+**What:** WebGL/Canvas requires browser  
+**Handle:** ✅ Dynamic import with `ssr: false` | ❌ Direct import  
+**Affects:** [Features]
+
+### [Constraint 2]: [e.g., Sparse Data]
+**What:** [Data gaps in stream]  
+**Handle:** [Strategy, e.g., carry-forward last known value]  
+**Affects:** [Features]
+
+### [Constraint 3]: [e.g., Bundle Size]
+**What:** Keep feature bundles <600KB gzipped  
+**Current:** [Dependency] (~500KB acceptable for demo)  
+**Future:** Lazy load if production
+
+---
+
+## File Structure
+
+```
+app/                    # Pages, routes, layouts
+  [feature]/           # Feature pages
+  api/                 # API routes
+components/            # React components
+  [domain]/           # Domain-specific
+  ui/                 # Shared UI
+lib/
+  utils/              # Utilities
+  hooks/              # Custom hooks
+types/                # TypeScript types
+public/               # Static assets
+.cursor/plans/        # Implementation plans
+```
+
+**Key Files:**
+- [file]: [Purpose]
+- [file]: [Purpose]
+
+---
+
+## API Contracts
+
+### [Endpoint 1]: [GET /api/sessions/:id]
+**Purpose:** [What it does]  
+**Response:** `{ id, frames[], metadata }`  
+**Used by:** [Components]
+
+### [Endpoint 2]: [POST /api/...]
+**Purpose:** [What it does]  
+**Request:** `{ field: type }`  
+**Response:** [Shape]
+
+---
+
+## Component APIs
+
+### [Component1]: [ComponentName]
+**Purpose:** [What it renders]  
+**Props:** `angle: number, temp: number, label?: string`  
+**Location:** [File]  
+**Requirements:** Must use dynamic import (SSR safety)
+
+### [Component2]: [ComponentName]
+**Purpose:** [What it renders]  
+**Props:** [Key props]  
+**Integration:** [Dependencies]
+
+---
+
+## Not Implemented
+
+> **AI Rule:** Don't assume these exist.
+
+### [Enhancement 1]
+**Status:** 💡 Idea  
+**What:** [Description]  
+**Why not yet:** [Reason]
+
+### [Enhancement 2]
+**Status:** 📋 Planned  
+**What:** [Description]
+
+---
+
+## Explicitly Rejected
+
+> **AI Rule:** Don't suggest these.
+
+### [Rejected 1]: [Approach]
+**What:** [Description]  
+**Why rejected:** [Reason]  
+**Alternative:** [What we did]
+
+---
+
+## AI Prompting Patterns
+
+### Adding Feature
+```
+@CONTEXT.md — Check if exists
+@LEARNING_LOG.md — Check past issues
+
+Implement [feature] following:
+- Pattern: [from CONTEXT]
+- Integration: [from CONTEXT]
+- Constraints: [from CONTEXT]
+```
+
+### Debugging
+```
+@CONTEXT.md — [relevant section]
+@LEARNING_LOG.md — Similar issues
+
+Expected: [based on CONTEXT]
+Actual: [what's happening]
+```
+
+---
+
+## Quick Checklist
+
+Before prompting AI:
+- [ ] Checked CONTEXT.md for existing implementation
+- [ ] Reviewed patterns to follow
+- [ ] Noted integration points
+- [ ] Identified constraints
+- [ ] Checked LEARNING_LOG.md
+
+---
+
+## Related Docs
+
+| File | Purpose |
+|------|---------|
+| `LEARNING_LOG.md` | Mistakes & solutions |
+| `.cursorrules` | AI config |
+| `README.md` | Setup |
+
+---
+
+**Maintenance:** Update after features, weekly review, monthly validation.
+
+---
+# Task:
+change the name to WarpSense, make sure the entire color scheme is blue and purple shades only thoae dark shades no rainbow colors
+
+
+
+---
+# Key Files:
+
+
+Here’s the compressed version:
+
+---
+
+## Key Files
+
+- `my-app/src/constants/theme.ts` (NEW) – thermal anchors, chart palette, semantic hex colors
+- `my-app/src/utils/heatmapData.ts` – `TEMP_COLOR_ANCHORS` (blue→purple)
+- `my-app/src/utils/heatmapShaderUtils.ts` – `ANCHOR_COLORS` (0–1 RGB, sync with heatmapData)
+- `my-app/src/utils/deltaHeatmapData.ts` – delta scale: blue→white→purple
+- `my-app/src/components/welding/shaders/heatmapFragment.glsl.ts` – 8 anchor colors on GPU
+- `my-app/src/components/welding/TorchWithHeatmap3D.tsx` – weld pool color, lights
+- `my-app/src/components/welding/HeatmapPlate3D.tsx`, `HeatMap.tsx`, `TorchAngleGraph.tsx` – cyan/green/amber → blue/purple
+- `my-app/src/components/charts/PieChart.tsx`, `BarChart.tsx` – `CHART_PALETTE` / hex defaults
+- Demo, landing, replay, compare, dashboard pages – branding + accents + error UI
+- Deploy/docs: `deploy.sh`, `.env.example`, Dockerfiles, `CONTEXT.md`, `DEPLOY.md`
+- Tests: demo, `heatmapData`, `HeatMap`, `heatmapShaderUtils`, `deltaHeatmapData`
+
+## Architecture
+
+- **Theme system:** `theme.ts` for hex (Recharts, Three.js, GLSL); Tailwind `blue-*`, `purple-*`, `violet-*` for layout
+- **Thermal gradient:** 8 anchors, blue (cold) → purple (hot), 0–500°C; keep heatmapData, heatmapShaderUtils, GLSL aligned
+- **Delta heatmap:** blue (B hotter) → white → purple (A hotter)
+- **Semantic mapping:** Expert = blue-400, Novice = purple-400, Error = violet-600
+- **HeatMap active column:** blue-500 outline; TorchAngleGraph target: purple-500
+
+## Risks
+
+- Thermal sources drift (heatmapData vs shader) → do changes in one PR; add sync test
+- Missed colors (green/red/cyan) → grep color keywords and do visual QA
+- Purple for errors less recognizable than red → strong violet, clear labels
+- Brittle tests (hex checks) → update color assertions in same PR
+
+---
+# Implementation (First 50 lines):
+
+
+# Implementation complete
+
+The WarpSense rebrand and blue/purple-only theme are implemented across the app.
+
+---
+
+## Summary
+
+### 1. Theme foundation
+- **Created:** `my-app/src/constants/theme.ts`
+  - `THERMAL_COLOR_ANCHORS` (8 anchors, 0–500°C, blue → purple)
+  - `THERMAL_ANCHOR_COLORS_0_1` for shader/utils
+  - `CHART_PALETTE`, `EXPERT_HEX`, `NOVICE_HEX`, `ERROR_HEX`, `ACTIVE_COLUMN_HEX`, `TARGET_LINE_HEX`
+
+### 2. Thermal pipeline
+- **Updated:** `my-app/src/utils/heatmapData.ts` – uses `THERMAL_COLOR_ANCHORS`, 0–500°C clamp, `tempToColorRange` remap
+- **Updated:** `my-app/src/utils/heatmapShaderUtils.ts` – uses `THERMAL_ANCHOR_COLORS_0_1`
+- **Updated:** `my-app/src/components/welding/shaders/heatmapFragment.glsl.ts` – blue→purple anchor colors
+- **Updated:** `my-app/src/utils/deltaHeatmapData.ts` – blue→white→purple, NaN guard
+
+### 3. Charts and welding components
+- **Updated:** `PieChart.tsx` – blue/purple palette
+- **Updated:** `BarChart.tsx` – default color `#3b82f6`
+- **Updated:** `HeatMap.tsx` – active outline `#3b82f6`
+- **Updated:** `TorchAngleGraph.tsx` – target line `#a855f7`
+- **Updated:** `TorchWithHeatmap3D.tsx` – weld pool blue→purple, Tailwind blue/violet
+- **Updated:** `HeatmapPlate3D.tsx` – blue borders, violet error UI
+- **Updated:** `TorchViz3D.tsx` – weld pool and theme to blue/purple
+- **Updated:** `mockData.ts` – chart colors blue/purple
+
+### 4. Pages and branding
+- **Demo:** "WarpSense — Live Quality Analysis", expert=blue, novice=purple, error=violet
+- **Demo layout:** title "Live Demo — WarpSense"
+- **Landing:** "WarpSense", gradients blue/violet/purple only
+- **Replay/Compare:** error states violet, loading blue
+
+### 5. Docs and scripts
+- **Updated:** `.env.example`, `deploy.sh`, `docker-compose.yml`, `my-app/Dockerfile`, `backend/Dockerfile`, `CONTEXT.md`, `DEPLOY.md` – WarpSense branding
+
+### 6. Tests
+- **Updated:** `heatmapData.test.ts`, `heatmapShaderUtils.test.ts`, `deltaHeatmapData.test.ts`, `HeatMap.test.tsx`, `TorchViz3D.test.tsx`, `demo/page.test.tsx`
+- **Added:** thermal sync test (heatmapData vs heatmapShaderUtils), NaN test for `deltaTempToColor`
+
+---
+
+## Files created
+
+1. `my-app/src/constants/theme.ts` – single source of truth for blue/purple theme
+

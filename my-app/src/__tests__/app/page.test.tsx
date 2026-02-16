@@ -1,5 +1,5 @@
 import { render, screen, waitFor } from '@testing-library/react';
-import Home from '@/app/page';
+import DashboardPage from '@/app/(app)/dashboard/page';
 
 // Mock the API call to avoid actual fetch
 global.fetch = jest.fn(() =>
@@ -9,9 +9,19 @@ global.fetch = jest.fn(() =>
   })
 ) as jest.Mock;
 
-describe('Home Page Session List', () => {
+describe('Dashboard Page Session List', () => {
+  it('renders Live Demo link for zero-setup demo', async () => {
+    render(<DashboardPage />);
+    await waitFor(() => {
+      const links = screen.getAllByRole('link');
+      const demoLink = links.find((l) => l.getAttribute('href') === '/demo');
+      expect(demoLink).toBeDefined();
+      expect(demoLink).toBeInTheDocument();
+    });
+  });
+
   it('renders session list links with correct hrefs', async () => {
-    render(<Home />);
+    render(<DashboardPage />);
 
     // Wait for component to render and session links to appear
     await waitFor(() => {
@@ -26,7 +36,7 @@ describe('Home Page Session List', () => {
   });
 
   it('displays mock label for sessions', async () => {
-    render(<Home />);
+    render(<DashboardPage />);
     
     // Wait for mock labels to appear
     await waitFor(() => {

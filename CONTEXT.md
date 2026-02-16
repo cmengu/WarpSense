@@ -2,16 +2,16 @@
 
 > **Purpose:** High-level project state for AI tools. What exists, what patterns to follow, what constraints to respect.
 > **For AI:** Reference with `@CONTEXT.md` to avoid reimplementing features or violating patterns.
-> **Last Updated:** 2025-02-15
+> **Last Updated:** 2025-02-16
 
 ---
 
 ## Project Overview
 
-**Name:** WarpSense (Welding MVP)  
+**Name:** WarpSense  
 **Type:** Web App + API (monorepo: ESP32, iPad, Next.js, FastAPI)  
-**Stack:** Next.js 14, React 18, TypeScript, Tailwind, Three.js | FastAPI, PostgreSQL, SQLAlchemy  
-**Stage:** MVP
+**Stack:** Next.js 16, React 19, TypeScript, Tailwind, Three.js | FastAPI, PostgreSQL, SQLAlchemy  
+**Stage:** MVP (production deploy ready)
 
 **Purpose:** Reliable MVP for recording, replaying, and scoring welding sessions. Safety-adjacent industrial welding system — correctness, determinism, and explainability prioritized.
 
@@ -21,7 +21,10 @@
 - ✅ Rule-based scoring
 - ✅ Mock data + backend seed
 - ✅ Browser-only demo mode at `/demo` (zero backend/DB)
-- 🔄 Production hardening
+- ✅ One-click Docker deploy (`./deploy.sh`)
+- ✅ Premium Apple-inspired landing (route groups `(marketing)` / `(app)`)
+- ✅ WebGL context-loss hardening (ESLint rule, overlay, constants)
+- 🔄 Remote deploy validation
 - 📋 Streaming/pagination for sessions >10k frames
 
 ---
@@ -41,14 +44,14 @@ ESP32 Sensors → Backend (bulk ingest)
 - **Playback = setInterval (not RAF):** RAF runs at 60fps; setInterval at 100fps shows every 10ms frame
 - **Status Flow = One-Way (RECORDING→COMPLETE→ARCHIVED):** Prevents data corruption
 - **Heat Dissipation = Backend Only:** Thermal frames sparse; backend has full context; frontend would need complex state
-- **Temperature Colors = 50°C Anchors:** Blue→yellow→red 13-step gradient (20–600°C)
+- **Temperature Colors = 8 Anchors:** Blue→purple gradient (0–500°C), WarpSense theme
 
 ### Tech Stack
 
-**Frontend:** Next.js 14, React 18, TypeScript, Tailwind, Three.js/react-three-fiber, Recharts  
+**Frontend:** Next.js 16, React 19, TypeScript, Tailwind, Three.js/react-three-fiber, Recharts, Framer Motion  
 **Backend:** FastAPI, Python, REST  
 **Database:** PostgreSQL, SQLAlchemy  
-**Infrastructure:** DigitalOcean, monorepo
+**Infrastructure:** Docker Compose, DigitalOcean, monorepo
 
 **Critical Dependencies:**
 - `three`, `@react-three/fiber` (~500KB) — 3D torch visualization
@@ -61,13 +64,14 @@ ESP32 Sensors → Backend (bulk ingest)
 
 > **AI Rule:** Don't reimplement what's listed here.
 
-### 3D Visualization (TorchViz3D)
+### 3D Visualization (TorchViz3D, TorchWithHeatmap3D)
 **Status:** ✅  
-**What:** 3D torch + weld pool with angle and temperature  
-**Location:** `components/welding/TorchViz3D.tsx`  
-**Pattern:** Dynamic import with `ssr: false`, max 1–2 Canvas per page, `webglcontextlost` handler  
-**Integration:** Replay page, compare page, `/dev/torch-viz` dev page  
-**See:** `LEARNING_LOG.md`, `documentation/WEBGL_CONTEXT_LOSS.md`
+**What:** TorchViz3D = 3D torch + weld pool. TorchWithHeatmap3D = unified torch + thermally-colored metal (5–10°C visible steps).  
+**Location:** `TorchViz3D.tsx`, `TorchWithHeatmap3D.tsx`, `ThermalPlate.tsx`  
+**Pattern:** Dynamic import with `ssr: false`, max 2 Canvas per page, `webglcontextlost` handler + overlay  
+**Enforcement:** ESLint rule counts TorchViz3D and TorchWithHeatmap3D; max 2 per page  
+**Integration:** Replay and demo use TorchWithHeatmap3D (thermal on metal). HeatmapPlate3D deprecated in replay; kept for dev/standalone.  
+**See:** `documentation/WEBGL_CONTEXT_LOSS.md`, `.cursor/plans/unified-torch-heatmap-replay-plan.md`
 
 ### Replay System
 **Status:** ✅  
@@ -82,10 +86,18 @@ ESP32 Sensors → Backend (bulk ingest)
 **Location:** `components/welding/HeatMap.tsx`  
 **Data:** `utils/heatmapData.ts` — `extractHeatmapData(thermal_frames)`
 
+### HeatmapPlate3D (3D Warped Plate)
+**Status:** ✅  
+**What:** 3D metal plate with thermal vertex displacement and temp→color gradient. Replaces HeatMap on replay page when `thermal_frames.length > 0`. Uses 5-point IDW interpolation, custom GLSL shaders, OrbitControls.  
+**Location:** `components/welding/HeatmapPlate3D.tsx`  
+**Data:** `utils/thermalInterpolation.ts` — `interpolateThermalGrid`; `frameUtils.getFrameAtTimestamp`  
+**Canvas count:** Replay = 2 TorchViz3D + 1 HeatmapPlate3D = 3 (see `constants/webgl.ts` MAX_CANVAS_PER_PAGE)  
+**Fallback:** When no thermal data, HeatMap with heatmapData shown instead.
+
 ### Session Comparison
 **Status:** ✅  
 **What:** A | Delta | B view, `compareSessions()` → `FrameDelta[]`  
-**Location:** `app/compare/[idA]/[idB]/page.tsx`, `hooks/useSessionComparison.ts`
+**Location:** `app/compare/[sessionIdA]/[sessionIdB]/page.tsx`, `hooks/useSessionComparison.ts`
 
 ### Rule-Based Scoring
 **Status:** ✅  
@@ -95,8 +107,23 @@ ESP32 Sensors → Backend (bulk ingest)
 ### Browser-Only Demo Mode
 **Status:** ✅  
 **What:** `/demo` — 100% in-browser synthesized welding data, zero backend/DB  
-**Location:** `app/demo/`, `lib/demo-data.ts`  
-**Contract:** Produces `Session` with `Frame[]` matching `extractHeatmapData`, `extractAngleData`, `extractCenterTemperatureWithCarryForward`
+**Location:** `app/demo/`, `lib/demo-data.ts`, `DemoLayoutClient.tsx`  
+**Contract:** Produces `Session` with `Frame[]` matching `extractHeatmapData`, `extractAngleData`, `extractCenterTemperatureWithCarryForward`  
+**Deferral:** `generateExpertSession()` / `generateNoviceSession()` in `useEffect` to avoid blocking main thread on mount
+
+### Premium Landing (Marketing)
+**Status:** ✅  
+**What:** Apple-inspired landing at `/` (canonical) and `/landing` (re-export)  
+**Location:** `app/(marketing)/page.tsx`, `app/landing/page.tsx`  
+**Layout:** Route groups `(marketing)` and `(app)` — layout controls nav visibility; no conditional `isLanding` in components  
+**Integration:** `AppNav.tsx` shows/hides based on layout; `(app)` has dashboard, replay, compare, demo
+
+### One-Click Docker Deploy
+**Status:** ✅  
+**What:** `./deploy.sh` — PostgreSQL, backend, frontend in one command  
+**Flow:** Port check → generate secrets → build → up → health wait → optional seed  
+**Files:** `deploy.sh`, `docker-compose.yml`, `DEPLOY.md`, `backend/Dockerfile`, `my-app/Dockerfile`  
+**Note:** `NEXT_PUBLIC_API_URL` is build-time; remote deploy requires rebuild with server IP
 
 ### Data Processing / Utilities
 **Status:** ✅  
@@ -155,13 +182,24 @@ All Frame fields as `_delta` (sessionA - sessionB), `thermal_deltas[]`
 
 ### WebGL Context Limits
 **Use when:** Adding 3D/Canvas components  
-**How:** Max 1–2 Canvas per page; add `webglcontextlost` listener; show "Refresh to restore" overlay  
+**How:** Max 2 Canvas per page (`MAX_TORCHVIZ3D_PER_PAGE` in `constants/webgl.ts`); add `webglcontextlost` listener; show "Refresh to restore" overlay  
+**Enforcement:** ESLint rule `max-torchviz/max-torchviz3d-per-page`; tests assert ≤2 instances  
 **Why:** Browsers limit ~8–16 WebGL contexts per tab  
-**See:** `LEARNING_LOG.md`, `documentation/WEBGL_CONTEXT_LOSS.md`
+**See:** `_LOG.md`, `documentation/WEBGL_CONTEXT_LOSS.md`
 
 ### Visual Consistency (Temperature)
 **Use when:** Color-based temperature displays  
-**How:** 50°C anchors, blue→yellow→red 13-step gradient (20–600°C)
+**How:** 8 thermal anchors, blue→purple gradient (0–500°C). Blue/purple-only palette; no rainbow colors.
+
+### Route Group Layout
+**Use when:** Different layouts (marketing vs app) without conditional logic in components  
+**How:** `(marketing)` and `(app)` route groups; each has its own layout; layout controls nav visibility  
+**Why:** No `isLanding` branching in AppNav; structure drives behavior
+
+### Env Fallback with Trim
+**Use when:** Environment variables that may be empty string  
+**How:** `process.env.X?.trim() || '/fallback'` — empty string yields fallback  
+**Why:** `NEXT_PUBLIC_X=""` yields `""` not `undefined`
 
 ---
 
@@ -182,13 +220,16 @@ fetchSession(id) → Session
   → useFrameData(frames) → thermal_frames
   → extractHeatmapData(thermal_frames) → HeatmapData
   → extractAngleData(frames) → AngleData
-  → <HeatMap data={heatmapData} />
+  → thermal_frames.length > 0
+      ? <HeatmapPlate3D frames={thermal_frames} activeTimestamp={…} />
+      : <HeatMap data={heatmapData} />
   → <TorchAngleGraph data={angleData} />
   → TorchViz3D(angle, temp)
 ```
 
 ### Key Components
 - **TorchViz3D(angle, temp, label)** — 3D torch + weld pool (dynamic import required)
+- **HeatmapPlate3D(frames, activeTimestamp, maxTemp, plateSize)** — 3D warped plate (replaces HeatMap when thermal; dynamic import required)
 - **HeatMap(data, activeTimestamp)** — CSS grid heatmap
 - **TorchAngleGraph(data, active)** — Recharts line chart
 - **ScorePanel(sessionId)** — Rule-based scoring display
@@ -228,8 +269,8 @@ fetchSession(id) → Session
 
 ### WebGL Context Limit
 **What:** ~8–16 WebGL contexts per tab  
-**Handle:** 1–2 Canvas max per page; context-loss overlay  
-**Affects:** Any 3D/Canvas features  
+**Handle:** Max 2 TorchViz3D + 1 HeatmapPlate3D = 3 Canvas on replay; context-loss overlay  
+**Affects:** TorchViz3D, HeatmapPlate3D, any 3D/Canvas features  
 **See:** `LEARNING_LOG.md`
 
 ---
@@ -238,28 +279,38 @@ fetchSession(id) → Session
 
 ```
 my-app/
-  app/                    # Pages, routes
-    replay/[sessionId]/   # Replay page
-    compare/[idA]/[idB]/  # Compare page
-    demo/                 # Browser-only demo
-    api/                  # API routes
+  app/                      # Pages, routes
+    (marketing)/            # Landing (/), terms, privacy — no nav
+    (app)/                  # Dashboard
+    landing/                # Re-export of (marketing)/page (backwards compat)
+    replay/[sessionId]/     # Replay page
+    compare/[sessionIdA]/[sessionIdB]/  # Compare page
+    demo/                   # Browser-only demo (own layout)
+    dev/torch-viz/          # Dev 3D test page
+    api/                    # API routes
   components/
-    welding/              # TorchViz3D, HeatMap, TorchAngleGraph
-    ui/                   # Shared UI
+    welding/                # TorchViz3D, HeatMap, TorchAngleGraph
+    ui/                     # Shared UI
   lib/
-    api.ts                # API client
-    demo-data.ts          # Browser-only demo synthesis
+    api.ts                  # API client
+    demo-data.ts            # Browser-only demo synthesis
   utils/
-    frameUtils.ts         # getFrameAtTimestamp, thermal helpers
-    heatmapData.ts        # extractHeatmapData
-  types/                  # session, frame, thermal
+    frameUtils.ts           # getFrameAtTimestamp, thermal helpers
+    heatmapData.ts          # extractHeatmapData
+    thermalInterpolation.ts # interpolateThermalGrid, sanitizeTemp (5-point IDW)
+  constants/
+    webgl.ts                # MAX_TORCHVIZ3D_PER_PAGE
+  types/                    # session, frame, thermal
   hooks/
     useSessionComparison.ts
+  eslint-rules/
+    max-torchviz3d-per-page.cjs  # Enforces ≤2 TorchViz3D per page
 backend/
   routes/sessions.py
   services/thermal_service.py
-  data/mock_sessions.py
-context/                  # Architecture docs
+  init-db.sql
+  scripts/seed_demo_data.py
+context/                    # Architecture docs
 ```
 
 **Key Files:**
@@ -267,6 +318,7 @@ context/                  # Architecture docs
 - `lib/api.ts` — API client
 - `utils/frameUtils.ts` — Frame utilities
 - `utils/heatmapData.ts` — Heatmap extraction
+- `constants/webgl.ts` — WebGL limit constant (shared by ESLint, tests)
 - `context/context-tech-stack-mvp-architecture.md` — Detailed architecture
 - `LEARNING_LOG.md` — Past mistakes (e.g. WebGL context loss)
 
@@ -405,9 +457,22 @@ Before prompting AI:
 | `LEARNING_LOG.md` | Mistakes & solutions (esp. WebGL context loss) |
 | `context/context-tech-stack-mvp-architecture.md` | Detailed architecture, file map |
 | `documentation/WEBGL_CONTEXT_LOSS.md` | WebGL context loss reference |
+| `DEPLOY.md` | One-click Docker deploy instructions |
 | `.cursorrules` | AI config, data integrity contract |
 | `README.md` | Setup, quick start |
 
 ---
 
 **Maintenance:** Update after features, weekly review, monthly validation.
+
+**CONTEXT UPDATE REQUIREMENTS:**
+- Update CONTEXT.md with new features/patterns
+- Document new components/utilities created
+- Add new API endpoints or data models
+- Update architecture decisions if changed
+- Add new constraints or limitations discovered
+- Update file structure if new directories added
+- Document integration patterns used
+- Add to "Implemented Features" section
+
+Keep CONTEXT.md as a living document. Be thorough.

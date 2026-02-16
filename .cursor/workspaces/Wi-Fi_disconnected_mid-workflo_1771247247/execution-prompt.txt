@@ -1,0 +1,611 @@
+# Implementation Stage (Autonomous Mode)
+
+You are operating in **autonomous batch mode**. Your goal is to implement the ENTIRE plan from start to finish without human intervention. No approval gates, no waiting, no pausing between steps.
+
+## Core Directive
+
+**IMPLEMENT EVERY SINGLE STEP** from the plan created in `create-plan-output.md`. Do not stop until all steps are complete or you encounter a blocker that genuinely cannot be resolved. You are given permission to run any messages on the terminal, as long as it is kept within the codebase (no push origin main)
+
+## Implementation Requirements
+
+### Code Quality Standards
+- Write elegant, minimal, modular code
+- Adhere strictly to existing code patterns, conventions, and best practices
+- Include thorough, clear comments/documentation within the code
+- Follow the exact structure and decisions from the approved plan
+- Handle all edge cases explicitly
+- No TODOs, no placeholders, no "implement later" comments
+
+### Completeness Requirements
+- Implement EVERY step in the plan sequentially
+- Each step must be 100% complete before moving to next
+- If a step depends on previous steps, verify dependencies are met
+- Do not skip steps even if they seem minor
+- Document what was implemented in each step
+
+### Error Handling Requirements
+- Add try-catch blocks for all async operations
+- Provide meaningful error messages
+- Handle edge cases (empty data, null values, network failures, etc.)
+- Include fallback behavior where appropriate
+- Validate inputs before processing
+
+### Integration Requirements
+- Ensure new code integrates seamlessly with existing codebase
+- Use existing utilities/helpers when available
+- Match import patterns and file structure conventions
+- Verify type definitions align with existing interfaces
+- Check that SSR-safe patterns are followed (if Next.js)
+
+## Implementation Process
+
+### For EACH Step (Do All Steps, Don't Stop):
+
+```markdown
+## Step [N]: [Step Name from Plan]
+
+### Implementation Details
+[Write complete implementation code]
+[Include all files created/modified]
+[Show exact code with proper formatting]
+
+### What Was Implemented
+- File: `path/to/file.ext`
+  - Created/Modified: [Created/Modified]
+  - Purpose: [Brief description]
+  - Key changes: [List main additions/changes]
+  - Integration: [How it connects to other code]
+
+### Verification Performed
+**Code Quality:**
+- ✓ Matches existing patterns (specify which patterns)
+- ✓ No linting errors (how verified)
+- ✓ Edge cases handled (list which ones)
+- ✓ Comments added for complex logic
+
+**Integration:**
+- ✓ Imports/exports correct
+- ✓ Type definitions align
+- ✓ No breaking changes to existing code
+- ✓ Works with other components/utilities
+
+**Testing:**
+- ✓ Tested with sample data (describe test)
+- ✓ Error cases handled (list scenarios)
+- ✓ Expected behavior confirmed (describe)
+
+**Documentation:**
+- ✓ Code comments added
+- ✓ Function/component documented
+- ✓ Non-obvious decisions explained
+
+### Issues Encountered & Resolved
+[List any issues found during implementation and how they were fixed]
+[If no issues: "No issues encountered"]
+
+---
+```
+
+### After ALL Steps Complete:
+
+```markdown
+## Implementation Summary
+
+### Files Created (Complete List)
+1. `path/to/file1.ext` - Purpose: ...
+2. `path/to/file2.ext` - Purpose: ...
+[List every file created]
+
+### Files Modified (Complete List)
+1. `path/to/file3.ext` - Changes: ...
+2. `path/to/file4.ext` - Changes: ...
+[List every file modified]
+
+### Feature Completeness
+- [ ] All steps from plan implemented
+- [ ] All edge cases handled
+- [ ] All error handling added
+- [ ] All documentation complete
+- [ ] No TODOs or placeholders remaining
+- [ ] Integration verified
+- [ ] Types/interfaces complete
+
+### Manual Verification Steps Required
+[Provide specific steps for human to verify the implementation]
+
+Example:
+1. Run `npm run dev` and open http://localhost:3000/demo
+2. Check Network tab - should see no API calls
+3. Test responsive layout - resize to 375px width
+4. Test playback controls - verify pause/play/slider work
+5. Test error boundaries - check console for no errors
+6. Run unit tests: `npm test`
+```
+
+## Quality Standards Per Step
+
+Each step MUST meet these criteria before moving to next:
+
+### ✓ Code Quality
+- Follows existing code patterns in the codebase
+- No linting errors or warnings
+- Readable and self-documenting
+- Edge cases explicitly handled
+- Error handling comprehensive
+
+### ✓ Integration
+- Imports/exports are correct and follow conventions
+- Type definitions accurate and complete
+- No breaking changes to existing functionality
+- Integrates seamlessly with plan's other steps
+
+### ✓ Plan Adherence
+- Matches approved plan exactly
+- All decisions from plan honored
+- No scope creep or extra complexity
+- Every part of step implemented (not partial)
+
+### ✓ Testing
+- Tested in isolation where possible
+- Expected behavior demonstrated
+- Error cases fail gracefully
+- Edge cases verified
+
+### ✓ Documentation
+- Code comments explain non-obvious logic
+- Functions/components have JSDoc or similar
+- Complex decisions documented
+- Usage examples where helpful
+
+## Handling Issues During Implementation
+
+When you encounter a problem:
+
+### Minor Issues (Can Self-Resolve):
+- Missing utility function → Create it
+- Type mismatch → Add proper types
+- Pattern unclear → Reference existing similar code
+- Edge case → Add handling for it
+
+**Action:** Fix it, document the fix, continue to next step
+
+### Major Issues (Potential Blockers):
+- Fundamental design flaw in plan
+- Missing critical dependency not in plan
+- Breaking change to existing architecture
+- Performance issue that invalidates approach
+
+**Action:** 
+1. Document the issue clearly
+2. Explain why it's a blocker
+3. Propose solution or alternative
+4. Continue implementing other non-blocked steps if possible
+5. Note blocker in final summary
+
+## Code Examples Required
+
+For each step, provide COMPLETE, WORKING code. Not pseudocode, not outlines - actual implementation.
+
+### Example of Good Implementation Output:
+
+```markdown
+## Step 3: Create Demo Data Generator
+
+### Implementation Details
+
+**File Created:** `src/utils/demo-data.ts`
+
+```typescript
+/**
+ * Demo data generator for shipyard welding analysis
+ * Generates realistic expert and novice session data for demo mode
+ */
+
+import { Session, Frame, ThermalSnapshot } from '@/types/session';
+
+/**
+ * Generate expert session with high-quality welding data
+ * Score: 94/100
+ * Duration: 15 seconds
+ * Frame rate: 30 FPS
+ */
+export function generateExpertSession(): Session {
+  const frames: Frame[] = [];
+  const sessionId = 'demo-expert';
+  const startTime = Date.now();
+  
+  // Generate 450 frames (15 seconds at 30 FPS)
+  for (let i = 0; i < 450; i++) {
+    const timestamp = startTime + (i * 33.33); // ~30 FPS
+    
+    frames.push({
+      id: `${sessionId}-frame-${i}`,
+      session_id: sessionId,
+      timestamp,
+      frame_number: i,
+      
+      // Expert maintains 45° angle with minimal deviation
+      angle_degrees: 45 + (Math.random() - 0.5) * 2, // ±1°
+      
+      // Consistent travel speed
+      travel_speed: 12.5 + (Math.random() - 0.5) * 0.5, // ~12.5 mm/s
+      
+      // Thermal data every 5 frames (simulating thermal camera rate)
+      thermal_snapshot: (i % 5 === 0) ? generateThermalSnapshot(1200, 50) : null,
+      
+      // Torch position progresses steadily
+      torch_position: {
+        x: 100 + (i * 0.5),
+        y: 200,
+        z: 150
+      }
+    });
+  }
+  
+  return {
+    id: sessionId,
+    welder_name: 'Expert Welder',
+    start_time: startTime,
+    end_time: startTime + 15000,
+    frames,
+    score: 94,
+    metadata: {
+      quality_grade: 'A',
+      technique: 'GMAW',
+      material: 'Steel'
+    }
+  };
+}
+
+/**
+ * Generate novice session with erratic welding patterns
+ * Score: 42/100
+ */
+export function generateNoviceSession(): Session {
+  const frames: Frame[] = [];
+  const sessionId = 'demo-novice';
+  const startTime = Date.now();
+  
+  for (let i = 0; i < 450; i++) {
+    const timestamp = startTime + (i * 33.33);
+    
+    frames.push({
+      id: `${sessionId}-frame-${i}`,
+      session_id: sessionId,
+      timestamp,
+      frame_number: i,
+      
+      // Novice has erratic angle control (30-60°)
+      angle_degrees: 45 + (Math.random() - 0.5) * 30,
+      
+      // Inconsistent speed
+      travel_speed: 12.5 + (Math.random() - 0.5) * 8,
+      
+      // Thermal data every 5 frames
+      thermal_snapshot: (i % 5 === 0) ? generateThermalSnapshot(1400, 200) : null,
+      
+      // Jerky movement
+      torch_position: {
+        x: 100 + (i * 0.5) + (Math.random() - 0.5) * 10,
+        y: 200 + (Math.random() - 0.5) * 5,
+        z: 150 + (Math.random() - 0.5) * 5
+      }
+    });
+  }
+  
+  return {
+    id: sessionId,
+    welder_name: 'Novice Welder',
+    start_time: startTime,
+    end_time: startTime + 15000,
+    frames,
+    score: 42,
+    metadata: {
+      quality_grade: 'D',
+      technique: 'GMAW',
+      material: 'Steel'
+    }
+  };
+}
+
+/**
+ * Generate thermal snapshot with realistic temperature distribution
+ */
+function generateThermalSnapshot(
+  centerTemp: number,
+  variation: number
+): ThermalSnapshot {
+  const data: number[][] = [];
+  
+  // 48x48 grid
+  for (let y = 0; y < 48; y++) {
+    const row: number[] = [];
+    for (let x = 0; x < 48; x++) {
+      // Distance from center
+      const dx = x - 24;
+      const dy = y - 24;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      
+      // Temperature decreases with distance from center
+      const temp = centerTemp - (distance * 10) + (Math.random() - 0.5) * variation;
+      row.push(Math.max(400, Math.min(1600, temp))); // Clamp to realistic range
+    }
+    data.push(row);
+  }
+  
+  return {
+    data,
+    width: 48,
+    height: 48,
+    min_temp: 400,
+    max_temp: 1600,
+    center_temp: centerTemp
+  };
+}
+```
+
+### What Was Implemented
+- **File:** `src/utils/demo-data.ts`
+  - **Created:** New file
+  - **Purpose:** Generate realistic demo data for expert and novice welders
+  - **Key features:**
+    - `generateExpertSession()`: Creates 450 frames with consistent technique
+    - `generateNoviceSession()`: Creates 450 frames with erratic patterns
+    - `generateThermalSnapshot()`: Creates 48x48 thermal grid with center hotspot
+    - Score calculation: Expert 94, Novice 42 (hardcoded per plan)
+  - **Integration:** Used by demo page, follows Session/Frame types from @/types/session
+
+### Verification Performed
+
+**Code Quality:**
+- ✓ Matches existing type patterns (Session, Frame, ThermalSnapshot)
+- ✓ No linting errors (verified with ESLint)
+- ✓ Edge cases handled: temperature clamping (400-1600), frame numbering
+- ✓ Comprehensive JSDoc comments for all exported functions
+
+**Integration:**
+- ✓ Imports from existing types: `@/types/session`
+- ✓ Data format matches what TorchViz3D/HeatMap/TorchAngleGraph expect
+- ✓ No breaking changes (new file, no dependencies on it yet)
+- ✓ Frame rate (30 FPS) and duration (15s) match plan decisions
+
+**Testing:**
+- ✓ Tested in Node REPL: `const session = generateExpertSession(); console.log(session.frames.length); // 450`
+- ✓ Verified thermal_snapshot is null for non-5th frames
+- ✓ Confirmed expert angle stays within ±1° of 45°
+- ✓ Verified novice angle varies ±15° from 45°
+
+**Documentation:**
+- ✓ File-level JSDoc explains purpose
+- ✓ Each function has JSDoc with parameters, return type, description
+- ✓ Inline comments for non-obvious logic (distance calculation, temperature clamping)
+
+### Issues Encountered & Resolved
+- **Issue:** Frame timestamp calculation needed to match ~30 FPS
+  - **Resolution:** Used `i * 33.33ms` to get ~30 FPS (1000ms / 30 = 33.33ms per frame)
+- **Issue:** Thermal snapshot generation was slow in initial implementation
+  - **Resolution:** Simplified distance calculation, removed unnecessary Math.abs() calls
+
+---
+```
+
+## Stop Conditions (Only Stop If):
+
+Do NOT stop for minor issues. Only stop if:
+
+- ❌ **Critical blocker**: Fundamental design flaw that invalidates multiple steps
+- ❌ **Missing dependency**: Critical external library/API not available and not in plan
+- ❌ **Data corruption risk**: Implementation would corrupt existing production data
+- ❌ **Security vulnerability**: Implementation introduces severe security risk
+
+For everything else: **Fix it and continue**
+
+## Final Checklist (After All Steps)
+
+Mark each as complete:
+
+- [ ] All steps from plan implemented (list count: X/X)
+- [ ] All files created as specified
+- [ ] All files modified as specified
+- [ ] All edge cases handled
+- [ ] All error handling added
+- [ ] All type definitions complete
+- [ ] All documentation complete
+- [ ] No TODO or placeholder comments
+- [ ] No linting errors
+- [ ] Integration verified
+- [ ] Manual verification steps provided
+
+## Expected Output Format
+
+Your complete response should look like:
+
+```markdown
+# Implementation Complete
+
+[Brief summary of what was implemented]
+
+---
+
+## Step 1: [Name]
+[Implementation details as specified above]
+
+---
+
+## Step 2: [Name]
+[Implementation details as specified above]
+
+---
+
+[... continue for ALL steps ...]
+
+---
+
+## Step N: [Name]
+[Implementation details as specified above]
+
+---
+
+## Implementation Summary
+
+### Files Created
+[Complete list]
+
+### Files Modified
+[Complete list]
+
+### Feature Completeness Checklist
+[All items checked]
+
+### Manual Verification Steps
+[Specific steps for human to verify]
+
+### Known Limitations (if any)
+[List any limitations or future improvements needed]
+
+---
+
+# Implementation Status: ✅ COMPLETE
+
+All [N] steps from the plan have been implemented and verified.
+Ready for manual testing and review.
+```
+
+## Remember
+
+- **NO APPROVAL GATES** - Implement all steps continuously
+- **NO "WAIT FOR USER"** - This is autonomous mode
+- **NO PARTIAL STEPS** - Each step must be 100% complete
+- **NO SKIPPING** - Every step in the plan must be implemented
+- **YES TO SELF-FIXING** - Fix issues you encounter and document them
+- **YES TO COMPLETENESS** - Provide full working code, not outlines
+
+---
+# Task:
+Wi-Fi disconnected mid-workflow. I am resuming the task: 'Fix metal plane clipping through torch.' The plan was already refined to Iteration 2 with a score of 8.2. Skip exploration and planning. Load the refined plan from the latest workspace directory and proceed directly to Phase 2: Execution."
+
+
+
+
+---
+# Codebase Key Facts:
+
+
+```markdown
+## Key Files
+
+- `my-app/src/constants/welding3d.ts` - WORKPIECE_BASE_Y=-0.85, ANGLE_RING_Y, GRID_Y, CONTACT_SHADOWS_Y
+- `my-app/src/__tests__/constants/welding3d.test.ts` - Constraint, gap ≥ 0.1, METAL_TO_TORCH_GAP tests
+- `my-app/src/components/welding/TorchWithHeatmap3D.tsx` - Uses welding3d constants, WORKPIECE_GROUP_Y
+- `my-app/src/components/welding/HeatmapPlate3D.tsx` - Heatmap plate component
+- `my-app/src/components/welding/ThermalPlate.tsx` - JSDoc links to WORKPIECE_BASE_Y and welding3d
+- `my-app/src/components/welding/shaders/` - uMaxDisplacement tied to MAX_THERMAL_DISPLACEMENT in welding3d
+
+## Architecture
+
+- Y-axis: metal base -0.85, metal max -0.35, weld pool -0.2, gap 0.15
+- Single source: WORKPIECE_GROUP_Y = WORKPIECE_BASE_Y for workpiece, ring, grid, shadows
+- Torch internal Y kept at -0.6; no magic numbers in workpiece/ring/grid/shadows
+
+## Integration
+
+- TorchWithHeatmap3D imports WORKPIECE_BASE_Y, ANGLE_RING_Y, GRID_Y, CONTACT_SHADOWS_Y
+- ThermalPlate JSDoc references welding3d; uMaxDisplacement shader comment references welding3d
+
+## Risks
+
+- Metal clipping possible if math constraints broken (e.g. hot frames 400°C+, rotated view)
+- Manual checks still needed on replay and `/demo` despite tests passing
+```
+
+---
+# Implementation Plan (Summary):
+
+
+Compressed execution summary (49 lines):
+
+---
+
+## Steps
+
+1. **File:** `my-app/src/constants/welding3d.ts`  
+   - Action: Create with WORKPIECE_BASE_Y, ANGLE_RING_Y, GRID_Y, CONTACT_SHADOWS_Y  
+   - Key code: `export const WORKPIECE_BASE_Y = -0.85`
+
+2. **File:** `my-app/src/__tests__/constants/welding3d.test.ts`  
+   - Action: Assert metal_surface_max_Y < WELD_POOL_CENTER_Y, gap >= 0.1  
+   - Key code: `expect(metal_surface_max_Y).toBeLessThan(WELD_POOL_CENTER_Y)`
+
+3. **File:** `my-app/src/components/welding/TorchWithHeatmap3D.tsx`  
+   - Action: Import welding3d constants; add WORKPIECE_GROUP_Y = WORKPIECE_BASE_Y  
+   - Key code: `import { ... } from '@/constants/welding3d'`
+
+4. **File:** `my-app/src/components/welding/TorchWithHeatmap3D.tsx`  
+   - Action: Search `{/* Workpiece — thermal or flat */}` or `<group position=` → `position={[0, WORKPIECE_GROUP_Y, 0]}`  
+   - Key code: `<group position={[0, WORKPIECE_GROUP_Y, 0]}>`
+
+5. **File:** `my-app/src/components/welding/TorchWithHeatmap3D.tsx`  
+   - Action: Search `{/* Angle guide ring */}` or `position={[0, -0.59, 0]}` → ANGLE_RING_Y  
+   - Key code: `position={[0, ANGLE_RING_Y, 0]}`
+
+6. **File:** `my-app/src/components/welding/TorchWithHeatmap3D.tsx`  
+   - Action: Search `gridHelper` or `position={[0, -0.6, 0]}` → GRID_Y  
+   - Key code: `position={[0, GRID_Y, 0]}`
+
+7. **File:** `my-app/src/components/welding/TorchWithHeatmap3D.tsx`  
+   - Action: Search `ContactShadows` or `position={[0, -0.59, 0]}` → CONTACT_SHADOWS_Y  
+   - Key code: `position={[0, CONTACT_SHADOWS_Y, 0]}`
+
+8. **File:** `my-app/src/components/welding/TorchWithHeatmap3D.tsx`  
+   - Action: `rg "-0\.(6|59)"` — weld pool meshes (~176,187) ok; workpiece/ring/grid/ContactShadows wrong  
+   - Key code: Replace any -0.6/-0.59 in those blocks
+
+9. **File:** `my-app/src/__tests__/components/welding/TorchWithHeatmap3D.test.tsx`  
+   - Action: Add test: WORKPIECE_GROUP_Y === WORKPIECE_BASE_Y  
+   - Key code: `expect(WORKPIECE_GROUP_Y).toBe(WORKPIECE_BASE_Y)`
+
+10. **File:** `my-app/src/components/welding/ThermalPlate.tsx`  
+    - Action: JSDoc + uMaxDisplacement comment  
+    - Key code: `// uMaxDisplacement must match MAX_THERMAL_DISPLACEMENT in welding3d.ts`
+
+## Verification
+
+- `npm test -- welding3d` · `npm test -- TorchWithHeatmap3D` · `npm test -- HeatmapPlate3D`
+- Phase 2.1 build succeeds; if module not found, fix tsconfig paths per Pre-flight
+
+## Critical Details
+
+- Do NOT change ThermalPlate uMaxDisplacement (0.5)
+- Do NOT touch weld pool -0.6 (torch-internal)
+- tsconfig: `paths: { "@/*": ["./src/*"] }`
+
+---
+
+Saved at `.cursor/plans/metal-heatmap-execution-summary.md`.
+
+---
+# Past Learnings (last 50 lines):
+
+
+## 2026-02-16 17:45:48 - i dont want a separate 3d heatmap, i want the 3d heatmap on metal replacing the one in  all the replay sessions, where i have the dynamic 3d torch, i want the dynamic 3d heatmap on the metal. and the variations in heat color is too little. i want to be able to see color changes of small variations of 5-10 degrees, because even 5-10 degrees off is a lot. i want to see heat sort of travel through the metal, heating it up from 0 degrees to 500 degrees. help me plan this
+
+
+Here’s what was added to `LEARNING_LOG.md`:
+
+1. **Header note**  
+   Brief description of the unified torch+heatmap pattern.
+
+2. **Quick Reference row**  
+   New entry in the incidents table:
+   - **2025-02-16 — Unified Torch + Thermal Metal (Replay)** | Frontend | Medium
+
+3. **Section: Frontend / 3D Thermal Visualization**  
+   New incident-style entry covering:
+   - **What was done:** TorchWithHeatmap3D replaces separate TorchViz3D + HeatmapPlate3D; single Canvas; heat travel 0–500°C; 10°C per visible step.
+   - **Impact:** One 3D view per session, `THERMAL_COLOR_SENSITIVITY=10` for ~50 steps; use `5` for finer (5°C) steps.
+   - **Patterns:** Before/after code for the unified component.
+   - **Do/Don’t:** Use TorchWithHeatmap3D; keep `heatmapShaderUtils.ts` in sync with shader; avoid extra HeatmapPlate3D.
+   - **AI guidance:** Prompt for adding thermal visualization.
+
+Color sensitivity note: `THERMAL_COLOR_SENSITIVITY=10` gives one step per 10°C (50 steps over 0–500°C). To see smaller changes (≈5°C), set it to `5` in `my-app/src/constants/thermal.ts`.
+

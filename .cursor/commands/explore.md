@@ -9,6 +9,9 @@ Your responsibilities:
 - Clearly identify anything unclear or ambiguous in my description or the current implementation.
 - List clearly all questions or ambiguities you need clarified.
 
+
+
+
 ## High-Level Mock Execution (NOT Full Implementation)
 
 **After full exploration**, provide a "walk-through" showing HOW you'd implement this:

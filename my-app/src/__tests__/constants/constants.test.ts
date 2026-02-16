@@ -39,6 +39,12 @@ import {
   VALIDATION_RULES,
 } from "@/constants/validation";
 import { READINGS_PER_SNAPSHOT } from "@/types/thermal";
+import {
+  THERMAL_MAX_TEMP,
+  THERMAL_MIN_TEMP,
+  THERMAL_COLOR_SENSITIVITY,
+  THERMAL_ABSOLUTE_MAX,
+} from "@/constants/thermal";
 
 // ===========================================================================
 // metals.ts
@@ -284,6 +290,29 @@ describe("ERROR_MESSAGES", () => {
       expect(typeof message).toBe("string");
       expect(message.length).toBeGreaterThan(0);
     }
+  });
+});
+
+describe("thermal.ts", () => {
+  it("THERMAL_MAX_TEMP is 500", () => {
+    expect(THERMAL_MAX_TEMP).toBe(500);
+  });
+
+  it("THERMAL_MIN_TEMP is 0", () => {
+    expect(THERMAL_MIN_TEMP).toBe(0);
+  });
+
+  it("THERMAL_COLOR_SENSITIVITY is 10", () => {
+    expect(THERMAL_COLOR_SENSITIVITY).toBe(10);
+  });
+
+  it("THERMAL_ABSOLUTE_MAX is 600 (sensor/interpolation ceiling)", () => {
+    expect(THERMAL_ABSOLUTE_MAX).toBe(600);
+  });
+
+  it("THERMAL_MIN_TEMP < THERMAL_MAX_TEMP < THERMAL_ABSOLUTE_MAX", () => {
+    expect(THERMAL_MIN_TEMP).toBeLessThan(THERMAL_MAX_TEMP);
+    expect(THERMAL_MAX_TEMP).toBeLessThan(THERMAL_ABSOLUTE_MAX);
   });
 });
 

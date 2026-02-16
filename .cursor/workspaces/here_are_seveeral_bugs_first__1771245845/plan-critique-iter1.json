@@ -1,0 +1,41 @@
+
+```json
+{
+  "score": 8.2,
+  "dimension_scores": {
+    "completeness": 8.5,
+    "clarity": 8.5,
+    "verification": 7.0,
+    "dependencies": 9.0,
+    "risk_management": 8.5,
+    "edge_cases": 7.5,
+    "production_ready": 7.5
+  },
+  "critical_issues": [],
+  "minor_issues": [
+    "Project .cursorrules state 'Verification to be done by adding and running automated tests (no manual browser checks)'. Steps 2.2, 3.3, 3.4 rely on manual visual verification. Consider adding a unit test that programmatically asserts the workpiece group receives position [0, WORKPIECE_BASE_Y, 0] — e.g. export SceneContent for testing, or add a test that imports TorchWithHeatmap3D and welding3d and verifies the constant is applied in the rendered tree. The welding3d.test enforces the math; an additional 'constants applied' test would satisfy project rules.",
+    "Step 3.7 verification is conditional ('If dev route exists'). HeatmapPlate3D has no dedicated route in the app (replay uses TorchWithHeatmap3D; compare uses 2D HeatMap). Make verification actionable: 'Run npm test -- HeatmapPlate3D; tests pass. Visual sanity check N/A — no route renders HeatmapPlate3D in production.'",
+    "No explicit rollback procedure. Add one line: 'Rollback: git revert <commit> or revert welding3d.ts and TorchWithHeatmap3D.tsx; redeploy.'",
+    "ThermalPlate hardcodes uMaxDisplacement=0.5 (line 78); constants file documents MAX_THERMAL_DISPLACEMENT=0.5. Future drift risk if ThermalPlate is changed without updating constants. Consider adding a comment in ThermalPlate.tsx: 'uMaxDisplacement must match MAX_THERMAL_DISPLACEMENT in welding3d.ts; do not change without updating constants and welding3d.test.'"
+  ],
+  "strengths": [
+    "Exceptional pre-planning: synthesis, dependency DAG, risk heatmap, Red Team (10 problems), 10 failure modes with Detection/Response/Recovery",
+    "Step 1.1: Complete, copy-paste ready welding3d.ts with full JSDoc and derived constants; math verified (-0.85 + 0.5 = -0.35 < -0.2)",
+    "Step 2.2: Detailed verification with setup prerequisites, 5 pass criteria, common failures table (5 scenarios with fixes)",
+    "Unit test (1.2) enforces critical constraint metal_surface_max_Y < weld_pool_center_Y and gap >= 0.1",
+    "Dependency graph is a valid DAG; Phase 1 → 2 → 3 sequential; all prerequisites documented in pre-flight checklist",
+    "Code matches plan: TorchWithHeatmap3D lines 189, 212, 222, 225 use -0.6/-0.59; plan identifies exact replacements",
+    "Scope well-bounded: TorchViz3D and HeatmapPlate3D out of scope; no ThermalPlate uMaxDisplacement change",
+    "Thinking checkpoints (3) add rigor; Junior developer Q&A (10 questions) demonstrates implementability"
+  ],
+  "reasoning": "The plan demonstrates production-quality structure: full constants file with derived values, correct math (metal max -0.35 < weld pool -0.2, gap 0.15), and clear step-by-step implementation. The dependency graph is correct; failure modes are documented; code examples are copy-paste ready. There are no execution-blocking issues: file paths exist (constants/, __tests__/constants/), tsconfig @/ paths resolve, and ThermalPlate/TorchWithHeatmap3D match the plan's assumptions. The main gap is project rule compliance: .cursorrules require 'Verification to be done by adding and running automated tests (no manual browser checks)'. The plan has automated tests for the math constraint (welding3d.test) and for no-regressions (TorchWithHeatmap3D.test), but the primary 'no clipping' verification is manual visual (Steps 2.2, 3.3, 3.4). For 3D visualization, automated visual regression is complex; the math test provides logical assurance. Recommendation: add a test that verifies constants are applied (e.g. workpiece position uses WORKPIECE_BASE_Y) to align with project rules. Step 3.7's conditional 'If dev route exists' is weak — HeatmapPlate3D has no live route; the verification should be test-based. Rollback and ThermalPlate/constants drift are minor polish items. Score 8.2 reflects a solid plan with 0 critical issues and 4 minor improvements; recommended action is refine for compliance and clarity.",
+  "improvement_priority": [
+    "Add automated verification for constants application (workpiece position) to satisfy .cursorrules 'no manual browser checks'",
+    "Make Step 3.7 actionable: specify HeatmapPlate3D has no route; verification = npm test -- HeatmapPlate3D",
+    "Add explicit rollback procedure (one line)",
+    "Add ThermalPlate comment referencing welding3d.ts to prevent uMaxDisplacement drift"
+  ],
+  "recommended_action": "refine",
+  "rationale_for_action": "Score of 8.2 falls in 8.0-8.9 (Minor Polish Needed). Zero critical issues; 4 minor issues. The core approach is correct, steps are actionable, and the plan is executable. Use refine-plan.md to address project rule compliance (automated verification), clarify Step 3.7, add rollback, and document ThermalPlate/constants coupling. After refinement, the plan would be 9.0+ (production-ready)."
+}
+```

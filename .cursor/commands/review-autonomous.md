@@ -1,0 +1,443 @@
+# Code Review (Autonomous Mode - Round 1)
+
+You are performing the **first comprehensive code review** in autonomous batch mode after initial implementation. Your goal is to identify ALL issues - no matter how minor - across the entire codebase that was just implemented.
+
+## Core Directive
+
+**REVIEW EVERY FILE** that was created or modified during implementation. Examine every line of code. Flag issues from CRITICAL to LOW. Err on the side of being too thorough - missing issues is worse than over-reporting.
+
+**Minimum Requirements:**
+- Review ALL files created/modified (list them explicitly)
+- Identify minimum 15-20 issues across all severity levels
+- Provide specific file paths and line numbers
+- Give actionable fix suggestions for each issue
+- Minimum output: 60 lines
+
+## What to Check (Exhaustive)
+
+### 1. Logging & Debugging (CRITICAL for production)
+- ❌ **No console.log, console.error, console.warn** anywhere
+- ❌ **No debugger statements**
+- ❌ **No alert() or confirm()** (except intentional UI)
+- ✅ Use proper logger with context (winston, pino, or project standard)
+- ✅ Log levels appropriate (error, warn, info, debug)
+- ✅ Sensitive data not logged (passwords, tokens, PII)
+
+**Check each file for:**
+```typescript
+// BAD
+console.log('user data:', user);
+debugger;
+
+// GOOD  
+logger.info('User authenticated', { userId: user.id, timestamp: Date.now() });
+```
+
+### 2. Error Handling (CRITICAL)
+- ✅ **All async functions** have try-catch blocks
+- ✅ **All API calls** handle network failures
+- ✅ **All file operations** handle missing files
+- ✅ **All JSON.parse()** wrapped in try-catch
+- ✅ Error messages are helpful (not "Error" or "Failed")
+- ✅ Errors logged with full context
+- ✅ User-facing errors are sanitized (no stack traces to users)
+- ✅ Error boundaries present (if React)
+
+**Check for:**
+```typescript
+// BAD - no error handling
+const data = await fetch('/api/data').then(r => r.json());
+
+// GOOD
+try {
+  const response = await fetch('/api/data');
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  const data = await response.json();
+} catch (error) {
+  logger.error('Failed to fetch data', { error, url: '/api/data' });
+  throw new Error('Unable to load data. Please try again.');
+}
+```
+
+### 3. TypeScript Strict Mode (HIGH)
+- ❌ **No `any` types** anywhere (use `unknown` if truly needed)
+- ❌ **No `@ts-ignore` or `@ts-expect-error`** without explanation
+- ❌ **No implicit any** (check function params, returns)
+- ✅ All props/interfaces defined
+- ✅ Return types explicit on functions
+- ✅ Strict null checks respected (no `!` operator without reason)
+- ✅ Enums or unions instead of magic strings
+- ✅ Generic types properly constrained
+
+**Flag violations like:**
+```typescript
+// BAD
+function process(data: any) { ... }
+const result = data as MyType; // @ts-ignore
+let value;  // implicit any
+
+// GOOD
+function process(data: ProcessInput): ProcessOutput { ... }
+const result = isMyType(data) ? data : null;
+let value: string | null = null;
+```
+
+### 4. Production Readiness (HIGH)
+- ❌ **No TODOs, FIXMEs, or XXX comments**
+- ❌ **No hardcoded secrets, API keys, passwords**
+- ❌ **No hardcoded URLs** (use env vars)
+- ❌ **No test/debug code** left in production paths
+- ❌ **No commented-out code** blocks
+- ✅ Environment variables properly used
+- ✅ Feature flags if needed for rollout
+- ✅ Build passes without warnings
+
+### 5. React/Hooks (if applicable) (HIGH)
+- ✅ **All useEffect hooks have cleanup** if needed
+- ✅ **Dependency arrays complete** (no eslint-disable)
+- ✅ **No infinite loops** (effect triggering itself)
+- ✅ **No missing dependencies** in useCallback/useMemo
+- ✅ Keys on list items (and not using index)
+- ✅ State updates are immutable
+- ✅ No direct DOM manipulation (use refs properly)
+- ✅ Conditional rendering doesn't break hooks order
+
+**Common issues:**
+```typescript
+// BAD
+useEffect(() => {
+  fetchData(); // missing cleanup, missing deps
+}, []);
+
+// GOOD
+useEffect(() => {
+  const controller = new AbortController();
+  fetchData(controller.signal);
+  return () => controller.abort(); // cleanup
+}, [fetchData]); // complete deps
+```
+
+### 6. Performance (MEDIUM)
+- ✅ **No unnecessary re-renders** (memo, useMemo, useCallback used wisely)
+- ✅ **Expensive calculations memoized** (useMemo)
+- ✅ **Large lists virtualized** (if >100 items)
+- ✅ **Images optimized** (next/image or similar)
+- ✅ **Bundle size impact** considered
+- ✅ **No N+1 queries** (if database access)
+- ✅ **Lazy loading** for routes/components (if applicable)
+- ✅ **Debouncing/throttling** for frequent events
+
+**Check for:**
+```typescript
+// BAD
+{items.map(item => <ExpensiveComponent key={item.id} />)} // 10000 items
+
+// GOOD
+<VirtualList items={items} renderItem={(item) => <ExpensiveComponent />} />
+```
+
+### 7. Security (CRITICAL)
+- ✅ **Auth checked** before sensitive operations
+- ✅ **Inputs validated** (type, format, length, range)
+- ✅ **SQL injection prevented** (parameterized queries)
+- ✅ **XSS prevented** (no dangerouslySetInnerHTML without sanitization)
+- ✅ **CSRF tokens** if needed
+- ✅ **RLS policies** in place (if using Supabase/Postgres)
+- ✅ **API rate limiting** considered
+- ✅ **Sensitive data not in client** (tokens, secrets)
+
+**Flag issues like:**
+```typescript
+// BAD - SQL injection
+const query = `SELECT * FROM users WHERE id = ${userId}`;
+
+// BAD - XSS
+<div dangerouslySetInnerHTML={{ __html: userInput }} />
+
+// GOOD
+const query = 'SELECT * FROM users WHERE id = $1';
+const result = await db.query(query, [userId]);
+```
+
+### 8. Architecture & Patterns (MEDIUM)
+- ✅ **Follows existing patterns** in codebase
+- ✅ **Files in correct directories** (components/, utils/, api/, etc.)
+- ✅ **Naming conventions consistent** (camelCase, PascalCase, etc.)
+- ✅ **Separation of concerns** (no business logic in components)
+- ✅ **DRY principle** (no duplicated code)
+- ✅ **Single responsibility** (functions/components do one thing)
+- ✅ **Proper abstractions** (not over-engineered, not under-engineered)
+
+### 9. Testing & Testability (MEDIUM)
+- ✅ **Pure functions** where possible (easier to test)
+- ✅ **Dependencies injected** (not hardcoded)
+- ✅ **Side effects isolated** (easier to mock)
+- ✅ **Edge cases documented** in comments
+- ✅ **Test data factories** if needed
+- ✅ **No tight coupling** to implementation details
+
+### 10. Documentation (LOW but important)
+- ✅ **Complex logic explained** in comments
+- ✅ **Functions have JSDoc** (params, returns, examples)
+- ✅ **Non-obvious decisions documented** (why, not what)
+- ✅ **API contracts documented** (request/response shapes)
+- ✅ **Magic numbers explained** (const with name)
+
+### 11. Accessibility (if UI) (HIGH)
+- ✅ **ARIA labels** on interactive elements
+- ✅ **Keyboard navigation** works (tab, enter, escape)
+- ✅ **Focus management** (modals trap focus)
+- ✅ **Color contrast** meets WCAG AA
+- ✅ **Alt text** on images
+- ✅ **Form labels** associated with inputs
+- ✅ **Error messages** announced to screen readers
+
+### 12. SSR/Next.js Specific (if applicable) (HIGH)
+- ✅ **No window/document access** in server components
+- ✅ **'use client' directive** where needed
+- ✅ **Dynamic imports** for client-only code
+- ✅ **typeof window checks** before browser APIs
+- ✅ **Metadata/SEO** configured
+- ✅ **Loading states** for server components
+
+## Review Process
+
+### Step 1: List All Files to Review
+```markdown
+## Files Under Review
+
+### Created Files
+1. `path/to/file1.ts` (234 lines)
+2. `path/to/file2.tsx` (156 lines)
+...
+
+### Modified Files  
+1. `path/to/file3.ts` (added 45 lines, modified 12 lines)
+2. `path/to/file4.tsx` (modified 8 lines)
+...
+
+**Total:** X files, Y lines of code
+```
+
+### Step 2: Review Each File Systematically
+Go through each file line by line checking all criteria above.
+
+### Step 3: Document All Issues Found
+
+## Output Format (REQUIRED STRUCTURE)
+
+```markdown
+# Code Review Report - Round 1
+
+## Summary
+- **Files Reviewed:** X
+- **Total Issues Found:** Y
+- **CRITICAL:** X issues
+- **HIGH:** X issues  
+- **MEDIUM:** X issues
+- **LOW:** X issues
+
+---
+
+## Issues by Severity
+
+### 🚨 CRITICAL Issues (Must Fix Before Deploy)
+
+1. **[CRITICAL]** `src/components/UserProfile.tsx:45`
+   - **Issue:** Hardcoded API key in client-side code
+   - **Code:** `const API_KEY = 'sk-1234567890abcdef';`
+   - **Risk:** API key exposed to users, potential abuse
+   - **Fix:** Move to environment variable, access only server-side
+   ```typescript
+   // In .env.local
+   API_SECRET_KEY=sk-1234567890abcdef
+   
+   // In app/api/route.ts (server-side)
+   const apiKey = process.env.API_SECRET_KEY;
+   ```
+
+2. **[CRITICAL]** `src/utils/database.ts:23`
+   - **Issue:** SQL injection vulnerability
+   - **Code:** `const query = \`SELECT * FROM users WHERE email = '\${email}'\`;`
+   - **Risk:** Attacker can inject SQL to access/modify data
+   - **Fix:** Use parameterized queries
+   ```typescript
+   const query = 'SELECT * FROM users WHERE email = $1';
+   const result = await db.query(query, [email]);
+   ```
+
+[Continue with all CRITICAL issues...]
+
+---
+
+### ⚠️ HIGH Priority Issues (Fix Soon)
+
+1. **[HIGH]** `src/components/DataTable.tsx:78`
+   - **Issue:** No error handling on async fetch
+   - **Code:** `const data = await fetch('/api/data').then(r => r.json());`
+   - **Risk:** Unhandled promise rejection crashes component
+   - **Fix:** Add try-catch with user feedback
+   ```typescript
+   try {
+     const response = await fetch('/api/data');
+     if (!response.ok) throw new Error('Failed to load');
+     const data = await response.json();
+   } catch (error) {
+     logger.error('Data fetch failed', { error });
+     setError('Unable to load data');
+   }
+   ```
+
+2. **[HIGH]** `src/hooks/useSession.ts:34`
+   - **Issue:** useEffect missing cleanup, potential memory leak
+   - **Code:** `useEffect(() => { subscribe(callback); }, []);`
+   - **Risk:** Subscription not cleaned up on unmount
+   - **Fix:** Return cleanup function
+   ```typescript
+   useEffect(() => {
+     const unsubscribe = subscribe(callback);
+     return () => unsubscribe();
+   }, [callback]);
+   ```
+
+[Continue with all HIGH issues...]
+
+---
+
+### 📋 MEDIUM Priority Issues (Should Fix)
+
+1. **[MEDIUM]** `src/utils/helpers.ts:12`
+   - **Issue:** Using `any` type instead of proper typing
+   - **Code:** `function process(data: any) { ... }`
+   - **Impact:** Loses type safety, harder to refactor
+   - **Fix:** Define proper interface
+   ```typescript
+   interface ProcessInput {
+     id: string;
+     value: number;
+     metadata?: Record<string, unknown>;
+   }
+   function process(data: ProcessInput): ProcessOutput { ... }
+   ```
+
+[Continue with all MEDIUM issues...]
+
+---
+
+### 💡 LOW Priority Issues (Nice to Have)
+
+1. **[LOW]** `src/components/Button.tsx:5`
+   - **Issue:** Missing JSDoc comment on exported component
+   - **Code:** `export const Button = ({ children, onClick }) => { ... }`
+   - **Impact:** Harder for other devs to understand usage
+   - **Fix:** Add JSDoc
+   ```typescript
+   /**
+    * Primary button component
+    * @param {React.ReactNode} children - Button label/content
+    * @param {() => void} onClick - Click handler
+    * @example
+    * <Button onClick={() => save()}>Save</Button>
+    */
+   export const Button = ({ children, onClick }) => { ... }
+   ```
+
+[Continue with all LOW issues...]
+
+---
+
+## Issues by File
+
+### `src/components/UserProfile.tsx`
+- Line 45: [CRITICAL] Hardcoded API key
+- Line 67: [HIGH] No error handling
+- Line 89: [MEDIUM] Using `any` type
+- Line 102: [LOW] Missing ARIA label
+
+### `src/utils/database.ts`
+- Line 23: [CRITICAL] SQL injection vulnerability
+- Line 56: [HIGH] No connection cleanup
+- Line 78: [MEDIUM] Inconsistent error handling
+
+[Continue for all files...]
+
+---
+
+## Positive Findings ✅
+
+What was done well (reinforce good patterns):
+- Proper TypeScript interfaces in `src/types/session.ts`
+- Excellent error boundaries in `src/components/ErrorBoundary.tsx`
+- Clean separation of concerns in API routes
+- Good use of environment variables for config
+- Consistent naming conventions throughout
+
+---
+
+## Recommendations for Round 2
+
+After fixes are applied:
+1. **Re-check all CRITICAL and HIGH issues** - Verify they're properly resolved
+2. **Look for new issues introduced by fixes** - Refactoring can create bugs
+3. **Check edge cases** - Null/undefined handling, empty arrays, error states
+4. **Verify integration** - Ensure fixes work with rest of codebase
+5. **Performance check** - Make sure fixes didn't hurt performance
+
+---
+
+## Testing Checklist for Developer
+
+Before requesting Round 2 review:
+- [ ] All CRITICAL issues fixed and tested
+- [ ] All HIGH issues fixed and tested
+- [ ] TypeScript compiles with no errors
+- [ ] ESLint passes with no errors
+- [ ] No console.log statements remain
+- [ ] All async operations have error handling
+- [ ] All useEffect hooks have cleanup (if needed)
+- [ ] All security vulnerabilities addressed
+- [ ] Manual testing of changed functionality complete
+
+---
+
+# Review Status: ⚠️ CRITICAL ISSUES FOUND
+
+**Do NOT proceed to deployment until CRITICAL and HIGH issues are resolved.**
+
+Total Issues: X (CRITICAL: X, HIGH: X, MEDIUM: X, LOW: X)
+
+Next Step: Fix issues and request Round 2 review.
+```
+
+## Quality Requirements
+
+Your review MUST:
+- [ ] List ALL files reviewed with line counts
+- [ ] Identify minimum 15-20 issues (if codebase is >500 lines)
+- [ ] Provide specific file paths and line numbers for every issue
+- [ ] Show actual problematic code snippets
+- [ ] Provide concrete fix suggestions with code examples
+- [ ] Categorize every issue by severity
+- [ ] Group issues both by severity and by file
+- [ ] Note positive findings (what was done well)
+- [ ] Provide testing checklist
+- [ ] Minimum 80 lines of output
+
+## What This Review Enables
+
+This thorough first review will:
+1. **Catch critical bugs** before they reach production
+2. **Maintain code quality** across the codebase
+3. **Document issues clearly** for fixing phase
+4. **Provide learning** by showing good vs bad patterns
+5. **Enable efficient Round 2** by having clear fix list
+
+## Remember
+
+- **Be thorough, not forgiving** - Better to over-flag than under-flag
+- **Provide examples** - Show don't tell for fixes
+- **Think like QA** - Try to break the code mentally
+- **Check everything** - Even "obvious" stuff can have issues
+- **Document well** - Developer needs clear guidance to fix
+
+This is Round 1 - be comprehensive. Round 2 will verify fixes and catch edge cases.

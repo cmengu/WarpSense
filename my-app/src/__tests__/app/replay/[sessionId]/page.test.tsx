@@ -1,5 +1,27 @@
+import React from 'react';
 import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
 import ReplayPage from '@/app/replay/[sessionId]/page';
+
+// CRITICAL: Loader-invoking dynamic mock — each dynamic() import gets its own mocked component.
+// Enables per-component mocks: TorchViz3D → torch-viz-3d-mock, HeatmapPlate3D → heatmap-plate-3d.
+jest.mock('next/dynamic', () => ({
+  __esModule: true,
+  default: (loader: () => Promise<{ default: React.ComponentType<unknown> }>) => {
+    const Loaded = React.lazy(loader);
+    return function DynamicWrapper(props: React.ComponentProps<typeof Loaded>) {
+      return (
+        <React.Suspense fallback={<div data-testid="dynamic-loading" />}>
+          <Loaded {...props} />
+        </React.Suspense>
+      );
+    };
+  },
+}));
+
+jest.mock('@/components/welding/TorchWithHeatmap3D', () => ({
+  __esModule: true,
+  default: () => <div data-testid="torch-with-heatmap-3d" />,
+}));
 
 // Mock api to avoid real API calls (fetchSession for replay, fetchScore for ScorePanel)
 jest.mock('@/lib/api', () => ({
@@ -252,6 +274,87 @@ describe('ReplayPage', () => {
 
     unmount();
     expect(() => fireEvent.keyDown(window, { code: 'Space' })).not.toThrow();
+  });
+
+  /**
+   * WebGL context loss prevention: replay page uses at most 2 TorchWithHeatmap3D instances.
+   * Per .cursor/issues/webgl-context-lost-consistent-project-wide.md.
+   */
+  it('uses at most 2 TorchWithHeatmap3D instances', async () => {
+    render(<ReplayPage params={{ sessionId: 'test-session-123' }} />);
+    await waitFor(() => {
+      expect(screen.getByText(/session replay: test-session-123/i)).toBeInTheDocument();
+    });
+    const torchMocks = screen.queryAllByTestId('torch-with-heatmap-3d');
+    expect(torchMocks.length).toBeLessThanOrEqual(2);
+  });
+
+  /**
+   * Step 1.11: When session has thermal_frames, TorchWithHeatmap3D shows heat on metal.
+   * Canvas count: 2× TorchWithHeatmap3D (per MAX_CANVAS_PER_PAGE).
+   */
+  it('shows TorchWithHeatmap3D with heat on metal when session has thermal data', async () => {
+    const thermalFrame = {
+      timestamp_ms: 100,
+      volts: 22,
+      amps: 150,
+      angle_degrees: 45,
+      thermal_snapshots: [
+        {
+          distance_mm: 10,
+          readings: [
+            { direction: 'center', temp_celsius: 400 },
+            { direction: 'north', temp_celsius: 380 },
+            { direction: 'south', temp_celsius: 390 },
+            { direction: 'east', temp_celsius: 370 },
+            { direction: 'west', temp_celsius: 375 },
+          ],
+        },
+      ],
+      has_thermal_data: true,
+      optional_sensors: null,
+      heat_dissipation_rate_celsius_per_sec: null,
+    };
+    mockFetchSession.mockResolvedValueOnce({
+      session_id: 'thermal-session',
+      operator_id: 'op-1',
+      start_time: '2026-02-07T10:00:00Z',
+      weld_type: 'mild_steel',
+      thermal_sample_interval_ms: 100,
+      thermal_directions: ['center', 'north', 'south', 'east', 'west'],
+      thermal_distance_interval_mm: 10.0,
+      sensor_sample_rate_hz: 100,
+      frames: [
+        { timestamp_ms: 0, volts: 22, amps: 150, angle_degrees: 45, thermal_snapshots: [], has_thermal_data: false, optional_sensors: null, heat_dissipation_rate_celsius_per_sec: null },
+        thermalFrame,
+      ],
+      status: 'complete',
+      frame_count: 2,
+      expected_frame_count: 2,
+      last_successful_frame_index: 1,
+      validation_errors: [],
+      completed_at: '2026-02-07T10:00:01Z',
+    });
+
+    render(<ReplayPage params={{ sessionId: 'thermal-session' }} />);
+    await waitFor(() => {
+      expect(screen.getByText(/session replay: thermal-session/i)).toBeInTheDocument();
+    });
+
+    const torchMocks = screen.getAllByTestId('torch-with-heatmap-3d');
+    expect(torchMocks).toHaveLength(2);
+  });
+
+  /**
+   * Step 1.11: When session has no thermal_frames, HeatMap is shown (thermal in 3D is empty).
+   */
+  it('shows HeatMap when session has no thermal data', async () => {
+    render(<ReplayPage params={{ sessionId: 'test-session-123' }} />);
+    await waitFor(() => {
+      expect(screen.getByText(/session replay: test-session-123/i)).toBeInTheDocument();
+    });
+
+    expect(screen.getByText(/heat map visualization/i)).toBeInTheDocument();
   });
 
   /**

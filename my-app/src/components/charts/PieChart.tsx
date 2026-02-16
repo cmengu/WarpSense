@@ -18,8 +18,8 @@ interface PieChartProps {
   showLegend?: boolean;
 }
 
-// Default color palette for pie charts
-const DEFAULT_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
+// Default color palette: WarpSense blue/purple only
+const DEFAULT_COLORS = ['#2563eb', '#4f46e5', '#7c3aed', '#8b5cf6', '#6366f1', '#9333ea'];
 
 export function PieChart({ data, height = 300, showLegend = true }: PieChartProps) {
   // Handle empty data state
