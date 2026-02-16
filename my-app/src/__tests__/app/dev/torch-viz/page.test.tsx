@@ -1,7 +1,7 @@
 /**
  * TorchViz3D dev page — Step 3 verification.
  *
- * Tests industrial layout: cyan theme, floating panel, Orbitron + JetBrains Mono.
+ * Tests industrial layout: blue/purple WarpSense theme, floating panel, Orbitron + JetBrains Mono.
  * TorchViz3D is mocked to avoid WebGL/Canvas in jsdom.
  */
 
@@ -27,7 +27,7 @@ describe('DevTorchVizPage', () => {
     expect(screen.getByText(/TorchViz3D Demo/i)).toBeInTheDocument();
   });
 
-  it('shows cyan theme elements: scenario reference, path indicator', () => {
+  it('shows WarpSense theme elements: scenario reference, path indicator', () => {
     render(<DevTorchVizPage />);
     expect(screen.getByText(/Scenario reference/i)).toBeInTheDocument();
     expect(screen.getByText(/\/dev\/torch-viz/)).toBeInTheDocument();

@@ -6,7 +6,7 @@
  * Renders a multi-part welding torch (handle, grip, nozzle, weld pool, glow halo)
  * with PBR materials, OrbitControls, HDRI reflections. Torch angle driven by
  * `angle` (degrees); weld pool color by `temp` (°C). Industrial HUD with
- * Orbitron + JetBrains Mono typography, cyan brutalist theme.
+ * Orbitron + JetBrains Mono typography, blue/purple WarpSense theme.
  *
  * @see .cursor/plans/torchviz3d-production-grade-plan.md — Step 2
  */
@@ -32,7 +32,7 @@ const jetbrainsMono = JetBrains_Mono({ subsets: ['latin'] });
 export interface TorchViz3DProps {
   /** Torch angle in degrees (e.g. 45 = ideal). Drives rotation around X. */
   angle: number;
-  /** Center temperature in °C. Drives weld pool sphere color (blue → cyan → yellow → white). */
+  /** Center temperature in °C. Drives weld pool sphere color (blue → purple → white). */
   temp: number;
   /** Optional label shown in HUD (e.g. "Current Session", "Comparison"). */
   label?: string;
@@ -42,14 +42,15 @@ export interface TorchViz3DProps {
 // Temperature → color (smooth gradient, industrial)
 // ---------------------------------------------------------------------------
 
+/** Weld pool color: cold blue → purple → white. WarpSense theme. */
 function getWeldPoolColor(temp: number): THREE.Color {
-  const cold = new THREE.Color(0x1a1a2e);
-  const cyan = new THREE.Color(0x3b82f6);
-  const yellow = new THREE.Color(0xfbbf24);
-  const white = new THREE.Color(0xfef3c7);
-  if (temp < 310) return new THREE.Color().lerpColors(cold, cyan, temp / 310);
-  if (temp < 455) return new THREE.Color().lerpColors(cyan, yellow, (temp - 310) / 145);
-  return new THREE.Color().lerpColors(yellow, white, Math.min((temp - 455) / 200, 1));
+  const cold = new THREE.Color(0x1e3a8a);
+  const mid = new THREE.Color(0x6366f1);
+  const hot = new THREE.Color(0xa855f7);
+  const white = new THREE.Color(0xf3e8ff);
+  if (temp < 200) return new THREE.Color().lerpColors(cold, mid, temp / 200);
+  if (temp < 400) return new THREE.Color().lerpColors(mid, hot, (temp - 200) / 200);
+  return new THREE.Color().lerpColors(hot, white, Math.min((temp - 400) / 150, 1));
 }
 
 // ---------------------------------------------------------------------------
@@ -87,7 +88,7 @@ function SceneContent({ angle, temp }: SceneContentProps) {
         shadow-camera-top={10}
         shadow-camera-bottom={-10}
       />
-      <directionalLight position={[-5, 3, -5]} intensity={0.8} color="#22d3ee" />
+      <directionalLight position={[-5, 3, -5]} intensity={0.8} color="#6366f1" />
       <pointLight position={[0, 5, 0]} intensity={0.5} color="#ffffff" />
       <pointLight
         position={[0, -0.4, 0]}
@@ -170,11 +171,11 @@ function SceneContent({ angle, temp }: SceneContentProps) {
       {/* Angle guide ring */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.59, 0]}>
         <ringGeometry args={[0.8, 0.82, 32]} />
-        <meshBasicMaterial color="#22d3ee" transparent opacity={0.3} side={THREE.DoubleSide} />
+        <meshBasicMaterial color="#3b82f6" transparent opacity={0.3} side={THREE.DoubleSide} />
       </mesh>
 
       {/* Grid helper — industrial coordinate system */}
-      <gridHelper args={[5, 10, 0x22d3ee, 0x4b5563]} position={[0, -0.6, 0]} />
+      <gridHelper args={[5, 10, 0x3b82f6, 0x4b5563]} position={[0, -0.6, 0]} />
 
       <ContactShadows
         position={[0, -0.59, 0]}
@@ -197,6 +198,7 @@ const DEFAULT_LABEL = 'Torch & Weld Pool';
 
 export default function TorchViz3D({ angle, temp, label = DEFAULT_LABEL }: TorchViz3DProps) {
   const [contextLost, setContextLost] = useState(false);
+  const [canvasKey, setCanvasKey] = useState(0);
   const mountedRef = useRef(true);
   const cleanupRef = useRef<(() => void) | null>(null);
 
@@ -210,33 +212,33 @@ export default function TorchViz3D({ angle, temp, label = DEFAULT_LABEL }: Torch
   }, []);
 
   return (
-    <div className="relative w-full h-64 min-h-64 rounded-xl overflow-hidden border-2 border-cyan-400/80 bg-neutral-950 shadow-[0_0_30px_rgba(6,182,212,0.15)]">
+    <div className="relative w-full h-64 min-h-64 rounded-xl overflow-hidden border-2 border-blue-400/80 bg-neutral-950 shadow-[0_0_30px_rgba(59,130,246,0.15)]">
       {/* HUD overlay — industrial style */}
       {label && (
         <div className="absolute top-4 left-4 z-10">
-          <div className="backdrop-blur-md bg-black/50 border border-cyan-400/40 rounded-lg px-4 py-3 shadow-[0_0_20px_rgba(6,182,212,0.2)]">
+          <div className="backdrop-blur-md bg-black/50 border border-blue-400/40 rounded-lg px-4 py-3 shadow-[0_0_20px_rgba(59,130,246,0.2)]">
             <div className="flex items-center gap-2 mb-1">
-              <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" aria-hidden />
+              <div className="h-2 w-2 rounded-full bg-blue-500 animate-pulse" aria-hidden />
               <p
-                className={`text-sm font-bold tracking-widest uppercase text-cyan-400 ${orbitron.className}`}
+                className={`text-sm font-bold tracking-widest uppercase text-blue-400 ${orbitron.className}`}
               >
                 {label}
               </p>
             </div>
             <div className="space-y-0.5">
               <div className="flex items-center gap-2">
-                <span className={`text-[10px] uppercase tracking-wider text-cyan-400/80 ${orbitron.className}`}>
+                <span className={`text-[10px] uppercase tracking-wider text-blue-400/80 ${orbitron.className}`}>
                   Torch angle
                 </span>
-                <span className={`text-xs text-cyan-300 ${jetbrainsMono.className}`}>
+                <span className={`text-xs text-blue-300 ${jetbrainsMono.className}`}>
                   {angle.toFixed(1)}°
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <span className={`text-[10px] uppercase tracking-wider text-cyan-400/80 ${orbitron.className}`}>
+                <span className={`text-[10px] uppercase tracking-wider text-blue-400/80 ${orbitron.className}`}>
                   Weld pool temp
                 </span>
-                <span className={`text-xs text-cyan-300 ${jetbrainsMono.className}`}>
+                <span className={`text-xs text-blue-300 ${jetbrainsMono.className}`}>
                   {temp.toFixed(0)}°C
                 </span>
               </div>
@@ -245,8 +247,10 @@ export default function TorchViz3D({ angle, temp, label = DEFAULT_LABEL }: Torch
         </div>
       )}
 
-      <div className="relative h-64 w-full">
+      <div className="relative h-64 w-full isolate">
+        {!contextLost && (
         <Canvas
+          key={canvasKey}
           shadows
           gl={{
             antialias: true,
@@ -258,8 +262,10 @@ export default function TorchViz3D({ angle, temp, label = DEFAULT_LABEL }: Torch
           style={{ background: '#0a0a0a' }}
           onCreated={({ gl }) => {
             const canvas = gl.domElement;
-            const onLost = (e: Event) => {
-              e.preventDefault();
+            // Do NOT call e.preventDefault() — we don't manually recreate the renderer.
+            // preventDefault tells the browser we'll restore; we never do, causing white screen
+            // until hard tab reset. See .cursor/plans/white-screen-reload-webgl-fix-plan.md
+            const onLost = () => {
               if (mountedRef.current) setContextLost(true);
             };
             const onRestored = () => {
@@ -285,19 +291,47 @@ export default function TorchViz3D({ angle, temp, label = DEFAULT_LABEL }: Torch
           />
           <SceneContent angle={angle} temp={temp} />
         </Canvas>
-        {/* WebGL context lost overlay — browser cannot recover; user must refresh */}
+        )}
+        {/* WebGL context lost overlay — unmount Canvas to release dead context.
+            "Reload 3D" tries remount without full refresh. See Phase 2 in
+            .cursor/plans/white-screen-reload-webgl-fix-plan.md */}
         {contextLost && (
           <div
-            className="absolute inset-0 z-20 flex items-center justify-center bg-neutral-900/95"
-            aria-live="polite"
+            className="absolute inset-0 z-[100] flex items-center justify-center bg-neutral-900/95"
+            role="alert"
+            aria-live="assertive"
+            aria-label="WebGL context lost. Reload 3D or refresh the page to restore."
           >
-            <div className="rounded-lg border border-amber-500/60 bg-neutral-900 px-4 py-3 text-center shadow-lg">
-              <p className={`text-sm font-semibold text-amber-400 ${orbitron.className}`}>
+            <div className="rounded-lg border border-violet-500/60 bg-neutral-900 px-4 py-3 text-center shadow-lg">
+              <p className={`text-sm font-semibold text-violet-400 ${orbitron.className}`}>
                 WebGL context lost
               </p>
-              <p className={`mt-1 text-xs text-cyan-400/90 ${jetbrainsMono.className}`}>
-                Refresh the page to restore 3D view
+              <p className={`mt-1 text-xs text-blue-400/90 ${jetbrainsMono.className}`}>
+                Try Reload 3D below; if that fails, refresh the page
               </p>
+              <div className="mt-3 flex flex-col sm:flex-row gap-2 justify-center">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCanvasKey((k) => k + 1);
+                    setContextLost(false);
+                  }}
+                  className="px-4 py-2 text-sm font-medium text-blue-400 hover:text-blue-300 underline focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 focus:ring-offset-neutral-900 rounded border border-blue-400/60"
+                  aria-label="Reload 3D view without refreshing the page"
+                >
+                  Reload 3D
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (typeof window !== 'undefined') window.location.reload();
+                  }}
+                  className="px-4 py-2 text-sm font-medium text-violet-400/90 hover:text-violet-300/90 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:ring-offset-2 focus:ring-offset-neutral-900 rounded"
+                  aria-label="Refresh the page to restore 3D view"
+                >
+                  Refresh page
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -305,10 +339,10 @@ export default function TorchViz3D({ angle, temp, label = DEFAULT_LABEL }: Torch
 
       {/* Temp scale indicator */}
       <div className="absolute bottom-4 right-4 z-10">
-        <div className="backdrop-blur-md bg-black/50 border border-cyan-400/40 rounded-lg px-3 py-2">
+        <div className="backdrop-blur-md bg-black/50 border border-blue-400/40 rounded-lg px-3 py-2">
           <div className="flex items-center gap-2">
-            <div className="w-24 h-1.5 rounded-full bg-gradient-to-r from-blue-600 via-cyan-400 to-amber-400" />
-            <span className={`text-[10px] text-cyan-400/70 ${jetbrainsMono.className}`}>
+            <div className="w-24 h-1.5 rounded-full bg-gradient-to-r from-blue-600 via-blue-400 to-violet-400" />
+            <span className={`text-[10px] text-blue-400/70 ${jetbrainsMono.className}`}>
               0–700°C
             </span>
           </div>
@@ -317,7 +351,7 @@ export default function TorchViz3D({ angle, temp, label = DEFAULT_LABEL }: Torch
 
       {/* Technical footer */}
       <div
-        className={`absolute bottom-4 left-4 z-10 text-[9px] text-cyan-500/50 ${jetbrainsMono.className}`}
+        className={`absolute bottom-4 left-4 z-10 text-[9px] text-blue-500/50 ${jetbrainsMono.className}`}
       >
         SENSOR_ID: TH_001 | SAMPLE_RATE: 10Hz
       </div>

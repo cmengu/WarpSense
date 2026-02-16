@@ -1,0 +1,46 @@
+
+```json
+{
+  "score": 8.0,
+  "dimension_scores": {
+    "completeness": 8.0,
+    "clarity": 8.5,
+    "verification": 7.5,
+    "dependencies": 8.0,
+    "risk_management": 8.0,
+    "edge_cases": 8.0,
+    "production_ready": 7.5
+  },
+  "critical_issues": [
+    "Step 1.2 must be executed after Step 1.3, or the gradient will produce NaN/incorrect colors. The plan order 1.1 → 1.2 → 1.3 means the new temperatureToColor (Step 1.2) uses uMinTemp, uMaxTemp, uStepCelsius before Plate wires them (Step 1.3). With unwired uniforms, uStepCelsius defaults to 0 → numSteps = range/0 = inf → stepNorm = NaN. Fix: Reorder Phase 1 to 1.1 → 1.3 → 1.2 (wire uniforms before replacing shader logic), or state explicitly: 'Complete Step 1.3 before or immediately after 1.2 — never verify 1.2 in isolation.'"
+  ],
+  "minor_issues": [
+    "Step 1.1 verification: 'Open HeatmapPlate3D in browser' is vague. Specify: 'Use existing replay page with a session that has thermal_frames' (HeatmapPlate3D is used there).",
+    "Step 2.2b: Line reference 'lines ~64–189' may drift. Prefer: 'Copy function SceneContent and its dependencies (ambientLight, directionalLights, pointLights, torch group, weld pool, angle guide ring, gridHelper, ContactShadows, Environment) from TorchViz3D.tsx'.",
+    "Step 3.3: 'Mock Canvas/R3F if needed (same pattern as TorchViz3D test)' — add explicit reference: 'Copy mock setup from my-app/src/__tests__/components/welding/TorchViz3D.test.tsx (Canvas, OrbitControls, Environment, ContactShadows, PerspectiveCamera, next/font).'",
+    "No explicit rollback procedure: If Phase 2.3 integration breaks replay, there is no documented 'revert to TorchViz3D + HeatmapPlate3D' path. Add to Section 7: 'Rollback: If TorchWithHeatmap3D blocks release, revert replay/demo to TorchViz3D + HeatmapPlate3D dynamic imports; keep ThermalPlate and frameUtils extraction (no revert of those).'",
+    "Step 2.4: 'filterThermalFrames(noviceSession.frames)' — confirmed filterThermalFrames exists in frameUtils; demo already uses it for expert. Gap 2 (novice thermal) is satisfied: generateNoviceSession uses same buildFrames and produces thermal. No additional verification step needed, but plan could note: 'Both expert and novice have thermal data from demo-data.'"
+  ],
+  "strengths": [
+    "Part 0 pre-planning: Comprehensive exploration synthesis, risk brainstorming, dependency DAG, failure-mode enumeration. Red Team and Gap analysis show depth.",
+    "Step 1.2: Full GLSL implementation with 8 anchors, step algorithm, mix logic. LUT fallback spec (Gap 1) documented.",
+    "Step 1.4: Complete TypeScript mirror with exact algorithm match for unit testing. MUST-match comment for shader sync.",
+    "Step 2.1: Full extractFivePointFromFrame implementation with readings.length === 0 return null (refinement). ThermalDirection import note. Unit test matrix (null, has_thermal_data false, empty readings, missing directions, full 5-point).",
+    "Step 2.2a: Explicit ThermalPlateProps interface; useEffect-for-DataTexture-update pattern preservation (avoids GPU read races). Sync contract documented.",
+    "Step 2.3: Explicit replay layout spec with Row 1/Row 2, thermal vs no-thermal branching, primary-session-only rule. Clear implementation bullets.",
+    "Dependency summary (Section 9): Correct DAG; parallelizable groups identified. Step 4.4 correctly depends on 3.3 (smoke test file created first).",
+    "Pre-flight checklists per phase; risk heatmap; 13 success criteria; Common Failures & Fixes; Implementability test with 10 junior questions.",
+    "Phase success criteria are checkbox-able and specific."
+  ],
+  "reasoning": "The plan is well-structured with 4 phases, 19 steps, and strong documentation. Codebase verification confirmed: filterThermalFrames exists, ThermalDirection exists in frameUtils, TorchViz3D test provides mock pattern, demo-data generates thermal for both expert and novice. The refinement (readings.length === 0 return null, ThermalDirection import, SceneContent line ref, Step 4.1 audit clarification, pass criteria unification) addressed prior critique points well. One critical sequencing issue remains: Step 1.2 replaces shader logic that depends on uMinTemp, uMaxTemp, uStepCelsius, but Step 1.3 wires those uniforms. Executing 1.1 → 1.2 → 1.3 strictly would leave uStepCelsius = 0 (default for unwired uniform) → NaN colors. Reordering to 1.1 → 1.3 → 1.2 fixes this. Minor issues: verification path clarity (replay vs standalone), line-number drift risk, explicit mock reference, rollback procedure. Weighted score: (8×0.20 + 8.5×0.15 + 7.5×0.20 + 8×0.15 + 8×0.15 + 8×0.10 + 7.5×0.05) = 7.95 ≈ 8.0. Score 8.0 places plan in 'Minor Polish Needed' — one critical fix (Phase 1 order) and minor clarifications. Core approach is sound; execution-blocking issue is narrow and fixable.",
+  "improvement_priority": [
+    "CRITICAL: Reorder Phase 1 to 1.1 → 1.3 → 1.2 (or add explicit note: complete 1.3 before verifying 1.2)",
+    "Minor: Clarify Step 1.1 verification path — use replay page with thermal session",
+    "Minor: Replace line numbers in Step 2.2b with structural description",
+    "Minor: Add explicit TorchViz3D.test.tsx reference in Step 3.3",
+    "Minor: Add rollback procedure to Section 7 Common Failures & Fixes"
+  ],
+  "recommended_action": "refine",
+  "rationale_for_action": "Score 8.0 indicates plan is solid but has 1 critical sequencing flaw (Phase 1 step order) and 4–5 minor clarity gaps. Use refine-plan.md to: (1) fix Phase 1 order so shader logic executes only after uniforms are wired, (2) add verification path clarity, mock reference, and rollback note. No replan or re-exploration needed — codebase verification confirmed dependencies exist and plan addresses the task correctly."
+}
+```

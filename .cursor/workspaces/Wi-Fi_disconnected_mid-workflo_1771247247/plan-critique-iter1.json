@@ -1,0 +1,49 @@
+
+Here is the critique:
+
+```json
+{
+  "score": 8.65,
+  "dimension_scores": {
+    "completeness": 9.0,
+    "clarity": 9.0,
+    "verification": 8.0,
+    "dependencies": 9.0,
+    "risk_management": 9.0,
+    "edge_cases": 8.0,
+    "production_ready": 8.0
+  },
+  "critical_issues": [],
+  "minor_issues": [
+    "Step 2.2: Line reference 'line ~189' is approximate. Executor may need to search for the workpiece group in TorchWithHeatmap3D.tsx. Add: 'Search for <group position=' or provide exact line once verified.",
+    "Step 1.3: Verification says 'Can skip if build succeeds in Phase 2' — slightly vague. Either make explicit ('Skip this step; Phase 2 import will fail if export broken') or remove the skip clause.",
+    "Success criteria 1–6 and 9–10 rely on manual visual verification. Project .cursorrules prefer automated tests. Plan adds Step 3.2a for constants verification, which is good, but consider documenting why 3D visual clipping cannot be fully automated (scope/cost) so future reviewers understand the trade-off.",
+    "Pre-flight: tsconfig paths for @/constants/welding3d are assumed. If the project uses a different alias, import could fail. Add note: 'Verify @ resolves to src/ in tsconfig.json paths.'",
+    "Step 2.6: rg pattern matches torch-internal -0.6; plan says 'Only matches inside torch group' — correct. Consider adding: 'If you see matches for workpiece/ring/grid/shadow, those must be replaced.' to reduce false-negative risk."
+  ],
+  "strengths": [
+    "Mandatory pre-planning section is strong: exploration synthesis, dependency brainstorm, risk-based planning, and failure-mode enumeration.",
+    "Step 1.1 provides a complete, copy-pasteable constants file with JSDoc and correct constraint math.",
+    "Steps 2.1–2.5 specify exact code changes, imports, and JSX snippets with no placeholders.",
+    "Comprehensive failure modes (10 items) and Common Failures & Fixes table with detection, response, recovery.",
+    "Rollback procedure clearly documented (git revert; no schema changes).",
+    "Step 3.2a adds automated constants-applied test, aligning with project rule: verification via automated tests.",
+    "Pre-flight checklists per phase with verification steps and remediation.",
+    "Red Team exercise (10 problems) with severity and fixes.",
+    "Thinking checkpoints (3) for phase sanity, step quality, and implementability.",
+    "Explicit dependency graph and correct execution order.",
+    "Success criteria with priorities (P0/P1) and definition of done.",
+    "ThermalPlate uMaxDisplacement/constants coupling documented to prevent drift."
+  ],
+  "reasoning": "The plan is production-ready with zero critical issues. Completeness is high: all phases covered (constants → apply → verify), prerequisites and rollback defined. Clarity is high: concrete code examples, file paths, commands. Dependencies form a valid DAG. Risk coverage is strong: failure modes, recovery, rollback. The main gap is verification: P0 success relies on manual visual checks for 'no metal clipping' and 'torch rests just above metal'. The plan correctly adds Step 3.2a for automated constants verification, which satisfies the project rule for automated tests where feasible; 3D visual clipping is hard to automate without pixel/snapshot testing. Edge cases are addressed (e.g. Red Team #2 on angle ring, #10 on first frame). The score of 8.65 reflects a solid plan with 2–3 minor clarity improvements; no execution blockers.",
+  "improvement_priority": [
+    "Minor: Make Step 2.2 line reference explicit or replace with search instruction",
+    "Minor: Clarify Step 1.3 skip clause or remove it",
+    "Minor: Add note on why manual visual verification is acceptable for 3D clipping (scope/cost)",
+    "Minor: Add pre-flight check for tsconfig @ path alias",
+    "Minor: Strengthen Step 2.6 verification to explicitly warn if workpiece/ring/grid/shadow still use magic numbers"
+  ],
+  "recommended_action": "refine",
+  "rationale_for_action": "Score 8.65 falls in 8.0–8.9 range. Zero critical issues; 2–3 minor clarity items. Core approach is correct, implementation is complete per the status report, and the plan would execute successfully. Use refine-plan.md for minor polish (explicit line references, clearer verification rationale, pre-flight tsconfig note) to reach 9.0+ production excellence."
+}
+```

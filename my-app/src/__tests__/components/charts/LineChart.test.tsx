@@ -52,7 +52,7 @@ describe("LineChart — Step 5 TrendChart verification", () => {
 
   it("accepts color and height props", () => {
     const { container } = render(
-      <LineChart data={MOCK_HISTORICAL} color="#ef4444" height={150} />
+      <LineChart data={MOCK_HISTORICAL} color="#a855f7" height={150} />
     );
     expect(screen.queryByText(/No data available/)).not.toBeInTheDocument();
     const responsiveContainer = container.querySelector(

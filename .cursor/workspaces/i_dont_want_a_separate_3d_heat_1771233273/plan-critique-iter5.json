@@ -1,0 +1,45 @@
+
+```json
+{
+  "score": 8.6,
+  "dimension_scores": {
+    "completeness": 9.0,
+    "clarity": 8.5,
+    "verification": 8.5,
+    "dependencies": 9.0,
+    "risk_management": 8.5,
+    "edge_cases": 8.5,
+    "production_ready": 7.5
+  },
+  "critical_issues": [],
+  "minor_issues": [
+    "Step 2.2a lists 'Modify: TorchWithHeatmap3D.tsx' and subtask 'TorchWithHeatmap3D: use <ThermalPlate ... />' but TorchWithHeatmap3D is created in Step 2.2b. An executor cannot modify a file that does not exist yet. Move the ThermalPlate import/usage to Step 2.2b Files and Subtasks; remove from 2.2a.",
+    "Step 1.1 verification assumes 'existing replay page with a session that has thermal_frames'. For a fresh setup with no seeded thermal sessions, add: 'If no thermal session exists: run backend seed script (backend/scripts/seed_demo_data.py) or use /demo which has in-browser thermal data.'",
+    "Step 4.2 and 4.3: Tests may mock TorchViz3D and HeatmapPlate3D; the plan says 'Replace TorchViz3D mock with TorchWithHeatmap3D mock'. Specify that existing replay/demo tests use dynamic imports—mocks may need to match the new import path: `import('@/components/welding/TorchWithHeatmap3D')`.",
+    "Step 2.6 ESLint verification: 'Add 3 TorchWithHeatmap3D to replay page' is a manual check. Add explicit command: after modifying rule, run `cd my-app && npx eslint src/app/replay/ src/app/demo/` to confirm rule enforces limit.",
+    "Section 7 Rollback: Says 'revert to TorchViz3D + HeatmapPlate3D' but HeatmapPlate3D will import shared ThermalPlate after 2.2a. Post-rollback, replay/demo would use the old layout; clarify that ThermalPlate and frameUtils extraction are kept (no revert) so HeatmapPlate3D still works."
+  ],
+  "strengths": [
+    "Phase 1 execution order (1.1 → 1.3 → 1.2 → 1.4 → 1.5) is explicit with rationale for avoiding NaN from unwired uStepCelsius",
+    "Step 1.2 provides full GLSL implementation with 8 anchors and stepped gradient; Step 1.4 provides full TypeScript mirror",
+    "Step 2.1 provides complete extractFivePointFromFrame implementation with null handling and DEFAULT_AMBIENT_CELSIUS",
+    "Step 2.2a defines ThermalPlateProps and sync contract; extraction prevents drift between HeatmapPlate3D and TorchWithHeatmap3D",
+    "Step 2.3 has explicit Replay Grid Layout Spec with conditional Row 2 (thermal vs no-thermal) and layout rule for primary session",
+    "Risk heatmap, failure modes (Part 0C), and Red Team section cover major risks with mitigations",
+    "Part 0 Gap 1 LUT fallback spec (512×1 DataTexture) is ready if stepped gradient bands",
+    "Dependency table and graph show no cycles; 2.2a depends on 1.2, 1.3, 2.1",
+    "Verification tests for extractFivePointFromFrame (null, empty, missing directions) are enumerated",
+    "Rollback procedure in Section 7 allows reverting integration while keeping ThermalPlate and frameUtils extraction"
+  ],
+  "reasoning": "The plan is strong and close to production-ready. Complexity is Moderate-to-Complex (multi-component integration, shader work, extraction). Completeness is high: Part 0 pre-planning, four phases, 19 steps with verification, pre-flight checklists, risk heatmap, rollback, and Red Team. The 1.1→1.3→1.2 execution order and rationale were added in refinement and remove the main execution risk. Code is provided for shader (1.2), TS mirror (1.4), extractFivePointFromFrame (2.1), and ThermalPlateProps (2.2a). Dependencies and sequencing are clear. No critical execution blockers remain. Minor issues are mostly clarity: 2.2a incorrectly references modifying TorchWithHeatmap3D before it exists; verification could better handle fresh setups; test and ESLint verification could be more explicit. Production readiness is weaker (no perf benchmarks), but acceptable for this frontend visualization. The weighted score of 8.6 reflects a plan that is safe to execute with small clarifications.",
+  "improvement_priority": [
+    "Minor: Move TorchWithHeatmap3D ThermalPlate usage from Step 2.2a to Step 2.2b (file creation step)",
+    "Minor: Add fallback for Step 1.1 verification when no thermal session exists (seed script or /demo)",
+    "Minor: Clarify test mock import paths in Steps 4.2 and 4.3 for dynamic TorchWithHeatmap3D",
+    "Minor: Add explicit ESLint run command for Step 2.6 verification",
+    "Minor: Clarify rollback procedure—ThermalPlate and frameUtils are kept; only replay/demo imports revert"
+  ],
+  "recommended_action": "refine",
+  "rationale_for_action": "Score 8.6 is in the 8.0–8.9 'Minor Polish Needed' band. There are no critical execution blockers; the plan can be executed as written with minor risk of confusion at Step 2.2a. Use refine-plan.md to apply the minor clarifications above. After refinement, the plan should reach 9.0+ and be ready for execution."
+}
+```

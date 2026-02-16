@@ -66,10 +66,10 @@ describe('TorchViz3D', () => {
     expect(screen.getByText(/SENSOR_ID: TH_001/i)).toBeInTheDocument();
   });
 
-  it('uses cyan theme classes', () => {
+  it('uses blue theme classes', () => {
     const { container } = render(<TorchViz3D angle={45} temp={400} label="Test" />);
     const wrapper = container.firstChild as HTMLElement;
-    expect(wrapper.className).toMatch(/border-cyan|bg-neutral-950|shadow/);
+    expect(wrapper.className).toMatch(/border-blue|bg-neutral-950|shadow/);
   });
 
   it('shows WebGL context lost overlay when context is lost', async () => {
@@ -80,7 +80,25 @@ describe('TorchViz3D', () => {
         await new Promise<void>((resolve) => queueMicrotask(() => resolve()));
       });
       expect(screen.getByText(/WebGL context lost/i)).toBeInTheDocument();
-      expect(screen.getByText(/Refresh the page to restore 3D view/i)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Reload 3D view without refreshing/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Refresh the page to restore/i })).toBeInTheDocument();
+    } finally {
+      delete (global as { __TORCHVIZ_TEST_CONTEXT_LOSS?: boolean }).__TORCHVIZ_TEST_CONTEXT_LOSS;
+    }
+  });
+
+  it('context lost overlay has keyboard-accessible refresh button', async () => {
+    (global as { __TORCHVIZ_TEST_CONTEXT_LOSS?: boolean }).__TORCHVIZ_TEST_CONTEXT_LOSS = true;
+    try {
+      render(<TorchViz3D angle={45} temp={400} label="Test" />);
+      await act(async () => {
+        await new Promise<void>((resolve) => queueMicrotask(() => resolve()));
+      });
+      const refreshBtn = screen.getByRole('button', {
+        name: /Refresh the page to restore 3D view/i,
+      });
+      expect(refreshBtn).toBeInTheDocument();
+      expect(refreshBtn).toHaveAttribute('type', 'button');
     } finally {
       delete (global as { __TORCHVIZ_TEST_CONTEXT_LOSS?: boolean }).__TORCHVIZ_TEST_CONTEXT_LOSS;
     }

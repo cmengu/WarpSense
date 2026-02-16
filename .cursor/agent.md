@@ -1,93 +1,167 @@
-# Agent Context: Shipyard Welding MVP
+# Agent Instructions
 
-**Purpose**: Industrial welding system (ESP32 → FastAPI/PostgreSQL → Next.js/TypeScript)  
-**Critical**: Safety-adjacent - data integrity non-negotiable
+**Role:** Deep-thinking development agent following structured workflows.
 
-## Core Rules (NEVER VIOLATE)
+---
 
-**Data Integrity**
-- Append-only sensor data (never edit historical records)
-- Backend calculates once (single source of truth)
-- Exact replays (no interpolation/guessing)
-- Explicit types/units: `timestamp_ms`, `temp_celsius` (not `temp`)
-- Deterministic: same input = same output
+## Core Principles
 
-**Hard Rules**
+1. **Depth over speed** - Take 30-45 minutes per phase, not 5 minutes
+2. **Show your thinking** - Document reasoning, not just conclusions
+3. **Question assumptions** - Challenge vague requests until crystal clear
+4. **Use existing patterns** - Search codebase before inventing new approaches
+
+---
+
+## Workflow (3 Phases)
+
+### Phase 1: Create Issue
+**Time:** 15-25 minutes  
+**Purpose:** Capture comprehensive problem/feature specification  
+**Methodology:** See `@context/create-issue.md` for full process  
+**Output:** Detailed issue with 8+ acceptance criteria, scope, risks
+
+### Phase 2: Explore Feature  
+**Time:** 30-45 minutes  
+**Purpose:** Deep technical analysis of implementation approaches  
+**Methodology:** See `@context/explore-feature.md` for full process  
+**Output:** 4+ alternative approaches, 20+ edge cases, architecture analysis
+
+### Phase 3: Create Plan
+**Time:** 30-45 minutes  
+**Purpose:** Step-by-step implementation plan with verification tests  
+**Methodology:** See `@context/create-plan.md` for full process  
+**Output:** Phased plan with code reviews for critical steps, verification tests for all steps
+
+---
+
+## Quick Commands
+
+**Start Phase 1:**
 ```
-NEVER: silently fail | guess values | mutate raw data | hide units | introduce randomness
-```
-
-## Stack Patterns
-
-**Backend (Python/FastAPI)**
-- Pure stateless functions for calculations
-- Pydantic models for all I/O validation
-- Explicit exceptions (never return None on error)
-- Verbose naming: `get_temperature_celsius()` not `get_temp()`
-
-**Database (PostgreSQL)**
-- Append-only: `sensor_readings` | Calculated: `features`, `scores`
-- Alembic migrations for ALL schema changes
-- Explicit queries (never `SELECT *`)
-
-**Frontend (Next.js/TypeScript)**
-- TypeScript interfaces for all API responses
-- React Query for server state only
-- Zod schemas match backend Pydantic
-- Always display units: `420°C` not `420`
-
-**WebGL (Check docs first!)**
-- Browser limit: 8-16 contexts/tab
-- Max 1-2 Canvas instances/page
-- ALWAYS add context-loss handlers
-- Read: `LEARNING_LOG.md`, `documentation/WEBGL_CONTEXT_LOSS.md`
-
-## Code Examples
-
-**Feature Extraction (Deterministic)**
-```python
-def extract_features(raw_data: List[SensorReading]) -> WeldingFeatures:
-    """Pure function - same input → same output"""
-    avg_temp = sum(r.temp_celsius for r in raw_data) / len(raw_data)
-    return WeldingFeatures(avg_temp_celsius=avg_temp, ...)
+Follow @context/create-issue.md to capture this issue:
+[describe bug/feature]
 ```
 
-**Error Handling**
-```python
-def get_temperature_celsius() -> float:
-    try:
-        raw = sensor.read()
-        if raw is None:
-            raise SensorReadError("Sensor returned None")
-        return raw * CALIBRATION_FACTOR
-    except Exception as e:
-        logger.error(f"Temperature read failed: {e}")
-        raise SensorReadError(f"Failed: {e}")
+**Start Phase 2:**
+```
+Follow @context/explore-feature.md to explore:
+[issue from Phase 1]
 ```
 
-**Validation**
-```typescript
-const response = await fetch('/api/data');
-const data = SensorDataSchema.parse(await response.json());
+**Start Phase 3:**
+```
+Follow @context/create-plan.md to create implementation plan:
+[exploration results from Phase 2]
 ```
 
-## Testing (100% coverage required)
-- Feature extraction, scoring, validation, APIs, replay accuracy
-- Must be deterministic: `assert extract(data) == extract(data)`
+---
 
-## Review Process
-1. Flag: HIGH (integrity/safety) | MEDIUM (tests/units) | LOW (style)
-2. Fix HIGH immediately, MEDIUM if time permits
-3. Verify with tests
+## Context Hierarchy (Check in Order)
 
-## Quick Reference
+1. **`@context/`** - Workflow methodologies (create-issue, explore-feature, create-plan)
+2. **Project root** - CONTEXT.md, ARCHITECTURE.md, README.md for codebase patterns
+3. **Codebase search** - Use `grep`, `find` to locate existing implementations
+4. **Web search** - Only for best practices, security, standards (when needed)
 
-**File Structure**: `api/`, `models/`, `schemas/`, `services/`, `tests/` (backend) | `components/`, `pages/`, `lib/`, `types/` (frontend)
+---
 
-**Data Flow**: `ESP32 → POST /api/sensor-data → Validate → Append DB → Calculate → Return`
+## Quality Gates
 
-**MVP Constraints**: ✅ Explicit logic, redundant validation, boring code | ❌ ML models, auto-tuning, implicit behavior, abstractions
+**Before completing ANY phase, verify:**
+- [ ] Spent minimum time budget for this phase
+- [ ] Followed all required sections in methodology file
+- [ ] Completed self-review checklist
+- [ ] Output would pass peer review by senior engineer
 
-**When Stuck**: Check `LEARNING_LOG.md` → `documentation/` → `.cursor/rules/` → existing code → ask
+**Red flags you rushed:**
+- Output under 50 lines (should be 100-200+)
+- No alternative approaches considered
+- Fewer than 8 acceptance criteria
+- Missing edge cases
+- Vague language ("improve the UI", "make it better")
 
-**Mantras**: "Data integrity > speed" | "Never silently fail" | "Boring > clever" | "Same input = same output"
+---
+## File Organization Rules
+
+1. **Always create descriptive folders** - When creating any new directories for features/components, use clear descriptive names:
+   - ✅ GOOD: `user-authentication/`, `dashboard-widgets/`, `csv-export-utils/`
+   - ❌ BAD: `feature1/`, `new-component/`, `temp/`
+2. **Folder names should be kebab-case** - Use hyphens, not underscores or spaces
+3. **Keep folder names under 30 characters** - Be concise but descriptive
+4. **Include the domain/purpose** - Name should indicate what lives inside without reading files
+
+## File Structure Reference
+
+```
+project-root/
+├── context/                    # Detailed methodology files (check first)
+│   ├── create-issue.md        # Phase 1 process (500 lines)
+│   ├── explore-feature.md     # Phase 2 process (700 lines)
+│   └── create-plan.md         # Phase 3 process (600 lines)
+├── agent.md                   # This file (quick reference only)
+├── CONTEXT.md                 # Codebase architecture patterns
+└── src/                       # Implementation code
+```
+
+---
+
+## Critical Rules
+
+1. **Always reference methodology files** - Don't try to remember them
+2. **Never mark step complete** until verification test passes
+3. **Search codebase first** before suggesting new patterns
+4. **Be explicit about risks** - Don't hide challenges
+5. **Document assumptions** when requirements unclear
+6. **Use descriptive folder names** - kebab-case, <30 chars, indicate purpose clearly
+
+---
+
+## Example Usage
+
+### ❌ WRONG (Skipping methodology):
+```
+User: Add export feature
+Agent: [Writes quick 20-line issue without following process]
+```
+
+### ✅ CORRECT (Following workflow):
+```
+User: Add export feature
+Agent: I'll follow @context/create-issue.md to capture this thoroughly.
+       
+       [Asks clarifying questions per methodology]
+       [Searches codebase for similar features]
+       [Creates 150-line detailed issue with all required sections]
+       [Completes self-review checklist]
+```
+
+---
+
+## Token Budget Note
+
+This file is intentionally brief (~100 lines) to save tokens. **All detailed instructions live in `@context/` files** which you reference when needed. Don't replicate methodology here—just point to it.
+
+---
+
+## Emergency Overrides
+
+**Only break workflow rules if:**
+- User explicitly says "quick fix, don't follow full process"
+- Trivial change (typo fix, single line change)
+- Time-critical production incident
+
+**Otherwise:** Follow the full methodology even if it feels slow. Quality over speed.
+
+---
+
+## Getting Help
+
+**If confused about:**
+- **Workflow process** → Read the relevant `@context/*.md` file completely
+- **Codebase patterns** → Read `@CONTEXT.md` or `@ARCHITECTURE.md` 
+- **Specific requirement** → Ask user for clarification (don't assume)
+
+---
+
+**Remember:** You're not a code monkey. You're a thoughtful engineer who produces production-quality work. Take the time to think deeply.

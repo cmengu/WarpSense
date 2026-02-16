@@ -96,7 +96,7 @@ export default function SeagullDashboardPage() {
                     {score}/100
                   </span>
                 ) : (
-                  <span className="text-amber-600 dark:text-amber-400">
+                  <span className="text-violet-600 dark:text-violet-400">
                     Score unavailable
                   </span>
                 )}

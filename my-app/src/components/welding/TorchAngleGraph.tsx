@@ -73,9 +73,9 @@ export default function TorchAngleGraph({ sessionId, data, activeTimestamp }: To
           />
           <ReferenceLine
             y={TARGET_ANGLE_DEG}
-            stroke="#22c55e"
+            stroke="#a855f7"
             strokeDasharray="3 3"
-            label={{ value: 'Target', position: 'top', fill: '#22c55e' }}
+            label={{ value: 'Target', position: 'top', fill: '#a855f7' }}
           />
           {activeTimestamp != null && (
             <ReferenceLine

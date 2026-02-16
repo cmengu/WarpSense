@@ -241,15 +241,15 @@ function ComparePageInner({
   if (error) {
     return (
       <div className="min-h-screen bg-zinc-50 dark:bg-black flex items-center justify-center p-6">
-        <div className="max-w-md w-full bg-white dark:bg-zinc-900 rounded-lg border border-red-200 dark:border-red-800 p-6">
-          <h2 className="text-lg font-semibold text-red-800 dark:text-red-400 mb-2">
+        <div className="max-w-md w-full bg-white dark:bg-zinc-900 rounded-lg border border-violet-200 dark:border-violet-800 p-6">
+          <h2 className="text-lg font-semibold text-violet-800 dark:text-violet-400 mb-2">
             Failed to load comparison
           </h2>
-          <p className="text-sm text-red-600 dark:text-red-500 mb-4">
+          <p className="text-sm text-violet-600 dark:text-violet-500 mb-4">
             {error}
           </p>
           <Link
-            href="/"
+            href="/dashboard"
             className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
           >
             Back to dashboard
@@ -269,7 +269,7 @@ function ComparePageInner({
       <div className="max-w-full mx-auto">
         <div className="flex items-center gap-4 mb-4">
           <Link
-            href="/"
+            href="/dashboard"
             className="text-sm text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300"
           >
             Dashboard
@@ -300,7 +300,7 @@ function ComparePageInner({
         )}
 
         {noOverlap && (
-          <div className="mb-6 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg text-amber-800 dark:text-amber-200 text-sm">
+          <div className="mb-6 p-4 bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800 rounded-lg text-violet-800 dark:text-violet-200 text-sm">
             No overlapping frames. Sessions must share timestamps to show deltas. Check that both use the same duration and frame interval (e.g. mock: 15s, 10ms).
           </div>
         )}
@@ -334,7 +334,12 @@ function ComparePageInner({
                 value={currentTimestamp ?? firstTimestamp}
                 onChange={(e) => {
                   setIsPlaying(false);
-                  setCurrentTimestamp(Number(e.target.value));
+                  const val = Number(e.target.value);
+                  setCurrentTimestamp(
+                    Number.isFinite(val) && firstTimestamp != null && lastTimestamp != null
+                      ? Math.max(firstTimestamp, Math.min(lastTimestamp, val))
+                      : currentTimestamp ?? firstTimestamp ?? 0
+                  );
                 }}
                 className="w-full max-w-2xl h-2 bg-zinc-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
               />
@@ -346,7 +351,7 @@ function ComparePageInner({
 
         {heatmapDataA?.point_count && heatmapDataB?.point_count && (
           <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-2">
-            Session A and B use a shared temperature scale (cold→blue, hot→red) so differences are visible. Delta column: red = A hotter, blue = B hotter.
+            Session A and B use a shared temperature scale (cold→blue, hot→purple) so differences are visible. Delta column: purple = A hotter, blue = B hotter.
           </p>
         )}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

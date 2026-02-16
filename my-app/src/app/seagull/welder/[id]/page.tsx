@@ -129,11 +129,11 @@ function WelderReportInner({ welderId }: { welderId: string }) {
   if (error) {
     return (
       <div className="min-h-screen bg-zinc-50 dark:bg-black p-8">
-        <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg p-6 max-w-md">
-          <h2 className="text-lg font-bold text-red-900 dark:text-red-200">
+        <div className="bg-violet-50 dark:bg-violet-950/30 border border-violet-200 dark:border-violet-800 rounded-lg p-6 max-w-md">
+          <h2 className="text-lg font-bold text-violet-900 dark:text-violet-200">
             ⚠️ Error
           </h2>
-          <p className="text-red-800 dark:text-red-300 mt-2 text-sm">{error}</p>
+          <p className="text-violet-800 dark:text-violet-300 mt-2 text-sm">{error}</p>
           <Link
             href="/seagull"
             className="text-blue-600 dark:text-blue-400 underline mt-4 block"

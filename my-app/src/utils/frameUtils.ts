@@ -181,6 +181,44 @@ export function hasRequiredSensors(frame: Frame): boolean {
 }
 
 // ---------------------------------------------------------------------------
+// extractFivePointFromFrame
+// ---------------------------------------------------------------------------
+
+/** Fallback temperature (°C) when a cardinal direction is missing from readings. */
+export const DEFAULT_AMBIENT_CELSIUS = 20;
+
+/**
+ * Extract 5-point thermal readings from a frame's first thermal snapshot.
+ *
+ * Used by HeatmapPlate3D and TorchWithHeatmap3D for thermal workpiece rendering.
+ * Reads thermal_snapshots[0].readings and maps direction → temp_celsius.
+ *
+ * @param frame - Frame with thermal data.
+ * @returns { center, north, south, east, west } in Celsius, or null if no thermal.
+ */
+export function extractFivePointFromFrame(
+  frame: Frame | null
+): {
+  center: number;
+  north: number;
+  south: number;
+  east: number;
+  west: number;
+} | null {
+  if (!frame?.has_thermal_data || !frame.thermal_snapshots?.[0]) return null;
+  const readings = frame.thermal_snapshots[0].readings ?? [];
+  const get = (d: ThermalDirection) =>
+    readings.find((r) => r.direction === d)?.temp_celsius ?? DEFAULT_AMBIENT_CELSIUS;
+  return {
+    center: get("center"),
+    north: get("north"),
+    south: get("south"),
+    east: get("east"),
+    west: get("west"),
+  };
+}
+
+// ---------------------------------------------------------------------------
 // filterThermalFrames
 // ---------------------------------------------------------------------------
 

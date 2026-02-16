@@ -10,6 +10,10 @@
 import { generateExpertSession, generateNoviceSession } from "@/lib/demo-data";
 import { extractHeatmapData } from "@/utils/heatmapData";
 import { extractAngleData } from "@/utils/angleData";
+import {
+  extractCenterTemperatureWithCarryForward,
+  getFrameAtTimestamp,
+} from "@/utils/frameUtils";
 
 describe("demo-data", () => {
   describe("generateExpertSession", () => {
@@ -83,6 +87,35 @@ describe("demo-data", () => {
       for (let i = 1; i < timestamps.length; i++) {
         expect(timestamps[i] - timestamps[i - 1]).toBe(100);
       }
+    });
+  });
+
+  describe("integration with frameUtils", () => {
+    it("extractCenterTemperatureWithCarryForward returns finite temps for expert", () => {
+      const session = generateExpertSession();
+      const t0 = extractCenterTemperatureWithCarryForward(session.frames, 0);
+      const t5000 = extractCenterTemperatureWithCarryForward(session.frames, 5000);
+      const t14990 = extractCenterTemperatureWithCarryForward(
+        session.frames,
+        14990
+      );
+      expect(Number.isFinite(t0)).toBe(true);
+      expect(t0).toBeGreaterThan(100);
+      expect(t0).toBeLessThan(800);
+      expect(Number.isFinite(t5000)).toBe(true);
+      expect(Number.isFinite(t14990)).toBe(true);
+    });
+
+    it("getFrameAtTimestamp returns correct frame for expert", () => {
+      const session = generateExpertSession();
+      const f0 = getFrameAtTimestamp(session.frames, 0);
+      const f100 = getFrameAtTimestamp(session.frames, 100);
+      const f99 = getFrameAtTimestamp(session.frames, 99);
+      expect(f0).not.toBeNull();
+      expect(f0?.timestamp_ms).toBe(0);
+      expect(f100).not.toBeNull();
+      expect(f100?.timestamp_ms).toBe(100);
+      expect(f99?.timestamp_ms).toBe(90); // nearest frame at or before 99
     });
   });
 });

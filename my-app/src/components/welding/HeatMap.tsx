@@ -105,7 +105,7 @@ export default function HeatMap({
                   gridRow: row,
                   backgroundColor: colorFn(p.temp_celsius),
                   ...(active && {
-                    outline: '2px solid rgb(34 197 94)',
+                    outline: '2px solid #3b82f6',
                     outlineOffset: '-1px',
                     zIndex: 1,
                   }),

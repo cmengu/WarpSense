@@ -68,24 +68,22 @@ describe('HeatMap', () => {
     expect(screen.getByTitle(/425\.3°C/)).toBeInTheDocument();
   });
 
-  it('Step 2 verification: renders div grid with blue-yellow-red gradient, no placeholder', () => {
+  it('renders div grid with blue-purple gradient', () => {
     const data: HeatmapData = {
       points: [
-        { timestamp_ms: 0, distance_mm: 10.0, temp_celsius: 20, direction: "center" },
-        { timestamp_ms: 100, distance_mm: 10.0, temp_celsius: 310, direction: "center" },
-        { timestamp_ms: 200, distance_mm: 10.0, temp_celsius: 600, direction: "center" },
-        { timestamp_ms: 0, distance_mm: 20.0, temp_celsius: 490, direction: "center" },
+        { timestamp_ms: 0, distance_mm: 10.0, temp_celsius: 0, direction: "center" },
+        { timestamp_ms: 100, distance_mm: 10.0, temp_celsius: 250, direction: "center" },
+        { timestamp_ms: 200, distance_mm: 10.0, temp_celsius: 500, direction: "center" },
       ],
       timestamps_ms: [0, 100, 200],
-      distances_mm: [10.0, 20.0],
-      point_count: 4,
+      distances_mm: [10.0],
+      point_count: 3,
     };
     const { container } = render(<HeatMap sessionId="verify" data={data} />);
-    expect(screen.queryByText(/visualization rendering coming soon/i)).not.toBeInTheDocument();
     const grid = container.querySelector('.overflow-x-auto .grid');
     expect(grid).toBeInTheDocument();
-    expect(screen.getByTitle(/20\.0°C/)).toHaveStyle({ backgroundColor: '#3b82f6' });
-    expect(screen.getByTitle(/310\.0°C/)).toHaveStyle({ backgroundColor: '#eab308' });
-    expect(screen.getByTitle(/600\.0°C/)).toHaveStyle({ backgroundColor: '#ef4444' });
+    expect(screen.getByTitle(/0\.0°C/)).toHaveStyle({ backgroundColor: '#1e3a8a' });
+    expect(screen.getByTitle(/250\.0°C/)).toHaveStyle({ backgroundColor: '#7c3aed' });
+    expect(screen.getByTitle(/500\.0°C/)).toHaveStyle({ backgroundColor: '#a855f7' });
   });
 });

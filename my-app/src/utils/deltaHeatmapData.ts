@@ -3,7 +3,7 @@
  *
  * Flattens FrameDelta.thermal_deltas into the same HeatmapData shape as
  * heatmapData.ts so the same grid component can render with deltaTempToColor.
- * Red = session A hotter; blue = session B hotter; white = no difference.
+ * Blue = session B hotter; white = same; purple = session A hotter.
  */
 
 import type { FrameDelta } from "@/types/comparison";
@@ -11,15 +11,16 @@ import type { HeatmapData, HeatmapDataPoint } from "@/utils/heatmapData";
 import type { ThermalDirection } from "@/types/thermal";
 
 // ---------------------------------------------------------------------------
-// Delta color scale: blue (-50) → white (0) → red (+50)
+// Delta color scale: blue (-50) → white (0) → purple (+50)
 // ---------------------------------------------------------------------------
 
 /**
  * Map temperature delta in Celsius to hex color.
- * Blue = session B hotter (negative delta); white = same; red = session A hotter (positive delta).
+ * Blue = session B hotter (negative delta); white = same; purple = session A hotter.
  * Linear interpolation between -50°C and +50°C.
  */
 export function deltaTempToColor(delta_celsius: number): string {
+  if (Number.isNaN(delta_celsius)) return '#ffffff';
   const d = Math.max(-50, Math.min(50, delta_celsius));
   let r: number, g: number, b: number;
   if (d <= 0) {
@@ -29,11 +30,11 @@ export function deltaTempToColor(delta_celsius: number): string {
     g = Math.round(130 + (255 - 130) * p);
     b = Math.round(246 + (255 - 246) * p);
   } else {
-    // white (0) → red (+50)
+    // white (0) → purple (+50) #a855f7
     const p = d / 50;
-    r = Math.round(255);
-    g = Math.round(255 - 255 * p);
-    b = Math.round(255 - 255 * p);
+    r = Math.round(255 - (255 - 168) * p);
+    g = Math.round(255 - (255 - 85) * p);
+    b = Math.round(255 - (255 - 247) * p);
   }
   return `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
 }
