@@ -13,14 +13,18 @@ import type { DashboardData } from '@/types/dashboard';
 
 interface DashboardLayoutProps {
   data: DashboardData;
+  title?: string;
 }
 
-export function DashboardLayout({ data }: DashboardLayoutProps) {
+export function DashboardLayout({
+  data,
+  title = 'Dashboard',
+}: DashboardLayoutProps) {
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-black p-6">
       <div className="max-w-7xl mx-auto">
         <h1 className="text-3xl font-semibold mb-6 text-black dark:text-zinc-50">
-          Dashboard
+          {title}
         </h1>
         
         {/* Metrics Grid */}

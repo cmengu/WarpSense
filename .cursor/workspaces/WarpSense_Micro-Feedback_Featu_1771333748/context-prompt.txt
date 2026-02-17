@@ -1,0 +1,551 @@
+# Project Context
+
+> **Purpose:** High-level project state for AI tools. What exists, what patterns to follow, what constraints to respect.  
+> **For AI:** Reference with `@CONTEXT.md` to avoid reimplementing features or violating patterns.  
+> **Last Updated:** [DATE]
+
+---
+
+## Project Overview
+
+**Name:** [Project Name]  
+**Type:** [Web App | API | etc.]  
+**Stack:** [Main technologies]  
+**Stage:** [Incubation | MVP | Production]
+
+**Purpose:** [1-2 sentences]
+
+**Current State:**
+- ✅ [Milestone 1]
+- ✅ [Milestone 2]
+- 🔄 [In progress]
+- 📋 [Planned]
+
+---
+
+## Architecture
+
+### System Pattern
+[e.g., Client-Server, Jamstack, Microservices]
+
+```
+Frontend → Backend → Database → Storage
+```
+
+**Key Decisions:**
+- [Decision 1]: [Why]
+- [Decision 2]: [Why]
+
+### Tech Stack
+
+**Frontend:** [Framework], [UI lib], [State], [Viz libs]  
+**Backend:** [Framework], [Language], [API style]  
+**Database:** [Primary], [Cache], [ORM]  
+**Infrastructure:** [Hosting], [CI/CD]
+
+**Critical Dependencies:**
+- [package@version] (~size) — [purpose]
+- [package@version] — [purpose]
+
+
+---
+
+## Implemented Features
+
+> **AI Rule:** Don't reimplement what's listed here.
+
+### [Feature 1]: [e.g., 3D Visualization]
+**Status:** ✅  
+**What:** [Brief description]  
+**Location:** [File/folder]  
+**Pattern:** [High-level approach]  
+**Integration:** [What uses it]
+
+### [Feature 2]: [e.g., Playback System]
+**Status:** ✅  
+**What:** [Brief description]  
+**State:** [How managed]  
+**Integration:** [What syncs to it]
+
+### [Feature 3]: [e.g., Data Processing]
+**Status:** ✅  
+**What:** [Brief description]  
+**Utilities:** `func1()`, `func2()` in [file]
+
+---
+
+## Data Models
+
+### [Model 1]: [e.g., Session]
+```typescript
+{ id, timestamp, frames[], metadata }
+```
+**Used by:** [Components/APIs]  
+**Flow:** [Source → Transform → Consumer]
+
+### [Model 2]: [e.g., Frame]
+```typescript
+{ timestamp_ms, sensor_data, thermal_data? }
+```
+**Sparse data:** [How handled, e.g., carry-forward]
+
+---
+
+## Patterns
+
+> **AI Rule:** Follow these for consistency.
+
+### [Pattern 1]: [e.g., Frame Resolution]
+**Use when:** [Scenario]  
+**How:** Find exact match, else nearest before timestamp, else first frame  
+**Location:** `utils/[file].ts`
+
+### [Pattern 2]: [e.g., SSR Safety]
+**Use when:** Browser-only components (WebGL, Canvas)  
+**How:** Dynamic import with `ssr: false`  
+**Why:** Prevents Next.js SSR errors
+
+### [Pattern 3]: [e.g., Visual Consistency]
+**Use when:** Adding color-based features  
+**How:** [Temperature ranges → color bands]  
+**Alignment:** Matches [existing feature]
+
+---
+
+## Integration Points
+
+> **AI Rule:** Use these, don't recreate.
+
+### [Integration 1]: [e.g., Timeline State]
+**What:** Shared playback timestamp  
+**State:** `{ currentTimestamp, isPlaying, ... }`  
+**Consumers:** [Component A], [Component B]  
+**How to use:** [Brief integration steps]
+
+### [Integration 2]: [e.g., Utilities]
+**What:** Shared helper functions  
+**Available:**
+- `util1()` — [Purpose] — [File]
+- `util2()` — [Purpose] — [File]
+
+---
+
+## Constraints
+
+> **AI Rule:** Respect these, don't work around them.
+
+### [Constraint 1]: [e.g., SSR Limitations]
+**What:** WebGL/Canvas requires browser  
+**Handle:** ✅ Dynamic import with `ssr: false` | ❌ Direct import  
+**Affects:** [Features]
+
+### [Constraint 2]: [e.g., Sparse Data]
+**What:** [Data gaps in stream]  
+**Handle:** [Strategy, e.g., carry-forward last known value]  
+**Affects:** [Features]
+
+### [Constraint 3]: [e.g., Bundle Size]
+**What:** Keep feature bundles <600KB gzipped  
+**Current:** [Dependency] (~500KB acceptable for demo)  
+**Future:** Lazy load if production
+
+---
+
+## File Structure
+
+```
+app/                    # Pages, routes, layouts
+  [feature]/           # Feature pages
+  api/                 # API routes
+components/            # React components
+  [domain]/           # Domain-specific
+  ui/                 # Shared UI
+lib/
+  utils/              # Utilities
+  hooks/              # Custom hooks
+types/                # TypeScript types
+public/               # Static assets
+.cursor/plans/        # Implementation plans
+```
+
+**Key Files:**
+- [file]: [Purpose]
+- [file]: [Purpose]
+
+---
+
+## API Contracts
+
+### [Endpoint 1]: [GET /api/sessions/:id]
+**Purpose:** [What it does]  
+**Response:** `{ id, frames[], metadata }`  
+**Used by:** [Components]
+
+### [Endpoint 2]: [POST /api/...]
+**Purpose:** [What it does]  
+**Request:** `{ field: type }`  
+**Response:** [Shape]
+
+---
+
+## Component APIs
+
+### [Component1]: [ComponentName]
+**Purpose:** [What it renders]  
+**Props:** `angle: number, temp: number, label?: string`  
+**Location:** [File]  
+**Requirements:** Must use dynamic import (SSR safety)
+
+### [Component2]: [ComponentName]
+**Purpose:** [What it renders]  
+**Props:** [Key props]  
+**Integration:** [Dependencies]
+
+---
+
+## Not Implemented
+
+> **AI Rule:** Don't assume these exist.
+
+### [Enhancement 1]
+**Status:** 💡 Idea  
+**What:** [Description]  
+**Why not yet:** [Reason]
+
+### [Enhancement 2]
+**Status:** 📋 Planned  
+**What:** [Description]
+
+---
+
+## Explicitly Rejected
+
+> **AI Rule:** Don't suggest these.
+
+### [Rejected 1]: [Approach]
+**What:** [Description]  
+**Why rejected:** [Reason]  
+**Alternative:** [What we did]
+
+---
+
+## AI Prompting Patterns
+
+### Adding Feature
+```
+@CONTEXT.md — Check if exists
+@LEARNING_LOG.md — Check past issues
+
+Implement [feature] following:
+- Pattern: [from CONTEXT]
+- Integration: [from CONTEXT]
+- Constraints: [from CONTEXT]
+```
+
+### Debugging
+```
+@CONTEXT.md — [relevant section]
+@LEARNING_LOG.md — Similar issues
+
+Expected: [based on CONTEXT]
+Actual: [what's happening]
+```
+
+---
+
+## Quick Checklist
+
+Before prompting AI:
+- [ ] Checked CONTEXT.md for existing implementation
+- [ ] Reviewed patterns to follow
+- [ ] Noted integration points
+- [ ] Identified constraints
+- [ ] Checked LEARNING_LOG.md
+
+---
+
+## Related Docs
+
+| File | Purpose |
+|------|---------|
+| `LEARNING_LOG.md` | Mistakes & solutions |
+| `.cursorrules` | AI config |
+| `README.md` | Setup |
+
+---
+
+**Maintenance:** Update after features, weekly review, monthly validation.
+
+---
+# Task:
+WarpSense Micro-Feedback Feature Plan
+
+Objective: Enhance the MVP to provide real-time, frame-level actionable guidance for welders by detecting deviations in angle, thermal patterns, electrical stability, and welding dynamics, improving quality and reducing rework.
+
+1. Precision & Motion Feedback (Torch Angle & Speed)
+
+Goal: Ensure welders maintain correct torch orientation and consistent travel speed.
+
+Features
+
+Torch Angle Drift Alerts
+
+Detect deviations from expected torch angle.
+
+Example: “Torch angle drifted 12° at frame 4200 — keep within 5°.”
+
+Configurable thresholds per weld type or skill level.
+
+Weld Speed Feedback
+
+Track torch movement speed frame-to-frame.
+
+Alert if speed deviates ±20% from target.
+
+Example: “Torch moved too fast at frame 500 — slow down for better fusion.”
+
+Integration
+
+Use existing frame data from ESP32 sensors.
+
+Map frame index to Replay Timeline with colored markers.
+
+Optional 3D torch overlay in TorchViz3D to visually highlight deviations.
+
+Batch computation for long sessions (>10k frames) to maisiveness.
+
+Impact
+
+Promotes uniform weld quality.
+
+Reduces risk of under/over-penetration.
+
+Provides clear training cues for novice welders.
+
+2. Thermal Quality Feedback (Symmetry & Cooling Rate)
+
+Goal: Detect thermal irregularities to prevent defects and ensure metallurgical consistency.
+
+Features
+
+Thermal Symmetry Alerts
+
+Monitor temperatures across cardinal points (N, S, E, W) and center.
+
+Highlight high variance (>20°C) as a warning.
+
+Example: “Thermal asymmetry detected at frame 3300 — aim for uniform heating.”
+
+Cooling Rate Feedback
+
+Monitor rate of heat dissipation.
+
+Alert if cooling is too slow or fast.
+
+Example: “Cooling rate abnormal at frame 2800 — pause torch slightly or adjust speed.”
+
+Integration
+
+Use existing extractHeatmapData and thermal_snapshots.
+
+Display feedback in HeatmapPlate3D overlay.
+
+Include suggestions in FeedbackPanel.
+
+Frame-level alerts can aggregate into session summary.
+
+Impact
+
+Improves weld penetration an
+
+Reduces residual stress and micro-cracking.
+
+Provides metallurgical guidance for training.
+
+3. Electrical & Process Stability Feedback (Voltage / Amperage)
+
+Goal: Monitor arc stability to prevent porosity and weld defects.
+
+Features
+
+Voltage/Amperage Alerts
+
+Detect spikes or dips exceeding a moving average threshold.
+
+Example: “Voltage spike detected at frame 1450 — maintain stable arc.”
+
+Integration
+
+Data source: Frame.volts and Frame.amps.
+
+Compute moving average over 10–50 frame window for context.
+
+Overlay feedback markers on line charts or Replay Timeline.
+
+Severity-coded: info / warning / critical.
+
+Impact
+
+Promotes consistent arc stability.
+
+Reduces weld porosity.
+
+Provides objective metrics for QA evaluation.
+
+4. Unified Feedback Architecture
+
+Goal: Standardize all micro-feedback into a cohesive engine.
+
+Implementation
+
+Feedback Item Model (existing Seagull Pilot pattern):
+
+interface FeedbackItem {
+    frameIndex: number;
+    severity: "info" | "warning" | "crit   message: string;
+    suggestion?: string;
+    type: "angle" | "speed" | "thermal" | "cooling" | "voltage";
+}
+
+
+Processing Pipeline
+
+Frame data → micro-feedback generators (angle, speed, thermal, voltage)
+
+Batch into FeedbackItem[]
+
+Render via FeedbackPanel + optional overlays (TorchViz3D, HeatmapPlate3D)
+
+Aggregate session summary: counts, trends, severity heatmap.
+
+Performance
+
+Precompute feedback per session for long sequences.
+
+SSR-safe dynamic imports for 3D visualizations.
+
+Lightweight frame-level calculations to avoid UI lag.
+
+5. Pilot & Deployment Plan
+Phase 1: Core MVP Micro-Feedback
+
+Implement Torch Angle Drift + Thermal Symmetry.
+
+Measure impact on pilot weld quality (arc-on ratio, defect reduction).
+
+Phase 2: Electrical & Speed Feedback
+
+Add voltage/amperage and travel speed monitoring.
+
+Validate against expert operator sessions.
+
+Phase 3: Cooling Rate & Session Summary
+
+Add cooling-rate detection.
+
+Aggregate all feedback for session-level insights.
+
+Eortable reports for QA and training.
+
+Phase 4: Feedback Refinement
+
+Tune thresholds per pilot yard.
+
+Collect user behavior metrics: which alerts are acted upon, ignored.
+
+Iterate on visualizations and micro-feedback messaging.
+
+Summary / Power Line
+
+WarpSense Micro-Feedback converts passive session replay into a proactive, per-frame guidance engine, giving welders precise, actionable insights across torch orientation, speed, thermal patterns, cooling, and electrical stability — all while integrating seamlessly with MVP dashboards, visualizations, and QA reporting.
+
+
+
+---
+# Key Files:
+
+
+Here’s the compressed version:
+
+```markdown
+## Key Files
+- `.cursor/explore/warpsense-micro-feedback-exploration.md` - Full exploration doc
+- `my-app/src/__tests__/lib/micro-feedback-prototype.test.ts` - Prototype + tests (run: `npm test -- micro-feedback-prototype`)
+- `my-app/src/types/micro-feedback.ts` - Create
+- `my-app/src/lib/micro-feedback.ts` - Create
+- `my-app/src/types/ai-feedback.ts` - Extend FeedbackItem
+- `my-app/src/components/welding/FeedbackPanel.tsx` - Reuse for session + micro items
+- `my-app/src/app/replay/[sessionId]/page.tsx` - Add micro-feedback integration
+
+## Architecture
+- Client-side compute: `generateMicroFeedback(frames)` in browser after `fetchSession` (no new API)
+- Extend `FeedbackItem` with optional `frameIndex` and `type`
+- Phase 1: FeedbackPanel + timeline only (no 3D overlay) due to WebGL limits
+
+## Thresholds
+- Angle drift: target 45°, warning ±5°, critical ±15°
+- Thermal symmetry: `max(|N-S|, |E-W|)` vs 20°C
+- Cap: 50 items per type
+- Performance: 10k frames < 200 ms
+
+## Risks
+- WebGL context limits block 3D overlay in Phase 1
+- Performance budget on large sessions (10k frames)
+
+## Effort
+- Phase 1: ~14–18h
+```
+
+---
+# Implementation (First 50 lines):
+
+
+---
+
+# Implementation complete
+
+WarpSense Micro-Feedback (Phase 1) is implemented per the plan.
+
+---
+
+## Step 1: Create `types/micro-feedback.ts`
+
+**File:** `my-app/src/types/micro-feedback.ts`
+
+- `MicroFeedbackType`: `"angle" | "thermal"`
+- `MicroFeedbackSeverity`: `"info" | "warning" | "critical"`
+- `MicroFeedbackItem`: `frameIndex` (required), `type` (required), `severity`, `message`, `suggestion?`
+
+---
+
+## Step 2: Extend `ai-feedback.ts`
+
+- `FeedbackSeverity` extended with `"critical"`
+- `FeedbackItem`: optional `frameIndex?`, `type?`
+- Tests updated for `critical` and `frameIndex`/`type`
+
+---
+
+## Step 3: Create `lib/micro-feedback.ts`
+
+- `generateMicroFeedback(frames)` with `try`/`catch`
+- `generateAngleDriftFeedback`: ±5° warning, ±15° critical, 45° target
+- `generateThermalSymmetryFeedback`: `hasAllCardinalReadings` before variance, max(|N-S|, |E-W|) ≥ 20°C
+- Null/NaN handling, `CAP_PER_TYPE = 50`, sorting by `frameIndex`
+
+---
+
+## Step 4: Migrate prototype tests
+
+- Import `generateMicroFeedback` from `@/lib/micro-feedback`
+- Tests for angle-only, thermal-only, missing cardinal readings, NaN angle, null frames
+
+---
+
+## Step 5: Update `FeedbackPanel`
+
+- `SEVERITY_STYLES` for info, warning, critical
+- Props: `frames?`, `onFrameSelect?`
+- Clickable when `frameIndex` and `type` present and `onFrameSelect` provided
+- Key: `fb-${frameIndex}-${type}` for micro, `session-${severity}-${i}` for session
+- `data-testid="micro-feedback-item"` for micro items

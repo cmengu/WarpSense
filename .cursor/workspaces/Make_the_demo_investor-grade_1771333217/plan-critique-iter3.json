@@ -1,0 +1,42 @@
+
+Providing the critique in the specified JSON format:
+
+```json
+{
+  "score": 8.5,
+  "dimension_scores": {
+    "completeness": 8.5,
+    "clarity": 9.0,
+    "verification": 8.5,
+    "dependencies": 9.0,
+    "risk_management": 8.5,
+    "edge_cases": 8.0,
+    "production_ready": 7.5
+  },
+  "critical_issues": [],
+  "minor_issues": [
+    "Step 3.3 verification: 'fireEvent.keyDown(backdrop, { key: 'Escape' })' — With document-level listener, event must reach document. For clarity, specify: fireEvent.keyDown(document, { key: 'Escape' }) or fireEvent.keyDown(document.body, { key: 'Escape' }) to ensure the listener receives it. (Bubbling from backdrop may work in most environments but explicit document target is more reliable.)",
+    "File paths: Plan uses app/demo/team/page.tsx; codebase uses my-app/src/app/ structure. Consider adding one line: 'Paths are relative to project root; run commands from my-app/.' Pre-flight already says 'npm install in my-app' — sufficient but could be consolidated in one path-convention note.",
+    "Step 1.3 welder report: HeatMap receives colorFn but Seagull welder page may use tempToColorRange differently. Plan code matches Seagull welder pattern — verified correct. No change needed; note for implementer: ensure tempToColorRange(minT, maxT) handles allTemps.length === 0 (plan uses 0 and 600 fallbacks, correct)."
+  ],
+  "strengths": [
+    "Pre-planning synthesis is exemplary: exploration review, risk identification, dependency graph, phase boundaries all explicit",
+    "Full code for Steps 1.1, 1.2, 1.3, 2.1, 2.2 — copy-pasteable implementations with correct imports and types",
+    "Applied refinements address prior critique: document-level Escape listener, DemoTour mount timing (showTour && sessions), useCallback for onStepEnter, Step 1.1/1.4 overlap clarified, aria-current/AppNav scope documented",
+    "16-entry risk heatmap with detection signals and mitigations; Common Failures & Fixes for each step",
+    "Every step has automated verification with specific test file, action, and pass criteria; aligned with .cursorrules 'no manual browser checks'",
+    "Phase success criteria are concrete and testable; Definition of Done with P0/P1 prioritization",
+    "Red team section documents five failure modes and confirms all addressed",
+    "Optional heatmap empty-state test (Step 1.3) covers frames lacking thermal_snapshots",
+    "Invalid welderId handling (Step 1.5) with explicit fallback and verification"
+  ],
+  "reasoning": "The plan has matured through two refinement cycles (Iteration 1: 7.2, Iteration 2: 8.3). All six applied refinements are correctly incorporated: Step 1.1/1.4 overlap clarified; Escape key uses document-level listener; DemoTour mounts only when sessions exist; AppNav aria-current scope specified; optional heatmap empty test added; Step 3.3 documents Escape behavior. No execution-blocking critical issues remain. Completeness is strong (8.5): Pre-Flight Checklist covers environment; rollback is implicit (revert new files). Clarity (9.0): Code examples are production-ready; file paths and function names explicit. Verification (8.5): Every step has automated test specification; minor improvement possible for Step 3.3 Escape test target (document vs backdrop). Dependencies (9.0): Phase DAG correct; inter-step deps documented; DemoTour mount timing prevents hydration/empty-sessions issues. Risk management (8.5): 16 risks with mitigations; useCallback/infinite-loop risk explicitly addressed. Edge cases (8.0): Invalid welderId, empty heatmap, null frames, Safari z-index covered. Production readiness (7.5): Appropriate for demo feature; no formal deploy/monitoring required. Weighted score: (8.5×0.20)+(9.0×0.15)+(8.5×0.20)+(9.0×0.15)+(8.5×0.15)+(8.0×0.10)+(7.5×0.05) = 8.45 ≈ 8.5.",
+  "improvement_priority": [
+    "Minor: Step 3.3 verification — specify fireEvent.keyDown(document, { key: 'Escape' }) for document-level listener",
+    "Minor: Add one-line path convention: 'All paths relative to project root; run npm/test from my-app/'",
+    "Optional: Consider explicit rollback note: 'Revert new files (lib/seagull-demo-data.ts, app/demo/team/*, components/demo/DemoTour.tsx, etc.) to undo.'"
+  ],
+  "recommended_action": "refine",
+  "rationale_for_action": "Score 8.5 falls in 8.0–8.9 range (Minor Polish Needed). The plan is production-ready for execution; recommended refinements are clarity/verification tweaks that take minutes. A competent engineer could execute as-is; the minor fixes would reduce ambiguity during implementation. If polish is skipped, proceeding to execution is reasonable — the gap between 8.5 and 9.0 is documentation clarity, not correctness."
+}
+```

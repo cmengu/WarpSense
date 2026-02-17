@@ -28,6 +28,29 @@ const eslintConfig = defineConfig([
     plugins: { "max-torchviz": maxTorchvizPlugin },
     rules: { "max-torchviz/max-torchviz3d-per-page": ["error", 2] },
   },
+  // WWAD orthogonality: supervisor module must not import 3D/thermal components
+  {
+    files: [
+      "src/app/(app)/supervisor/**/*.ts",
+      "src/app/(app)/supervisor/**/*.tsx",
+      "src/components/dashboard/CalendarHeatmap.tsx",
+      "src/lib/aggregate-transform.ts",
+    ],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["**/TorchViz3D*", "**/HeatmapPlate3D*", "**/HeatMap*"],
+              message:
+                "WWAD supervisor module must not import 3D/thermal components (orthogonality).",
+            },
+          ],
+        },
+      ],
+    },
+  },
 ]);
 
 export default eslintConfig;

@@ -49,11 +49,26 @@ describe("AI feedback types — import and structure", () => {
     expect(item).toHaveProperty("suggestion");
   });
 
-  it("FeedbackSeverity accepts info and warning", () => {
+  it("FeedbackSeverity accepts info, warning, and critical", () => {
     const info: FeedbackSeverity = "info";
     const warning: FeedbackSeverity = "warning";
+    const critical: FeedbackSeverity = "critical";
     expect(info).toBe("info");
     expect(warning).toBe("warning");
+    expect(critical).toBe("critical");
+  });
+
+  it("FeedbackItem with optional frameIndex and type (micro-feedback)", () => {
+    const item: FeedbackItem = {
+      severity: "warning",
+      message: "Torch angle drifted 12° at frame 420 — keep within ±5°",
+      timestamp_ms: null,
+      suggestion: "Maintain consistent work angle.",
+      frameIndex: 420,
+      type: "angle",
+    };
+    expect(item.frameIndex).toBe(420);
+    expect(item.type).toBe("angle");
   });
 
   it("FeedbackTrend accepts all four values", () => {

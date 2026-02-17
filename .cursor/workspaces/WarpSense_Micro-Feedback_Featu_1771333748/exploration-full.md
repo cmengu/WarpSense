@@ -1,0 +1,53 @@
+
+The **WarpSense Micro-Feedback** exploration is done. Summary:
+
+---
+
+## Exploration Complete
+
+Exploration is documented in `.cursor/explore/warpsense-micro-feedback-exploration.md`.
+
+### Main Decisions
+
+1. **Client-side compute** — `generateMicroFeedback(frames)` runs in the browser after `fetchSession` (no new API).
+2. **Extend FeedbackItem** — Add optional `frameIndex` and `type`; reuse FeedbackPanel for both session and micro items.
+3. **Angle drift** — Target 45°, thresholds 5° (warning) and 15° (critical).
+4. **Thermal symmetry** — Use `max(|N-S|, |E-W|)` against 20°C.
+5. **Cap** — 50 items per type.
+6. **No 3D overlay in Phase 1** — Due to WebGL limits; FeedbackPanel plus timeline markers only.
+
+### Prototype
+
+Runnable prototype and tests are in `my-app/src/__tests__/lib/micro-feedback-prototype.test.ts`. Tests cover:
+
+- Empty frames
+- Angle drift (warning vs critical)
+- Null handling
+- Thermal symmetry (N-S and E-W)
+- Combined output sorted by frame
+- Cap per type
+- 10k-frame performance budget (<200 ms)
+
+Run:
+
+```bash
+cd my-app && npm test -- micro-feedback-prototype
+```
+
+### Files Planned (Implementation Phase)
+
+| Action | File |
+|--------|------|
+| Create | `my-app/src/types/micro-feedback.ts` |
+| Create | `my-app/src/lib/micro-feedback.ts` |
+| Modify | `my-app/src/types/ai-feedback.ts` |
+| Modify | `my-app/src/components/welding/FeedbackPanel.tsx` |
+| Modify | `my-app/src/app/replay/[sessionId]/page.tsx` |
+
+### Effort
+
+Phase 1: **~14–18h** (updated from ~24h after decisions).
+
+---
+
+**Next step:** Run **Phase 3: Create Plan** to produce the step-by-step implementation plan that builds on this exploration.

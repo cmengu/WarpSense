@@ -14,14 +14,22 @@
  * @see .cursor/plans/browser-only-demo-mode-plan.md
  */
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import {
   generateExpertSession,
   generateNoviceSession,
   DURATION_MS,
   FRAME_INTERVAL_MS,
 } from '@/lib/demo-data';
+import {
+  MOCK_EXPERT_SCORE_VALUE,
+  MOCK_NOVICE_SCORE_VALUE,
+} from '@/lib/demo-config';
+import { DemoTour } from '@/components/demo/DemoTour';
+import { DEMO_TOUR_STEPS } from '@/lib/demo-tour-config';
+import type { TourStep } from '@/lib/demo-tour-config';
 import type { Session } from '@/types/session';
 import { extractHeatmapData } from '@/utils/heatmapData';
 import { extractAngleData } from '@/utils/angleData';
@@ -124,9 +132,30 @@ function DemoPageContent({
 }: {
   sessions: { expert: Session; novice: Session };
 }) {
+  const [showTour, setShowTour] = useState(true);
   const [playing, setPlaying] = useState(false);
   const [currentTimestamp, setCurrentTimestamp] = useState(0);
   const prevTimestampRef = useRef(0);
+  const scrubTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const onStepEnter = useCallback((step: TourStep) => {
+    if (scrubTimeoutRef.current) clearTimeout(scrubTimeoutRef.current);
+    const ts = step.timestamp_ms;
+    if (ts != null) {
+      scrubTimeoutRef.current = setTimeout(() => {
+        setCurrentTimestamp(ts);
+        setPlaying(false);
+        scrubTimeoutRef.current = null;
+      }, 150);
+    }
+  }, []);
+
+  useEffect(
+    () => () => {
+      if (scrubTimeoutRef.current) clearTimeout(scrubTimeoutRef.current);
+    },
+    []
+  );
 
   // Extract heatmap and angle data (memoized; sessions are stable)
   const expertHeatmap = useMemo(
@@ -203,14 +232,32 @@ function DemoPageContent({
 
   return (
     <div className="min-h-screen bg-neutral-950 text-white">
+      {showTour && (
+        <DemoTour
+          steps={DEMO_TOUR_STEPS}
+          onStepEnter={onStepEnter}
+          onComplete={() => setShowTour(false)}
+          onSkip={() => setShowTour(false)}
+        />
+      )}
+
       {/* Header */}
-      <div className="border-b-2 border-blue-400 bg-neutral-900 p-6">
-        <h1 className="text-4xl font-bold text-blue-400 uppercase tracking-wider">
-          WarpSense — Live Quality Analysis
-        </h1>
-        <p className="text-gray-400 mt-2">
-          Real-time weld quality feedback system for industrial training
-        </p>
+      <div className="border-b-2 border-blue-400 bg-neutral-900 p-6 flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 className="text-4xl font-bold text-blue-400 uppercase tracking-wider">
+            WarpSense — Live Quality Analysis
+          </h1>
+          <p className="text-gray-400 mt-2">
+            Real-time weld quality feedback system for industrial training
+          </p>
+        </div>
+        <Link
+          href="/demo/team"
+          onClick={() => setShowTour(false)}
+          className="px-6 py-3 bg-blue-400 text-black font-bold rounded hover:bg-blue-300 transition shrink-0"
+        >
+          See Team Management →
+        </Link>
       </div>
 
       {/* Main content: side-by-side expert vs novice */}
@@ -226,7 +273,7 @@ function DemoPageContent({
               EXPERT WELDER
             </h2>
             <span className="ml-auto text-3xl font-bold text-blue-400">
-              94/100
+              {MOCK_EXPERT_SCORE_VALUE}/100
             </span>
           </div>
 
@@ -296,7 +343,7 @@ function DemoPageContent({
             />
             <h2 className="text-2xl font-bold text-violet-400">NOVICE WELDER</h2>
             <span className="ml-auto text-3xl font-bold text-violet-400">
-              42/100
+              {MOCK_NOVICE_SCORE_VALUE}/100
             </span>
           </div>
 

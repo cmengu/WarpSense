@@ -173,6 +173,7 @@ async def get_session(
             "validation_errors": session_model.validation_errors,
             "completed_at": completed_at.isoformat() if completed_at else None,
             "disable_sensor_continuity_checks": session_model.disable_sensor_continuity_checks,
+            "score_total": getattr(session_model, "score_total", None),
             "frames": frames,
         }
 
@@ -258,6 +259,7 @@ async def get_session_score(
 ):
     """
     Get rule-based score for a welding session.
+    Persists score_total when computed (lazy write-through) for COMPLETE sessions.
 
     Loads session with frames (joinedload), extracts 5 features, runs 5 rules,
     returns { total, rules } with actual_value per rule for "actual vs threshold" display.
@@ -278,6 +280,16 @@ async def get_session_score(
     session = session_model.to_pydantic()
     features = extract_features(session)
     score = score_session(session, features)
+
+    # Lazy persistence: if COMPLETE and score_total is null, persist
+    if (
+        session_model.status == SessionStatus.COMPLETE.value
+        and session_model.score_total is None
+        and session_model.frame_count > 0
+    ):
+        session_model.score_total = score.total
+        db.commit()
+
     return score.model_dump()
 
 

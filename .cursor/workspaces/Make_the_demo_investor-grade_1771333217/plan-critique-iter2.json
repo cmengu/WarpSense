@@ -1,0 +1,43 @@
+
+```json
+{
+  "score": 8.3,
+  "dimension_scores": {
+    "completeness": 8.5,
+    "clarity": 8.5,
+    "verification": 8.5,
+    "dependencies": 9.0,
+    "risk_management": 8.0,
+    "edge_cases": 7.5,
+    "production_ready": 7.0
+  },
+  "critical_issues": [],
+  "minor_issues": [
+    "Step 1.1 vs 1.4: Both reference __tests__/lib/seagull-demo-data.test.ts. Step 1.4 (Add unit test) overlaps with Step 1.1's verification test. Clarify: Step 1.4 either consolidates with 1.1 or explicitly adds the 4 subtask cases (createMockScore 94/42, getDemoTeamData mike-chen/expert-benchmark) as distinct test cases.",
+    "Step 2.2 DemoTour: Escape key is on backdrop div (onKeyDown). For Escape to fire when focus is on Next or Skip, use a document-level listener: useEffect(() => { const h = (e) => e.key === 'Escape' && handleSkip(); document.addEventListener('keydown', h); return () => document.removeEventListener('keydown', h); }, [handleSkip]). Otherwise Escape may not work when a button is focused.",
+    "Step 3.2 AppNav: Plan shows pathname?.startsWith('/seagull') for aria-current. AppNav already uses usePathname(); add isTeam = pathname?.startsWith('/seagull') and apply to the Team link. Ensure Team is highlighted when on /demo/team or only /seagull? Issue specifies AppNav Team → /seagull; demo layout has no AppNav. Clarify: aria-current only when pathname starts with /seagull (not /demo/team).",
+    "Step 1.3: generateNoviceSession/generateExpertSession produce frames with thermal_snapshots per demo-data.test.ts and exploration. Plan has Common Failures for empty heatmap but no explicit automated test for extractHeatmapData returning empty. Consider one test: mock getDemoTeamData with frames lacking thermal_snapshots and assert HeatMap fallback or 'No thermal data'.",
+    "Step 2.3 integration: Demo page defers sessions to useEffect (sessions null until loaded). Plan says 'add showTour alongside playing/currentTimestamp' in DemoPageContent. DemoTour should render only when sessions exist (showTour && sessions), otherwise tour may render before playback is ready. Plan implicitly assumes DemoTour mounts after content; verify conditional: showTour && <DemoTour ... /> inside the block that already checks sessions."
+  ],
+  "strengths": [
+    "Comprehensive automated verification: Every step has Jest/RTL tests (per .cursorrules), including demo/team/page.test.tsx, demo/team/[welderId]/page.test.tsx, demo-tour-config.test.ts, DemoTour.test.tsx, demo/page.test.tsx extensions, AppNav tests.",
+    "Critical fix documented: onStepEnter useCallback in Step 2.3 prevents DemoTour useEffect infinite loop; explicitly called out in subtasks and Common Failures.",
+    "Step 1.2 code skeleton: Full team dashboard code mirrors Seagull layout with DEMO_WELDERS, grid, links—no fetch.",
+    "Step 1.1 full implementation: createMockScore, getDemoTeamData, WELDER_MAP, RULE_IDS with exact RULE_TEMPLATES alignment; copy-paste-ready.",
+    "Risk heatmap: 16 entries across phases with likelihood/impact and mitigations; top 5 risks clearly identified.",
+    "Common Failures & Fixes: Each critical step documents failure modes (blank HeatMap, thermal_snapshots, z-index, useCallback).",
+    "Dependency graph: Phase 1 and 2 parallelizable; Phase 3 depends on both; clear DAG.",
+    "Pre-flight checklist: Node, npm, dev server, Phase prerequisites with verification commands."
+  ],
+  "reasoning": "The refined plan is strong and implementable. Iteration 1 (7.2) issues are addressed: automated tests for all steps, onStepEnter useCallback, Step 1.2 code skeleton, HeatMap empty-state in Common Failures. Completeness is high: 11 steps with full code for 1.1, 1.2, 1.3, 2.1, 2.2; CTA and AppNav insertion points specified. Verification is strong: each step has an automated test. Dependencies are correct: seagull-demo-data blocks team pages; demo-tour-config → DemoTour → demo integration; AppNav independent. No execution-blocking critical issues; codebase checks confirm generateExpertSession/generateNoviceSession exist, useFrameData returns thermal_frames, extractHeatmapData contract matches, AppNav has usePathname. Minor gaps: Step 1.4/1.1 overlap, Escape key listener scope, AppNav path semantics for /demo/team vs /seagull, optional empty-heatmap test, DemoTour mount timing when sessions load async. Production readiness is intentionally MVP-level; a11y (Tab, Enter, Escape) is covered. Weighted score: 8.5×0.20 + 8.5×0.15 + 8.5×0.20 + 9.0×0.15 + 8.0×0.15 + 7.5×0.10 + 7.0×0.05 = 8.3.",
+  "improvement_priority": [
+    "Minor: Consolidate Step 1.1 and 1.4 verification—either merge or have 1.4 list the four explicit test cases for 1.1's test file.",
+    "Minor: Add document-level Escape listener in DemoTour for reliable keyboard skip when focus is on buttons.",
+    "Minor: Verify DemoTour only mounts when sessions exist (showTour inside DemoPageContent, which already receives sessions).",
+    "Minor: Clarify AppNav Team aria-current: /seagull only (demo/team uses different layout, no AppNav).",
+    "Optional: Add automated test for HeatMap empty-state when frames lack thermal_snapshots."
+  ],
+  "recommended_action": "done",
+  "rationale_for_action": "Score 8.3 is in the 8.0–8.9 range (minor polish). Zero critical issues; 5 minor issues are refinements, not blockers. The plan can be executed now; minor items can be handled during implementation. Recommend: proceed to execution. If polish is desired, apply refine-plan.md for the Escape listener and DemoTour mount-timing clarifications."
+}
+```

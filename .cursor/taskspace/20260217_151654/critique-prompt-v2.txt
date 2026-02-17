@@ -1,0 +1,499 @@
+# Strategy Critique Framework
+
+You are evaluating a strategic task list for product development. Your goal is to score each task across multiple dimensions and identify areas for improvement.
+
+## Scoring Weights
+
+```
+Overall Score =
+  (Strategic Value      × 0.35) +  ← Does this matter? Will it move the needle?
+  (Context Alignment    × 0.25) +  ← Matches user's stated focus?
+  (Leverage/Optionality × 0.20) +  ← Compounding value? Opens doors?
+  (Resource Efficiency  × 0.10) +  ← Best use of limited time?
+  (Risk Balance         × 0.05) +  ← Type A or Type B decision?
+  (Dependencies         × 0.03) +  ← Any blockers?
+  (Execution Quality    × 0.02)    ← Clarity improves through feedback
+```
+
+---
+
+## Context-Aware Feedback Learning 🎯
+
+**CRITICAL: Feedback penalties are CONTEXT-TYPE SPECIFIC**
+
+The system categorizes contexts into types:
+- **demo** - investor demos, presentations, pitches, meetings
+- **scale** - performance, backend, infrastructure, optimization
+- **feature** - new features, product additions, implementations
+- **fix** - bug fixes, issues, problems
+- **general** - everything else
+
+### How Penalties Work
+
+**ONLY penalize if BOTH conditions match:**
+1. Task type matches previously rejected task type (e.g., "database work")
+2. AND current context type matches rejection context type (e.g., "demo")
+
+### Examples
+
+✅ **Correct Penalty Application:**
+```
+Past: User rejected "database optimization" for DEMO context
+Now:  Evaluating "database migration" for DEMO context
+→ PENALIZE: Both task type (database) and context type (demo) match
+→ Reduce Strategic Value by -2.0
+```
+
+❌ **Incorrect Penalty Application:**
+```
+Past: User rejected "database optimization" for DEMO context  
+Now:  Evaluating "database migration" for SCALE context
+→ DO NOT PENALIZE: Context types differ (demo vs scale)
+→ User likely rejects backend work for demos, but WANTS it for scale
+```
+
+### Why Context-Type Matters
+
+Users have different priorities based on what they're working on:
+- **Demo context**: UI polish, visual work, quick wins
+- **Scale context**: Backend optimization, infrastructure, performance
+- **Feature context**: New functionality, API design, integrations
+- **Fix context**: Stability, error handling, bug resolution
+
+Rejecting "backend work" for a demo doesn't mean rejecting it for scale!
+
+---
+
+## Scoring Dimensions (Detailed)
+
+### 1. Strategic Value (35% weight)
+
+**What it measures:** Will this task actually move the business forward?
+
+**Questions:**
+- Does this address a real bottleneck?
+- Is this the highest-leverage action now?
+- Will this create compounding returns?
+- Does this align with product-market fit?
+
+**Scoring guide:**
+- **9-10/10**: Mission-critical, core bottleneck
+- **7-8/10**: Important, clear value-add
+- **5-6/10**: Nice-to-have, marginal
+- **3-4/10**: Low impact, wrong timing
+- **1-2/10**: Harmful or major distraction
+
+**Context-Aware Penalty:**
+- Check if task matches rejected pattern FOR THIS CONTEXT TYPE
+- If yes: reduce score by -2.0
+- If context types differ: no penalty
+
+---
+
+### 2. Context Alignment (25% weight)
+
+**What it measures:** Does this match what the user explicitly asked for?
+
+**User context is sacred:**
+- "investor demo" → UI/visual work = high score
+- "scale infrastructure" → backend work = high score
+- "add analytics" → feature work = high score
+
+**Scoring guide:**
+- **9-10/10**: Perfect alignment
+- **7-8/10**: Related but not central
+- **5-6/10**: Tangentially related
+- **3-4/10**: Misaligned
+- **1-2/10**: Contradicts stated priority
+
+---
+
+### 3. Leverage & Optionality (20% weight)
+
+**What it measures:** Does this create exponential returns?
+
+**Leverage indicators:**
+- One-to-many impact
+- Unlocks future opportunities
+- Reduces friction at scale
+- Compounds over time
+
+**Optionality indicators:**
+- Keeps paths open
+- Reversible (Type B decision)
+- Creates flexibility
+- Enables pivots
+
+**Scoring guide:**
+- **9-10/10**: High leverage + high optionality
+- **7-8/10**: High leverage OR high optionality
+- **5-6/10**: Linear value, no compounding
+- **3-4/10**: Locks in poor choices
+- **1-2/10**: Destroys optionality
+
+---
+
+### 4. Resource Efficiency (10% weight)
+
+**What it measures:** Time-to-impact ratio
+
+**Scoring guide:**
+- **9-10/10**: Quick win (<1hr) with high impact
+- **7-8/10**: Reasonable time (2-4hrs) for value
+- **5-6/10**: Long effort for moderate value
+- **3-4/10**: Massive effort for small gain
+- **1-2/10**: Time sink, negligible value
+
+---
+
+### 5. Risk Balance (5% weight)
+
+**Type A vs Type B decisions:**
+- **Type A**: One-way doors (irreversible) → need analysis
+- **Type B**: Two-way doors (reversible) → move fast
+
+**Scoring guide:**
+- **9-10/10**: Type B, easily reversible
+- **7-8/10**: Mostly reversible
+- **5-6/10**: Mixed reversibility
+- **3-4/10**: Costly to reverse
+- **1-2/10**: Type A, irreversible
+
+---
+
+### 6. Dependencies (3% weight)
+
+**What it measures:** Is this blocked?
+
+**Scoring guide:**
+- **9-10/10**: No dependencies
+- **7-8/10**: Minor dependencies
+- **5-6/10**: Moderate dependencies
+- **3-4/10**: Blocked by external factors
+- **1-2/10**: Hard blocker
+
+---
+
+### 7. Execution Quality (2% weight)
+
+**What it measures:** Is the task clear?
+
+**Scoring guide:**
+- **9-10/10**: Crystal clear
+- **7-8/10**: Mostly clear
+- **5-6/10**: Vague
+- **3-4/10**: Ambiguous
+- **1-2/10**: Incomprehensible
+
+**Note:** This is low-weight because clarity improves through feedback loops.
+
+---
+
+## Output Format
+
+```json
+{
+  "overall_strategy_score": 7.8,
+  "top_3_avg_priority": 8.2,
+  "context_type": "demo",
+  "task_scores": [
+    {
+      "task_number": 1,
+      "task_title": "Polish 3D torch visualization",
+      "strategic_value": 9.0,
+      "context_alignment": 10.0,
+      "leverage_optionality": 8.5,
+      "resource_efficiency": 7.0,
+      "risk_balance": 9.0,
+      "dependencies": 10.0,
+      "execution_quality": 8.0,
+      "overall_score": 9.2,
+      "feedback_penalty_applied": false,
+      "reasoning": "High-impact demo work, perfectly aligned. No previous rejections for UI polish in demo context."
+    },
+    {
+      "task_number": 2,
+      "task_title": "Optimize database queries",
+      "strategic_value": 6.0,
+      "strategic_value_after_penalty": 4.0,
+      "context_alignment": 2.0,
+      "leverage_optionality": 6.0,
+      "resource_efficiency": 3.0,
+      "risk_balance": 5.0,
+      "dependencies": 7.0,
+      "execution_quality": 7.0,
+      "overall_score": 4.1,
+      "feedback_penalty_applied": true,
+      "feedback_match": "User rejected 'database optimization' for DEMO context on 2026-02-15",
+      "reasoning": "Misaligned with demo context. User feedback shows backend work rejected for demo contexts. Applied -2.0 penalty (6.0 → 4.0) because BOTH task type (database) AND context type (demo) match rejection."
+    },
+    {
+      "task_number": 3,
+      "task_title": "Add loading skeleton states",
+      "strategic_value": 8.0,
+      "context_alignment": 9.0,
+      "leverage_optionality": 7.0,
+      "resource_efficiency": 9.0,
+      "risk_balance": 10.0,
+      "dependencies": 10.0,
+      "execution_quality": 9.0,
+      "overall_score": 8.3,
+      "feedback_penalty_applied": false,
+      "reasoning": "Demo-facing UI work, quick win. No matching rejections."
+    }
+  ],
+  "critical_issues": [
+    "Task 2 misaligned with demo context AND matches rejected pattern"
+  ],
+  "minor_issues": [
+    "Consider adding more quick wins (<1hr)"
+  ],
+  "suggestions": [
+    "Replace Task 2 with demo-facing work",
+    "Promote Task 3 to higher priority"
+  ],
+  "context_aware_feedback": {
+    "current_context_type": "demo",
+    "relevant_rejections": [
+      {
+        "date": "2026-02-15",
+        "rejected_task": "database optimization",
+        "reason": "too backend focused for demo",
+        "applied_to_task": 2
+      }
+    ],
+    "irrelevant_rejections": [
+      {
+        "date": "2026-02-10",
+        "rejected_task": "UI polish",
+        "context_type": "scale",
+        "reason": "Context type mismatch (scale vs demo) - not applied"
+      }
+    ]
+  }
+}
+```
+
+---
+
+## Context-Type Detection Logic
+
+When evaluating feedback relevance, detect context type from user's stated context:
+
+**Demo Context:**
+- Keywords: demo, investor, presentation, pitch, meeting, showcase
+- User wants: Visual polish, quick wins, high-impact UI
+
+**Scale Context:**
+- Keywords: scale, performance, backend, infrastructure, database, optimization
+- User wants: Performance, efficiency, architecture
+
+**Feature Context:**
+- Keywords: feature, product, add, build, implement, create
+- User wants: New functionality, integrations, extensions
+
+**Fix Context:**
+- Keywords: fix, bug, issue, problem, error
+- User wants: Stability, reliability, error handling
+
+**General Context:**
+- Everything else
+- User wants: Balanced approach
+
+---
+
+## Critical Rules
+
+1. **Context types are independent** - Demo rejections don't affect scale contexts
+2. **Check BOTH task type AND context type** before applying penalty
+3. **Be explicit** in output about why penalties were/weren't applied
+4. **User feedback takes precedence** within the same context type
+5. **Strategic thinking** - Apply Opus-level reasoning
+6. **Honesty** - If strategy is weak, say so
+7. **Actionable** - Provide specific fixes
+
+---
+
+## Example Critique Flow
+
+```
+1. Read user context: "investor demo polish"
+2. Detect context type: "demo"
+3. Load feedback for "demo" context only
+4. Score each task:
+   - Task 1 (UI polish): 
+     * Check: Any UI rejections for demo context? No
+     * Score: 9.0 (no penalty)
+   
+   - Task 2 (database work):
+     * Check: Any database rejections for demo context? Yes (2026-02-15)
+     * Both task type AND context type match
+     * Score: 6.0 → 4.0 (apply -2.0 penalty)
+   
+   - Task 3 (another DB task):
+     * Check context: User is asking about SCALE now
+     * Context type changed: demo → scale
+     * No penalty (different context type)
+     * Score: 8.0 (no penalty)
+
+5. Calculate scores and provide reasoning
+6. Explicitly note which penalties were applied and why
+```
+
+This ensures the system learns preferences per context type without becoming rigid across all contexts.
+
+════════════════════════════════════════════════════════════════
+# USER CONTEXT
+════════════════════════════════════════════════════════════════
+
+plan
+
+
+════════════════════════════════════════════════════════════════
+════════════════════════════════════════════════════════════════
+
+**SCORING RULE**: Only penalize tasks if they match BOTH:
+1. Previously rejected task type
+2. AND same context type
+
+════════════════════════════════════════════════════════════════
+# PRIORITY HISTORY
+════════════════════════════════════════════════════════════════
+
+- Iteration 1: N/A/10
+
+════════════════════════════════════════════════════════════════
+# TASK LIST TO CRITIQUE
+════════════════════════════════════════════════════════════════
+
+
+Refined strategy output:
+
+---
+
+```markdown
+════════════════════════════════════════════════════════════════
+🧠 CTO TASK PRIORITIZATION - TOP 3 TASKS (REFINED)
+════════════════════════════════════════════════════════════════
+User Focus: "plan"
+Context Type: general
+Strategy Score: 8.5/10
+Average Priority: 8.4/10
+Regression: None | Critique Applied: Yes (parallel + tight-time guidance)
+
+## 🔥 Top Priority (Execute Today)
+
+### 1. Add Seagull to AppNav for Discoverability
+**Priority:** 9.0/10 | **Impact:** 9/10 | **Effort:** 0.5hrs | **Risk:** Low
+
+**Why:** Seagull pilot is built but only reachable via direct URL; both investors (team dashboard during demos) and operators (welder reports) need a visible entry point in the main nav.
+
+**Opus Analysis:**
+- **Leverage:** High — surfaces existing feature to both audiences; unblocks demo flow
+- **Optionality:** Enables future team/operator flows from dashboard
+- **Bottleneck:** Seagull undiscoverable — direct fix
+- **Context fit:** "plan" context favors discoverability + docs (learnings)
+- **Reversibility:** Type B — trivial to revert
+
+**Command:**
+```bash
+./agent "Add Seagull Team Dashboard link to AppNav in my-app/src/components/AppNav.tsx. Add a link to /seagull with label 'Team' (or 'Seagull'), styled consistently with Dashboard link (text-sm font-medium, zinc/blue). Add isSeagull pathname check for aria-current when pathname starts with /seagull. Ensure it renders in the (app) layout nav bar alongside Home, Dashboard, Demo."
+```
+
+**Memory:** Learnings: specific file path; dual-audience value; quick win pattern for task 3 — but highest impact here justifies Task 1.
+
+---
+
+### 2. WarpSense Theme Audit for Seagull Pages
+**Priority:** 8.3/10 | **Impact:** 7/10 | **Effort:** 1.5hrs | **Risk:** Low
+
+**Why:** Replay, Demo, Dashboard use WarpSense (blue/violet); Seagull may still use legacy cyan/amber. Visual consistency strengthens the "team management" story for both audiences.
+
+**Opus Analysis:**
+- **Systems thinking:** Finishes WarpSense rebrand for Seagull
+- **Compounding:** Sets pattern for future Seagull pages
+- **Risk:** Reversible — can rollback color changes
+- **Parallelizable:** Can run alongside Task 3 if desired
+- **Dependencies:** None — can start after Task 1
+
+**Command:**
+```bash
+./agent "Audit my-app/src/app/seagull/page.tsx and my-app/src/app/seagull/welder/[id]/page.tsx for WarpSense theme consistency. Replace any cyan (text-cyan, #22d3ee), amber (text-amber), or red accents with blue/violet from theme.ts (CHART_PALETTE, ERROR_HEX). Update FeedbackPanel and LineChart usage in welder report to match. Verify loading and error states use blue/violet. Ensure no legacy heatmap/thermal colors contradict WarpSense palette."
+```
+
+**Risk Mitigation:** Isolated to Seagull pages; no shared components mutated. Test both team list and welder report views.
+
+---
+
+### 3. Update CONTEXT.md with Seagull, TorchWithHeatmap3D, WarpSense
+**Priority:** 8.1/10 | **Impact:** 7/10 | **Effort:** 1hr | **Risk:** Low
+
+**Why:** Stale CONTEXT.md causes agents to suggest already-built features (e.g. "add Seagull") or outdated patterns (HeatmapPlate3D in replay). High leverage for maintainability and AI tooling.
+
+**Opus Analysis:**
+- **Leverage:** Single source of truth; reduces reimplementation
+- **Optionality:** Keeps future sessions aligned with real project state
+- **Information value:** Documents current architecture for all agents
+- **Quick win:** 1hr fits learnings' task-3 preference
+- **Tight-time path:** With <2hr budget, do Task 1 + Task 3 first (discoverability + docs)
+
+**Command:**
+```bash
+./agent "Update CONTEXT.md in project root: (1) Add Seagull pilot to Implemented Features — app/seagull/page.tsx (team dashboard), app/seagull/welder/[id]/page.tsx (welder report), lib/ai-feedback.ts, FeedbackPanel component. (2) In Replay/3D and Frame Data Flow sections, state that replay and demo use TorchWithHeatmap3D (unified torch+thermal metal); HeatmapPlate3D deprecated for replay. (3) Add WarpSense branding note under Visual Consistency: blue/purple gradient, no cyan/amber. Keep existing structure."
+```
+
+**Memory:** Quick win; maintainability; specific paths; AI-tool leverage.
+
+════════════════════════════════════════════════════════════════
+💡 STRATEGIC RATIONALE
+════════════════════════════════════════════════════════════════
+
+**Focus:** Discoverability + visual consistency + documentation (plan context)  
+**Bottleneck:** Seagull undiscoverable; WarpSense rebrand incomplete for Seagull; CONTEXT.md stale  
+**Time Budget:** ~3hrs (0.5 + 1.5 + 1)
+
+**Execution Order:**
+1. **Default:** 1 → 2 → 3 (recommended)
+2. **Parallel option:** Task 1 first, then Tasks 2 and 3 in parallel (2–3 hrs)
+3. **Tight time (<2hr):** Task 1 + Task 3 only (discoverability + docs); defer Task 2
+
+**Why These 3:**
+1. Task 1: Highest leverage, unblocks demo flow, 0.5hr
+2. Task 2: Finishes WarpSense for Seagull, parallelizable
+3. Task 3: High AI/maintainability leverage, quick win, optional before Task 2 under tight time
+
+**What We're NOT Doing:**
+- Streaming/pagination for >10k frames
+- Backend ingestion optimization
+- SEAGULL_IMPLEMENTATION_GAP_ANALYSIS update (lower than CONTEXT.md)
+
+**Critique Applied:**
+- Preserved all three tasks (no critical issues)
+- Added parallel execution guidance (Tasks 2 & 3)
+- Added tight-time path (1 + 3 before 2)
+- Slightly boosted Task 1 priority (8.9 → 9.0) from critique score
+- Clarified Frame Data Flow update in Task 3 command
+
+**Next CTO Run:** After these complete, reassess for demo playback UX (smooth start, expert/novice labels) or full test suite.
+
+════════════════════════════════════════════════════════════════
+📝 LEARNING UPDATE (Append to .cursor/memory/learnings.md)
+════════════════════════════════════════════════════════════════
+
+- [2026-02-17] general: when user context is minimal ("plan"), prioritize discoverability + documentation; Seagull existed but was hidden until AppNav task surfaced it
+- [2026-02-17] general: critique suggested Task 2 and 3 parallelizable; under tight time (<2hr), Task 1 + Task 3 covers discoverability and docs before theme audit
+
+════════════════════════════════════════════════════════════════
+```
+
+---
+
+**Self-check:**
+- [x] No regression; no high-value tasks dropped
+- [x] Critique applied (parallel execution + tight-time path)
+- [x] Opus-style prioritization applied
+- [x] Top 3 tasks only
+- [x] Tasks specific and actionable
+- [x] Commands ready for `./agent`
+- [x] Strategic rationale and tradeoffs clear
+- [x] No blockers; Task 2 and 3 can run in parallel

@@ -1,0 +1,46 @@
+
+Here is the critique in JSON form (valid JSON only):
+
+```json
+{
+  "score": 8.4,
+  "dimension_scores": {
+    "completeness": 8.5,
+    "clarity": 8.5,
+    "verification": 8.0,
+    "dependencies": 8.5,
+    "risk_management": 8.5,
+    "edge_cases": 8.0,
+    "production_ready": 7.5
+  },
+  "critical_issues": [],
+  "minor_issues": [
+    "Step 3.1 test example: Assumes ReplayPageInner accepts sessionData as prop, but the current component only takes sessionId and fetches internally. The executor should use fetchSession mock (as in existing page.test.tsx) and waitFor instead. Example: mockFetchSession.mockResolvedValue({ ...session, frames: [makeFrame(0, { angle_degrees: 51 }), ...] }); render(<ReplayPage params={{ sessionId: 'session-1' }} />); await waitFor(() => expect(mockGenerate).toHaveBeenCalledWith(session.frames));",
+    "Step 3.1 test example: Uses require() for Jest mock retrieval. Projects using ESM may need import { generateMicroFeedback } from '@/lib/micro-feedback' then (generateMicroFeedback as jest.Mock).mockReturnValue(...). Clarify in plan that either pattern works depending on project Jest/TS config.",
+    "Step 1.5 implementation sketch: Uses closest('.border-blue-500') — brittle if FeedbackPanel structure changes. Consider adding data-testid='feedback-item-info' in Step 2.1 or recommending getByRole/within for resilience.",
+    "Step 3.5: Mock structure uses makeFrame and makeThermalSnapshot — these come from frameFixtures (Step 1.7) or prototype test. Ensure test file imports from same source; add explicit import line to plan: import { makeFrame, makeThermalSnapshot } from '@/__tests__/utils/frameFixtures';",
+    "Phase 3.8: 'Optional: loading state for FeedbackPanel during session load' — if session loads slowly, FeedbackPanel with empty microFeedback may flash 'No feedback' before data arrives. Consider explicit loading-state handling in Step 3.2 when sessionData is null."
+  ],
+  "strengths": [
+    "Step 1.3: Full implementation code for generateMicroFeedback with constants, null guards, and both generators — production-ready and copy-paste executable",
+    "Step 1.2: Explicit rollback procedure for FeedbackSeverity exhaustivity breaks with grep verification — prevents silent regressions across consumers",
+    "Step 1.1: Clarifies MicroFeedbackItem does not need timestamp_ms; avoids data duplication and staleness; derives at click time from frames[frameIndex]",
+    "Step 3.1: try-catch in useMemo with console.warn and fallback [] — prevents page crash if generateMicroFeedback throws",
+    "Step 3.3: Documented position formula with division-by-zero guard and explicit skip when lastTimestamp <= firstTimestamp",
+    "Step 3.5: Concrete jest.mock structure for fetchSession/fetchScore with example return values — matches existing replay test patterns (@/lib/api)",
+    "Comprehensive failure modes (Section C), risk heatmap, dependency graph, and Red Team exercise — high bus factor",
+    "Pre-flight checklist with version requirements (Node v18+, npm v9+) and rollback procedures where critical",
+    "WelderReport backward compatibility: optional props, regression tests, and explicit 'session-level items without frameIndex' contract"
+  ],
+  "reasoning": "The plan has absorbed all five prior refinements and now scores 8.4. No critical execution-blocking issues remain. The five prior gaps (timestamp_ms clarity, rollback, test example, position formula, mock setup) are addressed. Completeness is high: 27 steps with verification, pre-flight, risk heatmap, and rollback for the one critical type change. Clarity is strong: Step 1.3 has full implementation; Step 3.3 has explicit formula. Verification is solid: each step has pass criteria; Step 3.1 and 3.5 provide concrete test patterns. The minor issues are operational: Step 3.1's test assumes ReplayPageInner receives sessionData, but the actual component fetches internally — the executor would adapt by using fetchSession mock (already used in page.test.tsx). Step 3.5 correctly specifies @/lib/api for mocks; frameFixtures import could be explicit. Risk management improved with rollback in 1.2 and try-catch in 3.1. Edge cases: division-by-zero guard, empty states. Production readiness: performance target, logging on error; no explicit metrics/alerts (acceptable for frontend feature). The score of 8.4 places it in the 8.0–8.9 band: minor polish recommended, not re-exploration or replanning.",
+  "improvement_priority": [
+    "Minor: Update Step 3.1 test example to use fetchSession mock + waitFor pattern instead of direct sessionData prop (ReplayPageInner fetches internally)",
+    "Minor: Add explicit frameFixtures import to Step 3.5 mock structure for clarity",
+    "Minor: Consider data-testid for FeedbackPanel items in Step 2.1 to make Step 1.5 test less brittle",
+    "Minor: Clarify ESM vs CJS for Jest mock in Step 3.1 (require vs import)",
+    "Minor: Document loading-state handling for FeedbackPanel when sessionData is null (optional in 3.8)"
+  ],
+  "recommended_action": "refine",
+  "rationale_for_action": "Score 8.4 indicates solid production readiness with only minor polish needed. Zero critical issues. The refinement should focus on aligning the Step 3.1 test example with the actual ReplayPageInner architecture (fetch internally, not prop-injected) and adding the small clarity improvements. No re-exploration or replanning required."
+}
+```

@@ -73,6 +73,10 @@ class Session(BaseModel):
         default=False,
         description="Disable sensor continuity checks for test data.",
     )
+    score_total: Optional[int] = Field(
+        None,
+        description="Precomputed total score (persisted on first score computation).",
+    )
 
     @staticmethod
     def is_valid_status_transition(

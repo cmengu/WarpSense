@@ -1,14 +1,16 @@
 /**
- * Tests for FeedbackPanel (Seagull pilot Step 4).
+ * Tests for FeedbackPanel (Seagull pilot Step 4 + WarpSense Micro-Feedback).
  *
  * Validates:
- *   - Renders items with severity styling (info → blue, warning → violet)
+ *   - Renders items with severity styling (info → blue, warning → violet, critical → amber)
  *   - Layout: space-y-3, rounded card, border-l-4
- *   - Icons: ℹ️ (info), ⚠️ (warning)
+ *   - Icons: ℹ️ (info), ⚠️ (warning), ⛔ (critical)
  *   - Suggestion appears when present
+ *   - Session-level items (no frameIndex/type) render non-interactive
+ *   - Micro items with frameIndex+type+frames+onFrameSelect are clickable
  */
 
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import FeedbackPanel from "@/components/welding/FeedbackPanel";
 import type { FeedbackItem } from "@/types/ai-feedback";
 
@@ -26,6 +28,32 @@ const mockWarningItem: FeedbackItem = {
   suggestion: "Improve amps stability.",
 };
 
+const mockCriticalItem: FeedbackItem = {
+  severity: "critical",
+  message: "Torch angle drifted 15° at frame 100 — keep within ±5°",
+  timestamp_ms: null,
+  suggestion: "Maintain consistent work angle.",
+};
+
+const mockMicroItem: FeedbackItem = {
+  severity: "warning",
+  message: "Torch angle drifted 12° at frame 5",
+  timestamp_ms: null,
+  suggestion: "Maintain work angle.",
+  frameIndex: 5,
+  type: "angle",
+};
+
+const mockFrames = [
+  { timestamp_ms: 0 },
+  { timestamp_ms: 10 },
+  { timestamp_ms: 20 },
+  { timestamp_ms: 30 },
+  { timestamp_ms: 40 },
+  { timestamp_ms: 50 },
+  { timestamp_ms: 60 },
+] as { timestamp_ms: number }[];
+
 describe("FeedbackPanel", () => {
   it("renders info item with blue styling", () => {
     render(<FeedbackPanel items={[mockInfoItem]} />);
@@ -41,6 +69,13 @@ describe("FeedbackPanel", () => {
     expect(card).toHaveClass("bg-violet-50");
   });
 
+  it("renders critical item with amber styling", () => {
+    render(<FeedbackPanel items={[mockCriticalItem]} />);
+    expect(screen.getByText(/Torch angle drifted 15°/)).toBeInTheDocument();
+    const card = screen.getByText(/Torch angle drifted 15°/).closest(".border-amber-500");
+    expect(card).toHaveClass("bg-amber-50");
+  });
+
   it("shows info icon for info items", () => {
     render(<FeedbackPanel items={[mockInfoItem]} />);
     const card = screen.getByText(/Angle within target/).closest(".border-blue-500");
@@ -51,6 +86,12 @@ describe("FeedbackPanel", () => {
     render(<FeedbackPanel items={[mockWarningItem]} />);
     const card = screen.getByText(/Current fluctuated/).closest(".border-violet-500");
     expect(card?.textContent).toContain("⚠️");
+  });
+
+  it("shows critical icon for critical items", () => {
+    render(<FeedbackPanel items={[mockCriticalItem]} />);
+    const card = screen.getByText(/Torch angle drifted 15°/).closest(".border-amber-500");
+    expect(card?.textContent).toContain("⛔");
   });
 
   it("shows suggestion when present", () => {
@@ -76,5 +117,43 @@ describe("FeedbackPanel", () => {
   it("renders empty list without error", () => {
     const { container } = render(<FeedbackPanel items={[]} />);
     expect(container.firstChild).toBeInTheDocument();
+  });
+
+  it("session-level items without frameIndex are not clickable", () => {
+    const onFrameSelect = jest.fn();
+    render(
+      <FeedbackPanel items={[mockWarningItem]} frames={mockFrames} onFrameSelect={onFrameSelect} />
+    );
+    const el = screen.getByText(/Current fluctuated/).closest("div");
+    expect(el?.tagName).not.toBe("BUTTON");
+    expect(onFrameSelect).not.toHaveBeenCalled();
+  });
+
+  it("items with frameIndex but no type are not clickable", () => {
+    const itemNoType: FeedbackItem = {
+      ...mockMicroItem,
+      type: undefined,
+    };
+    const onFrameSelect = jest.fn();
+    render(
+      <FeedbackPanel items={[itemNoType]} frames={mockFrames} onFrameSelect={onFrameSelect} />
+    );
+    const el = screen.getByText(/Torch angle drifted 12°/).closest("div");
+    expect(el?.tagName).not.toBe("BUTTON");
+  });
+
+  it("micro item with frames and onFrameSelect is clickable and triggers callback", () => {
+    const onFrameSelect = jest.fn();
+    render(
+      <FeedbackPanel
+        items={[mockMicroItem]}
+        frames={mockFrames}
+        onFrameSelect={onFrameSelect}
+      />
+    );
+    const button = screen.getByRole("button", { name: /Jump to frame 5/ });
+    expect(button).toHaveAttribute("data-testid", "micro-feedback-item");
+    fireEvent.click(button);
+    expect(onFrameSelect).toHaveBeenCalledWith(50); // frame 5 has timestamp_ms 50
   });
 });

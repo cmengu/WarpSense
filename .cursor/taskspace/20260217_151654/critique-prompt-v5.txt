@@ -1,0 +1,401 @@
+# Strategy Critique Framework
+
+You are evaluating a strategic task list for product development. Your goal is to score each task across multiple dimensions and identify areas for improvement.
+
+## Scoring Weights
+
+```
+Overall Score =
+  (Strategic Value      × 0.35) +  ← Does this matter? Will it move the needle?
+  (Context Alignment    × 0.25) +  ← Matches user's stated focus?
+  (Leverage/Optionality × 0.20) +  ← Compounding value? Opens doors?
+  (Resource Efficiency  × 0.10) +  ← Best use of limited time?
+  (Risk Balance         × 0.05) +  ← Type A or Type B decision?
+  (Dependencies         × 0.03) +  ← Any blockers?
+  (Execution Quality    × 0.02)    ← Clarity improves through feedback
+```
+
+---
+
+## Context-Aware Feedback Learning 🎯
+
+**CRITICAL: Feedback penalties are CONTEXT-TYPE SPECIFIC**
+
+The system categorizes contexts into types:
+- **demo** - investor demos, presentations, pitches, meetings
+- **scale** - performance, backend, infrastructure, optimization
+- **feature** - new features, product additions, implementations
+- **fix** - bug fixes, issues, problems
+- **general** - everything else
+
+### How Penalties Work
+
+**ONLY penalize if BOTH conditions match:**
+1. Task type matches previously rejected task type (e.g., "database work")
+2. AND current context type matches rejection context type (e.g., "demo")
+
+### Examples
+
+✅ **Correct Penalty Application:**
+```
+Past: User rejected "database optimization" for DEMO context
+Now:  Evaluating "database migration" for DEMO context
+→ PENALIZE: Both task type (database) and context type (demo) match
+→ Reduce Strategic Value by -2.0
+```
+
+❌ **Incorrect Penalty Application:**
+```
+Past: User rejected "database optimization" for DEMO context  
+Now:  Evaluating "database migration" for SCALE context
+→ DO NOT PENALIZE: Context types differ (demo vs scale)
+→ User likely rejects backend work for demos, but WANTS it for scale
+```
+
+### Why Context-Type Matters
+
+Users have different priorities based on what they're working on:
+- **Demo context**: UI polish, visual work, quick wins
+- **Scale context**: Backend optimization, infrastructure, performance
+- **Feature context**: New functionality, API design, integrations
+- **Fix context**: Stability, error handling, bug resolution
+
+Rejecting "backend work" for a demo doesn't mean rejecting it for scale!
+
+---
+
+## Scoring Dimensions (Detailed)
+
+### 1. Strategic Value (35% weight)
+
+**What it measures:** Will this task actually move the business forward?
+
+**Questions:**
+- Does this address a real bottleneck?
+- Is this the highest-leverage action now?
+- Will this create compounding returns?
+- Does this align with product-market fit?
+
+**Scoring guide:**
+- **9-10/10**: Mission-critical, core bottleneck
+- **7-8/10**: Important, clear value-add
+- **5-6/10**: Nice-to-have, marginal
+- **3-4/10**: Low impact, wrong timing
+- **1-2/10**: Harmful or major distraction
+
+**Context-Aware Penalty:**
+- Check if task matches rejected pattern FOR THIS CONTEXT TYPE
+- If yes: reduce score by -2.0
+- If context types differ: no penalty
+
+---
+
+### 2. Context Alignment (25% weight)
+
+**What it measures:** Does this match what the user explicitly asked for?
+
+**User context is sacred:**
+- "investor demo" → UI/visual work = high score
+- "scale infrastructure" → backend work = high score
+- "add analytics" → feature work = high score
+
+**Scoring guide:**
+- **9-10/10**: Perfect alignment
+- **7-8/10**: Related but not central
+- **5-6/10**: Tangentially related
+- **3-4/10**: Misaligned
+- **1-2/10**: Contradicts stated priority
+
+---
+
+### 3. Leverage & Optionality (20% weight)
+
+**What it measures:** Does this create exponential returns?
+
+**Leverage indicators:**
+- One-to-many impact
+- Unlocks future opportunities
+- Reduces friction at scale
+- Compounds over time
+
+**Optionality indicators:**
+- Keeps paths open
+- Reversible (Type B decision)
+- Creates flexibility
+- Enables pivots
+
+**Scoring guide:**
+- **9-10/10**: High leverage + high optionality
+- **7-8/10**: High leverage OR high optionality
+- **5-6/10**: Linear value, no compounding
+- **3-4/10**: Locks in poor choices
+- **1-2/10**: Destroys optionality
+
+---
+
+### 4. Resource Efficiency (10% weight)
+
+**What it measures:** Time-to-impact ratio
+
+**Scoring guide:**
+- **9-10/10**: Quick win (<1hr) with high impact
+- **7-8/10**: Reasonable time (2-4hrs) for value
+- **5-6/10**: Long effort for moderate value
+- **3-4/10**: Massive effort for small gain
+- **1-2/10**: Time sink, negligible value
+
+---
+
+### 5. Risk Balance (5% weight)
+
+**Type A vs Type B decisions:**
+- **Type A**: One-way doors (irreversible) → need analysis
+- **Type B**: Two-way doors (reversible) → move fast
+
+**Scoring guide:**
+- **9-10/10**: Type B, easily reversible
+- **7-8/10**: Mostly reversible
+- **5-6/10**: Mixed reversibility
+- **3-4/10**: Costly to reverse
+- **1-2/10**: Type A, irreversible
+
+---
+
+### 6. Dependencies (3% weight)
+
+**What it measures:** Is this blocked?
+
+**Scoring guide:**
+- **9-10/10**: No dependencies
+- **7-8/10**: Minor dependencies
+- **5-6/10**: Moderate dependencies
+- **3-4/10**: Blocked by external factors
+- **1-2/10**: Hard blocker
+
+---
+
+### 7. Execution Quality (2% weight)
+
+**What it measures:** Is the task clear?
+
+**Scoring guide:**
+- **9-10/10**: Crystal clear
+- **7-8/10**: Mostly clear
+- **5-6/10**: Vague
+- **3-4/10**: Ambiguous
+- **1-2/10**: Incomprehensible
+
+**Note:** This is low-weight because clarity improves through feedback loops.
+
+---
+
+## Output Format
+
+```json
+{
+  "overall_strategy_score": 7.8,
+  "top_3_avg_priority": 8.2,
+  "context_type": "demo",
+  "task_scores": [
+    {
+      "task_number": 1,
+      "task_title": "Polish 3D torch visualization",
+      "strategic_value": 9.0,
+      "context_alignment": 10.0,
+      "leverage_optionality": 8.5,
+      "resource_efficiency": 7.0,
+      "risk_balance": 9.0,
+      "dependencies": 10.0,
+      "execution_quality": 8.0,
+      "overall_score": 9.2,
+      "feedback_penalty_applied": false,
+      "reasoning": "High-impact demo work, perfectly aligned. No previous rejections for UI polish in demo context."
+    },
+    {
+      "task_number": 2,
+      "task_title": "Optimize database queries",
+      "strategic_value": 6.0,
+      "strategic_value_after_penalty": 4.0,
+      "context_alignment": 2.0,
+      "leverage_optionality": 6.0,
+      "resource_efficiency": 3.0,
+      "risk_balance": 5.0,
+      "dependencies": 7.0,
+      "execution_quality": 7.0,
+      "overall_score": 4.1,
+      "feedback_penalty_applied": true,
+      "feedback_match": "User rejected 'database optimization' for DEMO context on 2026-02-15",
+      "reasoning": "Misaligned with demo context. User feedback shows backend work rejected for demo contexts. Applied -2.0 penalty (6.0 → 4.0) because BOTH task type (database) AND context type (demo) match rejection."
+    },
+    {
+      "task_number": 3,
+      "task_title": "Add loading skeleton states",
+      "strategic_value": 8.0,
+      "context_alignment": 9.0,
+      "leverage_optionality": 7.0,
+      "resource_efficiency": 9.0,
+      "risk_balance": 10.0,
+      "dependencies": 10.0,
+      "execution_quality": 9.0,
+      "overall_score": 8.3,
+      "feedback_penalty_applied": false,
+      "reasoning": "Demo-facing UI work, quick win. No matching rejections."
+    }
+  ],
+  "critical_issues": [
+    "Task 2 misaligned with demo context AND matches rejected pattern"
+  ],
+  "minor_issues": [
+    "Consider adding more quick wins (<1hr)"
+  ],
+  "suggestions": [
+    "Replace Task 2 with demo-facing work",
+    "Promote Task 3 to higher priority"
+  ],
+  "context_aware_feedback": {
+    "current_context_type": "demo",
+    "relevant_rejections": [
+      {
+        "date": "2026-02-15",
+        "rejected_task": "database optimization",
+        "reason": "too backend focused for demo",
+        "applied_to_task": 2
+      }
+    ],
+    "irrelevant_rejections": [
+      {
+        "date": "2026-02-10",
+        "rejected_task": "UI polish",
+        "context_type": "scale",
+        "reason": "Context type mismatch (scale vs demo) - not applied"
+      }
+    ]
+  }
+}
+```
+
+---
+
+## Context-Type Detection Logic
+
+When evaluating feedback relevance, detect context type from user's stated context:
+
+**Demo Context:**
+- Keywords: demo, investor, presentation, pitch, meeting, showcase
+- User wants: Visual polish, quick wins, high-impact UI
+
+**Scale Context:**
+- Keywords: scale, performance, backend, infrastructure, database, optimization
+- User wants: Performance, efficiency, architecture
+
+**Feature Context:**
+- Keywords: feature, product, add, build, implement, create
+- User wants: New functionality, integrations, extensions
+
+**Fix Context:**
+- Keywords: fix, bug, issue, problem, error
+- User wants: Stability, reliability, error handling
+
+**General Context:**
+- Everything else
+- User wants: Balanced approach
+
+---
+
+## Critical Rules
+
+1. **Context types are independent** - Demo rejections don't affect scale contexts
+2. **Check BOTH task type AND context type** before applying penalty
+3. **Be explicit** in output about why penalties were/weren't applied
+4. **User feedback takes precedence** within the same context type
+5. **Strategic thinking** - Apply Opus-level reasoning
+6. **Honesty** - If strategy is weak, say so
+7. **Actionable** - Provide specific fixes
+
+---
+
+## Example Critique Flow
+
+```
+1. Read user context: "investor demo polish"
+2. Detect context type: "demo"
+3. Load feedback for "demo" context only
+4. Score each task:
+   - Task 1 (UI polish): 
+     * Check: Any UI rejections for demo context? No
+     * Score: 9.0 (no penalty)
+   
+   - Task 2 (database work):
+     * Check: Any database rejections for demo context? Yes (2026-02-15)
+     * Both task type AND context type match
+     * Score: 6.0 → 4.0 (apply -2.0 penalty)
+   
+   - Task 3 (another DB task):
+     * Check context: User is asking about SCALE now
+     * Context type changed: demo → scale
+     * No penalty (different context type)
+     * Score: 8.0 (no penalty)
+
+5. Calculate scores and provide reasoning
+6. Explicitly note which penalties were applied and why
+```
+
+This ensures the system learns preferences per context type without becoming rigid across all contexts.
+
+════════════════════════════════════════════════════════════════
+# USER CONTEXT
+════════════════════════════════════════════════════════════════
+
+plan
+
+
+════════════════════════════════════════════════════════════════
+════════════════════════════════════════════════════════════════
+
+**SCORING RULE**: Only penalize tasks if they match BOTH:
+1. Previously rejected task type
+2. AND same context type
+
+════════════════════════════════════════════════════════════════
+# PRIORITY HISTORY
+════════════════════════════════════════════════════════════════
+
+- Iteration 1: N/A/10
+- Iteration 2: N/A/10
+- Iteration 3: N/A/10
+- Iteration 4: N/A/10
+
+════════════════════════════════════════════════════════════════
+# TASK LIST TO CRITIQUE
+════════════════════════════════════════════════════════════════
+
+
+Here is the refined strategy with critique fixes applied.
+
+---
+
+## Critique fixes applied
+
+| Fix | Change |
+|-----|--------|
+| **Task 2** | Added CONTEXT.md date fix (2025-02-16 → 2026-02-17) to the command |
+| **Task 3 verification** | Clarified that grep belongs to Task 2; added a dedicated visual verification for Task 3: "manually verify blue/violet on both /seagull and /seagull/welder/[id] pages (no cyan/amber visible)" |
+| **Order** | Kept 1→2→3 per critique verdict |
+| **Deferral** | Kept "defer Task 3 when &lt;2.5hr budget" |
+
+---
+
+## Summary
+
+- **Regression:** None (no prior scores to compare)
+- **Critical issues:** None
+- **Strategy score:** 8.2/10
+- **Average priority:** 8.1/10
+
+**Execution order:** 1 → 2 → 3  
+
+1. **Add Seagull to AppNav** (9.0) — 0.5hr  
+2. **Update CONTEXT.md** (8.4) — 1hr  
+3. **WarpSense Theme Audit** (6.9) — 1.5hr *(defer when &lt;2.5hr available)*  
+
+Full write-up: `.cursor/taskspace/20260217_151654/tasks-v4-refined.md`

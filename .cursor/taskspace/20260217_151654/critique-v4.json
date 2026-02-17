@@ -1,0 +1,82 @@
+
+Here is the Strategy Critique for the refined task list:
+
+---
+
+# Strategy Critique Output (Refined v3)
+
+**Context:** User focus = "plan" → **general**  
+**Overall strategy score:** 8.2/10  
+**Top 3 average priority:** 8.1/10  
+
+---
+
+## Task Scores
+
+| # | Task | Strat | Ctx | Lev | Res | Risk | Dep | Exec | **Overall** |
+|---|------|-------|-----|-----|-----|------|-----|------|-------------|
+| 1 | Add Seagull to AppNav | 9.0 | 9.0 | 9.0 | 9.0 | 9.0 | 10 | 9.0 | **9.0** |
+| 2 | Update CONTEXT.md | 8.0 | 9.0 | 8.0 | 8.0 | 9.0 | 10 | 9.0 | **8.4** |
+| 3 | WarpSense Theme Audit | 7.0 | 6.0 | 7.0 | 6.0 | 9.0 | 10 | 8.0 | **6.9** |
+
+---
+
+## Per-Task Reasoning
+
+**Task 1 (Add Seagull to AppNav)** — 9.0  
+- Directly addresses Seagull being undiscoverable.  
+- Strong fit for plan context (discoverability).  
+- High leverage (investors + operators).  
+- 0.5hr with high impact and clear verification.  
+- Type B, trivial to revert.  
+- **Feedback penalty:** none (no matching rejections for general/plan).
+
+**Task 2 (Update CONTEXT.md)** — 8.4  
+- Strong plan-context fit: documentation central to planning.  
+- Stale CONTEXT.md confirmed: no Seagull, TorchWithHeatmap3D vs HeatmapPlate3D unclear, no WarpSense note.  
+- 1hr for strong maintainability and AI-tool leverage.  
+- grep verification added as suggested.  
+- **Feedback penalty:** none.
+
+**Task 3 (WarpSense Theme Audit)** — 6.9  
+- Theme work is useful but secondary for plan context (docs favored over UI polish).  
+- Lower resource efficiency (1.5hr for moderate impact).  
+- Deferral when time &lt;2.5hr is appropriate.  
+- Order (after docs) fits plan context.  
+- **Feedback penalty:** none.
+
+---
+
+## Critical Issues
+
+None. Order 1→2→3 aligns with plan context; critique fixes have been incorporated.
+
+---
+
+## Minor Issues
+
+- **CONTEXT.md date:** Last updated 2025-02-16; likely typo (2026).  
+- **Task 3 verification:** The `grep -i seagull CONTEXT.md` check belongs to Task 2; Task 3 should have a visual/theme verification step.
+
+---
+
+## Suggestions
+
+1. **Order:** Keep 1→2→3 (discoverability → docs → theme).  
+2. **Deferral:** Retain “defer Task 3 when &lt;2.5hr budget.”  
+3. **Post-checks:** After Task 2, run `grep -i seagull CONTEXT.md`; after Task 3, manually verify blue/violet on both Seagull pages.
+
+---
+
+## Context-Aware Feedback
+
+- **Current context:** general (plan)  
+- **Relevant rejections:** none  
+- **Irrelevant rejections:** `demo: backend/infra low` — different context, not applied  
+- **Learnings applied:** dual-audience, specific paths, quick wins preference
+
+---
+
+## Verdict
+
+Strategy is strong. Order 1→2→3 reflects plan context correctly. No feedback penalties. Ready to execute as written.
