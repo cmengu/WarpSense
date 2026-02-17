@@ -4,8 +4,8 @@
 **For AI Tools:** Reference this file with `@LEARNING_LOG.md` when implementing 3D/WebGL features.  
 **For `.cursorrules`:** Check LEARNING_LOG.md for anti-patterns, required patterns, and past incidents before generating code.
 
-**Last Updated:** 2025-02-16  
-**Total Entries:** 4 incidents + Lessons & Reflections
+**Last Updated:** 2025-02-17  
+**Total Entries:** 5 incidents + Lessons & Reflections
 
 **Metal plane clipping (2025-02-16):** Y-coordinates were scattered across TorchWithHeatmap3D; metal could clip through torch. Fix: centralize all workpiece/ring/grid/shadows Y in `welding3d.ts` with explicit constraint `metal_surface_max_Y < weld_pool_center_Y`. See `my-app/src/constants/welding3d.ts`.
 
@@ -15,12 +15,15 @@
 
 **Unified torch+heatmap (2025-02-16):** TorchWithHeatmap3D replaces separate TorchViz3D + HeatmapPlate3D. One Canvas: torch + thermally-colored metal. Replay/demo use this; HeatmapPlate3D kept for dev/standalone only.
 
+**WWAD macro-analytics (2025-02-17):** Supervisor dashboard built orthogonally to micro-feedback — aggregate session data only, no frame/3D coupling. Migration `score_total` nullable + backfill; export with truncation logging.
+
 ---
 
 ## Quick Reference
 
 | Date | Title | Category | Severity |
 |------|-------|----------|----------|
+| 2025-02-17 | WWAD Macro-Analytics (Supervisor Dashboard) | Backend / Architecture | 🟢 Medium |
 | 2025-02-16 | Metal Plane Clipping Through Torch | Frontend / 3D | 🟢 Medium |
 | 2025-02-16 | Unified Torch + Thermal Metal (Replay) | Frontend | 🟢 Medium |
 | 2025-02-16 | WebGL Context Lost — Project-Wide Mitigations | Frontend / Performance | 🟡 High |
@@ -233,24 +236,84 @@ When modifying 3D welding scene Y-positions:
 
 ---
 
+## 📊 Backend / Architecture
+
+### 📅 2025-02-17 — WWAD Macro-Analytics (Supervisor Dashboard)
+
+**Category:** Backend / Architecture  
+**Severity:** 🟢 Medium
+
+**What Was Done:**
+Implemented supervisor-level macro analytics (WWAD) orthogonally to the MVP. New aggregate API (`/api/sessions/aggregate`), KPI tiles, trend chart, calendar heatmap, and CSV export. Session-level aggregation only — no frame data or 3D coupling.
+
+**Impact:**
+- Supervisors see team KPIs, trends, and activity at a glance
+- Fully decoupled from TorchViz3D, HeatmapPlate3D, micro-feedback logic
+- Adding/changing macro features does not touch replay or scoring
+
+**Root Cause (Design Decision):**
+- MVP dashboard was tightly coupled to frame-level + 3D visualization
+- Macro analytics needed team/line/shift trends without reworking micro-feedback
+
+**Patterns:**
+
+```python
+# ❌ BEFORE — macro features would touch frame-level or 3D
+# Any change to scoring or visualization could break dashboard
+
+# ✅ AFTER — orthogonal design
+# Aggregate API: session → score + metrics → trend/KPI dashboard
+# No per-frame data, no WebGL, no micro-feedback dependency
+```
+
+**Database pattern:**
+
+```sql
+-- ✅ DO: Add nullable + default, backfill separately
+ALTER TABLE sessions ADD COLUMN score_total NUMERIC DEFAULT NULL;
+-- Run backfill script; then optionally add NOT NULL + constraint
+```
+
+**Prevention:**
+- ✅ DO: Keep macro analytics on session-level aggregation only
+- ✅ DO: Use nullable + backfill for new columns on existing tables
+- ✅ DO: Log truncation and export failures; handle empty/null edge cases
+- ❌ DON'T: Couple supervisor dashboards to frame-level or 3D components
+- ❌ DON'T: Add NOT NULL to new columns without backfill path
+
+**AI Guidance:**
+```
+When adding macro/aggregate features:
+"Use session-level data only. Do not depend on frame extraction, 3D components, or micro-feedback. New columns: add nullable first, backfill, then optionally constrain. See LEARNING_LOG.md WWAD entry."
+```
+
+**References:**
+- `backend/services/aggregate_service.py`, `backend/routes/aggregate.py`
+- `my-app/src/app/(app)/supervisor/page.tsx`
+- `backend/scripts/backfill_score_total.py`, `backend/alembic/versions/003_add_score_total.py`
+
+---
+
 ## 📋 Lessons & Reflections
 
-> **Scope:** WebGL context loss hardening, Docker one-click deploy, premium landing page, demo page refactor.  
-> **Date:** 2025-02-16
+> **Scope:** WebGL context loss hardening, Docker one-click deploy, premium landing page, demo page refactor, WWAD macro-analytics.  
+> **Date:** 2025-02-17
 
 ### What Worked Well
 
-1. **Layered WebGL mitigation** — Documentation (WEBGL_CONTEXT_LOSS.md) → code (overlay, handlers) → tests (instance count) → ESLint (max-torchviz rule). Each layer catches different failure modes. AI tools can reference one source.
+1. **Orthogonal macro analytics (WWAD)** — Supervisor dashboard built on session aggregation only; zero coupling to frame-level data, 3D components, or micro-feedback. New features (KPIs, heatmap, export) added without touching replay or scoring. Migration used nullable `score_total` + separate backfill script.
 
-2. **Route groups for layout separation** — `(marketing)` vs `(app)` eliminated conditional `isLanding` logic in AppNav. Layout structure controls nav visibility; no branching in components.
+2. **Layered WebGL mitigation** — Documentation (WEBGL_CONTEXT_LOSS.md) → code (overlay, handlers) → tests (instance count) → ESLint (max-torchviz rule). Each layer catches different failure modes. AI tools can reference one source.
 
-3. **One-click deploy script with fail-fast checks** — Port pre-check, Docker V1/V2 resolution, per-service health wait, secure `.env` (umask 077, openssl rand). Script exits early with clear messages instead of cryptic Docker errors.
+3. **Route groups for layout separation** — `(marketing)` vs `(app)` eliminated conditional `isLanding` logic in AppNav. Layout structure controls nav visibility; no branching in components.
 
-4. **Idempotent seed script** — `seed_demo_data.py` can run multiple times; "already present" handling avoids deploy failures on re-run. Kept seed in deploy.sh exec (not backend entrypoint) so backend CMD stays simple.
+4. **One-click deploy script with fail-fast checks** — Port pre-check, Docker V1/V2 resolution, per-service health wait, secure `.env` (umask 077, openssl rand). Script exits early with clear messages instead of cryptic Docker errors.
 
-5. **Proxy-based Framer Motion mock** — Jest tests need to filter `style` prop (MotionValues are invalid in DOM). Proxy mock that strips/filters `style` enables testing animated components without DOM errors.
+5. **Idempotent seed script** — `seed_demo_data.py` can run multiple times; "already present" handling avoids deploy failures on re-run. Kept seed in deploy.sh exec (not backend entrypoint) so backend CMD stays simple.
 
-6. **Backwards compatibility via re-exports** — Keeping `/landing` as re-export of `(marketing)/page` avoided breaking existing links while canonical route moved to `/`.
+6. **Proxy-based Framer Motion mock** — Jest tests need to filter `style` prop (MotionValues are invalid in DOM). Proxy mock that strips/filters `style` enables testing animated components without DOM errors.
+
+7. **Backwards compatibility via re-exports** — Keeping `/landing` as re-export of `(marketing)/page` avoided breaking existing links while canonical route moved to `/`.
 
 ### What Didn't Work or Was Challenging
 
@@ -266,13 +329,15 @@ When modifying 3D welding scene Y-positions:
 
 ### Patterns to Reuse
 
-1. **3D/WebGL page pattern** — Limit 1–2 Canvas per page; add `webglcontextlost` handlers + overlay; use `dynamic(..., { ssr: false, loading })`; enforce with ESLint.
+1. **Orthogonal macro analytics** — Build supervisor/management dashboards on session-level aggregation only. No frame data, no 3D, no micro-feedback. New columns: nullable + backfill, then optionally constrain.
 
-2. **Deploy script pattern** — Prerequisite checks (ports, Docker) → generate secrets → build → up → health wait → optional seed. Use `$COMPOSE` for V1/V2 compatibility.
+2. **3D/WebGL page pattern** — Limit 1–2 Canvas per page; add `webglcontextlost` handlers + overlay; use `dynamic(..., { ssr: false, loading })`; enforce with ESLint.
 
-3. **Env fallback with trim** — `process.env.X?.trim() || '/fallback'` handles empty string (common when env var is set but empty). Prefer explicit fallbacks over undefined.
+3. **Deploy script pattern** — Prerequisite checks (ports, Docker) → generate secrets → build → up → health wait → optional seed. Use `$COMPOSE` for V1/V2 compatibility.
 
-4. **Route group layout pattern** — One layout per route group; no conditional "if marketing, hide nav" inside components. Layout composition at route level.
+4. **Env fallback with trim** — `process.env.X?.trim() || '/fallback'` handles empty string (common when env var is set but empty). Prefer explicit fallbacks over undefined.
+
+5. **Route group layout pattern** — One layout per route group; no conditional "if marketing, hide nav" inside components. Layout composition at route level.
 
 ### Gotchas & Edge Cases
 

@@ -1,0 +1,45 @@
+
+Critique in the required JSON format:
+
+```json
+{
+  "score": 8.7,
+  "dimension_scores": {
+    "completeness": 9.0,
+    "clarity": 8.5,
+    "verification": 8.5,
+    "dependencies": 9.0,
+    "risk_management": 8.5,
+    "edge_cases": 8.0,
+    "production_ready": 7.5
+  },
+  "critical_issues": [],
+  "minor_issues": [
+    "Step 1.5 references WELDER_MAP but it is not exported from seagull-demo-data.ts. Use DEMO_WELDERS: `!DEMO_WELDERS.some((w) => w.id === welderId)` for the invalid check.",
+    "Pre-Flight path convention: paths like app/demo/team/page.tsx are ambiguous in projects with src/. Add: 'In this codebase (src/ layout), use src/app/demo/team/page.tsx.'",
+    "Step 2.3 verification: 'assert setCurrentTimestamp(2400) and setPlaying(false) invoked via mock/spy' — specify how to spy: jest.spyOn or pass a mock setState; or capture via wrapper/container.",
+    "Rollback Section 8: 'Run tests to verify rollback' — specify `npm test` (or `cd my-app && npm test`) as the verification command.",
+    "Step 3.1 CTA placement: plan says 'in header div after title' and also 'fixed top-right' as alternative. Pick one for clarity; recommended placement is already specified."
+  ],
+  "strengths": [
+    "Phase structure and dependency graph are clear; Phase 1 and 2 parallelizable, Phase 3 correctly depends on both",
+    "Step 1.1 seagull-demo-data.ts: full implementation with createMockScore, getDemoTeamData, RULE_IDS matching RULE_TEMPLATES",
+    "Step 1.3: full WelderReportContent skeleton with useFrameData/extractHeatmapData/tempToColorRange; implementer note documents allTemps.length === 0 handling",
+    "Step 2.2 DemoTour: complete component with z-[200] isolate, document-level Escape listener, aria attributes, useCallback-safe design",
+    "Step 2.3: useCallback for onStepEnter is called out; prevents useEffect render loops",
+    "Every step has an automated verification test with test file path, pass criteria, and run command",
+    "Risk Heatmap and Common Failures & Fixes address major failure modes (z-index, mock shape, useCallback)",
+    "Section 8 Rollback: explicit revert order for new and modified files, and removal of test files",
+    "Step 3.3 verification: fireEvent.keyDown(document, { key: 'Escape' }) matches document-level listener"
+  ],
+  "reasoning": "The plan has matured well through iterations (7.2 → 8.3 → 8.5). The latest refinements — Step 3.3 using document for Escape, Pre-Flight path convention, Step 1.3 tempToColorRange implementer note, and Section 8 rollback — address earlier critique items. Codebase checks show generateExpertSession/generateNoviceSession and generateAIFeedback exist, RULE_TEMPLATES keys match the plan's RULE_IDS, useFrameData/extractHeatmapData/tempToColorRange contracts align with the plan, HeatMap accepts the proposed props, and demo-data produces frames with thermal_snapshots. There are no execution-blocking issues. The remaining gaps are minor: WELDER_MAP not exported (DEMO_WELDERS suffices), src/ path clarification, and slightly more concrete test-spy guidance for Step 2.3. The score of 8.7 reflects a production-ready plan with small polish opportunities.",
+  "improvement_priority": [
+    "Minor: Use DEMO_WELDERS for invalid welderId check in Step 1.5 (WELDER_MAP not exported)",
+    "Minor: Add src/app/ path note in Pre-Flight for projects with src/ directory",
+    "Minor: Clarify Step 2.3 test setup — how to spy/capture setCurrentTimestamp/setPlaying",
+    "Minor: Specify 'npm test' (or cd my-app && npm test) in Rollback verification"
+  ],
+  "recommended_action": "done",
+  "rationale_for_action": "Score of 8.7 with zero critical issues and only minor clarity items indicates the plan is executable as-is. A competent engineer can implement without asking questions. The minor items are optional improvements; the plan meets the 9.0+ bar for 'proceed to execution' given that critical issues are absent and strengths are strong."
+}
+```

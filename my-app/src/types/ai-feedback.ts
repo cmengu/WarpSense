@@ -5,7 +5,12 @@
  * These types underpin the FeedbackPanel and WelderReport UI.
  *
  * Severity and trend values are explicit unions — no magic strings.
+ *
+ * WarpSense Micro-Feedback: FeedbackItem extends with optional frameIndex and type
+ * for frame-level items. Session-level items omit both.
  */
+
+import type { MicroFeedbackType } from "./micro-feedback";
 
 // ---------------------------------------------------------------------------
 // FeedbackItem
@@ -13,18 +18,18 @@
 
 /**
  * Severity of a feedback item.
- * 'info' = rule passed; 'warning' = rule failed.
+ * 'info' = rule passed; 'warning' = rule failed; 'critical' = severe deviation (micro-feedback).
  */
-export type FeedbackSeverity = "info" | "warning";
+export type FeedbackSeverity = "info" | "warning" | "critical";
 
 /**
- * Single feedback item derived from a scoring rule.
+ * Single feedback item derived from a scoring rule or micro-feedback.
  *
- * Each rule in SessionScore maps to one FeedbackItem with a human-readable
- * message and optional suggestion when the rule failed.
+ * Session-level (WelderReport): severity, message, timestamp_ms, suggestion.
+ * Micro-level (Replay): add frameIndex + type — required for click-to-scrub.
  */
 export interface FeedbackItem {
-  /** info = passed; warning = failed. */
+  /** info = passed; warning = failed; critical = severe deviation. */
   severity: FeedbackSeverity;
   /** Human-readable message (e.g. "Current fluctuated by 5.2A — aim for stability under 3A"). */
   message: string;
@@ -32,6 +37,10 @@ export interface FeedbackItem {
   timestamp_ms: number | null;
   /** Suggestion when rule failed (e.g. "Improve amps stability."). null when passed. */
   suggestion: string | null;
+  /** Frame index for micro-feedback — present only on frame-level items. */
+  frameIndex?: number;
+  /** Feedback type for micro-feedback — present only on frame-level items. */
+  type?: MicroFeedbackType;
 }
 
 // ---------------------------------------------------------------------------

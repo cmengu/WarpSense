@@ -47,6 +47,7 @@ class SessionModel(Base):
 
     locked_until = Column(DateTime(timezone=True), nullable=True)
     version = Column(Integer, nullable=False, default=1)
+    score_total = Column(Integer, nullable=True)
 
     frames = relationship(
         "FrameModel",
@@ -81,6 +82,7 @@ class SessionModel(Base):
             validation_errors=session.validation_errors,
             completed_at=session.completed_at,
             disable_sensor_continuity_checks=session.disable_sensor_continuity_checks,
+            score_total=getattr(session, "score_total", None),
             version=1,
         )
         model.frames = cls._frames_to_models(session.frames)
@@ -107,6 +109,7 @@ class SessionModel(Base):
             validation_errors=self.validation_errors or [],
             completed_at=self.completed_at,
             disable_sensor_continuity_checks=self.disable_sensor_continuity_checks,
+            score_total=self.score_total,
         )
 
 

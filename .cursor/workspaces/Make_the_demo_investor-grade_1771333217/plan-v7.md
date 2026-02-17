@@ -1,0 +1,46 @@
+
+The refined plan is complete. Summary of changes based on the critique:
+
+**Critical fixes applied**
+
+1. **Config-first**
+   - CEO rule: no magic numbers outside config
+   - Added explicit validation tests (e.g. `NOVICE_SPIKE_MS === 2400`, `MOCK_EXPERT_SCORE_VALUE === 94`)
+
+2. **Data integrity**
+   - `createMockScore` must match the ai-feedback.test mock pattern
+   - Tests for all 5 `rule_id`s and for `generateAIFeedback` compatibility
+   - Each rule must be covered in tests
+
+3. **Placeholder HeatMap (no white screen)**
+   - PlaceholderHeatMap with neutral gradient required when frames are empty
+   - P0 in Success Criteria
+   - Edge cases: `session.frames` undefined → use `[]`, guards for `session?.frames ?? []`
+   - Integration test for empty frames → PlaceholderHeatMap
+
+4. **Phase dependencies**
+   - Hard gate: Phase 2 cannot start until Phase 1 tests pass
+   - Pre-Phase 2 checklist: (a) tests pass, (b) `/demo/team` loads, (c) welder report renders without white screen
+   - Dependency graph updated with the gate
+
+5. **heatmapTempRange**
+   - Handles `null`/`undefined` points array
+   - Filters invalid `temp_celsius` (NaN, null, Infinity, undefined)
+   - Tests for empty, null, and invalid temp cases
+
+6. **Time estimates**
+   - Phase 1: 8–10 h (with 1–2 h test buffer)
+   - Phase 2: 6–8 h
+   - Phase 3: 3–4 h
+   - Total: 20–34 h
+   - Buffer explicitly includes debugging and tests
+
+7. **Cross-browser testing**
+   - Safari/Chrome/Firefox verification required before Phase 2 completion
+   - 375px viewport tested early in Phase 2
+   - Contingency: use `z-[300]` if `z-[200]` fails in Safari
+
+8. **Tests**
+   - Tests are mandatory and a Phase 2 gate
+   - Step 1.5: unit and integration tests before Phase 2
+   - Test list expanded with specific assertions

@@ -2,7 +2,7 @@
 
 > **Purpose:** High-level project state for AI tools. What exists, what patterns to follow, what constraints to respect.
 > **For AI:** Reference with `@CONTEXT.md` to avoid reimplementing features or violating patterns.
-> **Last Updated:** 2025-02-16
+> **Last Updated:** 2025-02-17
 
 ---
 
@@ -24,6 +24,8 @@
 - ✅ One-click Docker deploy (`./deploy.sh`)
 - ✅ Premium Apple-inspired landing (route groups `(marketing)` / `(app)`)
 - ✅ WebGL context-loss hardening (ESLint rule, overlay, constants)
+- ✅ Investor-grade demo (guided tour, team dashboard, Seagull path)
+- ✅ WWAD macro-analytics (supervisor dashboard, aggregate API, score_total persistence)
 - 🔄 Remote deploy validation
 - 📋 Streaming/pagination for sessions >10k frames
 
@@ -111,6 +113,15 @@ ESP32 Sensors → Backend (bulk ingest)
 **Contract:** Produces `Session` with `Frame[]` matching `extractHeatmapData`, `extractAngleData`, `extractCenterTemperatureWithCarryForward`  
 **Deferral:** `generateExpertSession()` / `generateNoviceSession()` in `useEffect` to avoid blocking main thread on mount
 
+### Investor-Grade Demo (Guided Tour + Team Path)
+**Status:** ✅  
+**What:** Guided tour overlay on `/demo` (expert vs novice narrative), "See Team Management" CTA → `/demo/team`, browser-only team dashboard with welder cards and individual reports  
+**Location:** `components/demo/DemoTour.tsx`, `lib/demo-tour-config.ts`, `lib/demo-config.ts`, `lib/seagull-demo-data.ts`, `app/demo/team/`  
+**Pattern:** Custom overlay (z-[200], isolate) above 3D; config-driven steps; debounced scrub to `NOVICE_SPIKE_MS` (2400); no third-party tour lib  
+**Integration:** DemoTour → `onStepEnter` scrubs playback; CTA dismisses tour before navigate; `getDemoTeamData(welderId)` → HeatMap, FeedbackPanel, LineChart; PlaceholderHeatMap when no thermal data  
+**Data:** `createMockScore()`, `getDemoTeamData()` — mock scores (expert 94, novice 42) match `generateAIFeedback` contract; `DEMO_WELDERS` from demo-config  
+**AppNav:** Team link → `/seagull`; Demo CTA → `/demo/team`
+
 ### Premium Landing (Marketing)
 **Status:** ✅  
 **What:** Apple-inspired landing at `/` (canonical) and `/landing` (re-export)  
@@ -125,6 +136,24 @@ ESP32 Sensors → Backend (bulk ingest)
 **Files:** `deploy.sh`, `docker-compose.yml`, `DEPLOY.md`, `backend/Dockerfile`, `my-app/Dockerfile`  
 **Note:** `NEXT_PUBLIC_API_URL` is build-time; remote deploy requires rebuild with server IP
 
+### WarpSense Micro-Feedback (Phase 1)
+**Status:** ✅  
+**What:** Frame-level actionable guidance for welders — angle drift and thermal symmetry alerts on replay. Client-side `generateMicroFeedback(frames)` → MicroFeedbackItem[]; FeedbackPanel + TimelineMarkers for click-to-scrub.  
+**Location:** `lib/micro-feedback.ts`, `types/micro-feedback.ts`, `components/welding/FeedbackPanel.tsx`, `components/welding/TimelineMarkers.tsx`  
+**Thresholds:** Angle: target 45°, warning ±5°, critical ±15°. Thermal: max(|N-S|, |E-W|) ≥ 20°C. Cap 50 items per type.  
+**Guards:** Skips frames with missing cardinal readings (never uses DEFAULT_AMBIENT for variance); try-catch wrapper; 10k frames < 200ms.  
+**Integration:** Replay page — useMemo generateMicroFeedback; FeedbackPanel with frames + onFrameSelect; TimelineMarkers overlay.  
+**See:** `.cursor/issues/warpsense-micro-feedback-feature.md`, `.cursor/plans/warpsense-micro-feedback-implementation-plan.md`
+
+### WWAD Macro-Analytics (Supervisor Dashboard)
+**Status:** ✅  
+**What:** Team-level KPIs, trend chart, calendar heatmap, CSV export — multi-session aggregate analytics for supervisors. Orthogonal to per-frame/micro-feedback; uses metadata + score_total only (no frames loaded).  
+**Location:** `app/(app)/supervisor/page.tsx`, `components/dashboard/CalendarHeatmap.tsx`, `lib/aggregate-transform.ts`, `lib/export.ts`, `types/aggregate.ts` | `backend/routes/aggregate.py`, `backend/services/aggregate_service.py`, `backend/models/aggregate.py`  
+**Pattern:** Reuses DashboardLayout, MetricCard, ChartCard; route `/supervisor`; date presets (7/30 days); lazy score_total persistence on GET /score; backfill script for existing sessions.  
+**Orthogonality:** No imports from TorchViz3D, HeatmapPlate3D, HeatMap, FeedbackPanel — ESLint restricted for supervisor paths.  
+**Integration:** `fetchAggregateKPIs()` → `aggregateToDashboardData()` → DashboardLayout + CalendarHeatmap; Export CSV uses `generateCSV`, `downloadCSV`; `sessions_truncated` alert when >1000 sessions.  
+**See:** `.cursor/plans/wwad-macro-analytics-implementation-plan.md`, `.cursor/explore/wwad-macro-analytics-key-facts.md`
+
 ### Data Processing / Utilities
 **Status:** ✅  
 **Utilities:**  
@@ -132,7 +161,11 @@ ESP32 Sensors → Backend (bulk ingest)
 - `extractCenterTemperatureWithCarryForward()` — thermal continuity for 3D  
 - `getFrameAtTimestamp(frames, timestamp)`  
 - `filterThermalFrames(frames)`  
-- `compareSessions(sessionA, sessionB)`
+- `compareSessions(sessionA, sessionB)`  
+- `computeMinMaxTemp(points, fallbackMin?, fallbackMax?)` — `utils/heatmapTempRange.ts` — min/max from heatmap points with fallback; handles empty/null/NaN
+- `generateMicroFeedback(frames)` — `lib/micro-feedback.ts` — angle drift + thermal symmetry; returns MicroFeedbackItem[] sorted by frameIndex
+- `aggregateToDashboardData(res)` — `lib/aggregate-transform.ts` — AggregateKPIResponse → DashboardData (metrics + charts)
+- `generateCSV(rows)`, `downloadCSV(filename, csv)` — `lib/export.ts` — CSV export for supervisor reports
 
 ---
 
@@ -140,9 +173,10 @@ ESP32 Sensors → Backend (bulk ingest)
 
 ### Session
 ```typescript
-{ session_id, frames[], status, frame_count, start_time, weld_type }
+{ session_id, frames[], status, frame_count, start_time, weld_type, score_total? }
 ```
-**Used by:** Replay, Compare, ScorePanel, Demo  
+**score_total:** Precomputed total score (persisted on first GET /score for COMPLETE sessions); backfilled via `backfill_score_total.py`.  
+**Used by:** Replay, Compare, ScorePanel, Demo, aggregate API  
 **Flow:** API / mock / demo-data → `Session` → extractors → components
 
 ### Frame
@@ -191,10 +225,26 @@ All Frame fields as `_delta` (sessionA - sessionB), `thermal_deltas[]`
 **Use when:** Color-based temperature displays  
 **How:** 8 thermal anchors, blue→purple gradient (0–500°C). Blue/purple-only palette; no rainbow colors.
 
+### Demo Config (Single Source of Truth)
+**Use when:** Adding demo thresholds, mock scores, or tour values
+**How:** All values in `lib/demo-config.ts` — `NOVICE_SPIKE_MS`, `MOCK_EXPERT_SCORE_VALUE`, `MOCK_NOVICE_FAILED_RULES`, `DEMO_WELDERS`
+**Why:** No magic numbers elsewhere; mock and real AI logic share same thresholds
+
+### Demo Tour Overlay
+**Use when:** Guided narrative on /demo
+**How:** `DemoTour` with `DEMO_TOUR_STEPS` from `demo-tour-config`; `onStepEnter` debounced (150ms) for scrub; z-[200] + isolate above 3D
+**Why:** Custom overlay avoids third-party deps; scrub syncs narrative to playback
+
 ### Route Group Layout
 **Use when:** Different layouts (marketing vs app) without conditional logic in components  
 **How:** `(marketing)` and `(app)` route groups; each has its own layout; layout controls nav visibility  
 **Why:** No `isLanding` branching in AppNav; structure drives behavior
+
+### WWAD Orthogonality
+**Use when:** Adding supervisor or aggregate-related code  
+**How:** Zero imports from TorchViz3D, HeatmapPlate3D, HeatMap (thermal), FeedbackPanel, TorchAngleGraph in `supervisor/`, `CalendarHeatmap`, `aggregate-transform.ts`  
+**Why:** Macro-analytics is orthogonal to micro-feedback; avoids coupling and bundle bloat  
+**Enforcement:** ESLint `no-restricted-imports` for supervisor paths
 
 ### Env Fallback with Trim
 **Use when:** Environment variables that may be empty string  
@@ -211,7 +261,16 @@ All Frame fields as `_delta` (sessionA - sessionB), `thermal_deltas[]`
 ```
 GET  /api/sessions/:id?limit=2000&include_thermal=true
 POST /api/sessions/:id/frames  (1000-5000 Frame[] per request)
-GET  /api/sessions/:id/score   → SessionScore
+GET  /api/sessions/:id/score   → SessionScore (persists score_total when computed)
+GET  /api/sessions/aggregate?date_start=&date_end=&include_sessions= → AggregateKPIResponse
+```
+
+### Aggregate Data Flow (WWAD)
+```
+fetchAggregateKPIs({ date_start, date_end }) → AggregateKPIResponse
+  → aggregateToDashboardData(res) → DashboardData
+  → DashboardLayout(metrics, charts) + CalendarHeatmap(calendar)
+Export: include_sessions=true → sessions[] → generateCSV → downloadCSV
 ```
 
 ### Frame Data Flow
@@ -228,6 +287,9 @@ fetchSession(id) → Session
 ```
 
 ### Key Components
+- **FeedbackPanel(items, frames?, onFrameSelect?)** — AI + micro-feedback; session-level (WelderReport) or frame-level (Replay)
+- **CalendarHeatmap(data, title?)** — GitHub-style activity grid; sessions per day (supervisor dashboard)
+- **TimelineMarkers(items, frames, firstTimestamp, lastTimestamp, onFrameSelect)** — Micro-feedback markers on replay timeline
 - **TorchViz3D(angle, temp, label)** — 3D torch + weld pool (dynamic import required)
 - **HeatmapPlate3D(frames, activeTimestamp, maxTemp, plateSize)** — 3D warped plate (replaces HeatMap when thermal; dynamic import required)
 - **HeatMap(data, activeTimestamp)** — CSS grid heatmap
@@ -273,6 +335,11 @@ fetchSession(id) → Session
 **Affects:** TorchViz3D, HeatmapPlate3D, any 3D/Canvas features  
 **See:** `LEARNING_LOG.md`
 
+### Aggregate Limits
+**What:** Date range and export caps for supervisor dashboard  
+**Handle:** Backend enforces date range ≤ 90 days; sessions list capped at 1000; `sessions_truncated` flag when truncated  
+**Affects:** /supervisor, Export CSV; UI must show prominent alert when truncated
+
 ---
 
 ## File Structure
@@ -282,42 +349,62 @@ my-app/
   app/                      # Pages, routes
     (marketing)/            # Landing (/), terms, privacy — no nav
     (app)/                  # Dashboard
+      supervisor/           # WWAD supervisor dashboard (macro-analytics)
     landing/                # Re-export of (marketing)/page (backwards compat)
     replay/[sessionId]/     # Replay page
     compare/[sessionIdA]/[sessionIdB]/  # Compare page
     demo/                   # Browser-only demo (own layout)
+      team/                 # Team dashboard + welder reports (browser-only)
+    seagull/                # Seagull pilot (API-dependent team path)
     dev/torch-viz/          # Dev 3D test page
     api/                    # API routes
   components/
+    demo/                   # DemoTour (guided tour overlay)
+    dashboard/              # DashboardLayout, MetricCard, CalendarHeatmap (WWAD)
     welding/                # TorchViz3D, HeatMap, TorchAngleGraph
     ui/                     # Shared UI
   lib/
     api.ts                  # API client
     demo-data.ts            # Browser-only demo synthesis
+    demo-config.ts          # Demo thresholds, NOVICE_SPIKE_MS, DEMO_WELDERS (single source of truth)
+    demo-tour-config.ts     # Tour step definitions for DemoTour
+    seagull-demo-data.ts    # createMockScore, getDemoTeamData (browser-only team path)
+    aggregate-transform.ts  # aggregateToDashboardData (AggregateKPIResponse → DashboardData)
+    export.ts               # generateCSV, downloadCSV (supervisor export)
   utils/
     frameUtils.ts           # getFrameAtTimestamp, thermal helpers
-    heatmapData.ts          # extractHeatmapData
+    heatmapData.ts          # extractHeatmapData, tempToColorRange
+    heatmapTempRange.ts     # computeMinMaxTemp
     thermalInterpolation.ts # interpolateThermalGrid, sanitizeTemp (5-point IDW)
   constants/
     webgl.ts                # MAX_TORCHVIZ3D_PER_PAGE
-  types/                    # session, frame, thermal
+  types/                    # session, frame, thermal, aggregate
   hooks/
     useSessionComparison.ts
   eslint-rules/
     max-torchviz3d-per-page.cjs  # Enforces ≤2 TorchViz3D per page
 backend/
   routes/sessions.py
+  routes/aggregate.py         # GET /api/sessions/aggregate
   services/thermal_service.py
+  services/aggregate_service.py
+  models/aggregate.py        # AggregateKPIResponse Pydantic
+  scripts/backfill_score_total.py
+  scripts/verify_backfill.py
   init-db.sql
   scripts/seed_demo_data.py
 context/                    # Architecture docs
 ```
 
 **Key Files:**
-- `types/session.ts`, `types/frame.ts`, `types/thermal.ts` — Data models
+- `types/session.ts`, `types/frame.ts`, `types/thermal.ts`, `types/aggregate.ts` — Data models
 - `lib/api.ts` — API client
+- `lib/demo-config.ts` — Demo thresholds (no magic numbers elsewhere)
+- `lib/seagull-demo-data.ts` — Mock team data for /demo/team
 - `utils/frameUtils.ts` — Frame utilities
 - `utils/heatmapData.ts` — Heatmap extraction
+- `lib/aggregate-transform.ts` — AggregateKPIResponse → DashboardData
+- `lib/export.ts` — CSV export (supervisor)
 - `constants/webgl.ts` — WebGL limit constant (shared by ESLint, tests)
 - `context/context-tech-stack-mvp-architecture.md` — Detailed architecture
 - `LEARNING_LOG.md` — Past mistakes (e.g. WebGL context loss)
@@ -341,7 +428,14 @@ context/                    # Architecture docs
 ### GET /api/sessions/:id/score
 **Purpose:** Rule-based session score  
 **Response:** `SessionScore`  
+**Persistence:** Lazy write-through: if COMPLETE, has frames, and score_total is null, persists score_total to session row  
 **Used by:** ScorePanel
+
+### GET /api/sessions/aggregate
+**Purpose:** Aggregate KPIs for supervisor dashboard  
+**Query:** `?date_start=YYYY-MM-DD&date_end=YYYY-MM-DD&include_sessions=false` (UTC; date_end inclusive; max 90 days)  
+**Response:** `{ kpis: { avg_score, session_count, top_performer, rework_count }, trend, calendar, sessions?, sessions_truncated }`  
+**Used by:** Supervisor page; no frames loaded (metadata + score_total only)
 
 ---
 
@@ -362,6 +456,18 @@ context/                    # Architecture docs
 **Purpose:** Recharts angle line chart  
 **Props:** `data: AngleData`, `active?: number`  
 **Location:** `components/welding/TorchAngleGraph.tsx`
+
+### DemoTour
+**Purpose:** Guided tour overlay for investor narrative  
+**Props:** `steps: TourStep[]`, `onStepEnter?`, `onComplete?`, `onSkip?`, `onStepLog?`  
+**Location:** `components/demo/DemoTour.tsx`  
+**Requirements:** z-[200] isolate; focus trap; aria-modal, role="dialog"; Escape to skip
+
+### CalendarHeatmap
+**Purpose:** GitHub-style sessions-per-day activity grid (WWAD; not thermal heatmap)  
+**Props:** `data: { date: string; value: number }[]`, `title?`, `emptyMessage?`, `weeksToShow?`  
+**Location:** `components/dashboard/CalendarHeatmap.tsx`  
+**Integration:** Supervisor page; data from aggregate API calendar
 
 ---
 
@@ -460,6 +566,8 @@ Before prompting AI:
 | `DEPLOY.md` | One-click Docker deploy instructions |
 | `.cursorrules` | AI config, data integrity contract |
 | `README.md` | Setup, quick start |
+| `.cursor/plans/wwad-macro-analytics-implementation-plan.md` | WWAD implementation plan |
+| `.cursor/explore/wwad-macro-analytics-key-facts.md` | WWAD key files, architecture, risks |
 
 ---
 

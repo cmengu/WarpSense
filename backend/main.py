@@ -11,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 
 from database.connection import check_db_connectivity
+from routes.aggregate import router as aggregate_router
 from routes.dashboard import router as dashboard_router
 from routes.dev import router as dev_router
 from routes.sessions import router as sessions_router
@@ -51,7 +52,8 @@ app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 # Register routes
 app.include_router(dashboard_router)
-# Register sessions routes with /api prefix (routes defined as /sessions, becomes /api/sessions)
+# Aggregate BEFORE sessions so /api/sessions/aggregate matches aggregate route
+app.include_router(aggregate_router, prefix="/api")
 app.include_router(sessions_router, prefix="/api")
 # Dev seed route: POST /api/dev/seed-mock-sessions (only when ENV=development or DEBUG=1)
 app.include_router(dev_router, prefix="/api/dev", tags=["dev"])

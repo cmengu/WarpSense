@@ -1,0 +1,373 @@
+# Project Context
+
+> **Purpose:** High-level project state for AI tools. What exists, what patterns to follow, what constraints to respect.  
+> **For AI:** Reference with `@CONTEXT.md` to avoid reimplementing features or violating patterns.  
+> **Last Updated:** [DATE]
+
+---
+
+## Project Overview
+
+**Name:** [Project Name]  
+**Type:** [Web App | API | etc.]  
+**Stack:** [Main technologies]  
+**Stage:** [Incubation | MVP | Production]
+
+**Purpose:** [1-2 sentences]
+
+**Current State:**
+- ✅ [Milestone 1]
+- ✅ [Milestone 2]
+- 🔄 [In progress]
+- 📋 [Planned]
+
+---
+
+## Architecture
+
+### System Pattern
+[e.g., Client-Server, Jamstack, Microservices]
+
+```
+Frontend → Backend → Database → Storage
+```
+
+**Key Decisions:**
+- [Decision 1]: [Why]
+- [Decision 2]: [Why]
+
+### Tech Stack
+
+**Frontend:** [Framework], [UI lib], [State], [Viz libs]  
+**Backend:** [Framework], [Language], [API style]  
+**Database:** [Primary], [Cache], [ORM]  
+**Infrastructure:** [Hosting], [CI/CD]
+
+**Critical Dependencies:**
+- [package@version] (~size) — [purpose]
+- [package@version] — [purpose]
+
+
+---
+
+## Implemented Features
+
+> **AI Rule:** Don't reimplement what's listed here.
+
+### [Feature 1]: [e.g., 3D Visualization]
+**Status:** ✅  
+**What:** [Brief description]  
+**Location:** [File/folder]  
+**Pattern:** [High-level approach]  
+**Integration:** [What uses it]
+
+### [Feature 2]: [e.g., Playback System]
+**Status:** ✅  
+**What:** [Brief description]  
+**State:** [How managed]  
+**Integration:** [What syncs to it]
+
+### [Feature 3]: [e.g., Data Processing]
+**Status:** ✅  
+**What:** [Brief description]  
+**Utilities:** `func1()`, `func2()` in [file]
+
+---
+
+## Data Models
+
+### [Model 1]: [e.g., Session]
+```typescript
+{ id, timestamp, frames[], metadata }
+```
+**Used by:** [Components/APIs]  
+**Flow:** [Source → Transform → Consumer]
+
+### [Model 2]: [e.g., Frame]
+```typescript
+{ timestamp_ms, sensor_data, thermal_data? }
+```
+**Sparse data:** [How handled, e.g., carry-forward]
+
+---
+
+## Patterns
+
+> **AI Rule:** Follow these for consistency.
+
+### [Pattern 1]: [e.g., Frame Resolution]
+**Use when:** [Scenario]  
+**How:** Find exact match, else nearest before timestamp, else first frame  
+**Location:** `utils/[file].ts`
+
+### [Pattern 2]: [e.g., SSR Safety]
+**Use when:** Browser-only components (WebGL, Canvas)  
+**How:** Dynamic import with `ssr: false`  
+**Why:** Prevents Next.js SSR errors
+
+### [Pattern 3]: [e.g., Visual Consistency]
+**Use when:** Adding color-based features  
+**How:** [Temperature ranges → color bands]  
+**Alignment:** Matches [existing feature]
+
+---
+
+## Integration Points
+
+> **AI Rule:** Use these, don't recreate.
+
+### [Integration 1]: [e.g., Timeline State]
+**What:** Shared playback timestamp  
+**State:** `{ currentTimestamp, isPlaying, ... }`  
+**Consumers:** [Component A], [Component B]  
+**How to use:** [Brief integration steps]
+
+### [Integration 2]: [e.g., Utilities]
+**What:** Shared helper functions  
+**Available:**
+- `util1()` — [Purpose] — [File]
+- `util2()` — [Purpose] — [File]
+
+---
+
+## Constraints
+
+> **AI Rule:** Respect these, don't work around them.
+
+### [Constraint 1]: [e.g., SSR Limitations]
+**What:** WebGL/Canvas requires browser  
+**Handle:** ✅ Dynamic import with `ssr: false` | ❌ Direct import  
+**Affects:** [Features]
+
+### [Constraint 2]: [e.g., Sparse Data]
+**What:** [Data gaps in stream]  
+**Handle:** [Strategy, e.g., carry-forward last known value]  
+**Affects:** [Features]
+
+### [Constraint 3]: [e.g., Bundle Size]
+**What:** Keep feature bundles <600KB gzipped  
+**Current:** [Dependency] (~500KB acceptable for demo)  
+**Future:** Lazy load if production
+
+---
+
+## File Structure
+
+```
+app/                    # Pages, routes, layouts
+  [feature]/           # Feature pages
+  api/                 # API routes
+components/            # React components
+  [domain]/           # Domain-specific
+  ui/                 # Shared UI
+lib/
+  utils/              # Utilities
+  hooks/              # Custom hooks
+types/                # TypeScript types
+public/               # Static assets
+.cursor/plans/        # Implementation plans
+```
+
+**Key Files:**
+- [file]: [Purpose]
+- [file]: [Purpose]
+
+---
+
+## API Contracts
+
+### [Endpoint 1]: [GET /api/sessions/:id]
+**Purpose:** [What it does]  
+**Response:** `{ id, frames[], metadata }`  
+**Used by:** [Components]
+
+### [Endpoint 2]: [POST /api/...]
+**Purpose:** [What it does]  
+**Request:** `{ field: type }`  
+**Response:** [Shape]
+
+---
+
+## Component APIs
+
+### [Component1]: [ComponentName]
+**Purpose:** [What it renders]  
+**Props:** `angle: number, temp: number, label?: string`  
+**Location:** [File]  
+**Requirements:** Must use dynamic import (SSR safety)
+
+### [Component2]: [ComponentName]
+**Purpose:** [What it renders]  
+**Props:** [Key props]  
+**Integration:** [Dependencies]
+
+---
+
+## Not Implemented
+
+> **AI Rule:** Don't assume these exist.
+
+### [Enhancement 1]
+**Status:** 💡 Idea  
+**What:** [Description]  
+**Why not yet:** [Reason]
+
+### [Enhancement 2]
+**Status:** 📋 Planned  
+**What:** [Description]
+
+---
+
+## Explicitly Rejected
+
+> **AI Rule:** Don't suggest these.
+
+### [Rejected 1]: [Approach]
+**What:** [Description]  
+**Why rejected:** [Reason]  
+**Alternative:** [What we did]
+
+---
+
+## AI Prompting Patterns
+
+### Adding Feature
+```
+@CONTEXT.md — Check if exists
+@LEARNING_LOG.md — Check past issues
+
+Implement [feature] following:
+- Pattern: [from CONTEXT]
+- Integration: [from CONTEXT]
+- Constraints: [from CONTEXT]
+```
+
+### Debugging
+```
+@CONTEXT.md — [relevant section]
+@LEARNING_LOG.md — Similar issues
+
+Expected: [based on CONTEXT]
+Actual: [what's happening]
+```
+
+---
+
+## Quick Checklist
+
+Before prompting AI:
+- [ ] Checked CONTEXT.md for existing implementation
+- [ ] Reviewed patterns to follow
+- [ ] Noted integration points
+- [ ] Identified constraints
+- [ ] Checked LEARNING_LOG.md
+
+---
+
+## Related Docs
+
+| File | Purpose |
+|------|---------|
+| `LEARNING_LOG.md` | Mistakes & solutions |
+| `.cursorrules` | AI config |
+| `README.md` | Setup |
+
+---
+
+**Maintenance:** Update after features, weekly review, monthly validation.
+
+---
+# Task:
+Make the demo investor-grade.
+Your /demo mode is your secret weapon — zero backend, runs in any browser. Polish it hard. Add a guided "tour" flow with a few preset scenarios (novice vs. expert weld side by side, score comparison). Investors don't understand welding; they need a narrative. The Seagull pilot pages (/seagull) are actually perfect for this — it tells a team management story, which is the enterprise sale story. Make that path shine.
+
+
+
+---
+# Key Files:
+
+
+Compressed exploration report:
+
+```markdown
+## Key Files
+- `components/demo/DemoTour.tsx` - Custom overlay for guided tour (config-driven)
+- `lib/demo-tour-config.ts` - Tour step config (2–4 steps, optional scrub)
+- `lib/seagull-demo-data.ts` - Mock team data + `getDemoTeamData()`, `createMockScore()`
+- `app/demo/team/page.tsx` - Team dashboard with welder cards
+- `app/demo/team/[welderId]/page.tsx` - Welder report (HeatMap, FeedbackPanel, LineChart)
+- `app/demo/page.tsx` - Integrate tour + CTA to team
+- `components/AppNav.tsx` - Add "Team" link → `/seagull`
+
+## Architecture
+- Guided tour: custom overlay, `z-[200]` + `isolate` above WebGL (no third-party lib)
+- Browser-only: `/demo/team` uses in-memory data only; no `fetchSession`/`fetchScore`
+- Mock data: same pattern as `ai-feedback.test.ts` (expert 94, novice 42)
+- Preset: novice spike at `timestamp_ms: 2400` (sine peak in `demo-data.ts`)
+- Reuse: Seagull HeatMap, FeedbackPanel, LineChart, `generateAIFeedback` unchanged
+
+## Dependencies / Integration
+- `useFrameData` works with in-memory frames from `demo-data.ts`
+- CTA on demo → `/demo/team`
+- AppNav "Team" → `/seagull`
+
+## Risks
+- WebGL context limits (see `documentation/WEBGL_CONTEXT_LOSS.md`)
+- Confidence 8/10; approach validated by codebase analysis
+```
+
+~30 lines, format preserved.
+
+---
+# Implementation (First 50 lines):
+
+
+# Implementation Complete
+
+Investor-grade demo with guided tour, team dashboard, and Seagull path is implemented as specified.
+
+---
+
+## Step 1: Create demo-config.ts
+
+### Implementation Details
+
+**File:** `my-app/src/lib/demo-config.ts`
+
+- Exported constants: `NOVICE_SPIKE_MS = 2400`, `MOCK_EXPERT_SCORE_VALUE = 94`, `MOCK_NOVICE_SCORE_VALUE = 42`
+- `MOCK_NOVICE_FAILED_RULES` with `amps_stability`, `angle_consistency`, `thermal_symmetry`
+- `DEMO_WELDERS` with Mike Chen (42) and Expert Benchmark (94)
+
+### What Was Implemented
+
+- **File:** `my-app/src/lib/demo-config.ts`
+  - **Created:** New file
+  - **Purpose:** Single source of truth for demo thresholds and mock data
+  - **Integration:** Used by demo page, seagull-demo-data, demo-tour-config
+
+---
+
+## Step 2: Create demo-config.test.ts
+
+### Implementation Details
+
+**File:** `my-app/src/__tests__/lib/demo-config.test.ts`
+
+- Asserts `NOVICE_SPIKE_MS === 2400`, `MOCK_EXPERT_SCORE_VALUE === 94`, `MOCK_NOVICE_SCORE_VALUE === 42`
+- Asserts `DEMO_WELDERS` layout and IDs
+- Asserts `MOCK_NOVICE_FAILED_RULES` contents
+
+---
+
+## Step 3: Create heatmapTempRange.ts
+
+### Implementation Details
+
+**File:** `my-app/src/utils/heatmapTempRange.ts`
+
+- `computeMinMaxTemp(points, fallbackMin?, fallbackMax?)`:
+  - Handles null/undefined and empty arrays
+  - Filters out NaN, Infinity, null, undefined
+  - Uses `THERMAL_MIN_TEMP`, `THERMAL_ABSOLUTE_MAX` as fallbacks
+
+---

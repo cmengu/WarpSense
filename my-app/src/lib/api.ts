@@ -10,6 +10,7 @@
  *   - Callers should catch and display errors to the operator.
  */
 
+import type { AggregateKPIResponse } from "@/types/aggregate";
 import type { DashboardData } from "@/types/dashboard";
 import type { Frame } from "@/types/frame";
 import type { Session } from "@/types/session";
@@ -22,6 +23,12 @@ import type { Session } from "@/types/session";
  * Backend API base URL.
  * Set via NEXT_PUBLIC_API_URL environment variable.
  * Falls back to localhost:8000 for local development.
+ *
+ * Environment switching:
+ * - Local: Unset (default localhost:8000)
+ * - Dev/staging: NEXT_PUBLIC_API_URL=http://dev-server:8000
+ * - Production: NEXT_PUBLIC_API_URL=https://api.example.com
+ * Rebuild required when backend URL changes (baked at build time).
  */
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -285,6 +292,34 @@ export async function fetchScore(
 ): Promise<SessionScore> {
   const url = buildUrl(`/api/sessions/${encodeURIComponent(sessionId)}/score`);
   return apiFetch<SessionScore>(url);
+}
+
+// ---------------------------------------------------------------------------
+// Aggregate (WWAD Supervisor)
+// ---------------------------------------------------------------------------
+
+export interface FetchAggregateParams {
+  date_start?: string;
+  date_end?: string;
+  include_sessions?: boolean;
+}
+
+/**
+ * Fetch aggregate KPIs for supervisor dashboard.
+ *
+ * @param params - Optional date range and include_sessions for export.
+ * @param signal - AbortSignal for cancellation.
+ */
+export async function fetchAggregateKPIs(
+  params: FetchAggregateParams = {},
+  signal?: AbortSignal
+): Promise<AggregateKPIResponse> {
+  const url = buildUrl("/api/sessions/aggregate", {
+    date_start: params.date_start,
+    date_end: params.date_end,
+    include_sessions: params.include_sessions,
+  } as Record<string, string | boolean | undefined>);
+  return apiFetch<AggregateKPIResponse>(url, { signal });
 }
 
 // ---------------------------------------------------------------------------

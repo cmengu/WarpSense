@@ -1,0 +1,342 @@
+# Strategy Refine - Improve Task Prioritization
+
+You are refining a **task strategy** based on critique feedback.
+
+**CRITICAL:** If regression detected (score dropped), analyze what was lost and recover high-value tasks.
+
+---
+
+## Your Mission
+
+Given:
+1. **Current task list** (with priorities)
+2. **Critique** (dimension scores + issues)
+3. **Priority history** (score progression)
+4. **Regression flag** (if score dropped)
+
+Output:
+- **Improved task list** (TOP 3 TASKS ONLY)
+- **Higher strategic value**
+- **Better context alignment**
+- **Fixed critical issues**
+
+---
+
+## Phase 1: Regression Recovery (If Flagged)
+
+**If regression detected (score dropped 0.5+ points):**
+
+### 1.1 Identify What Was Lost
+
+**Compare previous vs current:**
+- Which high-priority tasks disappeared?
+- What strengths were present before?
+- Why did strategic value drop?
+
+**Example:**
+````
+Previous Iteration (Score: 8.5):
+- Task A: Demo polish (Priority: 9.0)
+- Task B: Bug fix (Priority: 8.5)
+- Task C: UX improvement (Priority: 8.0)
+
+Current Iteration (Score: 7.2):
+- Task D: Database optimization (Priority: 7.5) ← Wrong focus
+- Task E: Documentation (Priority: 7.0) ← Low impact
+- Task F: Refactoring (Priority: 7.0) ← Not aligned
+
+Analysis: Lost demo-facing tasks (A, C). Shifted to low-visibility internal work.
+````
+
+### 1.2 Recovery Strategy
+
+**Restore high-value tasks:**
+1. Re-inject lost tasks that had Priority > 8.0
+2. Remove low-value tasks that caused regression
+3. Re-prioritize based on strategic value
+
+**Keep improvements:**
+- If current iteration fixed clarity issues → keep those improvements
+- If current iteration added good new tasks → merge with previous high-value tasks
+
+---
+
+## Phase 2: Apply Critique Fixes
+
+For each critical issue:
+
+**Issue: "Misaligned with user context"**
+→ Replace misaligned tasks with context-relevant ones
+
+**Issue: "Low strategic value (avg < 7.0)"**
+→ Remove low-priority tasks, promote high-impact work
+
+**Issue: "Vague/unactionable tasks"**
+→ Add specifics: file paths, technical approach, success criteria
+
+**Issue: "No quick wins"**
+→ Add 1 task under 1 hour for momentum
+
+**Issue: "Wrong bottleneck focus"**
+→ Refocus on actual constraint (demo quality, user retention, etc.)
+
+**Issue: "Major blockers"**
+→ Reorder tasks or split to remove dependencies
+
+---
+
+## Phase 3: Re-Prioritize Using Opus Thinking
+
+For each task, evaluate:
+
+**1. Systems Thinking:**
+- Does this address root cause?
+- Will this make 10 other things easier?
+- Does this create reusable assets?
+
+**2. Strategic Optionality:**
+- Does this unlock multiple future paths?
+- Does it increase flexibility?
+- Can we learn before committing?
+
+**3. Information Value:**
+- Will this reveal critical unknowns?
+- Does it de-risk assumptions?
+- Is this a learning investment?
+
+**4. Compounding Returns:**
+- Will this accelerate future work?
+- Is this foundational?
+- Does value compound over time?
+
+**5. Context Fit:**
+- Does this match current stage/constraint?
+- Is this the right work for NOW?
+
+**6. Reversibility:**
+- Can we undo if wrong? (Type B = move fast)
+- Or is this irreversible? (Type A = high scrutiny)
+
+**7. Bottleneck Focus:**
+- What's the current constraint?
+- Does this address the real bottleneck?
+
+**8. Opportunity Cost:**
+- Is this the best use of time?
+- What are we NOT doing if we do this?
+
+**Re-score based on above:**
+````
+Task Priority = 
+  (Impact × 0.40) + 
+  (Effort_inverse × 0.30) + 
+  (Risk_inverse × 0.20) + 
+  (Dependencies_inverse × 0.10) +
+  Opus_bonuses
+````
+
+**Opus Bonuses:**
+- High leverage: +1.5
+- Strong optionality: +1.0
+- Compounding returns: +1.0
+- Perfect context fit: +1.5
+- Addresses bottleneck: +1.0
+
+---
+
+## Phase 4: Ensure Top 3 Only
+
+**Selection criteria:**
+1. Highest strategic value (Opus-scored)
+2. Mix of impact levels (1 high-impact, 1 medium, 1 quick win)
+3. No blockers (can start immediately)
+4. Aligned with user context
+
+**Balance:**
+- Not all long tasks (need momentum)
+- Not all quick tasks (need real progress)
+- Not all same area (need variety)
+
+**Output format:**
+````markdown
+════════════════════════════════════════════════════════════════
+🧠 CTO TASK PRIORITIZATION - TOP 3 TASKS
+════════════════════════════════════════════════════════════════
+User Focus: "[user context]"
+Strategy Score: [X.X]/10
+Average Priority: [Y.Y]/10
+
+## 🔥 Top Priority (Execute Today)
+
+### 1. Task Title
+**Priority:** 9.2/10 | **Impact:** 9/10 | **Effort:** 2hrs | **Risk:** Low
+
+**Why:** [Strategic reasoning with Opus thinking]
+
+**Opus Analysis:**
+- Leverage: High (creates reusable component for 5+ future features)
+- Optionality: Opens demo polish + user onboarding paths
+- Bottleneck: Directly addresses demo quality (current constraint)
+
+**Command:**
+```bash
+./agent "[Specific, actionable task description with technical details]"
+```
+
+**Memory:**
+- Similar: "Polish feature X" succeeded (2hrs, 9/10 impact)
+- Lesson: "Tailwind faster than CSS"
+- Confidence: HIGH ✅
+
+---
+
+### 2. Task Title
+**Priority:** 8.5/10 | **Impact:** 8/10 | **Effort:** 3hrs | **Risk:** Medium
+
+**Why:** [Strategic reasoning]
+
+**Opus Analysis:**
+- Systems thinking: Addresses root cause of slow loads
+- Compounding: Performance improvement benefits all features
+- Risk: Reversible (can rollback caching)
+
+**Command:**
+```bash
+./agent "[Task description]"
+```
+
+**Risk Mitigation:**
+- Test on staging first
+- Add monitoring
+- Time buffer: +30%
+
+---
+
+### 3. Task Title (Quick Win)
+**Priority:** 8.0/10 | **Impact:** 7/10 | **Effort:** 1hr | **Risk:** Low
+
+**Why:** [Strategic reasoning]
+
+**Opus Analysis:**
+- Quick win: Momentum boost
+- High visibility: User-facing improvement
+- Low risk: Isolated change
+
+**Command:**
+```bash
+./agent "[Task description]"
+```
+
+════════════════════════════════════════════════════════════════
+💡 STRATEGIC RATIONALE
+════════════════════════════════════════════════════════════════
+
+**Focus:** Demo quality (user's stated priority)
+**Bottleneck:** Visual polish for investor presentation
+**Time Budget:** 6 hours (1 work day)
+**Expected Impact:** Polished demo → investor confidence
+
+**Why These 3:**
+1. Task 1: Highest leverage (reusable component)
+2. Task 2: Critical performance fix (blocks demo flow)
+3. Task 3: Quick win for momentum + visible improvement
+
+**What We're NOT Doing:**
+- Backend optimization (not bottleneck yet)
+- Advanced features (premature)
+- Internal tooling (low ROI right now)
+
+**Next CTO Run:** After these complete, reassess bottleneck
+
+════════════════════════════════════════════════════════════════
+````
+
+---
+
+## Self-Check
+
+- [ ] Fixed ALL critical issues from critique
+- [ ] If regression: Recovered lost high-value tasks
+- [ ] Applied Opus-level thinking to prioritization
+- [ ] Output is TOP 3 TASKS ONLY
+- [ ] Tasks are specific and actionable
+- [ ] Commands ready to copy-paste to ./agent
+- [ ] Strategic rationale clear
+- [ ] No blockers in top 3
+
+---
+
+**Now refine the strategy and output the improved TOP 3 TASKS.**
+
+════════════════════════════════════════════════════════════════
+# YOUR FEEDBACK (HIGHEST PRIORITY)
+════════════════════════════════════════════════════════════════
+
+
+════════════════════════════════════════
+📝 STRATEGIC FEEDBACK
+════════════════════════════════════════
+Why are you rejecting this strategy?
+What would make it better?
+
+(Press Ctrl+D when done, or Ctrl+C to cancel)
+
+be more mbitious i undersadn that these plans are so low leverage for the future, it really matter to me that we really drive the needle, so it is not high impact enough
+
+════════════════════════════════════════════════════════════════
+
+# YOUR PAST REJECTIONS (Context: general)
+
+[] Previously rejected for general context:
+  Reason: 
+
+════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════
+# CURRENT TASKS
+════════════════════════════════════════════════════════════════
+
+
+Here’s the refined strategy and where it lives:
+
+---
+
+## Refined Strategy (v5)
+
+**Regression:** None  
+**Critical issues:** None  
+**Strategy score:** 8.2/10  
+**Average priority:** 8.1/10  
+
+**File:** `.cursor/taskspace/20260217_151654/tasks-v5-refined.md`
+
+---
+
+## Changes from Critique
+
+| Change | Action |
+|-------|--------|
+| **Context** | Narrowed to "plan for demo" so Task 1’s investor discoverability is treated as highest leverage. |
+| **Task 2** | Kept date fix 2025-02-16 → 2026-02-17 and grep verification. |
+| **Task 3** | Kept visual check (“manually verify blue/violet on both pages”). |
+| **Order** | Kept 1 → 2 → 3. |
+| **Deferral** | Task 3 deferred when &lt;2.5hr available. |
+
+---
+
+## Top 3 Tasks
+
+1. **Add Seagull to AppNav** (9.0) — 0.5hr — highest leverage, unblocks demo.
+2. **Update CONTEXT.md** (8.5) — 1hr — strong plan fit, single source of truth.
+3. **WarpSense Theme Audit** (6.9) — 1.5hr — defer under 2.5hr budget.
+
+All three `./agent` commands are copy-paste ready in the file above.
+
+════════════════════════════════════════════════════════════════
+# INSTRUCTIONS
+════════════════════════════════════════════════════════════════
+
+1. Read user feedback carefully
+2. Only apply rejections for THIS context type
+3. Adjust task list based on feedback
+4. CRITICAL: TOP 3 TASKS ONLY

@@ -1,12 +1,15 @@
 'use client';
 
-import { Suspense, use, useEffect, useRef, useState } from 'react';
+import { Suspense, use, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import HeatMap from '@/components/welding/HeatMap';
 import TorchAngleGraph from '@/components/welding/TorchAngleGraph';
 import ScorePanel from '@/components/welding/ScorePanel';
+import FeedbackPanel from '@/components/welding/FeedbackPanel';
+import TimelineMarkers from '@/components/welding/TimelineMarkers';
+import { generateMicroFeedback } from '@/lib/micro-feedback';
 import { fetchSession, fetchScore, type SessionScore } from '@/lib/api';
 import { alertOnReplayFailure, logWarn } from '@/lib/logger';
 import { FRAME_INTERVAL_MS } from '@/constants/validation';
@@ -157,6 +160,16 @@ function ReplayPageInner({ sessionId }: { sessionId: string }) {
   const angleData = sessionData?.frames
     ? extractAngleData(sessionData.frames)
     : null;
+
+  const microFeedback = useMemo(
+    () => generateMicroFeedback(sessionData?.frames ?? []),
+    [sessionData?.frames]
+  );
+
+  const handleFrameSelect = (timestamp_ms: number) => {
+    setIsPlaying(false);
+    setCurrentTimestamp(timestamp_ms);
+  };
 
   const firstTimestamp = frameData.first_timestamp_ms;
   const lastTimestamp = frameData.last_timestamp_ms;
@@ -450,28 +463,39 @@ function ReplayPageInner({ sessionId }: { sessionId: string }) {
                 Timeline
               </label>
             </div>
-            <input
-              id="replay-slider"
-              type="range"
-              min={firstTimestamp}
-              max={lastTimestamp}
-              step={10}
-              value={currentTimestamp ?? firstTimestamp}
-              onChange={(e) => {
-                setIsPlaying(false);
-                const raw = e.target.value;
-                const val = raw === '' ? currentTimestamp ?? firstTimestamp ?? 0 : Number(raw);
-                setCurrentTimestamp(
-                  Number.isFinite(val)
-                    ? Math.max(
-                        firstTimestamp ?? 0,
-                        Math.min(lastTimestamp ?? 0, val)
-                      )
-                    : currentTimestamp ?? firstTimestamp ?? 0
-                );
-              }}
-              className="w-full max-w-2xl h-2 bg-zinc-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2"
-            />
+            <div className="relative max-w-2xl">
+              {sessionData?.frames && (
+                <TimelineMarkers
+                  items={microFeedback}
+                  frames={sessionData.frames}
+                  firstTimestamp={firstTimestamp}
+                  lastTimestamp={lastTimestamp}
+                  onFrameSelect={handleFrameSelect}
+                />
+              )}
+              <input
+                id="replay-slider"
+                type="range"
+                min={firstTimestamp}
+                max={lastTimestamp}
+                step={10}
+                value={currentTimestamp ?? firstTimestamp}
+                onChange={(e) => {
+                  setIsPlaying(false);
+                  const raw = e.target.value;
+                  const val = raw === '' ? currentTimestamp ?? firstTimestamp ?? 0 : Number(raw);
+                  setCurrentTimestamp(
+                    Number.isFinite(val)
+                      ? Math.max(
+                          firstTimestamp ?? 0,
+                          Math.min(lastTimestamp ?? 0, val)
+                        )
+                      : currentTimestamp ?? firstTimestamp ?? 0
+                  );
+                }}
+                className="w-full h-2 bg-zinc-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2"
+              />
+            </div>
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
               {(currentTimestamp ?? firstTimestamp) / 1000} s
             </p>
@@ -615,6 +639,25 @@ function ReplayPageInner({ sessionId }: { sessionId: string }) {
             <ScorePanel sessionId={sessionId} />
           </ErrorBoundary>
         </div>
+
+        {sessionData != null && (
+          <div className="mb-6">
+            <h2 className="text-lg font-semibold text-zinc-800 dark:text-zinc-200 mb-3">
+              Frame-level feedback
+            </h2>
+            {microFeedback.length > 0 ? (
+              <FeedbackPanel
+                items={microFeedback}
+                frames={sessionData.frames ?? []}
+                onFrameSelect={handleFrameSelect}
+              />
+            ) : (
+              <p className="text-sm text-zinc-500 dark:text-zinc-400" data-testid="no-micro-feedback">
+                No frame-level feedback for this session
+              </p>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

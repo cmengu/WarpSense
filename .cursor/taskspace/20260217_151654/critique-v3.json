@@ -1,0 +1,79 @@
+
+Strategy critique using the framework:
+
+---
+
+# Strategy Critique Output
+
+**Context:** User focus = "plan" → **general**  
+**Overall strategy score:** 8.3/10  
+**Top 3 average priority:** 8.1/10
+
+---
+
+## Task Scores
+
+| # | Task | Strat | Ctx | Lev | Res | Risk | Dep | Exec | **Overall** |
+|---|------|-------|-----|-----|-----|------|-----|------|-------------|
+| 1 | Add Seagull to AppNav | 9.0 | 9.0 | 9.0 | 9.0 | 9.0 | 10 | 9.0 | **9.0** |
+| 2 | WarpSense Theme Audit | 7.0 | 6.0 | 7.0 | 6.0 | 9.0 | 10 | 8.0 | **6.9** |
+| 3 | Update CONTEXT.md | 8.0 | 9.0 | 8.0 | 8.0 | 9.0 | 10 | 9.0 | **8.4** |
+
+---
+
+## Per-Task Reasoning
+
+**Task 1 (Add Seagull to AppNav)** — 9.0  
+- Directly fixes Seagull discoverability.
+- Strong plan-context fit: discoverability.
+- Matches learnings: dual-audience (investors + operators), specific path.
+- 0.5hr, high impact, clear verification step, no penalty applied.
+
+**Task 2 (WarpSense Theme Audit)** — 6.9  
+- Theme consistency has moderate value.
+- Weaker plan-context fit: docs/discoverability favored over UI polish.
+- 1.5hr for moderate impact → lower resource efficiency.
+- No penalty: demo-context learnings do not apply.
+
+**Task 3 (Update CONTEXT.md)** — 8.4  
+- Strong plan-context fit: documentation.
+- Addresses stale CONTEXT.md.
+- 1hr, high leverage for AI tooling.
+- Matches “quick wins as task 3” learning.
+
+---
+
+## Critical Issues
+
+1. **Task 2 priority** — Claimed 7.2, actual 6.9. Order 1→2→3 pushes theme audit above docs. For plan context, docs often matter more than theme polish.
+
+---
+
+## Minor Issues
+
+- No explicit post-Task 3 check (e.g. grep for "Seagull" in CONTEXT.md).
+- Alternative order **1→3→2** would better match plan-context (docs before theme audit).
+- Task 2 deferral under &lt;2hr budget is appropriate.
+
+---
+
+## Suggestions
+
+1. **Order:** 1→3→2 for plan context: discoverability first, docs second, theme audit last.
+2. **Task 2 deferral:** Keep the note to defer when time is tight.
+3. **Task 1:** Keep the verification step.
+
+---
+
+## Context-Aware Feedback
+
+- **Current context:** general (plan)
+- **Relevant rejections:** none
+- **Irrelevant rejections:** “demo: backend/infra low” → different context, not applied
+- **Learnings applied:** quick wins as task 3; dual-audience value; specific paths
+
+---
+
+## Verdict
+
+The strategy is strong. Task 1 and 3 are well aligned with plan context; Task 2 is valid but lower priority. Consider changing order to 1→3→2 when prioritizing planning and documentation.

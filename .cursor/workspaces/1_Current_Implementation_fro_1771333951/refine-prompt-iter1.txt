@@ -1,0 +1,1061 @@
+# Refine Plan (Intelligent Improvement with Deep Analysis)
+
+You are a **principal engineer** conducting a targeted refinement of an implementation plan based on a comprehensive critique. This requires strategic thinking about what to preserve, what to fix, and how to integrate improvements seamlessly.
+
+---
+
+## CRITICAL: Your Mission
+
+You have received:
+1. **Current Plan** - The implementation plan being refined
+2. **Critique** - A detailed analysis with scores, issues, and recommendations
+3. **History** - Previous iterations and what was attempted
+
+Your task: **Output a COMPLETE, IMPROVED plan** that:
+- ✅ Fixes ALL critical issues completely
+- ✅ Addresses minor issues where they improve quality
+- ✅ Preserves ALL strengths and working sections
+- ✅ Maintains logical structure and flow
+- ✅ Remains executable and actionable
+
+**DO NOT:**
+- ❌ Just list changes or provide diffs
+- ❌ Explain what you're doing or why
+- ❌ Remove good working content
+- ❌ Add unnecessary complexity
+- ❌ Output anything except the refined plan
+
+---
+
+## Phase 1: Critique Analysis & Strategy Formation
+
+### 1.1 Parse the Critique
+
+First, extract from the critique JSON:
+- **Score:** What's the current quality level?
+- **Critical Issues:** What MUST be fixed? (execution-blocking)
+- **Minor Issues:** What SHOULD be fixed? (quality improvements)
+- **Strengths:** What MUST be preserved?
+- **Recommended Action:** Was this flagged for deep revision or polish?
+
+### 1.2 Issue Classification & Prioritization
+
+Organize issues by type:
+
+**Type A: Missing Core Steps**
+- Example: "No database backup before migration"
+- Fix: Add complete new step with verification
+- Impact: Could cause data loss
+- Priority: P0 - Must fix
+
+**Type B: Insufficient Error Handling**
+- Example: "No null check for API response"
+- Fix: Add try-catch, null guards, fallback behavior
+- Impact: Runtime errors, crashes
+- Priority: P0 - Must fix
+
+**Type C: Unclear/Vague Instructions**
+- Example: "Update the component" → needs specifics
+- Fix: Add file paths, function names, code examples
+- Impact: Execution ambiguity
+- Priority: P1 - High priority
+
+**Type D: Missing Verification**
+- Example: "Test manually" without test cases
+- Fix: Add specific test cases, expected outputs, validation commands
+- Impact: Can't verify success
+- Priority: P1 - High priority
+
+**Type E: Dependency/Sequencing Issues**
+- Example: Step 5 depends on Step 8
+- Fix: Reorder steps, add explicit prerequisites
+- Impact: Execution failure
+- Priority: P0 - Must fix
+
+**Type F: Missing Edge Cases**
+- Example: "Doesn't handle empty array"
+- Fix: Add edge case handling logic
+- Impact: Failures on boundary conditions
+- Priority: P1-P2 depending on likelihood
+
+**Type G: Polish/Optimization**
+- Example: "Could add TypeScript types"
+- Fix: Add if improves clarity significantly
+- Impact: Code quality, maintainability
+- Priority: P2 - Nice to have
+
+---
+
+## Phase 2: Refinement Strategy by Issue Type
+
+### Strategy A: Adding Missing Steps
+
+**When to use:** Critical issue indicates entire step is missing
+
+**Process:**
+1. Identify where in sequence the step belongs
+2. Draft the complete step with:
+   - Clear action description
+   - Code example or command
+   - Expected outcome
+   - Verification method
+   - Dependencies
+   - Error handling
+3. Integrate seamlessly into existing flow
+4. Update step numbering if needed
+5. Cross-reference with related steps
+
+**Example:**
+
+**Critique says:** "Missing database backup before migration in Step 4"
+
+**Bad refinement:**
+```
+3.5. Backup database
+```
+
+**Good refinement:**
+```
+## Step 3.5: Create Pre-Migration Database Backup
+
+**Action:**
+Create a timestamped backup of the production database before running migrations.
+
+**Implementation:**
+```bash
+# Create backup directory if it doesn't exist
+mkdir -p ./backups
+
+# Generate timestamped backup
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+pg_dump -h localhost -U postgres -d production_db > ./backups/backup_${TIMESTAMP}.sql
+
+# Verify backup created successfully
+if [ $? -eq 0 ]; then
+    echo "✅ Backup created: backup_${TIMESTAMP}.sql"
+    echo "Size: $(du -h ./backups/backup_${TIMESTAMP}.sql | cut -f1)"
+else
+    echo "❌ Backup failed - ABORT MIGRATION"
+    exit 1
+fi
+```
+
+**Verification:**
+- Backup file exists in `./backups/` directory
+- File size > 0 bytes
+- Can open file and see SQL commands
+
+**Rollback (if migration fails):**
+```bash
+# Restore from backup
+psql -h localhost -U postgres -d production_db < ./backups/backup_${TIMESTAMP}.sql
+```
+
+**Time estimate:** 2-5 minutes (depending on database size)
+
+**Dependencies:** Requires `pg_dump` installed, database credentials configured
+```
+
+---
+
+### Strategy B: Adding Error Handling
+
+**When to use:** Critical issue about missing error handling or null checks
+
+**Process:**
+1. Identify the risky operation
+2. Determine failure modes (what could go wrong?)
+3. Add defensive checks before operation
+4. Wrap in try-catch where applicable
+5. Provide fallback behavior
+6. Log errors for debugging
+
+**Example:**
+
+**Critique says:** "Step 7 doesn't handle null heatmapData"
+
+**Current (problematic):**
+```javascript
+function renderHeatmap() {
+  heatmapData.forEach(point => {
+    // render point
+  });
+}
+```
+
+**Refined (with error handling):**
+```javascript
+function renderHeatmap() {
+  // Guard: Check if data exists
+  if (!heatmapData) {
+    console.warn('⚠️ Heatmap data not loaded yet');
+    return; // Exit gracefully
+  }
+
+  // Guard: Check if array is empty
+  if (heatmapData.length === 0) {
+    console.warn('⚠️ Heatmap data is empty');
+    // Show "No data" UI instead of blank screen
+    showNoDataMessage();
+    return;
+  }
+
+  // Process data with error handling
+  try {
+    heatmapData.forEach(point => {
+      // Validate each point
+      if (!point || typeof point.temperature !== 'number') {
+        console.error('Invalid point data:', point);
+        return; // Skip this point
+      }
+      
+      // Render point
+      renderPoint(point);
+    });
+  } catch (error) {
+    console.error('Error rendering heatmap:', error);
+    // Fallback: show error state
+    showErrorMessage('Failed to render heatmap');
+  }
+}
+```
+
+---
+
+### Strategy C: Improving Clarity & Specificity
+
+**When to use:** Minor issue about vague instructions
+
+**Process:**
+1. Identify what's ambiguous
+2. Add concrete details:
+   - File paths
+   - Function names
+   - Import statements
+   - Exact commands
+   - Expected outputs
+3. Provide code examples
+4. Show before/after if modifying existing code
+
+**Example:**
+
+**Critique says:** "Step 2 'Import required libraries' is too vague"
+
+**Current (vague):**
+```
+## Step 2: Import Libraries
+
+Import the necessary libraries for 3D rendering and heatmap visualization.
+```
+
+**Refined (specific):**
+```
+## Step 2: Import Required Dependencies
+
+**Action:**
+Add the following imports to the top of `src/components/ReplayViewer.tsx`:
+
+**Code:**
+```typescript
+// Three.js core and loaders
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
+
+// Custom shaders
+import { HeatmapShader } from '@/shaders/HeatmapShader';
+
+// React and state management
+import { useEffect, useRef, useState } from 'react';
+import { useReplayStore } from '@/stores/replayStore';
+
+// Utils
+import { temperatureToColor } from '@/utils/colorMapping';
+import { interpolateHeatData } from '@/utils/heatInterpolation';
+```
+
+**Verification:**
+- No TypeScript errors in file
+- Imports resolve (check with `npm run typecheck`)
+- Auto-complete works for imported functions
+
+**Dependencies:**
+Ensure these packages are installed:
+```bash
+npm install three@0.160.0
+npm install @types/three@0.160.0 --save-dev
+```
+
+**Time estimate:** 2-3 minutes
+```
+
+---
+
+### Strategy D: Adding Verification Steps
+
+**When to use:** Issue about missing or weak verification
+
+**Process:**
+1. For each step, define "done" criteria
+2. Provide specific test cases
+3. Include expected outputs
+4. Add commands to run tests
+5. Include negative test cases (what should fail)
+
+**Example:**
+
+**Critique says:** "Step 5 verification just says 'check colors' - not specific"
+
+**Current (weak):**
+```
+**Verification:**
+- Check that colors change with temperature
+```
+
+**Refined (specific):**
+```
+**Verification:**
+
+**Manual Visual Test:**
+1. Open browser DevTools (F12)
+2. Go to Console tab
+3. Run these test scenarios:
+
+```javascript
+// Test 1: Cold temperature (0°F) - should be deep blue
+testTemperature(0);
+// Expected: RGB(0, 0, 139) - dark blue
+
+// Test 2: Warm temperature (250°F) - should be yellow-orange  
+testTemperature(250);
+// Expected: RGB(255, 165, 0) - orange
+
+// Test 3: Hot temperature (500°F) - should be bright red/white
+testTemperature(500);
+// Expected: RGB(255, 255, 255) - white-hot
+
+// Test 4: 5°F increments - should see visible color change
+for (let temp = 0; temp <= 50; temp += 5) {
+  console.log(`${temp}°F:`, temperatureToColor(temp));
+}
+// Expected: Should see gradual transition from blue → cyan
+
+// Test 5: Negative temperature - should clamp to 0°F color
+testTemperature(-50);
+// Expected: Same as 0°F (deep blue), no error
+
+// Test 6: Above max temperature - should clamp to 500°F color  
+testTemperature(1000);
+// Expected: Same as 500°F (white), no error
+```
+
+**Automated Test:**
+```typescript
+// Add to src/__tests__/colorMapping.test.ts
+describe('temperatureToColor', () => {
+  test('visible change every 5°F', () => {
+    for (let temp = 0; temp < 500; temp += 5) {
+      const color1 = temperatureToColor(temp);
+      const color2 = temperatureToColor(temp + 5);
+      
+      // Calculate color difference
+      const diff = Math.abs(color1.r - color2.r) + 
+                   Math.abs(color1.g - color2.g) + 
+                   Math.abs(color1.b - color2.b);
+      
+      // Expect visible difference (threshold: 10 on 0-765 scale)
+      expect(diff).toBeGreaterThan(10);
+    }
+  });
+
+  test('handles edge cases', () => {
+    expect(() => temperatureToColor(-100)).not.toThrow();
+    expect(() => temperatureToColor(9999)).not.toThrow();
+    expect(temperatureToColor(null)).toEqual({ r: 0, g: 0, b: 0 }); // fallback
+  });
+});
+```
+
+**Success Criteria:**
+- All manual tests show expected colors
+- Automated tests pass (`npm test`)
+- Color transitions are smooth and visible
+- No console errors
+```
+
+---
+
+### Strategy E: Fixing Dependencies & Sequencing
+
+**When to use:** Critical issue about step ordering or missing prerequisites
+
+**Process:**
+1. Map dependencies between steps
+2. Identify circular dependencies or out-of-order steps
+3. Reorder steps logically
+4. Add explicit prerequisite sections
+5. Update step references throughout plan
+
+**Example:**
+
+**Critique says:** "Step 5 uses heatmapShader but it's not created until Step 8"
+
+**Current (broken sequence):**
+```
+## Step 5: Apply Shader to Metal
+Use heatmapShader on material...
+
+## Step 8: Create Heatmap Shader
+Define the shader code...
+```
+
+**Refined (correct sequence):**
+```
+## Step 5: Create Heatmap Shader
+
+**Prerequisites:** None (this step must come first)
+
+**Action:**
+Define the custom shader for heatmap rendering.
+
+**Implementation:**
+```typescript
+// src/shaders/HeatmapShader.ts
+export const HeatmapShader = {
+  uniforms: {
+    temperatureMap: { value: null },
+    minTemp: { value: 0.0 },
+    maxTemp: { value: 500.0 }
+  },
+  vertexShader: `
+    varying vec2 vUv;
+    void main() {
+      vUv = uv;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `,
+  fragmentShader: `
+    uniform sampler2D temperatureMap;
+    uniform float minTemp;
+    uniform float maxTemp;
+    varying vec2 vUv;
+    
+    vec3 temperatureToColor(float temp) {
+      // Normalize temp to 0-1 range
+      float t = clamp((temp - minTemp) / (maxTemp - minTemp), 0.0, 1.0);
+      
+      // Color gradient: blue → cyan → green → yellow → red → white
+      if (t < 0.2) {
+        return mix(vec3(0.0, 0.0, 0.545), vec3(0.0, 1.0, 1.0), t * 5.0);
+      } else if (t < 0.4) {
+        return mix(vec3(0.0, 1.0, 1.0), vec3(0.0, 1.0, 0.0), (t - 0.2) * 5.0);
+      } else if (t < 0.6) {
+        return mix(vec3(0.0, 1.0, 0.0), vec3(1.0, 1.0, 0.0), (t - 0.4) * 5.0);
+      } else if (t < 0.8) {
+        return mix(vec3(1.0, 1.0, 0.0), vec3(1.0, 0.0, 0.0), (t - 0.6) * 5.0);
+      } else {
+        return mix(vec3(1.0, 0.0, 0.0), vec3(1.0, 1.0, 1.0), (t - 0.8) * 5.0);
+      }
+    }
+    
+    void main() {
+      float temp = texture2D(temperatureMap, vUv).r;
+      vec3 color = temperatureToColor(temp);
+      gl_FragColor = vec4(color, 1.0);
+    }
+  `
+};
+```
+
+**Verification:**
+- File created at `src/shaders/HeatmapShader.ts`
+- No TypeScript errors
+- Can import in other files: `import { HeatmapShader } from '@/shaders/HeatmapShader'`
+
+**Time estimate:** 15-20 minutes
+
+---
+
+## Step 6: Apply Shader to Metal Material
+
+**Prerequisites:** 
+- Step 5 completed (HeatmapShader created)
+- Metal model loaded in scene
+
+**Action:**
+Replace metal's standard material with shader material using HeatmapShader.
+
+**Implementation:**
+```typescript
+// In ReplayViewer.tsx
+import { HeatmapShader } from '@/shaders/HeatmapShader';
+
+// Find metal mesh
+const metalMesh = scene.getObjectByName('metal_surface');
+
+if (metalMesh) {
+  // Create shader material
+  const shaderMaterial = new THREE.ShaderMaterial({
+    uniforms: THREE.UniformsUtils.clone(HeatmapShader.uniforms),
+    vertexShader: HeatmapShader.vertexShader,
+    fragmentShader: HeatmapShader.fragmentShader
+  });
+  
+  // Apply to mesh
+  metalMesh.material = shaderMaterial;
+  
+  console.log('✅ Heatmap shader applied to metal');
+} else {
+  console.error('❌ Metal mesh not found in scene');
+}
+```
+
+**Verification:**
+- Metal surface visible in viewport
+- No console errors
+- Material shows as ShaderMaterial in Three.js DevTools
+```
+
+---
+
+### Strategy F: Adding Edge Case Handling
+
+**When to use:** Issue about missing edge cases or boundary conditions
+
+**Process:**
+1. Enumerate edge cases for the operation
+2. Add handling code for each case
+3. Provide examples
+4. Add tests for edge cases
+
+**Example:**
+
+**Critique says:** "Doesn't handle case when replay has no temperature data"
+
+**Refined (with edge cases):**
+```
+## Step 9: Render Heatmap Frame
+
+**Action:**
+Render heatmap for current replay frame, handling edge cases.
+
+**Implementation:**
+```typescript
+function renderHeatmapFrame(frameIndex: number) {
+  // Edge Case 1: Invalid frame index
+  if (frameIndex < 0 || frameIndex >= totalFrames) {
+    console.warn(`⚠️ Frame ${frameIndex} out of range (0-${totalFrames-1})`);
+    return;
+  }
+
+  // Edge Case 2: No temperature data for this replay
+  const temperatureData = replayStore.getTemperatureData();
+  if (!temperatureData || temperatureData.length === 0) {
+    console.warn('⚠️ No temperature data available');
+    // Show default/neutral color
+    setUniformTemperature(metalMesh, 70); // Room temperature
+    return;
+  }
+
+  // Edge Case 3: Frame exists but has no data points
+  const frameData = temperatureData[frameIndex];
+  if (!frameData || frameData.points.length === 0) {
+    console.warn(`⚠️ Frame ${frameIndex} has no data points`);
+    // Interpolate from adjacent frames
+    const interpolated = interpolateFromAdjacentFrames(frameIndex);
+    applyTemperatureData(interpolated);
+    return;
+  }
+
+  // Edge Case 4: Sparse data (missing measurements at some points)
+  if (frameData.points.length < metalMesh.geometry.vertices.length * 0.5) {
+    console.warn(`⚠️ Frame ${frameIndex} has sparse data, interpolating...`);
+    const filled = fillSparsedData(frameData);
+    applyTemperatureData(filled);
+    return;
+  }
+
+  // Normal case: Full data available
+  applyTemperatureData(frameData);
+}
+
+// Helper: Interpolate when frame has no data
+function interpolateFromAdjacentFrames(frameIndex: number) {
+  const prevFrame = findPreviousValidFrame(frameIndex);
+  const nextFrame = findNextValidFrame(frameIndex);
+  
+  if (prevFrame && nextFrame) {
+    // Linear interpolation between frames
+    const t = (frameIndex - prevFrame.index) / (nextFrame.index - prevFrame.index);
+    return interpolateFrames(prevFrame.data, nextFrame.data, t);
+  } else if (prevFrame) {
+    // Use previous frame
+    return prevFrame.data;
+  } else if (nextFrame) {
+    // Use next frame
+    return nextFrame.data;
+  } else {
+    // No data at all - use defaults
+    return getDefaultTemperatureData();
+  }
+}
+```
+
+**Edge Cases Covered:**
+1. ✅ Invalid frame index (negative or beyond range)
+2. ✅ No temperature data loaded
+3. ✅ Frame with zero data points
+4. ✅ Sparse/incomplete data points
+5. ✅ First frame (no previous frame to interpolate from)
+6. ✅ Last frame (no next frame to interpolate from)
+
+**Test Cases:**
+```typescript
+describe('renderHeatmapFrame edge cases', () => {
+  test('handles negative frame index', () => {
+    expect(() => renderHeatmapFrame(-1)).not.toThrow();
+  });
+
+  test('handles frame beyond range', () => {
+    expect(() => renderHeatmapFrame(9999)).not.toThrow();
+  });
+
+  test('handles missing temperature data', () => {
+    replayStore.temperatureData = null;
+    expect(() => renderHeatmapFrame(0)).not.toThrow();
+  });
+
+  test('handles empty data points', () => {
+    replayStore.temperatureData = [{ points: [] }];
+    expect(() => renderHeatmapFrame(0)).not.toThrow();
+  });
+});
+```
+```
+
+---
+
+## Phase 3: Execution - Building the Refined Plan
+
+### 3.1 Structure Preservation
+
+**Preserve the original structure unless critique explicitly says to reorganize.**
+
+**Keep:**
+- Main section headings
+- Step numbering scheme
+- Overall flow and narrative
+- Introduction and overview sections
+
+**Modify only:**
+- Content that has issues
+- Steps that need reordering (if dependency issue)
+- Sections flagged in critique
+
+---
+
+### 3.2 Integration Approach
+
+**For each issue in the critique:**
+
+1. **Locate** the affected section in current plan
+2. **Apply** the appropriate refinement strategy (A-G above)
+3. **Verify** the fix doesn't break other sections
+4. **Update** any cross-references
+5. **Maintain** consistent formatting and style
+
+---
+
+### 3.3 Quality Checks Before Output
+
+Before outputting the refined plan, verify:
+
+**Completeness:**
+- [ ] All critical issues addressed
+- [ ] All minor issues addressed (or consciously skipped)
+- [ ] All strengths preserved
+- [ ] No sections accidentally deleted
+
+**Consistency:**
+- [ ] Step numbers sequential
+- [ ] Cross-references updated
+- [ ] Consistent terminology
+- [ ] Uniform formatting
+
+**Executability:**
+- [ ] Each step has clear action
+- [ ] Code examples are complete and runnable
+- [ ] Verification criteria are specific
+- [ ] Dependencies are explicit
+
+**Clarity:**
+- [ ] No ambiguous instructions
+- [ ] File paths and names provided
+- [ ] Expected outputs specified
+- [ ] Time estimates included
+
+---
+
+## Phase 4: Output Format
+
+### 4.1 What to Output
+
+**Output ONLY the complete refined plan as markdown.**
+
+**DO NOT include:**
+- ❌ This meta-instruction document
+- ❌ Explanations of what you changed
+- ❌ Diffs or change summaries
+- ❌ Commentary about the critique
+- ❌ Preamble or conclusion about the refinement
+
+**DO include:**
+- ✅ Complete refined plan from beginning to end
+- ✅ All sections (even unchanged ones)
+- ✅ All fixes integrated seamlessly
+- ✅ Proper markdown formatting
+
+---
+
+### 4.2 Output Template Structure
+
+Your output should follow this general structure (adapt to specific plan):
+
+```markdown
+# [Plan Title]
+
+## Overview
+[High-level description of what will be implemented]
+
+## Prerequisites
+- [Dependency 1]
+- [Dependency 2]
+- [etc.]
+
+## Implementation Steps
+
+### Phase 1: [Phase Name]
+
+#### Step 1.1: [Step Name]
+
+**Action:**
+[What to do]
+
+**Implementation:**
+```[language]
+[Complete code]
+```
+
+**Verification:**
+- [Specific test 1]
+- [Specific test 2]
+
+**Expected Outcome:**
+[What success looks like]
+
+**Time Estimate:** [X minutes/hours]
+
+**Dependencies:** [What must be done first]
+
+---
+
+#### Step 1.2: [Step Name]
+
+[... repeat pattern ...]
+
+---
+
+### Phase 2: [Phase Name]
+
+[... continue ...]
+
+---
+
+## Testing & Validation
+
+[Comprehensive testing section]
+
+---
+
+## Rollback Procedure
+
+[How to undo if things go wrong]
+
+---
+
+## Known Issues & Limitations
+
+[Any caveats or edge cases still not handled]
+
+---
+
+## Success Criteria
+
+[How to know the entire implementation is complete]
+```
+
+---
+
+## Phase 5: Special Cases & Advanced Scenarios
+
+### Scenario A: Score 8-9 (Minor Polish)
+
+**What it means:** Plan is mostly good, just needs small improvements
+
+**Approach:**
+- Address minor issues without disrupting working sections
+- Focus on clarity and specificity
+- Add verification where weak
+- Don't over-refine
+
+**Example fixes:**
+- Add missing import statement
+- Clarify vague file path
+- Add specific test case
+- Fix typo in command
+
+---
+
+### Scenario B: Score 5-7 (Significant Revision)
+
+**What it means:** Plan has critical flaws, needs substantial work
+
+**Approach:**
+- Fix all critical issues first (execution-blocking)
+- Reorder steps if sequencing is broken
+- Add missing core steps
+- Beef up error handling significantly
+- May need to restructure sections
+
+**Example fixes:**
+- Add entire missing phase
+- Reorder 5+ steps for correct dependencies
+- Add comprehensive error handling throughout
+- Replace vague steps with specific implementations
+
+---
+
+### Scenario C: Score <5 (Major Overhaul)
+
+**What it means:** Plan is fundamentally flawed
+
+**Approach:**
+- Consider if plan addresses the original task at all
+- May need to restructure entire plan
+- Add multiple missing phases
+- Complete rewrite of vague sections
+- Extensive verification added throughout
+
+**Example fixes:**
+- Add 3 new major phases
+- Complete rewrite of implementation approach
+- Add all error handling, verification, testing
+- Fix fundamental technical errors
+
+---
+
+### Scenario D: Conflicting Critique Points
+
+**What to do when critique has contradictory suggestions:**
+
+**Example:** 
+- Issue #1: "Too vague, add more detail"
+- Issue #5: "Too verbose, simplify Step 3"
+
+**Resolution:**
+1. Look at which is critical vs minor
+2. Critical issues take precedence
+3. For same priority: Balance both concerns
+   - Add detail where execution requires it
+   - Simplify prose without losing critical information
+
+---
+
+### Scenario E: Preserving Existing Good Code
+
+**When critique says:** "Add error handling to Step 7" but Step 7 already has working code
+
+**Approach:**
+```typescript
+// EXISTING (keep this):
+function processData(data) {
+  const result = transform(data);
+  return result;
+}
+
+// ADD (integrate with existing):
+function processData(data) {
+  // NEW: Validation
+  if (!data) {
+    console.error('Data is null or undefined');
+    return null;
+  }
+
+  // NEW: Error handling
+  try {
+    // EXISTING: Keep original logic
+    const result = transform(data);
+    return result;
+  } catch (error) {
+    // NEW: Error recovery
+    console.error('Transform failed:', error);
+    return getDefaultData();
+  }
+}
+```
+
+**Don't replace working code entirely - wrap it with improvements.**
+
+---
+
+## Phase 6: Final Checklist
+
+Before submitting the refined plan, verify:
+
+### Critical Requirements
+- [ ] **All critical issues fixed** - None remain unaddressed
+- [ ] **Plan is executable** - Someone could follow it step-by-step
+- [ ] **Strengths preserved** - Good sections untouched
+- [ ] **Complete output** - No placeholders like "TODO" or "[add details]"
+
+### Quality Requirements
+- [ ] **Specific, not vague** - File paths, function names, exact commands
+- [ ] **Verifiable** - Clear success criteria for each step
+- [ ] **Error handling** - Defensive code where needed
+- [ ] **Edge cases** - Boundary conditions handled
+
+### Formatting Requirements
+- [ ] **Valid markdown** - Proper headers, code blocks, lists
+- [ ] **Consistent style** - Uniform formatting throughout
+- [ ] **Code blocks tagged** - Language specified (```typescript, ```bash, etc.)
+- [ ] **No meta-content** - Only the plan itself, no explanations
+
+---
+
+## Remember
+
+**You are outputting THE REFINED PLAN, not a report about the plan.**
+
+**The refined plan should be:**
+- ✅ Complete (beginning to end)
+- ✅ Improved (all issues fixed)
+- ✅ Executable (ready to implement)
+- ✅ Clear (no ambiguity)
+
+**The refined plan should NOT be:**
+- ❌ A diff or changelog
+- ❌ A summary of changes
+- ❌ Commentary about the critique
+- ❌ Partial or incomplete
+
+---
+
+**Now, examine the critique, apply the appropriate strategies, and output the complete refined plan.**
+
+---
+# Score Progression:
+7.5
+
+
+---
+# Current Plan:
+
+
+Here's a concise summary of the implementation plan and where it lives.
+
+## Implementation Plan Summary
+
+The plan is saved at **`.cursor/plans/wwad-macro-analytics-implementation-plan.md`** and follows the requested structure.
+
+### Structure
+
+1. **Pre-planning thinking (30 min)**
+   - Synthesis of exploration: approach, components, data flow, risks, gaps
+   - Dependency analysis: 21 work items, dependency graph, bottlenecks, parallelizable work
+   - Risk-based planning: mitigation for each risk and failure-mode handling
+
+2. **Phase breakdown**
+   - **Phase 1 (6.5 h):** Score persistence — migration, `score_total`, lazy persistence in `get_session_score`, backfill
+   - **Phase 2 (8.5 h):** Aggregate API — Pydantic models, `aggregate_service`, route, tests
+   - **Phase 3 (8.25 h):** Supervisor dashboard — types, API client, CalendarHeatmap, `aggregateToDashboardData`, supervisor page
+   - **Phase 4 (5.25 h):** Extensions — CSV export, date filter, empty/error states, accessibility
+
+3. **32 atomic steps**
+   - 9 critical steps with full code examples
+   - Each step has subtasks, verification tests, pass criteria, and time estimates
+   - Code examples for: migration, lazy persistence, backfill, aggregate service, aggregate route, `CalendarHeatmap`, `export.ts`, supervisor page
+
+4. **Other sections**
+   - Critical vs non‑critical step classification
+   - Pre‑flight checklist per phase
+   - Risk heatmap (20 risks)
+   - 12 success criteria (P0/P1)
+   - Progress table and common failure/fix notes
+   - Definition of done
+
+### Main technical decisions
+
+- **Score persistence:** Add `score_total` and persist lazily in `get_session_score` plus backfill for existing sessions
+- **Aggregate API:** `GET /api/sessions/aggregate?date_start=&date_end=`; metadata + `score_total` only (no frames)
+- **Orthogonality:** No imports from TorchViz3D, HeatmapPlate3D, or micro‑feedback components
+- **Route:** `/supervisor`
+
+### Total estimate: ~28.5 hours
+
+The plan is implementation-ready with concrete steps and verification tests for each phase.
+
+---
+# Latest Critique (TODO List):
+
+
+Here is the critique output in the requested JSON format:
+
+```json
+{
+  "score": 7.5,
+  "dimension_scores": {
+    "completeness": 8.5,
+    "clarity": 8.0,
+    "verification": 7.0,
+    "dependencies": 7.5,
+    "risk_management": 7.5,
+    "edge_cases": 6.0,
+    "production_ready": 6.5
+  },
+  "critical_issues": [
+    "Step 2.2 (aggregate_service): date_end filter uses start_time <= date_end. When date_end is 'YYYY-MM-DD', PostgreSQL coerces to midnight, so sessions starting later that day (e.g. 14:00) are excluded. Fix: use start_time < (date_end + 1 day) or filter with date(start_time) <= date_end.",
+    "Step 2.3 (aggregate route): A separate routes/aggregate.py with GET /sessions/aggregate included with prefix /api produces /api/sessions/aggregate. The sessions router has GET /sessions/{session_id}. If aggregate_router is registered after sessions_router, /api/sessions/aggregate matches session_id='aggregate' and returns 404. Fix: include aggregate_router BEFORE sessions_router in main.py, or add the aggregate route to sessions.py before the {session_id} route.",
+    "Step 1.5 (backfill): Plan says 'Batch in groups of 10 to avoid memory spike' but the code uses .all(), which loads all matching sessions with joinedload(frames). For hundreds of sessions, this risks OOM. Fix: use limit/offset batches, e.g. for offset in range(0, total, 10): batch = db.query(...).limit(10).offset(offset).all()"
+  ],
+  "minor_issues": [
+    "Step 2.3: Aggregate route defines its own get_db(). Prefer importing get_db from routes.sessions (or a shared DB module) for consistency.",
+    "Step 3.4: aggregateToDashboardData — add exact ChartData shape for LineChart: { id: 'trend-1', type: 'line', title: 'Score Trend', data: trend.map(t => ({ date: t.date, value: t.value })) }.",
+    "Step 3.5: Risk heatmap notes AbortController for fetch cancellation; supervisor page uses only a cancelled flag. Add AbortController for fetch to avoid setState-after-unmount and redundant requests.",
+    "Step 1.7: Listed after Phase 2 header (line 623); reorder so 1.7 appears before Phase 2.",
+    "Steps 2.7/2.8: Add explicit test file paths: backend/tests/test_aggregate_service.py, backend/tests/test_aggregate_api.py.",
+    "Migration (1.2): For production, add explicit pre-migration backup step (pg_dump) and verify downgrade on staging."
+  ],
+  "strengths": [
+    "Phase 0 pre-planning: exploration synthesis, dependency graph, risk heatmap, and failure modes with detection and recovery.",
+    "Critical vs non-critical step classification with rationale.",
+    "Full code examples for 9 critical steps (migration, persistence, backfill, aggregate service, route, CalendarHeatmap, export, supervisor page).",
+    "Verification test for every step with setup, action, expected, and pass criteria.",
+    "Migration has explicit downgrade(); round-trip verification documented.",
+    "CalendarHeatmap handles empty data with early return and empty state.",
+    "Risk heatmap with 20+ entries; top 5 risks and Common Failures & Fixes section.",
+    "Pre-flight checklist per phase with verification commands.",
+    "Orthogonality enforced with grep steps and forbidden imports.",
+    "aggregate_service correctly excludes null score_total from avg_score."
+  ],
+  "reasoning": "The plan has strong pre-planning (Phase 0), clear phase boundaries, and concrete code examples. The core approach (persist score_total, metadata-only aggregate, lazy write-through) is sound. Three execution-blocking issues were found: (1) date_end inclusive range bug—filtering with start_time <= 'YYYY-MM-DD' excludes sessions later that day; (2) route registration order—/api/sessions/aggregate can be shadowed by /api/sessions/{session_id}; (3) backfill uses .all() despite plan text about batching—OOM risk. Minor issues cover get_db reuse, ChartData shape, AbortController, step ordering, and migration backup. Completeness, clarity, and risk management are strong. Verification, dependencies, and edge cases have gaps. Weighted score: 8.5×0.20 + 8.0×0.15 + 7.0×0.20 + 7.5×0.15 + 7.5×0.15 + 6.0×0.10 + 6.5×0.05 = 7.48 ≈ 7.5.",
+  "improvement_priority": [
+    "CRITICAL: Fix date_end inclusivity in aggregate_service (start_time < date_end + 1 day)",
+    "CRITICAL: Specify router registration order (aggregate before sessions) or add aggregate route to sessions router before {session_id}",
+    "CRITICAL: Implement batched backfill (limit/offset) instead of .all()",
+    "Minor: Add AbortController to supervisor page fetch",
+    "Minor: Specify exact ChartData shape in aggregateToDashboardData step",
+    "Minor: Document pg_dump before prod migration"
+  ],
+  "recommended_action": "refine",
+  "rationale_for_action": "Score 7.5 fits 'Has Critical Flaws' with 1–2 critical issues; the plan has 3 critical but fixable issues. The core approach, phase structure, and code examples are sound. Use refine-plan.md to fix the date range bug, route registration order, and backfill batching. No need to revisit exploration or regenerate the plan."
+}
+```
