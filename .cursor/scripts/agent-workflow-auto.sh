@@ -195,6 +195,76 @@ compress_handoff() {
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
+# INTERACTIVE GATE PROMPT
+# Mirrors the main menu UX: numbered/lettered options, Enter-then-paste for
+# multi-line input, /dev/tty so paste content never bleeds into the prompt.
+# Sets globals: GATE_CHOICE ("r" | "o" | "q") and GATE_EXTRA_CONTEXT.
+# ─────────────────────────────────────────────────────────────────────────────
+GATE_CHOICE=""
+GATE_EXTRA_CONTEXT=""
+
+prompt_gate_choice() {
+    while true; do
+        echo ""
+        echo "╔══════════════════════════════════════════════════════════════╗"
+        echo "║          ⛔  GATE NOT CLEARED — ACTION REQUIRED              ║"
+        echo "╠══════════════════════════════════════════════════════════════╣"
+        echo "║                                                              ║"
+        echo "║  [r]  🔄  Re-plan from scratch (add more context)           ║"
+        echo "║  [o]  ⚠️   Override and proceed anyway (you accept the risk) ║"
+        echo "║  [q]  ❌  Quit                                               ║"
+        echo "║                                                              ║"
+        echo "╚══════════════════════════════════════════════════════════════╝"
+        echo ""
+        read -p "  Choose option [r/o/q]: " GATE_CHOICE < /dev/tty
+
+        case "$GATE_CHOICE" in
+            r|R)
+                echo ""
+                echo "╔══════════════════════════════════════════════════════════════╗"
+                echo "║              📋  ADDITIONAL CONTEXT INPUT                    ║"
+                echo "╠══════════════════════════════════════════════════════════════╣"
+                echo "║  Paste any extra context for the replanner below.            ║"
+                echo "║  Press  Enter  first, then paste your content.              ║"
+                echo "║  When finished, press  Ctrl+D  on a new line.               ║"
+                echo "║  (Just Ctrl+D immediately to skip and replan without extra) ║"
+                echo "╚══════════════════════════════════════════════════════════════╝"
+                echo ""
+                read -p "  Press Enter to open input..." _confirm < /dev/tty
+                echo "  ── Paste now (Ctrl+D to finish) ───────────────────────────"
+                GATE_EXTRA_CONTEXT=$(cat < /dev/tty 2>/dev/null || true)
+                echo "  ── End of input ───────────────────────────────────────────"
+                echo ""
+                if [[ -n "$GATE_EXTRA_CONTEXT" ]]; then
+                    echo "  ✅ Context received ($(echo "$GATE_EXTRA_CONTEXT" | wc -w) words)"
+                else
+                    echo "  ℹ️  No extra context — replanning with critique only"
+                fi
+                GATE_CHOICE="r"
+                return 0
+                ;;
+            o|O)
+                echo ""
+                echo "  ⚠️  Override selected — proceeding with uncleared gates."
+                GATE_CHOICE="o"
+                GATE_EXTRA_CONTEXT=""
+                return 0
+                ;;
+            q|Q)
+                echo ""
+                echo "  ❌ Quitting."
+                GATE_CHOICE="q"
+                GATE_EXTRA_CONTEXT=""
+                return 0
+                ;;
+            *)
+                echo "  ⚠️  Invalid choice — enter r, o, or q"
+                ;;
+        esac
+    done
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
 # PHASE 0: ISSUE + EXPLORATION
 # ─────────────────────────────────────────────────────────────────────────────
 section() {
@@ -264,7 +334,7 @@ run_cmd "$plan_prompt" "$current_plan" "Initial plan"
 
 while (( plan_iteration < MAX_PLAN_ITERATIONS )); do
     plan_iteration=$((plan_iteration + 1))
-    
+
     section "🔄 PLAN ITERATION $plan_iteration/$MAX_PLAN_ITERATIONS"
 
     # ── Track A: Standard critique ──────────────────────────────────────────
@@ -326,28 +396,22 @@ EOF
     # Update best score
     score_meets_target "$current_score" "$best_score" && best_score="$current_score"
 
-    # Max iterations exhausted — hard stop, do not bypass
+    # Max iterations exhausted — show interactive gate prompt
     if (( plan_iteration >= MAX_PLAN_ITERATIONS )); then
         echo ""
-        echo "⛔ ══════════════════════════════════════════════════════════════"
         echo "   MAX ITERATIONS ($MAX_PLAN_ITERATIONS) REACHED WITHOUT CLEARING GATES"
         echo "   Standard criticals: $critical_count | Adversarial criticals: $adversarial_critical_count"
         echo "   Score: $current_score/10"
-        echo ""
-        echo "   This workflow does NOT auto-proceed past a failed gate."
-        echo "   Options:"
-        echo "   [r] Re-plan from scratch with more context"
-        echo "   [o] Override and proceed anyway (you accept the risk)"
-        echo "   [q] Quit"
-        echo "══════════════════════════════════════════════════════════════"
-        read -p "Choice [r/o/q]: " gate_choice
-        case "$gate_choice" in
-            r|R)
+
+        prompt_gate_choice   # sets GATE_CHOICE and GATE_EXTRA_CONTEXT
+
+        case "$GATE_CHOICE" in
+            r)
                 log "Re-planning from scratch..."
                 plan_iteration=0
                 MAX_PLAN_ITERATIONS=$((MAX_PLAN_ITERATIONS + 2))
                 current_plan="$WORKSPACE/plan-v0-replan.md"
-                # Feed both critique results back into a fresh plan
+
                 task_tmp=$(tmpstr "$TASK")
                 build_prompt "create-plan-autonomous.md" "$plan_prompt" \
                     "Task Description" "$task_tmp" \
@@ -356,16 +420,28 @@ EOF
                     "Previous Plan Critique (MUST FIX THESE)" "$standard_critique" \
                     "Adversarial Findings (MUST FIX THESE)" "$adv_critique"
                 rm -f "$task_tmp"
+
+                if [[ -n "$GATE_EXTRA_CONTEXT" ]]; then
+                    extra_tmp=$(tmpstr "$GATE_EXTRA_CONTEXT")
+                    echo -e "\n\n---\n# Additional Context From Human (HIGHEST PRIORITY — address everything here):\n" >> "$plan_prompt"
+                    cat "$extra_tmp" >> "$plan_prompt"
+                    rm -f "$extra_tmp"
+                    log "Extra context appended ($(echo "$GATE_EXTRA_CONTEXT" | wc -w) words)"
+                else
+                    log "No extra context provided — replanning with critique only"
+                fi
+
                 run_cmd "$plan_prompt" "$current_plan" "Replan from scratch"
                 continue
                 ;;
-            o|O)
+            o)
                 log "⚠️  User override — proceeding with uncleared gates. Criticals: std=$critical_count adv=$adversarial_critical_count"
                 gate_passed=true
                 break
                 ;;
-            *)
-                echo "❌ Quitting."; exit 0 ;;
+            q)
+                echo "❌ Quitting."; exit 0
+                ;;
         esac
     fi
 
@@ -400,14 +476,43 @@ echo "   Iterations: $plan_iteration | Score: $best_score/10 | Gates: $($gate_pa
 # ─────────────────────────────────────────────────────────────────────────────
 while true; do
     echo ""
-    echo "Plan is ready. Review: $final_plan"
-    read -p "Continue to execution? [y/n/q]: " choice
+    echo "╔══════════════════════════════════════════════════════════════╗"
+    echo "║                  📋  PLAN READY FOR REVIEW                   ║"
+    echo "╠══════════════════════════════════════════════════════════════╣"
+    echo "║  Review: $final_plan"
+    echo "║                                                              ║"
+    echo "║  [y]  ✅  Continue to execution                              ║"
+    echo "║  [n]  ✏️   Provide feedback and revise plan                  ║"
+    echo "║  [q]  ❌  Quit                                               ║"
+    echo "╚══════════════════════════════════════════════════════════════╝"
+    echo ""
+    read -p "  Choose option [y/n/q]: " choice < /dev/tty
+
     case "$choice" in
-        y|Y) echo "✅ Proceeding..."; break ;;
+        y|Y)
+            echo "  ✅ Proceeding to execution..."
+            break
+            ;;
         n|N)
-            echo "Enter feedback (Ctrl+D when done):"
-            user_feedback=$(cat)
-            [[ -z "$user_feedback" ]] && { echo "No feedback provided."; continue; }
+            echo ""
+            echo "╔══════════════════════════════════════════════════════════════╗"
+            echo "║                  ✏️   FEEDBACK INPUT                         ║"
+            echo "╠══════════════════════════════════════════════════════════════╣"
+            echo "║  Press  Enter  first, then paste or type your feedback.     ║"
+            echo "║  Press  Ctrl+D  on a new line when finished.                ║"
+            echo "╚══════════════════════════════════════════════════════════════╝"
+            echo ""
+            read -p "  Press Enter to open input..." _confirm < /dev/tty
+            echo "  ── Paste feedback now (Ctrl+D to finish) ──────────────────"
+            user_feedback=$(cat < /dev/tty 2>/dev/null || true)
+            echo "  ── End of input ───────────────────────────────────────────"
+
+            if [[ -z "$user_feedback" ]]; then
+                echo "  ℹ️  No feedback provided — try again."
+                continue
+            fi
+
+            echo "  ✅ Feedback received ($(echo "$user_feedback" | wc -w) words) — revising plan..."
 
             fb_plan="$WORKSPACE/plan-v${plan_iteration}-user-feedback.md"
             fb_prompt="$WORKSPACE/refine-user-feedback.txt"
@@ -422,10 +527,14 @@ while true; do
             cp "$fb_plan" "$final_plan"
             compress_handoff "$final_plan" "$TASK" "$plan_handoff"
             plan_iteration=$((plan_iteration + 1))
-            echo "✅ Plan updated with your feedback."
+            echo "  ✅ Plan updated with your feedback."
             ;;
-        q|Q) echo "❌ Stopped."; exit 0 ;;
-        *) echo "Invalid: y / n / q" ;;
+        q|Q)
+            echo "  ❌ Stopped."; exit 0
+            ;;
+        *)
+            echo "  ⚠️  Invalid choice — enter y, n, or q"
+            ;;
     esac
 done
 
@@ -501,7 +610,7 @@ if [[ "$can_proceed" == "false" ]]; then
     if [[ "$can_proceed" == "false" ]]; then
         echo "⛔ Re-verification also failed. Manual intervention required."
         echo "   Review: $verify_output"
-        read -p "Force-continue anyway? [y/n]: " force_continue
+        read -p "  Force-continue anyway? [y/n]: " force_continue < /dev/tty
         [[ "$force_continue" != "y" && "$force_continue" != "Y" ]] && { echo "Stopping."; exit 1; }
         log "⚠️  Forced continuation past failed ground-truth verification"
     fi
@@ -556,10 +665,12 @@ if [[ -f "$COMMANDS_DIR/lessons.md" ]]; then
     lessons_output="$WORKSPACE/lessons-learned.md"
 
     task_tmp=$(tmpstr "$TASK")
+    excerpt_tmp=$(mktemp)
+    tail -100 "$current_implementation" > "$excerpt_tmp"
     build_prompt "lessons.md" "$lessons_prompt" \
         "Task" "$task_tmp" \
-        "Implementation excerpt" <(tail -100 "$current_implementation")
-    rm -f "$task_tmp"
+        "Implementation excerpt" "$excerpt_tmp"
+    rm -f "$task_tmp" "$excerpt_tmp"
 
     run_cmd "$lessons_prompt" "$lessons_output" "Lessons"
 
@@ -577,10 +688,12 @@ if [[ -f "$COMMANDS_DIR/context.md" ]]; then
     context_output="$WORKSPACE/context-summary.md"
 
     task_tmp=$(tmpstr "$TASK")
+    excerpt_tmp=$(mktemp)
+    head -50 "$current_implementation" > "$excerpt_tmp"
     build_prompt "context.md" "$context_prompt" \
         "Task" "$task_tmp" \
-        "Implementation excerpt" <(head -50 "$current_implementation")
-    rm -f "$task_tmp"
+        "Implementation excerpt" "$excerpt_tmp"
+    rm -f "$task_tmp" "$excerpt_tmp"
 
     run_cmd "$context_prompt" "$context_output" "Context"
     cp "$context_output" "$CONTEXT_DIR/${SHORT_DESC}_${TIMESTAMP}.md"

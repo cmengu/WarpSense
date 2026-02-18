@@ -97,7 +97,7 @@ If all 3 tasks feel safe and predictable, you haven't fixed the problem.
 Push the scope. Ship the version that changes what the next human conversation can be.
 
 **Safe tasks (wrong):**
-- Update CONTEXT.md
+- Update .cursor/context/project-context.md
 - Refactor the session comparison component
 - Add loading states to the session list
 - Fix minor styling inconsistencies

@@ -7,6 +7,10 @@ import React from "react";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { WelderReportPDF } from "../src/components/pdf/WelderReportPDF";
 
+/** WelderReportPDF returns <Document>; renderToBuffer expects Document root. Type assertion for TS. */
+const toPdfDoc = (el: React.ReactElement) =>
+  el as Parameters<typeof renderToBuffer>[0];
+
 const SAMPLE_PROPS = {
   welder: { name: "Mike Chen" },
   score: { total: 75, rules: [] },
@@ -26,7 +30,7 @@ const SAMPLE_PROPS = {
 
 async function main() {
   const pdfReact = React.createElement(WelderReportPDF, SAMPLE_PROPS);
-  const buffer = await renderToBuffer(pdfReact);
+  const buffer = await renderToBuffer(toPdfDoc(pdfReact));
 
   const header = buffer.slice(0, 5).toString("utf8");
   if (header !== "%PDF-") {
@@ -61,7 +65,7 @@ async function main() {
     },
   };
   const malformedBuffer = await renderToBuffer(
-    React.createElement(WelderReportPDF, malformedProps)
+    toPdfDoc(React.createElement(WelderReportPDF, malformedProps))
   );
   const ms = malformedBuffer.toString("utf8");
   if (!ms.includes("Valid") || !ms.includes("Also valid")) {
@@ -76,7 +80,7 @@ async function main() {
     } as unknown as { name: string },
   };
   const badNameBuffer = await renderToBuffer(
-    React.createElement(WelderReportPDF, badNameProps)
+    toPdfDoc(React.createElement(WelderReportPDF, badNameProps))
   );
   const badStr = badNameBuffer.toString("utf8");
   if (badStr.includes("[object Object]")) {

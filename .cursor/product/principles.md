@@ -34,7 +34,7 @@ We do not have paying users yet. Every hour spent on internal improvement is an 
 - ✅ Make the PDF report actually generate → pilot customer can forward it to their manager
 - ✅ Deploy a live URL with a guest account → demo can happen asynchronously
 - ❌ Refactor the session comparison component → no human sees this
-- ❌ Update CONTEXT.md → no human sees this
+- ❌ Update .cursor/context/project-context.md → no human sees this
 - ❌ Add pagination to the session list API → investors don't browse sessions
 
 **Test:** Will a specific human notice this in the next 48 hours?

@@ -393,7 +393,7 @@ When adding macro/aggregate features:
 
 | File | Purpose |
 |------|---------|
-| `CONTEXT.md` | What exists, patterns |
+| `.cursor/context/project-context.md` | What exists, patterns |
 | `.cursorrules` | AI configuration |
 | `README.md` | Project setup |
 

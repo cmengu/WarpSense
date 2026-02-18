@@ -1,2 +1,0 @@
-# Iteration Score History
----

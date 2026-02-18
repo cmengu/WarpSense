@@ -18,19 +18,19 @@
 ### Phase 1: Create Issue
 **Time:** 15-25 minutes  
 **Purpose:** Capture comprehensive problem/feature specification  
-**Methodology:** See `@context/create-issue.md` for full process  
+**Methodology:** See `@.cursor/commands/create-issue.md` for full process  
 **Output:** Detailed issue with 8+ acceptance criteria, scope, risks
 
 ### Phase 2: Explore Feature  
 **Time:** 30-45 minutes  
 **Purpose:** Deep technical analysis of implementation approaches  
-**Methodology:** See `@context/explore-feature.md` for full process  
+**Methodology:** See `@.cursor/commands/explore.md` for full process  
 **Output:** 4+ alternative approaches, 20+ edge cases, architecture analysis
 
 ### Phase 3: Create Plan
 **Time:** 30-45 minutes  
 **Purpose:** Step-by-step implementation plan with verification tests  
-**Methodology:** See `@context/create-plan.md` for full process  
+**Methodology:** See `@.cursor/commands/create-plan.md` for full process  
 **Output:** Phased plan with code reviews for critical steps, verification tests for all steps
 
 ---
@@ -39,19 +39,19 @@
 
 **Start Phase 1:**
 ```
-Follow @context/create-issue.md to capture this issue:
+Follow @.cursor/commands/create-issue.md to capture this issue:
 [describe bug/feature]
 ```
 
 **Start Phase 2:**
 ```
-Follow @context/explore-feature.md to explore:
+Follow @.cursor/commands/explore.md to explore:
 [issue from Phase 1]
 ```
 
 **Start Phase 3:**
 ```
-Follow @context/create-plan.md to create implementation plan:
+Follow @.cursor/commands/create-plan.md to create implementation plan:
 [exploration results from Phase 2]
 ```
 
@@ -59,8 +59,8 @@ Follow @context/create-plan.md to create implementation plan:
 
 ## Context Hierarchy (Check in Order)
 
-1. **`@context/`** - Workflow methodologies (create-issue, explore-feature, create-plan)
-2. **Project root** - CONTEXT.md, ARCHITECTURE.md, README.md for codebase patterns
+1. **`@.cursor/commands/`** - Workflow methodologies (create-issue, explore-feature, create-plan)
+2. **`.cursor/context/`** - project-context.md, ARCHITECTURE.md, README.md for codebase patterns
 3. **Codebase search** - Use `grep`, `find` to locate existing implementations
 4. **Web search** - Only for best practices, security, standards (when needed)
 
@@ -95,12 +95,13 @@ Follow @context/create-plan.md to create implementation plan:
 
 ```
 project-root/
-├── context/                    # Detailed methodology files (check first)
-│   ├── create-issue.md        # Phase 1 process (500 lines)
-│   ├── explore-feature.md     # Phase 2 process (700 lines)
-│   └── create-plan.md         # Phase 3 process (600 lines)
+├── .cursor/
+│   ├── context/               # Single source of truth — project context, architecture docs
+│   │   ├── project-context.md
+│   │   └── *.md               # architecture, component context
+│   └── commands/              # Workflow methodologies (create-issue, explore, create-plan)
 ├── agent.md                   # This file (quick reference only)
-├── CONTEXT.md                 # Codebase architecture patterns
+├── CONTEXT.md                 # Redirect → .cursor/context/project-context.md
 └── src/                       # Implementation code
 ```
 
@@ -128,7 +129,7 @@ Agent: [Writes quick 20-line issue without following process]
 ### ✅ CORRECT (Following workflow):
 ```
 User: Add export feature
-Agent: I'll follow @context/create-issue.md to capture this thoroughly.
+Agent: I'll follow @.cursor/commands/create-issue.md to capture this thoroughly.
        
        [Asks clarifying questions per methodology]
        [Searches codebase for similar features]
@@ -140,7 +141,7 @@ Agent: I'll follow @context/create-issue.md to capture this thoroughly.
 
 ## Token Budget Note
 
-This file is intentionally brief (~100 lines) to save tokens. **All detailed instructions live in `@context/` files** which you reference when needed. Don't replicate methodology here—just point to it.
+This file is intentionally brief (~100 lines) to save tokens. **All detailed instructions live in `@.cursor/commands/` and `@.cursor/context/`** which you reference when needed. Don't replicate methodology here—just point to it.
 
 ---
 
@@ -158,8 +159,8 @@ This file is intentionally brief (~100 lines) to save tokens. **All detailed ins
 ## Getting Help
 
 **If confused about:**
-- **Workflow process** → Read the relevant `@context/*.md` file completely
-- **Codebase patterns** → Read `@CONTEXT.md` or `@ARCHITECTURE.md` 
+- **Workflow process** → Read the relevant `@.cursor/commands/*.md` file completely
+- **Codebase patterns** → Read `@.cursor/context/project-context.md` or `@ARCHITECTURE.md` 
 - **Specific requirement** → Ask user for clarification (don't assume)
 
 ---
