@@ -1,0 +1,100 @@
+
+Critique in JSON form as specified:
+
+```json
+{
+  "score": 6.2,
+  "adversarial_verdict": "This plan will execute in a clean dev environment but contains an untestable 411 branch (chunked rejection), a getApiBase test that never exercises the env path in Node, and a client filename path that could leak [object Object] if displayName is ever non-string. BasePath deployment remains a latent production 404 risk.",
+  "sabotage_vectors": [
+    {
+      "step": "2.1",
+      "attack": "When Request is constructed with body and Transfer-Encoding: chunked, the Fetch/Request implementation may auto-add Content-Length, stripping chunked. The route's 411 branch may never execute in production; a malicious client sending true chunked without Content-Length would be the only trigger.",
+      "detection_gap": "Step 4.6 creates Request with body—Node's undici typically adds Content-Length. The 411 test may pass only if the runtime preserves chunked, or may flake. Step 2.3 admits 'Expect 411 (or 400 if curl sends Content-Length anyway)'.",
+      "blast_radius": "OOM defense is untested; chunked oversized requests could still reach request.json() if a client bypasses standard fetch."
+    },
+    {
+      "step": "2.1",
+      "attack": "Content-Length header with non-numeric value (e.g. 'five') produces parseInt NaN. Check uses !Number.isNaN(size) && size > MAX—NaN skips the block. No body size enforcement. Malicious client could omit Content-Length and send chunked, or send invalid Content-Length.",
+      "detection_gap": "No test for Content-Length: invalid or Content-Length: 0 with oversized chunked body. Verification only tests valid 413 case.",
+      "blast_radius": "OOM from unbounded body when Content-Length is missing or invalid."
+    },
+    {
+      "step": "3.3",
+      "attack": "sanitizeDownloadFilename(displayName) uses String(name). If displayName were ever an object (e.g. from a future API change or different welder source), String(object) yields '[object Object]'. Sanitize replaces non-alphanumeric with dash—result: 'object-Object-warp-report.pdf'.",
+      "detection_gap": "displayName currently comes from WELDER_DISPLAY_NAMES[welderId] ?? welderId (always string). Plan does not enforce toWelderName on client; no test for object displayName. API would coerce to Unknown in PDF, but client filename would still be wrong.",
+      "blast_radius": "Bad download filenames if displayName source changes; inconsistent with API's toWelderName."
+    },
+    {
+      "step": "1.3",
+      "attack": "Prototype checks buffer.slice(0,5) === '%PDF-' and str.includes('Mike Chen'). A truncated or corrupt PDF could pass header check; includes only verifies substring presence, not layout or that PDF opens in a viewer.",
+      "detection_gap": "No verification that the PDF actually opens in a viewer or that layout is correct. Malformed PDF with correct header and text could pass.",
+      "blast_radius": "Phase 2 could ship PDFs that fail to open in Acrobat/Chrome."
+    },
+    {
+      "step": "2.3",
+      "attack": "welder.name object verification script does not include 'grep -v \"[object Object]\" /tmp/obj.pdf' or equivalent. Pass criteria say 'no [object Object] in content' but the curl script never asserts it—manual inspection assumed.",
+      "detection_gap": "The script saves to file and says 'Expect 200; file /tmp/obj.pdf is PDF; no [object Object] in content'—no automated check for the latter.",
+      "blast_radius": "welder.name object bug could slip through if manual step skipped."
+    },
+    {
+      "step": "4.5",
+      "attack": "getApiBase checks typeof window === 'undefined' first. In Node (default Jest), it always returns ''. The env tests set process.env.NEXT_PUBLIC_BASE_PATH but getApiBase returns before reading env. The conditional 'if (typeof window !== \"undefined\") expect(result).toBe(...)' never runs in Node.",
+      "detection_gap": "Test passes because in Node result is '' and we skip the env assertion. The base-path logic is never executed in CI. Plan admits this but does not provide a jsdom-only test that actually hits the branch.",
+      "blast_radius": "basePath logic untested; production 404 if NEXT_PUBLIC_BASE_PATH misconfigured."
+    }
+  ],
+  "precondition_gaps": [
+    "Step 2.1, 2.2, 2.3: Dev server must be running. Pre-Flight adds health check but curl to localhost:3000 returns 200 for any page—no /api/health exists; 'connection refused' is the only failure mode.",
+    "Step 3.1: Depends on none but LineChart must exist at the target location. If welder page structure changed, the wrapper could wrap wrong element or id could conflict.",
+    "Step 4.6: 413 test allocates ~5MB string plus Request body duplication. No explicit skip for process.env.CI; plan says 'if OOM, skip or use smaller env' but that is manual.",
+    "Phase 2 route path: Plan says app/api/...; project uses src/app. Path works via Next.js conventions but plan does not specify src/ prefix—could confuse implementer."
+  ],
+  "untestable_verifications": [
+    "Step 3.1: 'document.getElementById(\\\"trend-chart\\\")?.offsetWidth' is manual. No automated assertion at that step. A wrong dimension (e.g. 500x200) would not be caught until Step 4.4, which only checks style attribute exists, not width/height values.",
+    "Step 3.3: 'Remove id=trend-chart via DevTools; click Download; PDF downloads without chart' is manual smoke. No automated test that chart omission produces valid PDF. Step 4.3 tests chartDataUrl null in fetch body—does not verify API returns PDF without chart.",
+    "Step 4.4: 'expect(chartEl).toHaveAttribute(\\\"style\\\")' passes for any style. Does not assert width: 600px or height: 200px. Wrong dimensions would pass.",
+    "Step 4.1: Asserts mockFetch called with correct payload. Does not verify blob() is called or that URL.createObjectURL/download is triggered. Implementation could omit the download logic and still pass."
+  ],
+  "cascade_points": [
+    "Step 2.1 is single point of failure for Phase 2 and 4 (API tests). If validation order is wrong (e.g. chartDataUrl checked before welder), or if isValidFeedbackItem is too strict (filters all items when one is malformed), 400 responses could block valid requests. No step verifies the validation order matches the plan.",
+    "Step 1.2 WelderReportPDF: Both prototype (1.3) and API (2.1) depend on it. If sanitizeText or toWelderName have edge cases (e.g. zero-width chars, RTL override), both paths fail. Only object case is tested for welder.name; Symbol, BigInt not covered."
+  ],
+  "phase_boundary_gaps": [
+    "Phase 1 to 2: Prototype uses renderToBuffer directly. API route also uses renderToBuffer. No verification that route receives the same component with same props shape as prototype. Route could pass different prop types (e.g. chartDataUrl as object) that prototype never tested.",
+    "Phase 3 to 4: Tests mock fetch. Real flow is never exercised in automation. basePath, CORS, or network errors would not be caught. Pre-Flight curl is manual.",
+    "Phase 2 to 3: handleDownloadPDF uses displayName from WELDER_DISPLAY_NAMES. If a future welder page loads displayName from an API (object possible), no coercion. Boundary between 'displayName is always string' and 'API expects welder.name string' is implicit."
+  ],
+  "pre_mortem": {
+    "partial_execution": "Stopping after Phase 2 leaves API route and WelderReportPDF in place, client unintegrated. State: new deps, pdf component, route. Rollback requires removing route and component; deps remain. If Phase 1 lockfile was committed, npm ci still works. No migration, so no schema drift.",
+    "silent_corruption": "report.feedback_items from generateAIFeedback include timestamp_ms. API's isValidFeedbackItem does not require it. If client sends feedback_items with message as object (from a bug), isValidFeedbackItem filters it—we could get 400 when all items fail, or empty feedback_items. PDF would render with empty Key Areas. User might not notice.",
+    "prod_vs_local": "getApiBase returns '' when NEXT_PUBLIC_BASE_PATH not set at build. In prod with basePath /app, fetch goes to /api/welder-report-pdf (relative to origin). Actual API is at /app/api/welder-report-pdf. 404. Download fails. Works locally because no basePath.",
+    "dependency_drift": "html-to-image 1.11.11 may have compatibility issues with Recharts or React 19 canvas rendering. toPng could start returning null or throwing in future. @react-pdf/renderer 3.4.0—React 19 is already in use; react-pdf compatibility matrix may not list React 19. Build could pass, runtime could fail on PDF render."
+  },
+  "critical_issues": [
+    "Step 4.5 getApiBase test never executes the basePath branch in Node. basePath deployment is unverified by automation. Production 404 on Download PDF when basePath is configured."
+  ],
+  "latent_issues": [
+    "Step 4.6 413 test: PAD_SIZE 5MB+1KB. Allocating 5MB+ string plus JSON serialization can exceed 10MB peak. CI with 512MB-1GB may OOM. Plan documents 2GB min but no process.env.CI skip.",
+    "Step 2.1: Chunked rejection (411) may be dead code—Request API with body typically adds Content-Length. The defense exists but is untestable with standard Request constructor.",
+    "Step 1.2: sanitizeText replaces < and > but not zero-width or RTL override chars. Malicious feedback message could produce odd PDF layout or invisibility."
+  ],
+  "blind_spots": [
+    "Plan assumes displayName is always string. WELDER_DISPLAY_NAMES and welderId guarantee it today. If welder page later gets displayName from API or different source, no client-side toWelderName.",
+    "Plan assumes generateAIFeedback returns feedback_items matching API's { message, severity, suggestion? }. AIFeedbackResult has timestamp_ms. No explicit contract that client payload shape matches API. Works today but coupling is implicit.",
+    "Entire plan assumes html-to-image toPng completes or rejects. If toPng never settles (browser bug), withTimeout rejects after 10s. .catch on toPng prevents unhandledrejection. But 10s is a long block—user may think page frozen. No loading UX refinement for slow capture."
+  ],
+  "minor_issues": [
+    "Step 2.3: Multiple curl commands in one script; no explicit 'set -e' or error propagation. One failure might not fail the whole script.",
+    "Step 1.1: 'Commit lockfile if changed' is manual. Verification checks 'package-lock.json exists and is committed'—git status is not run in the verification block.",
+    "Step 4.6: Comment says 'Use 1.5MB pad' but code uses 5*1024*1024+1024. Inconsistency."
+  ],
+  "what_the_author_cant_see": "The 411 chunked branch and the getApiBase env branch are written defensively but are not exercised by the test harness. The author's mental model is 'we added the checks'; the adversarial model is 'we cannot prove they work.' basePath failure is well-documented but the test that would catch it cannot run in default Jest config.",
+  "recommended_action": "refine",
+  "minimum_fixes_before_execution": [
+    "Add getApiBase test that runs in jsdom or mocks window to exercise NEXT_PUBLIC_BASE_PATH branch",
+    "Add toWelderName/sanitizeFilename to client handleDownloadPDF for displayName to match API defense",
+    "Add Step 2.3 assertion: grep -q 'Unknown' /tmp/obj.pdf && ! grep -q '\\[object Object\\]' /tmp/obj.pdf for welder.name object case",
+    "Document that 411 test may not be reproducible—consider integration test with raw socket if chunked defense must be verified"
+  ]
+}
+```

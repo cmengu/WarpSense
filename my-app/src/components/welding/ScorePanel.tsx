@@ -81,6 +81,14 @@ export default function ScorePanel({ sessionId }: ScorePanelProps) {
               {score.total}/100
             </span>
           </div>
+          {score.active_threshold_spec && (
+            <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-2">
+              Evaluated against{' '}
+              {score.active_threshold_spec.weld_type.toUpperCase()} spec —
+              Target {score.active_threshold_spec.angle_target}° ±
+              {score.active_threshold_spec.angle_warning}°
+            </p>
+          )}
 
           <ul className="space-y-2" role="list" aria-label="Scoring rules">
             {score.rules.map((rule) => (

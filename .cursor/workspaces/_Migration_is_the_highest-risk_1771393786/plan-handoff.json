@@ -1,0 +1,68 @@
+
+Here is the handoff JSON:
+
+```json
+{
+  "phase_completed": "Plan Critique & Refinement — Threshold Configuration Admin UI",
+  "phase_goal_achieved": true,
+  "goal_delta": "Plan refined with 5 critical fixes and minor updates. Implementation can proceed; prior bugs and underspecs are documented and addressed.",
+
+  "decisions_locked": [
+    {"topic": "Migration pre-flight", "chosen": "preflight_migration.py for DB writability and row-count; if sessions >1000 rows run UPDATE manual first; alembic upgrade head --sql > migration_preview.sql before upgrade", "reverting_this_requires": "Removes safety for highest-risk step — hard"},
+    {"topic": "invalidate_cache", "chosen": "Acquire _load_lock before setting _cache_loaded = False", "reverting_this_requires": "Reintroduces concurrent correctness bug — hard"},
+    {"topic": "Form NaN / cleared-field", "chosen": "parseFloat(e.target.value) with no ||0 fallback; isCompleteForm checks angle_target_degrees > 0; backend gt=0 on angle_target_degrees", "reverting_this_requires": "Silent 0 submission, useless scoring — medium"},
+    {"topic": "Step 4.6 session_factory", "chosen": "Explicit fixture: SessionModel + 10 frames via generate_session_for_welder; conftest imports WeldThresholdModel before create_all", "reverting_this_requires": "Test may pass for wrong reason (404) — medium"},
+    {"topic": "Step 1.4 missing-row behavior", "chosen": "Fail loudly when tig/stick/flux_core row missing; per-row try/except for corrupt rows; no silent MIG fallback", "reverting_this_requires": "Silent wrong thresholds — hard"},
+    {"topic": "Step 2.3 zero-frames", "chosen": "Reject sessions with <10 frames; return 400 with clear message", "reverting_this_requires": "get_session_score may 500 — medium"},
+    {"topic": "Step 4.2 thermal fallback", "chosen": "Thermal fallback 60/80 to match seed; wait for sessionData and primaryScore before micro-feedback or show skeleton", "reverting_this_requires": "Visual flicker — low"},
+    {"topic": "Step 4.5 demo callout", "chosen": "Fetch GET /api/thresholds, use mig row when mockScore has no spec; no hardcoded 45° ±5°", "reverting_this_requires": "Demo shows wrong spec — low"}
+  ],
+
+  "files_state": {
+    "created": ["backend/scripts/preflight_migration.py"],
+    "modified": [".cursor/issues/threshold-configuration-admin-ui-plan-refined.md"],
+    "deleted": []
+  },
+
+  "contracts_established": [
+    "WeldTypeThresholds: angle_target_degrees gt=0",
+    "PUT /api/thresholds/:weld_type: angle_warning <= angle_critical; angle_target_degrees > 0",
+    "GET /api/sessions/:id/score: 400 if frames < 10; active_threshold_spec with 9 fields",
+    "get_thresholds: raises when tig/stick/flux_core row missing",
+    "invalidate_cache: acquires _load_lock before _cache_loaded = False",
+    "preflight_migration.py: DB writability, sessions row count; migration_preview.sql",
+    "session_factory: SessionModel + 10 frames; WeldThresholdModel imported before create_all"
+  ],
+
+  "assumptions_now_baked_in": [
+    "Single-worker for cache; multi-worker backlogged",
+    "PostgreSQL vanilla; 100k+ sessions needs batched UPDATE",
+    "down_revision 003_add_score_total",
+    "ActiveThresholdSpec optional fields for legacy compat",
+    "angle_target ≤90° for AngleArcDiagram"
+  ],
+
+  "open_risks_for_next_phase": [
+    {"risk": "Migration UPDATE succeeds, ALTER fails", "trigger": "Connection drop between steps", "owner": "Step 1.2 pre-flight"},
+    {"risk": "Large table migration locks sessions", "trigger": "sessions >1000 rows", "owner": "preflight_migration.py"},
+    {"risk": "Micro-feedback flicker", "trigger": "Frames load fast, score slow", "owner": "Step 4.2"},
+    {"risk": "test_put_threshold_invalidates_cache fixture underspec", "trigger": "Missing session+frames", "owner": "Step 4.6"}
+  ],
+
+  "broken_or_incomplete": [
+    "Original plan had 5 critical bugs; refinement fixes all. No implementation yet."
+  ],
+
+  "next_phase_must_not": [
+    "Run alembic upgrade without pre-flight",
+    "Call invalidate_cache without _load_lock",
+    "Use parseFloat(x) || 0 for form inputs",
+    "Allow angle_target_degrees === 0",
+    "Implement Step 4.6 without explicit session_factory",
+    "Hardcode 45° ±5° in demo when fetch available",
+    "Compute micro-feedback before sessionData and primaryScore ready"
+  ],
+
+  "next_phase_starting_state": "Refined plan at .cursor/issues/threshold-configuration-admin-ui-plan-refined.md. 20 steps, 4 phases. Fixes: migration pre-flight, cache lock, form NaN/0, session_factory, thermal 60/80, demo fetch. Implement per refined steps; run preflight before Step 1.2."
+}
+```

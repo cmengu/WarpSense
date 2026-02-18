@@ -5,6 +5,8 @@ import Link from "next/link";
 import { fetchSession, fetchScore, type SessionScore } from "@/lib/api";
 import { generateAIFeedback } from "@/lib/ai-feedback";
 import { logError } from "@/lib/logger";
+import { captureChartToBase64 } from "@/lib/pdf-chart-capture";
+import { getApiBase } from "@/lib/api-base";
 import { useFrameData } from "@/hooks/useFrameData";
 import { extractHeatmapData, tempToColorRange } from "@/utils/heatmapData";
 import HeatMap from "@/components/welding/HeatMap";
@@ -13,24 +15,53 @@ import { LineChart } from "@/components/charts/LineChart";
 import type { Session } from "@/types/session";
 
 // ---------------------------------------------------------------------------
-// Constants
+// Constants — Must match WELDER_ARCHETYPES (backend/data/mock_welders.py)
 // ---------------------------------------------------------------------------
 
-const WELDER_MAP: Record<string, string> = {
-  "mike-chen": "sess_novice_001",
-  "expert-benchmark": "sess_expert_001",
+const WELDER_SESSION_COUNT: Record<string, number> = {
+  "mike-chen": 5,
+  "sara-okafor": 5,
+  "james-park": 5,
+  "lucia-reyes": 5,
+  "tom-bradley": 3,
+  "ana-silva": 5,
+  "derek-kwon": 5,
+  "priya-nair": 5,
+  "marcus-bell": 5,
+  "expert-benchmark": 5,
 };
 
 const WELDER_DISPLAY_NAMES: Record<string, string> = {
   "mike-chen": "Mike Chen",
+  "sara-okafor": "Sara Okafor",
+  "james-park": "James Park",
+  "lucia-reyes": "Lucia Reyes",
+  "tom-bradley": "Tom Bradley",
+  "ana-silva": "Ana Silva",
+  "derek-kwon": "Derek Kwon",
+  "priya-nair": "Priya Nair",
+  "marcus-bell": "Marcus Bell",
   "expert-benchmark": "Expert Benchmark",
 };
 
-const MOCK_HISTORICAL = [
-  { date: "Week 1", value: 68 },
-  { date: "Week 2", value: 72 },
-  { date: "Week 3", value: 75 },
-];
+const EXPERT_SESSION_ID = "sess_expert-benchmark_005";
+
+/** Coerce welder name to string; always returns string. Matches API route. */
+function toWelderName(v: unknown): string {
+  if (typeof v === "string" && v.trim().length > 0) return v.trim();
+  if (typeof v === "number" || typeof v === "boolean") return String(v);
+  return "Unknown";
+}
+
+function sanitizeDownloadFilename(name: string): string {
+  const s = String(name).replace(/[^a-zA-Z0-9_-]/g, "-").slice(0, 64) || "welder";
+  return `${s}-warp-report.pdf`;
+}
+
+function getLatestSessionId(welderId: string): string {
+  const n = WELDER_SESSION_COUNT[welderId] ?? 1;
+  return `sess_${welderId}_${String(n).padStart(3, "0")}`;
+}
 
 type WelderParams = { id: string } | Promise<{ id: string }>;
 
@@ -73,8 +104,14 @@ function WelderReportWithAsyncParams({
 }
 
 function WelderReportInner({ welderId }: { welderId: string }) {
-  const sessionId = WELDER_MAP[welderId] ?? welderId;
+  const sessionId = getLatestSessionId(welderId);
   const displayName = WELDER_DISPLAY_NAMES[welderId] ?? welderId;
+  const sessionCount = WELDER_SESSION_COUNT[welderId] ?? 1;
+
+  const historicalSessionIds = Array.from(
+    { length: sessionCount },
+    (_, i) => `sess_${welderId}_${String(i + 1).padStart(3, "0")}`
+  );
 
   const [session, setSession] = useState<Session | null>(null);
   const [expertSession, setExpertSession] = useState<Session | null>(null);
@@ -82,41 +119,91 @@ function WelderReportInner({ welderId }: { welderId: string }) {
   const [report, setReport] = useState<
     ReturnType<typeof generateAIFeedback> | null
   >(null);
+  const [chartData, setChartData] = useState<
+    { date: string; value: number }[] | null
+  >(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const [pdfError, setPdfError] = useState<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
     setLoading(true);
     setError(null);
-    Promise.all([
-      fetchSession(sessionId, { limit: 2000 }),
-      fetchSession("sess_expert_001", { limit: 2000 }),
-      fetchScore(sessionId),
-    ])
-      .then(([s, e, sc]) => {
-        if (!mounted) return;
-        setSession(s);
-        setExpertSession(e);
-        setScore(sc);
-        setReport(generateAIFeedback(s, sc, [68, 72, 75]));
-      })
-      .catch((err) => {
-        logError("WelderReport", err);
-        if (!mounted) return;
+
+    const fetchPrimary = fetchSession(sessionId, { limit: 2000 });
+    const fetchExpert = fetchSession(EXPERT_SESSION_ID, { limit: 2000 });
+    const fetchScorePrimary = fetchScore(sessionId);
+    const histPromises = historicalSessionIds.map((sid) => fetchScore(sid));
+
+    Promise.allSettled([
+      fetchPrimary,
+      fetchExpert,
+      fetchScorePrimary,
+      ...histPromises,
+    ]).then((results) => {
+      if (!mounted) return;
+
+      const [primaryResult, expertResult, scoreResult, ...histResults] = results;
+
+      const s =
+        primaryResult.status === "fulfilled"
+          ? primaryResult.value as Session
+          : null;
+      const e =
+        expertResult.status === "fulfilled"
+          ? (expertResult.value as Session)
+          : null;
+      const sc =
+        scoreResult.status === "fulfilled"
+          ? (scoreResult.value as SessionScore)
+          : null;
+
+      if (s === null || sc === null) {
+        logError("WelderReport", primaryResult.status === "rejected" ? primaryResult.reason : scoreResult.status === "rejected" ? scoreResult.reason : new Error("Primary session or score failed"));
         const message =
           process.env.NODE_ENV === "development"
-            ? err instanceof Error ? err.message : String(err)
+            ? primaryResult.status === "rejected"
+              ? String(primaryResult.reason)
+              : scoreResult.status === "rejected"
+                ? String(scoreResult.reason)
+                : "Session not found. Make sure mock data is seeded. See STARTME.md."
             : "Session not found. Make sure mock data is seeded. See STARTME.md.";
         setError(message);
         setSession(null);
         setExpertSession(null);
         setScore(null);
         setReport(null);
-      })
-      .finally(() => {
-        if (mounted) setLoading(false);
+        setChartData(null);
+        setLoading(false);
+        return;
+      }
+
+      const lastIdx = histResults.length - 1;
+      const historicalScores = histResults.map((r, i) => {
+        if (r.status === "fulfilled") return (r.value as SessionScore).total;
+        if (i === lastIdx && sc != null) return sc.total;
+        return 0;
       });
+
+      const chartDataResult = historicalSessionIds.map((sid, i) => {
+        const r = histResults[i];
+        let val = r?.status === "fulfilled"
+          ? (r.value as SessionScore).total
+          : 0;
+        if (i === lastIdx && sc != null && val === 0) val = sc.total;
+        return { date: `Session ${i + 1}`, value: val };
+      });
+
+      setSession(s);
+      setExpertSession(e);
+      setScore(sc);
+      setReport(generateAIFeedback(s, sc, historicalScores));
+      setChartData(chartDataResult);
+      setLoading(false);
+    });
+
     return () => {
       mounted = false;
     };
@@ -129,7 +216,7 @@ function WelderReportInner({ welderId }: { welderId: string }) {
   if (error) {
     return (
       <div className="min-h-screen bg-zinc-50 dark:bg-black p-8">
-        <div className="bg-violet-50 dark:bg-violet-950/30 border border-violet-200 dark:border-violet-800 rounded-lg p-6 max-w-md">
+        <div className="bg-violet-50 dark:bg-violet-950/30 border border-violet-200 dark:bg-violet-800 rounded-lg p-6 max-w-md">
           <h2 className="text-lg font-bold text-violet-900 dark:text-violet-200">
             ⚠️ Error
           </h2>
@@ -145,7 +232,7 @@ function WelderReportInner({ welderId }: { welderId: string }) {
     );
   }
 
-  if (loading || !report || !session || !expertSession) {
+  if (loading || !report || !session) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         Loading AI analysis...
@@ -156,9 +243,57 @@ function WelderReportInner({ welderId }: { welderId: string }) {
   const heatmapData = extractHeatmapData(frameData.thermal_frames);
   const expertHeatmapData = extractHeatmapData(expertFrameData.thermal_frames);
 
+  async function handleDownloadPDF() {
+    if (!report || !score) return;
+    setPdfError(null);
+    setPdfLoading(true);
+    try {
+      const chartDataUrl = await captureChartToBase64("trend-chart");
+
+      const welderName = toWelderName(displayName);
+      const payload = {
+        welder: { name: welderName },
+        score: { total: score.total, rules: score.rules },
+        feedback: {
+          summary: report.summary,
+          feedback_items: report.feedback_items,
+        },
+        chartDataUrl,
+      };
+
+      const apiUrl = `${getApiBase()}/api/welder-report-pdf`;
+      const res = await fetch(apiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(
+          (err as { error?: string }).error ??
+            `Failed to generate PDF (${res.status})`
+        );
+      }
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = sanitizeDownloadFilename(welderName);
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setPdfError(err instanceof Error ? err.message : String(err));
+      logError("WelderReport", err, { context: "handleDownloadPDF" });
+    } finally {
+      setPdfLoading(false);
+    }
+  }
+
   const allTemps = [
     ...heatmapData.points.map((p) => p.temp_celsius),
-    ...expertHeatmapData.points.map((p) => p.temp_celsius),
+    ...(expertSession ? expertHeatmapData.points.map((p) => p.temp_celsius) : []),
   ];
   const minT = allTemps.length > 0 ? Math.min(...allTemps) : 0;
   const maxT = allTemps.length > 0 ? Math.max(...allTemps) : 600;
@@ -187,6 +322,14 @@ function WelderReportInner({ welderId }: { welderId: string }) {
             <div className="text-sm text-zinc-600 dark:text-zinc-400">
               {report.skill_level} • {report.trend}
             </div>
+            {score?.active_threshold_spec && (
+              <div className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
+                Evaluated against{' '}
+                {score.active_threshold_spec.weld_type.toUpperCase()} spec —
+                Target {score.active_threshold_spec.angle_target}° ±
+                {score.active_threshold_spec.angle_warning}°
+              </div>
+            )}
           </div>
         </div>
         <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-950/30 border-l-4 border-blue-500 rounded">
@@ -198,22 +341,36 @@ function WelderReportInner({ welderId }: { welderId: string }) {
 
       <div className="bg-white dark:bg-zinc-900 rounded-lg shadow p-6 mb-8">
         <h2 className="text-xl font-bold mb-4">Thermal Comparison</h2>
-        <div className="grid grid-cols-2 gap-8">
-          <div>
-            <h3 className="text-sm font-semibold text-zinc-600 dark:text-zinc-400 mb-2">
-              Expert Benchmark
-            </h3>
-            <HeatMap
-              sessionId="expert"
-              data={expertHeatmapData}
-              colorFn={colorFn}
-              label="Expert"
-            />
+        {expertSession ? (
+          <div className="grid grid-cols-2 gap-8">
+            <div>
+              <h3 className="text-sm font-semibold text-zinc-600 dark:text-zinc-400 mb-2">
+                Expert Benchmark
+              </h3>
+              <HeatMap
+                sessionId="expert"
+                data={expertHeatmapData}
+                colorFn={colorFn}
+                label="Expert"
+              />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-zinc-600 dark:text-zinc-400 mb-2">
+                Your Weld
+              </h3>
+              <HeatMap
+                sessionId={sessionId}
+                data={heatmapData}
+                colorFn={colorFn}
+                label={displayName}
+              />
+            </div>
           </div>
+        ) : (
           <div>
-            <h3 className="text-sm font-semibold text-zinc-600 dark:text-zinc-400 mb-2">
-              Your Weld
-            </h3>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
+              Expert comparison unavailable — run seed to add sess_expert-benchmark_005.
+            </p>
             <HeatMap
               sessionId={sessionId}
               data={heatmapData}
@@ -221,7 +378,7 @@ function WelderReportInner({ welderId }: { welderId: string }) {
               label={displayName}
             />
           </div>
-        </div>
+        )}
       </div>
 
       <div className="bg-white dark:bg-zinc-900 rounded-lg shadow p-6 mb-8">
@@ -231,22 +388,39 @@ function WelderReportInner({ welderId }: { welderId: string }) {
 
       <div className="bg-white dark:bg-zinc-900 rounded-lg shadow p-6 mb-8">
         <h2 className="text-xl font-bold mb-4">Progress Over Time</h2>
-        <LineChart data={MOCK_HISTORICAL} color="#3b82f6" height={200} />
+        <div
+          id="trend-chart"
+          style={{ width: 600, height: 200 }}
+          data-testid="trend-chart"
+        >
+          <LineChart
+            data={chartData ?? []}
+            color="#3b82f6"
+            height={200}
+          />
+        </div>
       </div>
 
-      <div className="flex gap-4">
-        <button
-          className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700"
-          onClick={() => alert("Email report — coming soon")}
-        >
-          📧 Email Report
-        </button>
-        <button
-          className="bg-zinc-200 text-zinc-800 px-6 py-3 rounded-lg font-semibold hover:bg-zinc-300 dark:bg-zinc-700 dark:text-zinc-200"
-          onClick={() => alert("Download PDF — coming soon")}
-        >
-          📄 Download PDF
-        </button>
+      <div className="flex flex-col gap-4">
+        <div className="flex gap-4">
+          <button
+            className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed"
+            disabled
+            title="Email report — coming soon"
+          >
+            📧 Email Report (coming soon)
+          </button>
+          <button
+            className="bg-zinc-200 text-zinc-800 px-6 py-3 rounded-lg font-semibold hover:bg-zinc-300 dark:bg-zinc-700 dark:text-zinc-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={handleDownloadPDF}
+            disabled={loading || pdfLoading}
+          >
+            {pdfLoading ? "⏳ Generating..." : "📄 Download PDF"}
+          </button>
+        </div>
+        {pdfError && (
+          <p className="text-red-600 dark:text-red-400 text-sm">{pdfError}</p>
+        )}
       </div>
     </div>
   );

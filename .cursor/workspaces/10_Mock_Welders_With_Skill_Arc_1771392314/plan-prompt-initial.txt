@@ -1,0 +1,323 @@
+# create-plan-autonomous
+
+You are a senior engineer writing an implementation plan. You have a complete issue specification and a complete exploration document. Your job is to produce a step-by-step blueprint that another engineer or an AI agent can execute without asking any questions.
+
+Do not re-explore. Do not reconsider architectural decisions already made. Translate the exploration into ordered, atomic, verifiable steps.
+
+---
+
+## Your Output Contract
+
+Produce exactly this structure.
+
+---
+
+### Phase Breakdown
+
+Before writing steps, define your phases. Each phase must:
+- Deliver independently demonstrable value
+- Be completable in 1–3 days
+- Have a clear entry state and exit state
+
+Format each phase header as:
+```
+## Phase N — [Name]
+Goal: [What user/system can do after this phase that it couldn't before]
+Risk: Low / Medium / High
+Estimate: _h
+```
+
+Minimum 2 phases. Maximum 5 for any single issue.
+
+---
+
+### Steps
+
+For each phase, write all steps. Number them `N.M` (e.g. `1.1`, `1.2`, `2.1`).
+
+**Every step must include:**
+
+**Step N.M — [Specific action name]**
+
+*What:* One sentence describing exactly what to build or change.
+
+*File:* `path/to/file.ext` (create / modify)
+
+*Depends on:* Step N.M or "none"
+
+*Code:*
+```typescript
+// For steps classified as CRITICAL (see below):
+// Full working implementation — imports, types, logic, error handling.
+// Not pseudocode. This must be copy-pasteable and functional.
+
+// For NON-CRITICAL steps:
+// Key snippet only — show the pattern, not boilerplate.
+```
+
+*Why this approach:* One sentence referencing the exploration decision that drives this step.
+
+*Verification:*
+```
+Setup: [any prerequisite — seed data, env var, server state]
+Action: [exact user action or command to run]
+Expected: [specific observable outcome — DOM state, console output, network response, file content]
+Pass criteria:
+  [ ] criterion 1
+  [ ] criterion 2
+  [ ] criterion 3
+If it fails: [most likely cause and how to diagnose]
+```
+
+*Estimate:* _h
+
+---
+
+### Step Classification
+
+**CRITICAL steps require full code implementation:**
+- New API endpoints
+- State management setup
+- Auth / permission logic
+- Complex business logic
+- Any step where getting it wrong causes cascading failures
+
+**NON-CRITICAL steps require key snippet only:**
+- Simple UI components following existing patterns
+- Styling changes
+- Type definitions
+- Import additions
+- Steps that directly follow an established pattern in the codebase
+
+Classify each step as you write it. If unsure, default to CRITICAL.
+
+---
+
+### Risk Heatmap
+
+After writing all steps, produce a table mapping where execution is most likely to get stuck:
+
+| Phase.Step | Risk Description | Probability | Impact | Early Warning | Mitigation |
+|---|---|---|---|---|---|
+| 1.3 | example risk | Med | High | what you'd see | what to do |
+
+Include at least one entry per phase. Flag any CRITICAL RISK items from the exploration.
+
+---
+
+### Pre-Flight Checklist
+
+One checklist per phase. Things that must be true before starting that phase.
+
+```
+Phase N Prerequisites:
+[ ] requirement — how to verify — how to fix if missing
+[ ] requirement — how to verify — how to fix if missing
+```
+
+Minimum 4 items per phase.
+
+---
+
+### Success Criteria
+
+After all phases complete, these must be true before declaring the feature done.
+
+List 8–12 criteria. Each must have:
+- The condition
+- How to verify it (specific action + expected observable result)
+- Priority: P0 (must have) / P1 (should have)
+
+---
+
+### Progress Tracker
+
+```
+| Phase | Steps | Done | In Progress | Blocked | % |
+|---|---|---|---|---|---|
+| Phase 1 | N | 0 | 0 | 0 | 0% |
+| Phase 2 | N | 0 | 0 | 0 | 0% |
+| TOTAL | N | 0 | 0 | 0 | 0% |
+```
+
+---
+
+## Output Rules
+
+- Steps must be atomic. If a step contains "and then also", split it.
+- Verification must be observable. "Check that it works" is not acceptable. Name the DOM element, the console output, the HTTP status, or the file content.
+- CRITICAL step code must compile. No pseudocode, no `// ... rest of implementation`.
+- Time estimates must reflect reality, not best-case. Add 25% buffer for debugging.
+- Do not reference decisions not made in the exploration document. If something is unclear, state your assumption explicitly at the step where it matters.
+- Reference the exploration's "Critical path order" when sequencing phases and steps.
+- Total step count: 15–40 steps depending on complexity. Fewer than 15 means steps are too coarse. More than 40 means scope should be split.
+- Target plan length: dense and complete. Every step must be implementable from what's written. Cut explanation, not substance.
+
+---
+
+## Self-Check Before Submitting
+
+Run through these before outputting the plan:
+
+- [ ] Every step has a verification with specific pass criteria
+- [ ] Every CRITICAL step has full working code
+- [ ] Dependencies between steps are correctly sequenced (no step needs something from a later step)
+- [ ] All CRITICAL RISKS from exploration appear in the risk heatmap with mitigation
+- [ ] Total estimate matches exploration estimate within 20% (if not, explain the gap)
+- [ ] Someone who has not read the exploration document could execute this plan
+- [ ] No step says "implement X" without specifying the file, the code, and how to verify it worked
+
+---
+# Task Description:
+
+10 Mock Welders With Skill Arcs
+The Goal
+A supervisor opens the dashboard and sees 10 welders. Three are improving. Two are declining. One is a star. One just started. That's a sales demo, not a prototype.
+Step 1: Define the Archetypes (backend/data/mock_welders.py)
+Create a new file with 10 welder profiles. Each has an arc_type that drives score generation:
+pythonWELDER_ARCHETYPES = [
+  {"welder_id": "mike-chen",       "name": "Mike Chen",        "arc": "fast_learner",      "sessions": 5, "base": 58, "delta": +4},
+  {"welder_id": "sara-okafor",     "name": "Sara Okafor",      "arc": "consistent_expert", "sessions": 5, "base": 88, "delta": +1},
+  {"welder_id": "james-park",      "name": "James Park",       "arc": "plateaued",         "sessions": 5, "base": 71, "delta": 0},
+  {"welder_id": "lucia-reyes",     "name": "Lucia Reyes",      "arc": "declining",         "sessions": 5, "base": 76, "delta": -4},
+  {"welder_id": "tom-bradley",     "name": "Tom Bradley",      "arc": "new_hire",          "sessions": 3, "base": 42, "delta": +6},
+  {"welder_id": "ana-silva",       "name": "Ana Silva",        "arc": "volatile",          "sessions": 5, "base": 65, "delta":  0},  # swings ±12
+  {"welder_id": "derek-kwon",      "name": "Derek Kwon",       "arc": "fast_learner",      "sessions": 5, "base": 61, "delta": +5},
+  {"welder_id": "priya-nair",      "name": "Priya Nair",       "arc": "consistent_expert", "sessions": 5, "base": 91, "delta": 0},
+  {"welder_id": "marcus-bell",     "name": "Marcus Bell",      "arc": "declining",         "sessions": 5, "base": 80, "delta": -5},
+  {"welder_id": "expert-benchmark","name": "Expert Benchmark", "arc": "consistent_expert", "sessions": 5, "base": 93, "delta": +0.5},
+]
+Step 2: Score Generator Function (same file)
+pythonimport random
+
+def generate_score_arc(base, delta, sessions, arc_type):
+    scores = []
+    for i in range(sessions):
+        if arc_type == "volatile":
+            score = base + random.choice([-12, -6, 0, 8, 14])
+        else:
+            noise = random.uniform(-2, 2)
+            score = bae + (delta * i) + noise
+        scores.append(round(min(max(score, 0), 100), 1))
+    return scores
+Step 3: Frame Data Per Arc
+Each welder's frames should reflect their arc — don't just fake the score, fake the underlying rule data that produces the score. That way when you click through to a welder report, the heatmap and micro-feedback tell the same story.
+For declining arcs: increase angle_degrees variance in later sessions (frames drift from 45° toward 60°+). For fast_learner: angle variance tightens session over session. For volatile: thermal asymmetry spikes randomly.
+Create a generate_frames_for_arc(arc_type, session_index) function in mock_sessions.py that adjusts:
+
+angle_degrees standard deviation (tight=2°, loose=8°, drifting=2°→8° over sessions)
+thermal N/S delta (symmetric=<10°C, asymmetric=20–40°C)
+amps stability (stable=±2A, unstable=±8A)
+
+Step 4: Seed Script Update
+Extend your existing POST /api/dev/seed-mock-sessions to loop over all 10 archetypes, generate 3–5 sessions each with correct timestampsnd store welder_id on each session.
+Total sessions seeded: ~45. Total new code: ~150 lines of Python, zero new API endpoints.
+Step 5: Dashboard Update (WELDER_MAP + WELDERS array)
+In the Seagull dashboard, replace the 2-welder WELDERS array with all 10. Add coaching status derived from arc: if last 2 scores declining → show amber "Needs attention" badge. If improving → green "On track". This is 3 lines of logic per card, all derived from history you're already fetching.
+The supervisor sees at a glance: 3 green, 5 neutral, 2 amber. That's the enterprise demo.
+
+
+---
+# Issue Details:
+
+
+I've written the issue spec and saved it to `.cursor/issues/10-mock-welders-with-skill-arcs.md`. Here's what it contains:
+
+**Summary**
+
+- **Type:** Feature – add 10 welder archetypes with distinct skill arcs for sales demos  
+- **Root cause:** No mock data layer for archetypes and no arc-driven frame generation  
+- **Current state:** Tables for mock sessions, seed/wipe, dashboard, welder report, scoring, and APIs  
+- **Gaps:** 2 welders only, no coaching badges, no arc-aligned frame data, hardcoded score history  
+
+**Desired outcome**
+
+1. 10 welder cards (Mike Chen, Sara Okafor, James Park, Lucia Reyes, Tom Bradley, Ana Silva, Derek Kwon, Priya Nair, Marcus Bell, Expert Benchmark)  
+2. Coaching badges: green "On track", amber "Needs attention", neutral  
+3. Arc-driven frame generation so heatmaps and micro-feedback align with each arc  
+4. Real score history for the welder report trend chart  
+
+**Technical notes**
+
+- Reuse `operator_id` as welder identifier (no DB change)  
+- Fix typo: `bae` → `base` in the score formula  
+- Session IDs: `sess_{welder_id}_{001..00n}`  
+- Wipe extended to remove all ~45 mock sessions  
+
+**Effort:** M (8–16h total: ~10h backend, ~3h frontend, ~2h tests, ~1h review)
+
+
+---
+# Exploration Findings (compressed):
+
+
+Use this handoff JSON:
+
+```json
+{
+  "phase_completed": "Technical Exploration — 10 Mock Welders With Skill Arcs",
+  "phase_goal_achieved": true,
+  "goal_delta": "Architecture chosen, file plan fixed, prototype script ready. No implementation yet; next phase builds it.",
+
+  "decisions_locked": [
+    {"topic": "Architecture", "chosen": "Option A: mock_welders.py + extend mock_sessions.py with generate_frames_for_arc", "reverting_this_requires": "Restructure frame generation ownership"},
+    {"topic": "Expert comparison baseline", "chosen": "sess_expert-benchmark_005 (not sess_expert_001)", "reverting_this_requires": "Welder report + seed changes"},
+    {"topic": "Session ID convention", "chosen": "sess_{welder_id}_{001..00n}", "reverting_this_requires": "Backend seed + frontend derivation"},
+    {"topic": "Badge and historical data", "chosen": "Fetch via existing fetchScore; no new endpoints", "reverting_this_requires": "Backend batch API + frontend changes"},
+    {"topic": "Volatile/declining arcs", "chosen": "disable_sensor_continuity_checks=True; random.seed(42) for volatile", "reverting_this_requires": "Validation failures on seed"}
+  ],
+
+  "files_state": {
+    "created": ["backend/data/mock_welders.py", "backend/scripts/prototype_arc_scoring.py"],
+    "modified": [
+      "backend/data/mock_sessions.py",
+      "backend/routes/dev.py",
+      "backend/scripts/seed_demo_data.py",
+      "my-app/src/app/seagull/page.tsx",
+      "my-app/src/app/seagull/welder/[id]/page.tsx",
+      "backend/tests/test_dev_routes.py",
+      "backend/tests/test_mock_sessions.py or test_mock_welders.py"
+    ],
+    "deleted": []
+  },
+
+  "contracts_established": [
+    "WELDER_ARCHETYPES: welder_id, name, arc, sessions, base, delta; arc ∈ fast_learner|consistent_expert|plateaued|declining|new_hire|volatile",
+    "generate_frames_for_arc(arc_type, session_index) → frames; params: angle_stddev (tight=2°, loose=8°, drift 2°→8°), thermal N/S delta (sym=<10°C, asym=20–40°C), amps (±2A stable, ±8A unstable)",
+    "operator_id = welder_id on Session",
+    "Badge: last>prev→on_track, last<prev→needs_attention, else neutral; need 2+ scores",
+    "Spec typo: use 'base' not 'bae' in generate_score_arc"
+  ],
+
+  "assumptions_now_baked_in": [
+    "Rule thresholds in rule_based.py fixed; do not change for mock",
+    "±5–10 score variance acceptable; tune iteratively",
+    "Prototype not run; validate with PYTHONPATH=backend python backend/scripts/prototype_arc_scoring.py during impl",
+    "sess_expert_001 removed unless product specifies retention"
+  ],
+
+  "open_risks_for_next_phase": [
+    {"risk": "Frame params don't hit target score ranges", "trigger": "Prototype scores outside ±10 of archetype base/delta", "owner": "Impl phase — tune or accept variance"},
+    {"risk": "Volatile arc non-reproducible", "trigger": "Different scores across seed runs", "owner": "Impl — must call random.seed(42) before generation"},
+    {"risk": "Session validation fails on declining/volatile", "trigger": "Ingest fails", "owner": "Impl — set disable_sensor_continuity_checks=True"},
+    {"risk": "Wipe misses sessions", "trigger": "Orphan mock sessions after wipe", "owner": "Impl — derive wipe IDs from WELDER_ARCHETYPES"},
+    {"risk": "expert-benchmark not seeded", "trigger": "Welder report comparison 404 for all welders", "owner": "Seed before demo"}
+  ],
+
+  "broken_or_incomplete": [
+    "Nothing implemented; exploration only. Prototype exists but execution not confirmed."
+  ],
+
+  "next_phase_must_not": [
+    "Change rule thresholds in rule_based.py for mock",
+    "Add new API endpoints — use fetchScore",
+    "Omit disable_sensor_continuity_checks for volatile/declining arcs",
+    "Omit random.seed(42) before volatile arc generation",
+    "Hardcode wipe session IDs — derive from WELDER_ARCHETYPES",
+    "Keep MOCK_HISTORICAL in welder report — replace with fetched sess_{id}_001..00n",
+    "Use sess_expert_001 for expert comparison — use sess_expert-benchmark_005"
+  ],
+
+  "next_phase_starting_state": "Exploration complete. mock_welders.py does not exist. mock_sessions has expert/novice only. Dashboard has 2 welders. Welder report uses MOCK_HISTORICAL and sess_expert_001. Prototype script ready for validation. Critical path: mock_welders → mock_sessions → dev seed/wipe → seed_demo_data → dashboard → welder report → tests."
+}
+```

@@ -1,0 +1,106 @@
+
+The adversarial critique is below as JSON (no markdown, no preamble):
+
+```json
+{
+  "score": 7.2,
+  "adversarial_verdict": "This refined plan addresses most prior critique findings and will likely execute to completion. Remaining risks: plateaued/new_hire have no pass-band validation, Step 3.2 may drop the existing unmount guard, Step 5.3 may not add automated coverage for the critical 4.4 fix, and concurrent seed requests can corrupt or produce confusing 500s.",
+  "sabotage_vectors": [
+    {
+      "step": "1.1",
+      "attack": "Python random module behavior can vary across minor versions (3.10 vs 3.11). generate_score_arc(65,0,5,'volatile') with seed 42 may produce different sequences. test_volatile_reproducible would pass within the same Python version but fail in CI if CI uses different Python.",
+      "detection_gap": "Verification runs on a single environment. No cross-version or CI Python version check in pre-flight.",
+      "blast_radius": "test_volatile_reproducible (Step 5.1); prototype reproducibility; seed produces different volatile scores across environments"
+    },
+    {
+      "step": "1.4",
+      "attack": "PASS_BANDS covers fast_learner, declining, volatile, consistent_expert. plateaued and new_hire have no assertions. A change to generate_frames_for_arc that breaks plateaued/new_hire (e.g. wrong angle function) would pass prototype and produce garbage scores on dashboard.",
+      "detection_gap": "Prototype only asserts arcs in PASS_BANDS. No verification that plateaued or new_hire produce scores in any range.",
+      "blast_radius": "James Park (plateaued) and Tom Bradley (new_hire) could show 0, 100, or nonsense; badges would be wrong or neutral by accident"
+    },
+    {
+      "step": "2.1",
+      "attack": "Two concurrent POST /api/dev/seed-mock-sessions requests. Both delete, both add. Commit order non-deterministic. Second commit may hit duplicate key violation → 500. First requester gets 200 but second request's failure leaves unclear state. No lock or idempotency key.",
+      "detection_gap": "Verification uses single-threaded curl. No concurrent request test.",
+      "blast_radius": "Confusing 500 on 'double-click seed'; manual retry required"
+    },
+    {
+      "step": "2.4",
+      "attack": "Spot-check only verifies sess_mike-chen_001.operator_id. Manually set sess_lucia-reyes_003.operator_id='wrong' while keeping sess_mike-chen_001 correct. existing==expected_count, sample passes → skip. Corrupt operator_id on non-spot-checked row persists.",
+      "detection_gap": "Only one row is spot-checked. Partial corruption elsewhere is invisible.",
+      "blast_radius": "Wrong welder name on Lucia Reyes card; operator_id traceability broken for that session"
+    },
+    {
+      "step": "3.2",
+      "attack": "Plan's code snippet omits 'let mounted = true' and cleanup. Current page.tsx has it. Implementer copies plan code verbatim. On unmount before fetch completes, setWelderScores/setLoading run on unmounted component → React warning; possible leak.",
+      "detection_gap": "Plan does not specify preserving unmount guard. Verification does not check for it.",
+      "blast_radius": "Memory leak or warning in dev; race if user navigates away quickly"
+    },
+    {
+      "step": "3.3",
+      "attack": "Pass criterion 'At least 2 green badges' and 'At least 2 amber badges' would pass even if implementation is inverted (green for declining, amber for improving). Any 2+ of each satisfies. Wrong getBadge(score, secondScore) argument order (prev, last) would invert logic; verification still passes.",
+      "detection_gap": "Verification checks counts, not correctness. No assertion that Mike Chen shows 'On track' and Lucia Reyes shows 'Needs attention'.",
+      "blast_radius": "Badges show opposite meaning; users trust wrong coaching signal"
+    },
+    {
+      "step": "4.4",
+      "attack": "When BOTH sc fetch (current score) AND last historical fetch fail, sc is null. historicalScores[lastIdx] = sc?.total ?? 0 → 0. Same corrupt trend. Fix only works when sc succeeds.",
+      "detection_gap": "No verification for 'current score fetch fails, last historical fails' scenario. Both returning null is plausible on network outage.",
+      "blast_radius": "False 'declining' when network fails for both current and last historical; trend wrong under partial outage"
+    }
+  ],
+  "precondition_gaps": [
+    "Step 1.2 assumes expert_angle, expert_amps, expert_volts have signature (t: int) -> float. Pre-flight checks they exist but not that generate_frames passes them correctly. If mock_sessions refactors to (t, context), Step 1.2 breaks.",
+    "Step 5.3 suggests 'backend test for generateAIFeedback' but generateAIFeedback lives in my-app. No backend equivalent. The step is under-specified for where the test goes.",
+    "Phase 3/4 prerequisites say 'run seed before opening'. No automated guard. Developer opens /seagull without seeding → 10 cards with 'Score unavailable'. Plan assumes manual discipline."
+  ],
+  "untestable_verifications": [
+    "Step 3.1: '10 welder cards visible' — no selector, no assertion. A wrong implementation that renders 10 empty divs with no names passes.",
+    "Step 3.3: 'At least 2 green badges' — does not verify that the RIGHT welders (fast_learner) are green. Implementation could assign green randomly and pass.",
+    "Step 4.4: 'When LAST session fetch fails, historicalScores[lastIdx] = sc.total' — requires mocking network to fail one specific fetch. Manual or requires MSW/test infra. Plan says 'can be manual if test infra gaps' for Step 5.3.",
+    "Success criteria 3–4: 'Visual check' for green/amber — no automated test. Manual only."
+  ],
+  "cascade_points": [
+    "Step 1.2 (generate_frames_for_arc) is single point of failure for 1.3, 1.4, 2.1, 2.4. If arc params drift and prototype passes by luck (scores at band edge), seed produces wrong-score data. Badges and trends wrong. Prototype bands are wide (±15); edge cases possible.",
+    "Step 2.1 seed route: If SessionModel.from_pydantic throws for one session (e.g. new required field), entire seed fails after delete. DB left with 0 mock sessions. No partial success; rollback leaves empty."
+  ],
+  "phase_boundary_gaps": [
+    "Phase 1 to 2: Pre-flight requires 'Prototype exits 0'. If developer skips this and prototype would exit 1, seeding proceeds with wrong-score data. No automated gate before Phase 2 in the plan.",
+    "Phase 2 to 3: 'Run seed before opening /seagull' — no runtime check. Frontend could show 10 cards with Score unavailable. No API or component that detects '0 seeded sessions' and surfaces a clear message.",
+    "Welder report (Phase 4): Uses getLatestSessionId(welderId). If WELDER_SESSION_COUNT in welder page diverges from WELDERS in dashboard (e.g. one adds tom-bradley sessionCount=4 by mistake), report fetches non-existent sess_tom-bradley_004 → 404."
+  ],
+  "pre_mortem": {
+    "partial_execution": "We completed Phases 1–2 but stopped before Phase 3. Backend has 45 seeded sessions; frontend still shows 2 cards (legacy WELDERS). State is consistent. Rollback: revert frontend; wipe if desired. No corruption.",
+    "silent_corruption": "Spot-check in seed_demo_data only validates sess_mike-chen_001. A prior buggy seed wrote sess_lucia-reyes_002 with operator_id='mike-chen'. Full count matched, spot-check passed. Re-run skipped. Dashboard shows wrong name for Lucia's second session. Root cause: single-row spot-check.",
+    "prod_vs_local": "ENV=production in prod. Seed/wipe return 403. Demo deploy uses ENV=staging or development. If staging uses a separate DB and seed never runs there, /seagull shows Score unavailable for all 10. CI may run tests with in-memory SQLite; seed route test uses db_session fixture. If fixture is shared or not isolated, test pollution.",
+    "dependency_drift": "Python 3.12 or 3.13 changes random module internals. random.seed(42) for volatile produces different sequence. test_volatile_reproducible still passes (same run). But prototype or test_mock_sessions_*_in_band could fail when run in 6 months on newer Python. Score bands are empirically tuned; new random sequence may fall outside."
+  },
+  "critical_issues": [
+    "Step 4.4 fix is not covered by automated test (Step 5.3 allows manual). The fix could regress silently. Recommend adding test in ai-feedback.test.ts: historicalScores with last=0 when prev=80 yields declining; with last=82 yields improving. Documents contract even if component test is manual."
+  ],
+  "latent_issues": [
+    "plateaued and new_hire have no PASS_BANDS or test_mock_sessions_*_in_band. Tuning drift in generate_frames_for_arc could break them invisibly.",
+    "Step 3.2 code omits mounted guard; implementer may drop it. Add explicit 'preserve let mounted=true and cleanup' to plan.",
+    "Concurrent seed requests: no protection. Low probability but possible in scripted or automated demo setups.",
+    "Chart vs trend inconsistency when last fetch fails: chartData shows 0 for last slot; historicalScores uses sc.total; trend says 'improving'. Chart and feedback visually disagree. Minor UX confusion."
+  ],
+  "blind_spots": [
+    "WELDERS (dashboard) and WELDER_SESSION_COUNT / WELDER_DISPLAY_NAMES (welder report) are duplicated. Adding 11th archetype requires editing 2+ files. Plan notes this as follow-up but treats it as acceptable for MVP.",
+    "Plan assumes fetchScore and fetchSession return in <5s. Slow network or backend cold start could timeout. Promise.race with 5s is reasonable but not validated under load.",
+    "generateAIFeedback is frontend-only. Step 5.3's 'backend test' suggestion is infeasible. The test must live in my-app. Plan does not specify which test file."
+  ],
+  "minor_issues": [
+    "Step 2.2 verification: 'deleted matches count of seeded sessions' — if seed was never run, deleted=0. Passes. But 'GET sess_mike-chen_001 returns 404 after wipe' assumes seed ran first. Verification order matters.",
+    "Success criteria 8: 'Mock last fetch fail' — manual. No script or test provided.",
+    "Rollback step 5: 'Session ID migration: re-seed with old schema' — old schema (sess_expert_001) is not documented. How to produce it?"
+  ],
+  "what_the_author_cant_see": "The plan correctly sequences the last-slot fix and documents it. The gap is that the author mentally models 'last fetch fails' as the only failure mode. When both current-score fetch and last-historical fetch fail (network blip), sc is null and we still inject 0. The fix is partial. Likewise, the author validated spot-check on one row; the mental model is 'corrupt data would show wrong count' — but corrupt data with correct count (one wrong operator_id among 45) slips through.",
+  "recommended_action": "refine",
+  "minimum_fixes_before_execution": [
+    "Add PASS_BANDS or test_mock_sessions_*_in_band for plateaued and new_hire (at least one session each) so they are not invisible to regression",
+    "In Step 3.2 code block, add explicit 'let mounted = true' and 'if (!mounted) return' before setState, plus cleanup return () => { mounted = false }",
+    "In Step 5.3, specify ai-feedback.test.ts: add test 'trend is declining when last slot is 0 and prev is higher' and 'trend is improving when last slot has real score' to document the contract and catch generateAIFeedback regressions",
+    "Strengthen Step 3.3 verification: require that badge-mike-chen shows 'On track' and badge-lucia-reyes or badge-marcus-bell shows 'Needs attention', not just 'at least 2 of each'"
+  ]
+}
+```

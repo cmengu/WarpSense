@@ -1,0 +1,1 @@
+S: You've hit your usage limit You've saved $131 on API model usage this month with Pro. Switch to a different model or set a Spend Limit to continue with Sonnet. Your usage limits will reset when your monthly cycle ends on 2/22/2026.

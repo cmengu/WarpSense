@@ -1,0 +1,71 @@
+
+```json
+{
+  "phase_completed": "Beautiful PDF Report — Planning (Refined v5)",
+  "phase_goal_achieved": true,
+  "goal_delta": "Refined plan is done with critique and adversarial fixes. Implementation not started.",
+
+  "decisions_locked": [
+    { "topic": "PDF stack", "chosen": "@react-pdf/renderer 3.4.0 + html-to-image 1.11.11, exact versions", "reverting_this_requires": "Touching package.json, lockfile, API route, capture helper — non-trivial" },
+    { "topic": "Chart capture", "chosen": "Option A: html-to-image toPng on client; pre-render to base64 before POST", "reverting_this_requires": "New server-side Chart.js path — major change" },
+    { "topic": "chartDataUrl format", "chosen": "Only data:image/png accepted; SVG/webp rejected silently", "reverting_this_requires": "Component + API route + validation — hard" },
+    { "topic": "welder.name coercion", "chosen": "toWelderName; non-string/whitespace-only → \"Unknown\"", "reverting_this_requires": "Component, API, page, tests — 5+ files" },
+    { "topic": "Request limits", "chosen": "5MB body cap, 2MB chartDataUrl, 411 on chunked without Content-Length, 413 on oversized", "reverting_this_requires": "API route + tests — medium" },
+    { "topic": "trend-chart capture", "chosen": "id=\"trend-chart\", inline style 600×200, data-testid=\"trend-chart\"", "reverting_this_requires": "Page + tests — medium" }
+  ],
+
+  "files_state": {
+    "created": [
+      "my-app/src/components/pdf/WelderReportPDF.tsx",
+      "my-app/src/app/api/welder-report-pdf/route.ts",
+      "my-app/src/lib/pdf-chart-capture.ts",
+      "my-app/src/lib/api-base.ts",
+      "my-app/prototype/pdf-route.mts",
+      "my-app/src/__tests__/lib/api-base.node.test.ts",
+      "my-app/src/__tests__/lib/api-base.jsdom.test.ts",
+      "my-app/src/__tests__/api/welder-report-pdf.test.ts"
+    ],
+    "modified": [
+      "my-app/package.json — add @react-pdf/renderer, html-to-image",
+      "my-app/src/app/seagull/welder/[id]/page.tsx — chart wrapper, handleDownloadPDF, state",
+      "my-app/src/__tests__/app/seagull/welder/[id]/page.test.tsx — fetch mock, toPng mock, restore in afterEach/finally"
+    ],
+    "deleted": []
+  },
+
+  "contracts_established": [
+    "POST /api/welder-report-pdf body: { welder: { name }, score: { total, rules }, feedback: { summary, feedback_items }, chartDataUrl?: string | null }; returns application/pdf; Content-Disposition attachment; filename {sanitized}-warp-report.pdf",
+    "WelderReportPDFProps: welder: { name }, score: { total }, feedback: { summary, feedback_items }, chartDataUrl?: string | null",
+    "feedback_item: { message: string, severity: string, suggestion?: string | null }; top 3 rendered",
+    "toWelderName(v): string; sanitizeText(str): string; sanitizeFilename(name): string; isPngDataUrl(v): boolean"
+  ],
+
+  "assumptions_now_baked_in": [
+    "package-lock.json committed — automated check before Phase 2",
+    "NEXT_PUBLIC_BASE_PATH matches next.config basePath at build — not enforced",
+    "Content-Length trusted — request.json() buffers full body; client can lie; use reverse-proxy body limit in prod",
+    "getApiBase jsdom test mutates process.env — does not validate build-time inlining"
+  ],
+
+  "open_risks_for_next_phase": [
+    { "risk": "html-to-image fails on Recharts in some browsers", "trigger": "toPng rejects or times out", "owner": "Fallback: chartDataUrl null; PDF without chart" },
+    { "risk": "basePath deploy → 404 on PDF route", "trigger": "NEXT_PUBLIC_BASE_PATH not set or wrong", "owner": "Pre-Flight curl with basePath" },
+    { "risk": "Orphaned toPng promise → unhandledrejection on timeout", "trigger": "captureChartToBase64 timeout wins", "owner": "Attach toPng.catch(()=>{}) before race" },
+    { "risk": "CI OOM on 413 test", "trigger": "Low-memory CI runs welder-report-pdf tests", "owner": "Skip 413 when CI_LOW_MEM=1 and (CI=true or CI=1)" }
+  ],
+
+  "broken_or_incomplete": [
+    "Nothing implemented yet. Download PDF is a stub. Plan only."
+  ],
+
+  "next_phase_must_not": [
+    "Use ^ versions for @react-pdf/renderer or html-to-image — exact pinning required",
+    "Accept non-PNG chartDataUrl in WelderReportPDF or API — causes React PDF Image errors",
+    "Skip toWelderName — produces [object Object] in PDF/filename",
+    "Omit toPng.catch in captureChartToBase64 — causes unhandledrejection on timeout",
+    "Forget fetch/toPng restore in tests — mock bleed breaks other tests"
+  ],
+
+  "next_phase_starting_state": "Plan in .cursor/issues/beautiful-pdf-report-plan.md. Four phases: 1) Dependencies + WelderReportPDF + prototype smoke; 2) API route + validation; 3) Client integration; 4) Tests. Pre-Flight: Node 18+, my-app builds, prototype/pdf-route.mts exists. Run Phase 1 Step 1.1 before 2."
+}
+```

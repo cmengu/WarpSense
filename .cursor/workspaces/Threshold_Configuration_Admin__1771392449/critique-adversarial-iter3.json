@@ -1,0 +1,105 @@
+
+Adversarial critique as valid JSON (no markdown wrapper, no preamble):
+
+```json
+{
+  "score": 6.2,
+  "adversarial_verdict": "This plan will execute to completion in a single-worker dev environment and pass verification, but contains three critical gaps: (1) weld_thresholds table with rows but no 'mig' row causes KeyError on every score request; (2) prototype_arc_scoring.py and prototype_aggregate_perf.py are never updated—any TIG/stick/flux_core session they process gets MIG scoring; (3) migration lock on 100k+ sessions can block indefinitely with no timeout or batched fallback in the plan.",
+  "sabotage_vectors": [
+    {
+      "step": "1.2",
+      "attack": "Migration runs single UPDATE sessions SET process_type='mig' WHERE process_type IS NULL. On 100k+ rows this acquires an exclusive lock. Long-running transactions elsewhere block upgrade; upgrade blocks them. Migration hangs until connection timeout.",
+      "detection_gap": "Pre-flight checks alembic history and down_revision, not migration duration or lock contention. No test on large-table copy.",
+      "blast_radius": "Migration never completes; Phase 1 blocked; DB in partial state if process killed"
+    },
+    {
+      "step": "1.4",
+      "attack": "Admin deletes mig row from weld_thresholds via raw SQL (or seed corruption). Table has tig, stick, flux_core. _load_all populates _threshold_cache with 3 entries. get_thresholds(db, 'mig') does _threshold_cache.get('mig', _threshold_cache['mig']) → KeyError. Every score request for MIG sessions 500s.",
+      "detection_gap": "Verification tests empty table (fallback) and normal 4-row seed. No test for 'table has rows but no mig'. Fallback only triggers when rows is empty.",
+      "blast_radius": "All Phase 2 scoring, GET /score, Replay, WelderReport—every MIG session request fails"
+    },
+    {
+      "step": "1.5",
+      "attack": "Step uses db.query(WeldThresholdModel). SQLAlchemy 2.0 deprecates Session.query(). Future SQLAlchemy removes it. Code runs today, breaks on next major upgrade.",
+      "detection_gap": "Verification passes if API returns 200. No assertion that implementation uses supported API.",
+      "blast_radius": "PUT /thresholds fails; admin cannot save; cache never invalidated"
+    },
+    {
+      "step": "1.8",
+      "attack": "Plan updates backfill_score_total.py but not prototype_aggregate_perf.py or prototype_arc_scoring.py. prototype_aggregate_perf loads sessions from DB and calls extract_features(session), score_session(session, features) with no thresholds. If dev seed adds a TIG session, prototype scores it with MIG constants. Output is wrong; no test detects it.",
+      "detection_gap": "Plan explicitly updates backfill. Prototype scripts use same path. No step, no grep, no test references them.",
+      "blast_radius": "Prototype performance numbers wrong for mixed process_type data; developer may tune based on invalid metrics"
+    },
+    {
+      "step": "2.3",
+      "attack": "get_session_score loads session_model. If session was loaded via a query that uses load_only() or deferred columns and excludes process_type, getattr(session_model, 'process_type', None) returns the deferred loader, not the value.",
+      "detection_gap": "Verification checks that active_threshold_spec is present. Does not verify session loading path includes process_type.",
+      "blast_radius": "Wrong thresholds for sessions loaded via alternate path; KeyError if process_type access fails"
+    },
+    {
+      "step": "3.2",
+      "attack": "Verification says 'Render <AngleArcDiagram angleTargetDegrees={45} />... Pass: SVG renders, Arc spans correct angle (visual)'. Implement broken arc path (e.g. wrong sweep flag)—SVG still 'renders', visual check is subjective. No DOM assertion, no angle measurement.",
+      "detection_gap": "No automated test with assertion on arc path d attribute or computed angle. Manual visual check passes even if arc is wrong.",
+      "blast_radius": "Admin sees misleading arc; trust in UI degrades"
+    },
+    {
+      "step": "4.2",
+      "attack": "Replay fetches session and score in parallel. If fetchScore fails, primaryScore is null. thresholdsForMicroFeedback is undefined. generateMicroFeedback(frames, undefined) uses default 45/5/15/20. User sees wrong feedback for TIG session. No error surface—micro-feedback silently degrades.",
+      "detection_gap": "Verification assumes fetchScore succeeds. No test for fetchScore failure path.",
+      "blast_radius": "TIG/Stick/Flux sessions show MIG thresholds in micro-feedback when score fetch fails"
+    }
+  ],
+  "precondition_gaps": [
+    "Step 1.4: get_thresholds assumes 'mig' exists in _threshold_cache whenever table has any rows. Fallback only when table is empty. Partial seed (mig deleted) not handled.",
+    "Step 4.6: seeded_weld_thresholds fixture requires WeldThresholdModel in Base.metadata before create_all. Plan says 'ensure WeldThresholdModel imported first' but conftest fixture order is implicit.",
+    "Phase 2 prerequisite: 'test_put_threshold_invalidates_cache passes'. This test is in Step 4.6 (Phase 4). Circular dependency for when it can run."
+  ],
+  "untestable_verifications": [
+    "Step 3.2: 'Arc spans correct angle (visual: 45° arc)'. No assertion. Wrong arc could pass visual check. Specify arc path assertion or snapshot test.",
+    "Step 3.3: 'Layout renders' checks nav link exists, not that children render. Layout could render nav + empty children.",
+    "Step 4.5: 'Layout unchanged' is subjective. No before/after snapshot."
+  ],
+  "cascade_points": [
+    "Step 1.2 is single point of failure for Steps 1.3–1.8 and all of Phase 2. If migration fails mid-upgrade, sessions may have process_type NULL; alter_column nullable=False fails on retry.",
+    "Step 1.4: If get_thresholds KeyErrors (no mig in cache), every GET /score and scoring path fails. No fallback.",
+    "Step 2.2: score_session signature change. Plan updates backfill and routes but misses prototype scripts."
+  ],
+  "phase_boundary_gaps": [
+    "Phase 1 to 2: Unclear if migration and model are deployed atomically. Re-run after partial rollback could leave migration applied but model out of sync.",
+    "Phase 2 to 3: Frontend expects full active_threshold_spec. If Phase 2 ships without thermal/amps/volts/heat_diss, Step 4.2 fallbacks would always apply."
+  ],
+  "pre_mortem": {
+    "partial_execution": "We got through Phase 1 and Phase 2 but had to stop. Migration 004 applied, threshold service live. Rollback requires alembic downgrade -1. Application code still expects process_type. No documented 'rollback Phase 2 only' path.",
+    "silent_corruption": "Everything appeared to work. The root cause was: prototype_aggregate_perf.py scored a TIG session with MIG thresholds. Benchmark showed wrong scores. Decisions were made from invalid data.",
+    "prod_vs_local": "Staging revealed: Gunicorn with 4 workers. Admin updated MIG threshold. Worker A invalidated cache. Workers B, C, D served stale thresholds for 30+ minutes. Single-worker local never showed the bug.",
+    "dependency_drift": "Three months later, when SQLAlchemy removed Session.query(), Step 1.5 and backfill's db.query() both failed. PUT /thresholds and backfill raised AttributeError."
+  },
+  "critical_issues": [
+    "Step 1.4: Table with rows but no 'mig' row causes KeyError in get_thresholds. Add fallback: if 'mig' not in _threshold_cache after load, use hardcoded MIG defaults.",
+    "Step 1.8 scope incomplete: prototype_arc_scoring.py and prototype_aggregate_perf.py call extract_features/score_session without thresholds. Update them or document MIG-only.",
+    "Migration 1.2: Single UPDATE on large tables can block indefinitely. Known Issues mentions it but plan has no batched variant or timeout."
+  ],
+  "latent_issues": [
+    "Step 1.5 uses db.query() — SQLAlchemy 2.0 deprecated. Migrate to db.execute(select(...)) before next major SQLAlchemy.",
+    "Multi-worker cache: Documented. Will cause stale thresholds in production.",
+    "Step 4.2: Micro-feedback degrades silently when fetchScore fails."
+  ],
+  "blind_spots": [
+    "Plan assumes weld_thresholds always has mig. Admin could delete mig. No guard.",
+    "Plan assumes prototype scripts only process MIG sessions. prototype_aggregate_perf loads from DB—any process_type gets MIG scoring.",
+    "Plan assumes DATABASE_URL is set. Scripted runs could fail with opaque errors."
+  ],
+  "minor_issues": [
+    "Step 1.1 verification: '...' placeholder in negative test—specify full minimal valid body.",
+    "Phase 2 prerequisite test_put_threshold_invalidates_cache ordering unclear."
+  ],
+  "what_the_author_cant_see": "The plan assumes weld_thresholds is either empty or correctly seeded. The gap is the middle case: table has data but mig is missing. The author updated backfill but not prototypes—same extraction path, different scripts.",
+  "recommended_action": "refine",
+  "minimum_fixes_before_execution": [
+    "Step 1.4: Add fallback when process_type not in cache: use hardcoded MIG defaults",
+    "Step 1.8: Add prototype scripts to scope—update to use get_thresholds or document MIG-only",
+    "Step 1.2: Add batched UPDATE option for 100k+ sessions to Known Issues or migration",
+    "Step 4.6: Add test for weld_thresholds with rows but no mig"
+  ]
+}
+```

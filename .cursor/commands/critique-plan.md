@@ -1,518 +1,183 @@
-# Critique Plan (Extended Deep Reasoning Mode)
+# Strategy Critique Framework v2
 
-You are a **principal staff engineer** with 20+ years of experience reviewing implementation plans for mission-critical systems. This is a **complex, multi-dimensional analysis** requiring your deepest reasoning capabilities.
+You are evaluating a strategic task list for product development.
 
-## CRITICAL: Extended Thinking Required
+## ⚠️ CRITICAL OUTPUT RULE — READ FIRST
 
-This evaluation demands:
-- **Multi-step logical reasoning** across 7+ evaluation dimensions
-- **Probabilistic risk assessment** of failure modes
-- **Cascading dependency analysis** 
-- **Edge case enumeration** with impact severity scoring
-- **Comparative analysis** against production-grade standards
-- **Root cause analysis** of potential execution blockers
-- **Iterative verification** of success criteria completeness
+**You MUST output ONLY a valid JSON object. Nothing else.**
 
-**DO NOT rush this analysis.** Take time to mentally execute each step, identify failure points, assess blast radius, and evaluate recovery strategies.
+- No markdown tables
+- No prose summaries  
+- No headers
+- No code fences (no ```json)
+- No text before or after the JSON
+- The FIRST character of your output must be `{`
+- The LAST character of your output must be `}`
 
----
-
-## Phase 1: Initial Assessment - Context Understanding
-
-Before scoring, establish baseline understanding:
-
-### 1.1 Task Complexity Classification
-- **Trivial** (config change, typo fix): 1-2 steps, no dependencies
-- **Simple** (add feature to existing pattern): 3-5 steps, 1-2 files
-- **Moderate** (new feature with integration): 5-10 steps, 3-5 files, API changes
-- **Complex** (multi-system integration): 10-20 steps, 5+ files, architecture changes
-- **Critical** (system redesign, data migration): 20+ steps, cross-cutting concerns
-
-### 1.2 Risk Profile Assessment
-- **Data loss risk**: Does this involve data mutations, migrations, or deletions?
-- **Service disruption risk**: Could this cause downtime or degraded performance?
-- **Security risk**: Does this touch auth, permissions, or sensitive data?
-- **Dependency risk**: How many external systems/APIs are involved?
-- **Rollback complexity**: Can changes be reverted easily?
-
-### 1.3 Technical Domain Analysis
-- What tech stack is involved? (frontend, backend, database, infrastructure)
-- Are there framework-specific patterns that must be followed?
-- What are the performance/scalability considerations?
-- Are there compliance or regulatory requirements?
+If your output cannot be parsed by `JSON.parse()`, it has failed.
+The fields `overall_strategy_score` and `top_3_avg_priority` are REQUIRED.
 
 ---
 
-## Phase 2: Detailed Multi-Dimensional Evaluation
+## Your Job: Three Questions
 
-For each dimension, score 1-10 and identify specific gaps:
+Ask these three questions about each task and the plan as a whole:
 
-### Dimension 1: **Completeness** (Weight: 20%)
+**Q1 — Forward:** Does this task directly serve the stated goal for the specific human in the time window?
 
-**Evaluation Questions:**
-1. Are ALL necessary steps present from start to finish?
-2. Are there any implied steps that should be explicit?
-3. Is environment setup/configuration included?
-4. Are cleanup/teardown steps documented?
-5. Are rollback procedures defined?
-6. Are documentation updates included?
+**Q2 — Backward (pre-mortem):** If this plan fails, is this task the reason? What hidden dependency, scope assumption, or integration risk kills it?
 
-**Red Flags:**
-- Missing prerequisite installation steps
-- No database migration strategy
-- No deployment/release steps
-- Missing monitoring/observability setup
-- No backup strategy before destructive operations
-- Assumes existing configuration without verification
-
-**Scoring:**
-- 9-10: Every step explicit, nothing assumed
-- 7-8: Minor steps could be more explicit
-- 5-6: 1-2 major steps missing
-- 1-4: Entire phases missing (setup, testing, deployment)
-
-**Check:** Can a competent engineer execute this plan without asking questions?
+**Q3 — Lateral:** Is there a higher-leverage version of this task that ships in less time and produces the same investor/operator outcome?
 
 ---
 
-### Dimension 2: **Clarity & Actionability** (Weight: 15%)
-
-**Evaluation Questions:**
-1. Is each step written as a concrete action?
-2. Are code examples provided where needed?
-3. Are file paths, function names, and imports specified?
-4. Is the expected behavior clearly described?
-5. Are commands/scripts provided when needed?
-
-**Red Flags:**
-- Vague language: "update the component", "fix the issue", "improve performance"
-- No code examples for non-trivial changes
-- Generic placeholders: "add necessary error handling"
-- Missing specifics: file paths, function signatures, API endpoints
-- Ambiguous success criteria: "make it work", "ensure it's correct"
-
-**Scoring:**
-- 9-10: Every step has concrete action + code example + expected outcome
-- 7-8: Most steps clear, a few could use examples
-- 5-6: Many steps require interpretation
-- 1-4: Mostly vague, pseudo-code quality
-
-**Check:** Could you copy-paste code from this plan and have it work?
-
----
-
-### Dimension 3: **Verification & Testing** (Weight: 20%)
-
-**Evaluation Questions:**
-1. Does every step have a verification method?
-2. Are there unit tests specified?
-3. Are there integration tests specified?
-4. Are manual verification steps clear?
-5. Is there a final end-to-end validation?
-6. Are negative test cases included?
-
-**Red Flags:**
-- Steps with no verification: "Implement feature X" (but how do you know it works?)
-- No test strategy mentioned
-- "Test manually" without specific test cases
-- No validation of edge cases
-- Missing performance/load testing for scalability changes
-- No verification of rollback procedures
-
-**Critical Assessment:**
-For each step, ask:
-- **How do you know this step succeeded?**
-- **What could silently fail here?**
-- **How would you detect partial success?**
-
-**Scoring:**
-- 9-10: Every step has specific, automated verification
-- 7-8: Most steps have verification, some manual
-- 5-6: Some steps lack verification
-- 1-4: No testing strategy, verification vague or absent
-
-**Check:** Can every step be validated without "hope and pray"?
-
----
-
-### Dimension 4: **Dependencies & Sequencing** (Weight: 15%)
-
-**Evaluation Questions:**
-1. Are all dependencies (packages, tools, services) identified?
-2. Is the sequence logically correct?
-3. Are there parallel vs serial execution paths?
-4. Are version requirements specified?
-5. Are inter-step dependencies documented?
-6. Can steps be executed in order without blocking?
-
-**Red Flags:**
-- Step N depends on Step N+5 (wrong order)
-- Missing prerequisite installations
-- No version specifications (Node.js, npm, packages)
-- Assumes services running without startup instructions
-- Circular dependencies
-- No consideration of setup time (migrations, builds)
-
-**Dependency Analysis:**
-For each step, identify:
-- **Requires:** What must exist/be done first?
-- **Provides:** What does this make available?
-- **Blocks:** What can't proceed until this completes?
-
-**Scoring:**
-- 9-10: Perfect DAG, all deps explicit with versions
-- 7-8: Order correct, minor deps implicit
-- 5-6: Some ordering issues, deps unclear
-- 1-4: Sequence broken, major deps missing
-
-**Check:** Draw the dependency graph - is it a valid DAG?
-
----
-
-### Dimension 5: **Risk Management & Error Handling** (Weight: 15%)
-
-**Evaluation Questions:**
-1. Are potential failure points identified?
-2. Is error handling specified for each step?
-3. Are rollback procedures defined?
-4. Are data backup strategies included?
-5. Are retry/recovery mechanisms specified?
-6. Is there a "what could go wrong" section?
-
-**Red Flags:**
-- No error handling mentioned
-- Destructive operations without backups
-- No rollback plan for failed deployments
-- Assumes "happy path" only
-- No handling of partial failures
-- No contingency for external service failures
-
-**Risk Assessment Matrix:**
-For each step with risk:
-- **Likelihood:** (High/Medium/Low)
-- **Impact:** (Critical/Major/Minor)
-- **Mitigation:** (Prevention strategy)
-- **Recovery:** (How to fix if it fails)
-
-**Critical Failure Scenarios:**
-- What if the database migration fails halfway?
-- What if the API endpoint isn't reachable?
-- What if the build process fails?
-- What if tests fail in production?
-- What if rollback also fails?
-
-**Scoring:**
-- 9-10: Comprehensive risk analysis, mitigation for all high-impact scenarios
-- 7-8: Major risks covered, some edge cases missed
-- 5-6: Basic error handling, no rollback plan
-- 1-4: No risk consideration, assumes success
-
-**Check:** What's the worst that could happen? Is there a recovery plan?
-
----
-
-### Dimension 6: **Edge Cases & Boundary Conditions** (Weight: 10%)
-
-**Evaluation Questions:**
-1. Are null/undefined cases handled?
-2. Are empty states considered?
-3. Are maximum limits tested?
-4. Are concurrent access scenarios covered?
-5. Are race conditions addressed?
-6. Are legacy data formats handled?
-
-**Red Flags:**
-- No handling of empty arrays/null values
-- Assumes data always exists
-- No consideration of concurrent users
-- No handling of malformed input
-- Assumes perfect timing (no race conditions)
-- No consideration of existing production data
-
-**Edge Case Checklist:**
-- [ ] Empty/null input
-- [ ] Extremely large input
-- [ ] Malformed/invalid input
-- [ ] Concurrent modifications
-- [ ] Network timeouts
-- [ ] Missing dependencies
-- [ ] Partial data corruption
-- [ ] Legacy format compatibility
-- [ ] Browser/environment differences
-- [ ] Permission edge cases
-
-**Scoring:**
-- 9-10: Comprehensive edge case analysis, all covered
-- 7-8: Major edge cases covered
-- 5-6: Some edge cases mentioned
-- 1-4: No edge case consideration
-
-**Check:** What are the top 5 "weird" inputs that could break this?
-
----
-
-### Dimension 7: **Production Readiness** (Weight: 5%)
-
-**Evaluation Questions:**
-1. Are performance implications considered?
-2. Is monitoring/logging included?
-3. Are metrics/alerts defined?
-4. Is documentation updated?
-5. Is the release strategy specified?
-6. Are compliance requirements met?
-
-**Red Flags:**
-- No performance testing
-- No logging/monitoring additions
-- No metrics for success measurement
-- Documentation not updated
-- No gradual rollout strategy
-- Missing security considerations
-
-**Production Checklist:**
-- [ ] Performance benchmarks defined
-- [ ] Monitoring dashboards updated
-- [ ] Alerts configured
-- [ ] Runbook/playbook created
-- [ ] Documentation updated
-- [ ] Security review completed
-- [ ] Compliance verified
-- [ ] Rollout strategy defined
-
-**Scoring:**
-- 9-10: Production-grade, ready to ship
-- 7-8: Needs minor polish
-- 5-6: Missing key production requirements
-- 1-4: Not production-ready
-
----
-
-## Phase 3: Critical Issue Identification
-
-An issue is **CRITICAL** if:
-1. **Blocks execution:** The plan cannot be executed as written
-2. **Causes data loss:** Could corrupt or delete data without recovery
-3. **Creates security holes:** Introduces vulnerabilities
-4. **Silent failures:** Could fail without detection
-5. **Wrong sequencing:** Dependencies violated, will fail at runtime
-6. **Missing core steps:** Entire phases omitted (setup, testing, deployment)
-
-An issue is **MINOR** if:
-1. **Clarity issue:** Step is unclear but can be inferred
-2. **Missing optimization:** Works but could be better
-3. **Documentation gap:** Missing comments or explanations
-4. **Style inconsistency:** Works but doesn't follow conventions
-
----
-
-## Phase 4: Scoring Algorithm
-
-Calculate weighted score:
+## Scoring Weights
 
 ```
-Final Score = 
-  (Completeness × 0.20) +
-  (Clarity × 0.15) +
-  (Verification × 0.20) +
-  (Dependencies × 0.15) +
-  (Risk Management × 0.15) +
-  (Edge Cases × 0.10) +
-  (Production Ready × 0.05)
+Overall Score =
+  (Strategic Value      × 0.35) +
+  (Context Alignment    × 0.25) +
+  (Leverage/Optionality × 0.20) +
+  (Resource Efficiency  × 0.10) +
+  (Risk Balance         × 0.05) +
+  (Dependencies         × 0.03) +
+  (Execution Quality    × 0.02)
 ```
 
-### Score Interpretation:
+---
 
-**9.0-10.0: Production Excellence ✅**
-- Zero critical issues
-- 0-1 minor issues
-- Can execute immediately without human intervention
-- All edge cases handled
-- Complete risk mitigation
-- Production-grade quality
+## Context-Aware Feedback (Critical — Read Before Scoring)
 
-**8.0-8.9: Minor Polish Needed ⚠️**
-- Zero critical issues
-- 2-3 minor issues
-- Safe to execute with small clarifications
-- Core logic solid, details need refinement
+Penalties are CONTEXT-TYPE SPECIFIC. Only penalize if BOTH match:
+1. Task type matches a previously rejected task type
+2. AND current context type matches the rejection context type
 
-**7.0-7.9: Has Critical Flaws 🔧**
-- 1-2 critical issues OR 5+ minor issues
-- Will encounter execution problems
-- Needs refinement before proceeding
-- Core approach sound but incomplete
-
-**5.0-6.9: Major Issues ❌**
-- 3-4 critical issues OR 10+ minor issues
-- Will definitely fail during execution
-- Missing key considerations
-- Needs significant rework
-
-**1.0-4.9: Fundamentally Broken 💥**
-- 5+ critical issues
-- Plan doesn't address the task
-- Missing entire phases
-- Unrealistic or too vague
-- Needs complete rewrite
+If context types differ → NO penalty.
 
 ---
 
-## Phase 5: Decision Matrix - When to Revisit Which Prompt
+## Scoring Dimensions
 
-After scoring, determine what type of revision is needed:
+### 1. Strategic Value (35%)
+Does this move the needle for the specific human in the stated time window?
+- 9-10: This task is the reason the human says yes
+- 7-8: Clear value-add, clearly related to goal
+- 5-6: Nice-to-have, weakly connected to goal
+- 3-4: Wrong timing or wrong audience
+- 1-2: Actively distracts from goal
 
-### Score < 5.0: Revisit `create-plan-autonomous.md`
-**Reason:** The plan is fundamentally flawed and needs complete regeneration.
+Penalty: task type + context type match a past rejection → -2.0
 
-**Indicators:**
-- Missing entire phases (no testing, no deployment, no error handling)
-- Wrong approach to the problem
-- Doesn't actually solve the stated task
-- Unrealistic assumptions about complexity
+### 2. Context Alignment (25%)
+Does this match the stated goal, time window, and specific human?
+- 9-10: Perfect — this task IS the goal
+- 7-8: Related and useful
+- 5-6: Tangential
+- 3-4: Misaligned
+- 1-2: Contradicts the priority
 
-**Recommendation:** Start over with better context about:
-- The actual codebase structure
-- Existing patterns to follow
-- Technical constraints
-- Realistic scope
+### 3. Leverage & Optionality (20%)
+Does this create compounding returns or unlock future paths?
+- 9-10: High leverage AND high optionality (unlocks multiple future steps)
+- 7-8: High leverage OR high optionality (one but not both)
+- 5-6: Linear value only
+- 3-4: Locks in poor architectural choices
+- 1-2: Destroys optionality
 
----
+### 4. Resource Efficiency (10%)
+Time-to-impact ratio.
+- 9-10: <1hr, clearly high impact
+- 7-8: 2-4hrs, clear value
+- 5-6: Long effort, moderate value
+- 3-4: Massive effort, small gain
+- 1-2: Time sink with no clear payoff
 
-### Score 5.0-6.9: Revisit `explore-autonomous.md` THEN `create-plan-autonomous.md`
-**Reason:** The plan has gaps suggesting incomplete understanding of the codebase.
+### 5. Risk Balance (5%)
+Reversible (Type B) vs irreversible (Type A) decisions.
+- 9-10: Easily reversed if wrong
+- 5-6: Mixed — some irreversible elements
+- 1-2: Hard to undo — data model, auth, billing, schema
 
-**Indicators:**
-- Missing integration points
-- Assumes files/functions that don't exist
-- Doesn't follow existing patterns
-- Wrong tech stack assumptions
-- Missing key dependencies
+### 6. Dependencies (3%)
+Is this blocked by anything not yet done?
+- 9-10: No blockers, can ship independently
+- 5-6: Soft dependencies (order matters but not blocking)
+- 1-2: Hard blocker — can't ship without completing another task first
 
-**Recommendation:** Re-explore to:
-- Find actual file structures
-- Identify existing patterns
-- Document current architecture
-- Clarify tech stack and dependencies
-
----
-
-### Score 7.0-7.9: Apply `refine-plan.md`
-**Reason:** The plan is mostly good but has 1-2 critical gaps that need targeted fixes.
-
-**Indicators:**
-- Core approach is correct
-- Most steps are clear and actionable
-- Has 1-2 execution-blocking issues
-- Missing specific verification or error handling
-
-**Recommendation:** Refine to:
-- Fix the specific critical issues
-- Add missing verification steps
-- Fill dependency gaps
-- Improve unclear sections
-
----
-
-### Score 8.0-8.9: Apply `refine-plan.md` (Minor polish)
-**Reason:** Plan is solid but needs minor improvements for production quality.
-
-**Indicators:**
-- No critical issues
-- 2-3 minor clarity issues
-- Could be more specific in places
-- Edge cases need documentation
-
-**Recommendation:** Polish to:
-- Clarify ambiguous steps
-- Add code examples where helpful
-- Document edge case handling
-- Add performance considerations
+### 7. Execution Quality (2%)
+Is the task description clear and specific enough to hand to an executor?
+- 9-10: Exact file paths, component names, observable outcome
+- 5-6: Directionally correct but missing specifics
+- 1-2: Vague — an executor would have to make major assumptions
 
 ---
 
-### Score 9.0+: DONE - Proceed to execution
-**Reason:** Plan is production-ready.
+## Required JSON Output
 
-**Quality indicators:**
-- Zero critical issues
-- 0-1 minor issues
-- All steps clear and actionable
-- Complete verification strategy
-- Risk mitigation in place
-- Ready to execute
+Output exactly this structure. No extra fields. No missing fields.
 
----
-
-## Phase 6: Output Format
-
-You MUST output **ONLY** valid JSON (no markdown, no code blocks, no preamble):
-
-```json
 {
-  "score": 7.5,
-  "dimension_scores": {
-    "completeness": 8.0,
-    "clarity": 7.0,
-    "verification": 6.5,
-    "dependencies": 8.5,
-    "risk_management": 7.0,
-    "edge_cases": 6.0,
-    "production_ready": 7.5
-  },
+  "overall_strategy_score": 7.8,
+  "top_3_avg_priority": 8.2,
+  "context_type": "fundraise",
+  "goal_alignment_score": 8.5,
+  "task_scores": [
+    {
+      "task_number": 1,
+      "task_title": "Task name here",
+      "strategic_value": 9.0,
+      "strategic_value_after_penalty": 9.0,
+      "context_alignment": 10.0,
+      "leverage_optionality": 8.5,
+      "resource_efficiency": 7.0,
+      "risk_balance": 9.0,
+      "dependencies": 10.0,
+      "execution_quality": 8.0,
+      "overall_score": 9.2,
+      "feedback_penalty_applied": false,
+      "ships_wrong_risk": "One sentence: what breaks if the implementation is subtly wrong?",
+      "higher_leverage_alternative": "One sentence: is there a faster version of this task? If not, write null.",
+      "reasoning": "One sentence: why this score."
+    }
+  ],
   "critical_issues": [
-    "Step 3 'Update database schema' has no rollback procedure. If migration fails halfway, data could be corrupted with no recovery path. Add: 1) Pre-migration backup, 2) Transaction wrapping, 3) Rollback SQL script.",
-    "Step 7 assumes 'heatmapData' array exists but doesn't handle empty/null case. This will cause runtime error. Add null check: if (!heatmapData || heatmapData.length === 0) { /* handle empty state */ }"
+    "Issue 1 — be specific: which task, which assumption, which line breaks"
   ],
-  "minor_issues": [
-    "Step 2: 'Import required libraries' is vague. Specify exact imports: import * as THREE from 'three'; import { HeatmapShader } from './shaders/HeatmapShader';",
-    "Step 5: Verification says 'check colors' but doesn't specify how. Add: Open DevTools, log color values at 5°F intervals, verify gradient smooth.",
-    "Step 9: Time estimate of '30 minutes' seems low for multi-file integration. Suggest 1-2 hours accounting for debugging."
+  "minor_issues": ["Minor issue 1"],
+  "suggestions": [
+    "Specific suggestion 1 — actionable, not generic"
   ],
-  "strengths": [
-    "Step 4: Excellent shader code example with complete GLSL implementation",
-    "Step 6: Clear verification with specific test cases and expected outputs",
-    "Step 8: Good error handling with try-catch and fallback behavior",
-    "Overall structure follows logical sequence: setup → implement → test → deploy"
-  ],
-  "reasoning": "The plan demonstrates solid understanding of Three.js and shader programming with concrete code examples. The core implementation approach (using custom shader for heatmap) is correct and follows best practices. However, there are 2 critical gaps that would cause execution failure: (1) No database migration safety - if the schema update fails, there's no recovery, risking data corruption. (2) No null handling for heatmapData - this will throw runtime error on first load before data exists. These are execution-blocking because they will cause crashes, not just suboptimal behavior. The minor issues are primarily clarity improvements - making implicit steps explicit (exact imports), adding specifics to verification (how to check colors), and adjusting time estimates to be realistic. The score of 7.5 reflects a fundamentally sound plan that needs 2 critical fixes before it's safe to execute. With those fixes, this would be 8.5-9.0.",
-  "improvement_priority": [
-    "CRITICAL: Add database migration safety (backup + rollback) to Step 3",
-    "CRITICAL: Add null/empty handling for heatmapData in Step 7",
-    "Minor: Make imports explicit in Step 2 with exact package names",
-    "Minor: Add specific verification instructions to Step 5",
-    "Minor: Adjust time estimate for Step 9 to 1-2 hours"
-  ],
-  "recommended_action": "refine",
-  "rationale_for_action": "Score of 7.5 indicates the core approach is sound but has 2 critical gaps. These are targeted fixes that don't require rethinking the entire approach. Use refine-plan.md to address the specific critical issues while preserving the strong foundation. If score were <7.0, would recommend revisiting exploration or replanning."
+  "dependency_order": "Which task must ship first? e.g. 'T2 before T3 — T3 fetches from T2 endpoint'",
+  "premortem_top_risk": "Single most likely failure mode for the ENTIRE plan, in one sentence.",
+  "goal_alignment_notes": "How well do these 3 tasks together serve the user's stated goal and time window?",
+  "context_aware_feedback": {
+    "current_context_type": "fundraise",
+    "penalties_applied": [],
+    "penalties_skipped": []
+  }
 }
-```
 
 ---
 
-## Phase 7: Self-Verification Checklist
+## Scoring Calibration
 
-Before finalizing your critique, verify:
+`top_3_avg_priority` = average of the three `overall_score` values.
+`overall_strategy_score` = holistic assessment of the strategy as a whole.
+`goal_alignment_score` = how well the tasks serve the user's stated goal.
 
-- [ ] I scored each dimension independently (1-10)
-- [ ] I calculated weighted final score correctly
-- [ ] Every critical issue is truly execution-blocking
-- [ ] Every issue references a specific step/section
-- [ ] I identified what's working well (strengths)
-- [ ] I prioritized fixes by impact (critical first)
-- [ ] I recommended the right action (replan/refine/done)
-- [ ] My reasoning explains the score clearly
-- [ ] My JSON is valid (no trailing commas, proper escaping)
-- [ ] I was brutally honest (didn't inflate the score)
+High scores (9-10) require:
+- Directly tied to the user's primary goal for this time window
+- Specific enough to execute without clarification
+- Visible to the primary stakeholder (investor or operator)
+- High leverage: one task unlocks multiple future paths
+- Demo line: a human can see or click a result within 48 hours
 
----
+Score below 7.0 if:
+- Any task has no visible output within 48 hours
+- Any task description lacks specific file paths or component names
+- Any task requires a hidden dependency not mentioned in the plan
 
-## Final Reminder: Think Deeply
+## ⚠️ FINAL REMINDER
 
-This is not a superficial review. You are preventing:
-- **Data loss** from missing rollback procedures
-- **Service outages** from unhandled errors
-- **Security vulnerabilities** from missing validation
-- **Silent failures** from lack of verification
-- **Wasted time** from missing dependencies
-
-Take your time. Think through execution step-by-step. Identify failure modes. Be specific about problems and solutions. Your analysis determines whether this plan succeeds or fails.
+Output ONLY the JSON. First character: `{`. Last character: `}`.
+No markdown. No tables. No commentary. Pure JSON.

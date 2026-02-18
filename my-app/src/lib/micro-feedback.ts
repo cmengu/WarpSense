@@ -11,6 +11,7 @@
  */
 
 import type { Frame } from "@/types/frame";
+import type { WeldTypeThresholds } from "@/types/thresholds";
 import { logWarn } from "@/lib/logger";
 import { extractFivePointFromFrame } from "@/utils/frameUtils";
 import type {
@@ -18,13 +19,10 @@ import type {
   MicroFeedbackSeverity,
 } from "@/types/micro-feedback";
 
-/** Ideal torch work angle (degrees). Deviations trigger feedback. */
+/** Default when thresholds not provided (legacy callers). */
 const ANGLE_TARGET_DEG = 45;
-/** Angle deviation (degrees) above which we emit warning (e.g. 50° or 40°). */
 const ANGLE_WARNING_THRESHOLD_DEG = 5;
-/** Angle deviation (degrees) above which we emit critical (e.g. 60° or 30°). */
 const ANGLE_CRITICAL_THRESHOLD_DEG = 15;
-/** Max north-south or east-west temp delta (°C) before thermal asymmetry feedback. */
 const THERMAL_VARIANCE_THRESHOLD_CELSIUS = 20;
 /** Max micro-feedback items per type (angle, thermal) to avoid UI overwhelm. */
 const CAP_PER_TYPE = 50;
@@ -44,21 +42,26 @@ function hasAllCardinalReadings(frame: Frame): boolean {
   );
 }
 
-function generateAngleDriftFeedback(frames: Frame[]): MicroFeedbackItem[] {
+function generateAngleDriftFeedback(
+  frames: Frame[],
+  target: number,
+  warning: number,
+  critical: number
+): MicroFeedbackItem[] {
   const items: MicroFeedbackItem[] = [];
   for (let i = 0; i < frames.length && items.length < CAP_PER_TYPE; i++) {
     const frame = frames[i];
     if (!frame) continue;
     const a = frame.angle_degrees;
     if (a == null || typeof a !== "number" || Number.isNaN(a)) continue;
-    const dev = Math.abs(a - ANGLE_TARGET_DEG);
-    if (dev <= ANGLE_WARNING_THRESHOLD_DEG) continue;
+    const dev = Math.abs(a - target);
+    if (dev <= warning) continue;
     const severity: MicroFeedbackSeverity =
-      dev >= ANGLE_CRITICAL_THRESHOLD_DEG ? "critical" : "warning";
+      dev >= critical ? "critical" : "warning";
     items.push({
       frameIndex: i,
       severity,
-      message: `Torch angle drifted ${dev.toFixed(1)}° at frame ${i} — keep within ±${ANGLE_WARNING_THRESHOLD_DEG}°`,
+      message: `Torch angle drifted ${dev.toFixed(1)}° at frame ${i} — keep within ±${warning}°`,
       suggestion: "Maintain consistent work angle for uniform penetration.",
       type: "angle",
     });
@@ -66,7 +69,10 @@ function generateAngleDriftFeedback(frames: Frame[]): MicroFeedbackItem[] {
   return items;
 }
 
-function generateThermalSymmetryFeedback(frames: Frame[]): MicroFeedbackItem[] {
+function generateThermalSymmetryFeedback(
+  frames: Frame[],
+  thresh: number
+): MicroFeedbackItem[] {
   const items: MicroFeedbackItem[] = [];
   for (let i = 0; i < frames.length && items.length < CAP_PER_TYPE; i++) {
     const frame = frames[i];
@@ -90,7 +96,7 @@ function generateThermalSymmetryFeedback(frames: Frame[]): MicroFeedbackItem[] {
       Math.abs(north - south),
       Math.abs(east - west)
     );
-    if (maxDelta <= THERMAL_VARIANCE_THRESHOLD_CELSIUS) continue;
+    if (maxDelta <= thresh) continue;
     items.push({
       frameIndex: i,
       severity: "warning",
@@ -108,20 +114,61 @@ function generateThermalSymmetryFeedback(frames: Frame[]): MicroFeedbackItem[] {
  * Runs angle drift and thermal symmetry generators. Returns combined,
  * sorted-by-frameIndex items. Caps at CAP_PER_TYPE per type.
  *
- * Defensive: wraps in try-catch; never throws. Malformed frames skipped.
- * Thermal: skips frames with missing cardinal sensor readings.
+ * When thresholds provided, uses configured values (angle target/warning/critical,
+ * thermal). Otherwise falls back to defaults for legacy callers.
+ *
+ * Defensive: per-generator try-catch; partial results on sub-generator failure.
  *
  * @param frames - Session frames (from Session.frames).
+ * @param thresholds - Optional WeldTypeThresholds from score's active_threshold_spec.
  * @returns MicroFeedbackItem[] sorted by frameIndex.
  */
-export function generateMicroFeedback(frames: Frame[]): MicroFeedbackItem[] {
+export function generateMicroFeedback(
+  frames: Frame[],
+  thresholds?: WeldTypeThresholds | null
+): MicroFeedbackItem[] {
+  const angleTarget =
+    thresholds?.angle_target_degrees ?? ANGLE_TARGET_DEG;
+  const angleWarning =
+    thresholds?.angle_warning_margin ?? ANGLE_WARNING_THRESHOLD_DEG;
+  const angleCritical =
+    thresholds?.angle_critical_margin ?? ANGLE_CRITICAL_THRESHOLD_DEG;
+  const thermalThresh =
+    thresholds?.thermal_symmetry_warning_celsius ??
+    THERMAL_VARIANCE_THRESHOLD_CELSIUS;
+
+  if (!Array.isArray(frames) || frames.length === 0) return [];
+
+  let angle: MicroFeedbackItem[] = [];
+  let thermal: MicroFeedbackItem[] = [];
+
   try {
-    if (!Array.isArray(frames) || frames.length === 0) return [];
-    const angle = generateAngleDriftFeedback(frames);
-    const thermal = generateThermalSymmetryFeedback(frames);
+    angle = generateAngleDriftFeedback(
+      frames,
+      angleTarget,
+      angleWarning,
+      angleCritical
+    );
+  } catch (err) {
+    logWarn("micro-feedback", "Angle feedback generation failed", {
+      error: err,
+    });
+  }
+
+  try {
+    thermal = generateThermalSymmetryFeedback(frames, thermalThresh);
+  } catch (err) {
+    logWarn("micro-feedback", "Thermal feedback generation failed", {
+      error: err,
+    });
+  }
+
+  try {
     return [...angle, ...thermal].sort((a, b) => a.frameIndex - b.frameIndex);
   } catch (err) {
-    logWarn("micro-feedback", "Micro-feedback generation failed", { error: err });
-    return [];
+    logWarn("micro-feedback", "Micro-feedback sort/merge failed", {
+      error: err,
+    });
+    return [...angle, ...thermal];
   }
 }

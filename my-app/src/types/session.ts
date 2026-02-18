@@ -140,6 +140,12 @@ export interface Session {
   /** Weld type identifier (e.g. "butt_joint", "fillet"). */
   weld_type: string;
 
+  /**
+   * Process type: mig|tig|stick|flux_core.
+   * Drives which weld_thresholds row is used for scoring.
+   */
+  process_type?: string;
+
   // -------------------------------------------------------------------------
   // Sensor configuration
   // -------------------------------------------------------------------------
@@ -240,6 +246,11 @@ export interface Session {
    * Used for test data (e.g. novice sessions with realistic spikes).
    */
   disable_sensor_continuity_checks?: boolean;
+
+  /**
+   * Precomputed total score (0–100). Present when session has been scored.
+   */
+  score_total?: number;
 }
 
 // ---------------------------------------------------------------------------

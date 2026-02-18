@@ -1,0 +1,517 @@
+# create-plan-autonomous
+
+You are a senior engineer writing an implementation plan. You have a complete issue specification and a complete exploration document. Your job is to produce a step-by-step blueprint that another engineer or an AI agent can execute without asking any questions.
+
+Do not re-explore. Do not reconsider architectural decisions already made. Translate the exploration into ordered, atomic, verifiable steps.
+
+---
+
+## Your Output Contract
+
+Produce exactly this structure.
+
+---
+
+### Phase Breakdown
+
+Before writing steps, define your phases. Each phase must:
+- Deliver independently demonstrable value
+- Be completable in 1–3 days
+- Have a clear entry state and exit state
+
+Format each phase header as:
+```
+## Phase N — [Name]
+Goal: [What user/system can do after this phase that it couldn't before]
+Risk: Low / Medium / High
+Estimate: _h
+```
+
+Minimum 2 phases. Maximum 5 for any single issue.
+
+---
+
+### Steps
+
+For each phase, write all steps. Number them `N.M` (e.g. `1.1`, `1.2`, `2.1`).
+
+**Every step must include:**
+
+**Step N.M — [Specific action name]**
+
+*What:* One sentence describing exactly what to build or change.
+
+*File:* `path/to/file.ext` (create / modify)
+
+*Depends on:* Step N.M or "none"
+
+*Code:*
+```typescript
+// For steps classified as CRITICAL (see below):
+// Full working implementation — imports, types, logic, error handling.
+// Not pseudocode. This must be copy-pasteable and functional.
+
+// For NON-CRITICAL steps:
+// Key snippet only — show the pattern, not boilerplate.
+```
+
+*Why this approach:* One sentence referencing the exploration decision that drives this step.
+
+*Verification:*
+```
+Setup: [any prerequisite — seed data, env var, server state]
+Action: [exact user action or command to run]
+Expected: [specific observable outcome — DOM state, console output, network response, file content]
+Pass criteria:
+  [ ] criterion 1
+  [ ] criterion 2
+  [ ] criterion 3
+If it fails: [most likely cause and how to diagnose]
+```
+
+*Estimate:* _h
+
+---
+
+### Step Classification
+
+**CRITICAL steps require full code implementation:**
+- New API endpoints
+- State management setup
+- Auth / permission logic
+- Complex business logic
+- Any step where getting it wrong causes cascading failures
+
+**NON-CRITICAL steps require key snippet only:**
+- Simple UI components following existing patterns
+- Styling changes
+- Type definitions
+- Import additions
+- Steps that directly follow an established pattern in the codebase
+
+Classify each step as you write it. If unsure, default to CRITICAL.
+
+---
+
+### Risk Heatmap
+
+After writing all steps, produce a table mapping where execution is most likely to get stuck:
+
+| Phase.Step | Risk Description | Probability | Impact | Early Warning | Mitigation |
+|---|---|---|---|---|---|
+| 1.3 | example risk | Med | High | what you'd see | what to do |
+
+Include at least one entry per phase. Flag any CRITICAL RISK items from the exploration.
+
+---
+
+### Pre-Flight Checklist
+
+One checklist per phase. Things that must be true before starting that phase.
+
+```
+Phase N Prerequisites:
+[ ] requirement — how to verify — how to fix if missing
+[ ] requirement — how to verify — how to fix if missing
+```
+
+Minimum 4 items per phase.
+
+---
+
+### Success Criteria
+
+After all phases complete, these must be true before declaring the feature done.
+
+List 8–12 criteria. Each must have:
+- The condition
+- How to verify it (specific action + expected observable result)
+- Priority: P0 (must have) / P1 (should have)
+
+---
+
+### Progress Tracker
+
+```
+| Phase | Steps | Done | In Progress | Blocked | % |
+|---|---|---|---|---|---|
+| Phase 1 | N | 0 | 0 | 0 | 0% |
+| Phase 2 | N | 0 | 0 | 0 | 0% |
+| TOTAL | N | 0 | 0 | 0 | 0% |
+```
+
+---
+
+## Output Rules
+
+- Steps must be atomic. If a step contains "and then also", split it.
+- Verification must be observable. "Check that it works" is not acceptable. Name the DOM element, the console output, the HTTP status, or the file content.
+- CRITICAL step code must compile. No pseudocode, no `// ... rest of implementation`.
+- Time estimates must reflect reality, not best-case. Add 25% buffer for debugging.
+- Do not reference decisions not made in the exploration document. If something is unclear, state your assumption explicitly at the step where it matters.
+- Reference the exploration's "Critical path order" when sequencing phases and steps.
+- Total step count: 15–40 steps depending on complexity. Fewer than 15 means steps are too coarse. More than 40 means scope should be split.
+- Target plan length: dense and complete. Every step must be implementable from what's written. Cut explanation, not substance.
+
+---
+
+## Self-Check Before Submitting
+
+Run through these before outputting the plan:
+
+- [ ] Every step has a verification with specific pass criteria
+- [ ] Every CRITICAL step has full working code
+- [ ] Dependencies between steps are correctly sequenced (no step needs something from a later step)
+- [ ] All CRITICAL RISKS from exploration appear in the risk heatmap with mitigation
+- [ ] Total estimate matches exploration estimate within 20% (if not, explain the gap)
+- [ ] Someone who has not read the exploration document could execute this plan
+- [ ] No step says "implement X" without specifying the file, the code, and how to verify it worked
+
+---
+# Task Description:
+
+Beautiful PDF Report
+Philosophy
+Don't screenshot the UI. Build the PDF as a first-class layout. @react-pdf/renderer lets you define PDF-native components — no DOM, no canvas capture hacks, no puppeteer. It renders on the server in a Next.js API route.
+Step 1: Install
+bashnpm install @react-pdf/renderer
+npm install -D @types/react-pdf
+Step 2: PDF Layout Component (components/pdf/WelderReportPDF.tsx)
+typescriptimport { Document, Page, View, Text, StyleSheet, Image } from '@react-pdf/renderer';
+
+const styles = StyleSheet.create({
+  page: { backgroundColor: '#0a0a0a', padding: 40, fontFamily: 'Helvetica' },
+  header: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 24 },
+  scoreCircle: { width: 80, height: 80, borderRadius: 40, border: '3px solid #3b82f6',
+                 alignItems: 'center', justifyContent: 'center' },
+  scoreText: { fontSize: 28, color: '#3b82f6', fontWeight: 'bold' },
+  sectionTitle: { fontSize: 10, color: '#6b7280', textTransform: 'uppercase', 
+                  leerSpacing: 2, marginBottom: 8 },
+  feedbackItem: { flexDirection: 'row', marginBottom: 6, paddingLeft: 12 },
+  bullet: { color: '#f59e0b', marginRight: 8 },
+});
+
+export function WelderReportPDF({ welder, score, feedback, chartDataUrl, heatmapUrl }) {
+  return (
+    <Document>
+      <Page size="A4" style={styles.page}>
+        {/* Header */}
+        <View style={styles.header}>
+          <View>
+            <Text style={{ fontSize: 20, color: '#f9fafb', fontWeight: 'bold' }}>
+              {welder.name}
+            </Text>
+            <Text style={{ fontSize: 10, color: '#6b7280', marginTop: 4 }}>
+              Session Report · {new Date().toLocaleDateString()}
+            </Text>
+          </View>
+          <View style={styles.scoreCircle}>
+            <Text style={styles.scoreText}>{score.total}</Text>
+          </View>
+        </View>
+
+        {/* AI Summary */}
+        <Text style={styles.sectionTitle}>Coach Feedback</Text>
+        <Text style={{ fontSize: 11, color: '#d1d5db', lineHeght: 1.6, marginBottom: 20 }}>
+          {feedback.summary}
+        </Text>
+
+        {/* Trend chart image - pre-rendered to base64 PNG */}
+        {chartDataUrl && (
+          <View style={{ marginBottom: 20 }}>
+            <Text style={styles.sectionTitle}>Score Trend (Last 5 Sessions)</Text>
+            <Image src={chartDataUrl} style={{ height: 120 }} />
+          </View>
+        )}
+
+        {/* Top 3 feedback items */}
+        <Text style={styles.sectionTitle}>Key Areas</Text>
+        {feedback.feedback_items.slice(0, 3).map((item, i) => (
+          <View key={i} style={styles.feedbackItem}>
+            <Text style={styles.bullet}>{item.severity === 'warning' ? '⚠' : '•'}</Text>
+            <View>
+              <Text style={{ fontSize: 10, color: '#f9fafb' }}>{item.message}</Text>
+              {item.suggestion && (
+                <Text style={{ fontSize: 9, color: '#6b7280', marginTop: 2 }}>
+                  → {item.suggestion}
+          </Text>
+              )}
+            </View>
+          </View>
+        ))}
+
+        {/* Footer */}
+        <View style={{ position: 'absolute', bottom: 30, left: 40, right: 40,
+                       borderTop: '1px solid #1f2937', paddingTop: 12,
+                       flexDirection: 'row', justifyContent: 'space-between' }}>
+          <Text style={{ fontSize: 8, color: '#374151' }}>WarpSense Quality Intelligence</Text>
+          <Text style={{ fontSize: 8, color: '#374151' }}>CONFIDENTIAL</Text>
+        </View>
+      </Page>
+    </Document>
+  );
+}
+Step 3: Chart → PNG (the tricky bit)
+@react-pdf/renderer can't render Recharts. You need to pre-render the trend chart to a base64 PNG. Two options:
+Option A (fast, good enough): Use html-to-image on the client to capture the existing LineChart div into a PNG, pass it as base64 to the PDF route. Ship this first.
+Option B (clean, proper): Build a <canvas> chart in the API route using chartjs-node-canvas (server-side Chart.js). More work, no DOM dependcy.
+Start with Option A.
+typescript// In WelderReport, on "Download PDF" click:
+import { toPng } from 'html-to-image';
+
+const chartEl = document.getElementById('trend-chart');
+const chartDataUrl = await toPng(chartEl);
+// POST to /api/welder-report-pdf with session + score + feedback + chartDataUrl
+Step 4: PDF API Route
+typescript// app/api/welder-report-pdf/route.ts
+import { renderToBuffer } from '@react-pdf/renderer';
+import { WelderReportPDF } from '@/components/pdf/WelderReportPDF';
+
+export async function POST(req: Request) {
+  const { welder, score, feedback, chartDataUrl } = await req.json();
+  
+  const buffer = await renderToBuffer(
+    <WelderReportPDF welder={welder} score={score} 
+                     feedback={feedback} chartDataUrl={chartDataUrl} />
+  );
+  
+  return new Response(buffer, {
+    headers: {
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="${welder.name}-report.pdf"`,
+    },
+  });
+}
+Step 5: Replace the stub button
+typescriptasync function handleDownloadPDF() {
+  const chartEl = document.getElementById('trend-chart');
+  const chartDataUrl = chartEl ? await toPng(chartEl) : null;
+  
+  const res = await fetch('/api/welder-report-pdf', {
+    method: 'POST',
+    body: JSON.stringify({ welder, score, feedback, chartDataUrl }),
+  });
+  
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${welder.name}-warp-report.pdf`;
+  a.click();
+}
+
+
+---
+# Issue Details:
+
+
+Created the issue specification at `.cursor/issues/beautiful-pdf-report.md`.
+
+**Summary of the issue:**
+
+- **Title:** `[Feature] Welder report PDF export via @react-pdf/renderer`
+- **Scope:** Replace the stub "Download PDF" button on `/seagull/welder/[id]` with real export logic.
+- **Approach:** PDF-native layout with `@react-pdf/renderer`; chart via `html-to-image` (client) → base64 PNG → POST to `/api/welder-report-pdf`.
+
+**Findings from codebase:**
+
+1. **Welder report page** at `my-app/src/app/seagull/welder/[id]/page.tsx` has the stub button and all needed data: `report`, `score`, `welder`, `LineChart`.
+2. **`LineChart`** has no `id="trend-chart"`; the wrapper needs this for capture.
+3. **No `/app/api` routes** exist yet; the PDF route will be new.
+4. **Dependencies:** `@react-pdf/renderer` and `html-to-image` must be added.
+5. **Tests:** `page.test.tsx` asserts the alert; it must be updated to cover the real download flow (or a mocked fetch).
+
+**Out of scope in the spec:** Heatmap in PDF, Email report, demo team page export. Heatmap is left for a follow-up because the spec says to start with Option A (chart only).
+
+
+---
+# Exploration Findings (compressed):
+
+
+```json
+{
+  "phase_completed": "Beautiful PDF Report — Technical Exploration",
+  "phase_goal_achieved": true,
+  "goal_delta": "Approach validated and documented. No implementation yet — PDF API route, component, and download handler are not built.",
+
+  "decisions_locked": [
+    {
+      "topic": "Chart capture",
+      "chosen": "Option A: html-to-image toPng on client, base64 in POST body",
+      "reverting_this_requires": "New server-side chart (chartjs-node-canvas); chart logic duplication"
+    },
+    {
+      "topic": "API route",
+      "chosen": "app/api/welder-report-pdf/route.ts, Node runtime (not Edge)",
+      "reverting_this_requires": "Trivial — first API route"
+    },
+    {
+      "topic": "PDF component",
+      "chosen": "components/pdf/WelderReportPDF.tsx, renderToBuffer",
+      "reverting_this_requires": "Trivial"
+    },
+    {
+      "topic": "Chart failure fallback",
+      "chosen": "chartDataUrl null → omit chart section in PDF",
+      "reverting_this_requires": "Trivial"
+    }
+  ],
+
+  "files_state": {
+    "created": [
+      ".cursor/issues/beautiful-pdf-report-exploration.md",
+      "my-app/prototype/pdf-chart-capture.ts",
+      "my-app/prototype/pdf-route.mts"
+    ],
+    "modified": [],
+    "deleted": []
+  },
+
+  "contracts_established": [
+    "POST /api/welder-report-pdf body: { welder: { name }, score: SessionScore, feedback: AIFeedbackResult, chartDataUrl?: string | null }",
+    "SessionScore: { total, rules }; AIFeedbackResult: { summary, feedback_items }; FeedbackItem: { message, severity, suggestion? }",
+    "Response: application/pdf, Content-Disposition: attachment",
+    "LineChart wrapper must have id=\"trend-chart\" and fixed dimensions (e.g. 600×200) for html-to-image capture"
+  ],
+
+  "assumptions_now_baked_in": [
+    "@react-pdf/renderer compatible with React 19 / Next 16 — unverified; prototype runs in isolation",
+    "html-to-image works on Recharts SVG — known risk; ResponsiveContainer parent needs explicit width/height",
+    "downloadCSV pattern: blob → createObjectURL → anchor click (reuse for PDF)"
+  ],
+
+  "open_risks_for_next_phase": [
+    {
+      "risk": "html-to-image fails on Recharts (e.g. Safari, filters)",
+      "trigger": "toPng throws or returns invalid PNG",
+      "owner": "Fallback to chartDataUrl null; Phase 2: chartjs-node-canvas if needed"
+    },
+    {
+      "risk": "@react-pdf/renderer incompatible with Next 16 / React 19",
+      "trigger": "Build or runtime error in API route",
+      "owner": "Verify in CI before implementation"
+    }
+  ],
+
+  "broken_or_incomplete": [
+    "Nothing. Exploration only — no production code."
+  ],
+
+  "next_phase_must_not": [
+    "Use Puppeteer/Playwright or screenshot UI — spec mandates PDF-native layout via @react-pdf/renderer",
+    "Assume chartDataUrl is always present — handle null; omit chart section",
+    "Use Edge runtime for PDF route — renderToBuffer requires Node",
+    "Fetch welder/score/feedback again for PDF — data already in welder page state"
+  ],
+
+  "next_phase_starting_state": "Exploration complete. Dependencies not installed. Welder page has stub Download PDF (alert). LineChart has no id wrapper. No API routes exist in my-app. Prototypes validate capture helper and renderToBuffer in isolation."
+}
+```
+
+
+---
+# Previous Plan Critique (MUST FIX THESE):
+
+
+{"overall_strategy_score": 8.1, "top_3_avg_priority": 8.5, "context_type": "feature", "goal_alignment_score": 8.4, "task_scores": [{"task_number": 1, "task_title": "Step 1.2 — Create WelderReportPDF.tsx with sanitizeText and defensive feedback_items", "strategic_value": 9.0, "strategic_value_after_penalty": 9.0, "context_alignment": 9.0, "leverage_optionality": 8.0, "resource_efficiency": 7.5, "risk_balance": 9.0, "dependencies": 9.0, "execution_quality": 9.0, "overall_score": 8.8, "feedback_penalty_applied": false, "ships_wrong_risk": "sanitizeText misses control chars or angle brackets → React PDF throws, corrupt PDF.", "higher_leverage_alternative": null, "reasoning": "Core PDF component; explicit file path and defensive filtering make it executable and robust."}, {"task_number": 2, "task_title": "Step 1.3 — Smoke test with malformed feedback_items", "strategic_value": 8.0, "strategic_value_after_penalty": 8.0, "context_alignment": 9.0, "leverage_optionality": 8.5, "resource_efficiency": 8.0, "risk_balance": 9.0, "dependencies": 8.0, "execution_quality": 9.0, "overall_score": 8.4, "feedback_penalty_applied": false, "ships_wrong_risk": "Smoke uses 1x1 PNG; production chart larger → Image path untested at real size.", "higher_leverage_alternative": "Add second smoke case with ~500KB base64 to approximate real chart size.", "reasoning": "Gates Phase 2 and validates defensive behavior; Pre-Flight prevents proceeding if it fails."}, {"task_number": 3, "task_title": "Step 2.1 — API route with feedback_item validation and 2MB chartDataUrl cap", "strategic_value": 9.5, "strategic_value_after_penalty": 9.5, "context_alignment": 9.5, "leverage_optionality": 8.0, "resource_efficiency": 8.0, "risk_balance": 8.0, "dependencies": 7.0, "execution_quality": 9.0, "overall_score": 9.0, "feedback_penalty_applied": false, "ships_wrong_risk": "Type coercion of chartDataUrl (e.g. array) passes length check → renderToBuffer throws.", "higher_leverage_alternative": null, "reasoning": "Central backend; validation, size cap, and error handling are explicit."}, {"task_number": 4, "task_title": "Step 3.3 — handleDownloadPDF with basePath-aware fetch", "strategic_value": 9.5, "strategic_value_after_penalty": 9.5, "context_alignment": 9.5, "leverage_optionality": 7.5, "resource_efficiency": 7.5, "risk_balance": 8.0, "dependencies": 5.0, "execution_quality": 8.5, "overall_score": 8.8, "feedback_penalty_applied": false, "ships_wrong_risk": "getApiBase() returns empty when NEXT_PUBLIC_BASE_PATH unset → 404 in production if basePath configured.", "higher_leverage_alternative": "Pre-flight: detect basePath in next.config at build and fail if NEXT_PUBLIC_BASE_PATH mismatch.", "reasoning": "User-facing flow; basePath handling is documented but depends on env setup."}, {"task_number": 5, "task_title": "Step 4.1 — Fetch mock and POST assertion with afterEach restore", "strategic_value": 8.0, "strategic_value_after_penalty": 8.0, "context_alignment": 8.5, "leverage_optionality": 7.0, "resource_efficiency": 8.0, "risk_balance": 9.0, "dependencies": 8.0, "execution_quality": 9.0, "overall_score": 8.2, "feedback_penalty_applied": false, "ships_wrong_risk": "Mock not reset between tests → fetch pollution causes flaky or false-positive tests.", "higher_leverage_alternative": null, "reasoning": "Ensures integration contract; afterEach restore avoids test pollution."}, {"task_number": 6, "task_title": "Step 4.4 — API route tests with @jest-environment node", "strategic_value": 8.5, "strategic_value_after_penalty": 8.5, "context_alignment": 9.0, "leverage_optionality": 7.5, "resource_efficiency": 8.0, "risk_balance": 9.0, "dependencies": 8.0, "execution_quality": 9.0, "overall_score": 8.6, "feedback_penalty_applied": false, "ships_wrong_risk": "Jest runs in jsdom by default → renderToBuffer fails; test file never runs or errors.", "higher_leverage_alternative": null, "reasoning": "Covers validation and PDF content; Node env requirement is explicit."}], "critical_issues": ["Step 3.3 basePath: NEXT_PUBLIC_BASE_PATH must be set at build time to match next.config basePath; if deployed with basePath and env missing, Download PDF returns 404 with no clear error.", "Step 4.3 toPng mock: mockResolvedValueOnce(null) may not override jest.mock default — ensure mock reset or per-test override so chartDataUrl: null is actually sent."], "minor_issues": ["Step 2.2: head -n -1 vs sed $d — both break on binary or unusual line endings; jq -r .error is more robust.", "Step 1.1: --save-exact documented but no npm ci in Pre-Flight; lockfile drift can still occur without ci."], "suggestions": ["Add to Pre-Flight Phase 3: curl test with NEXT_PUBLIC_BASE_PATH=/weldingsense (or configured value) to assert fetch URL correctness before deploy.", "Step 4.3: Use beforeEach to set toPng.mockResolvedValue(null) for that specific test, then mockRestore or mockResolvedValue(previous) in afterEach to avoid mock bleed.", "Document chartDataUrl type check: if (typeof chartDataUrl !== 'string') chartDataUrl = null before length check — prevents array/object from bypassing."], "dependency_order": "T1 before T2 — WelderReportPDF required by API route. T2 before T4 — API must exist for handleDownloadPDF. T1.3 must pass before T2. T3.1 and T3.2 before T3.3. T2.1 before T4.4 — API route tests need route to exist.", "premortem_top_risk": "html-to-image fails silently on Recharts in production browser (e.g. Safari); chartDataUrl is null, PDF generates without chart — accepted as best-effort but user may report 'chart missing' with no CI signal.", "goal_alignment_notes": "Plan directly serves the goal: enable PDF export for welder session reports. Phases are ordered correctly; validation, fallbacks, and tests align with .cursorrules. Visible outcome within 48h: Download PDF works. Gap: basePath setup is manual and easy to miss in deploy.", "context_aware_feedback": {"current_context_type": "feature", "penalties_applied": [], "penalties_skipped": ["No past rejection of 'feature' + 'pdf' or 'validation' — learnings mention fundraise context; this is feature delivery."]}}
+
+
+---
+# Adversarial Findings (MUST FIX THESE):
+
+
+Outputting the adversarial critique as valid JSON (no markdown wrapper):
+
+```json
+{
+  "score": 6.2,
+  "adversarial_verdict": "This plan will execute to completion in a clean dev environment and pass automated tests, but contains latent production risks: unbounded request body allowing OOM, orphaned toPng promise causing unhandledRejection on timeout, and basePath deployment 404 with no automated verification.",
+  "sabotage_vectors": [
+    {
+      "step": "1.1",
+      "attack": "npm install succeeds but package-lock.json or transitive dependencies pull incompatible versions. --save-exact pins direct deps only; lockfile regeneration (npm install without ci) could pull @react-pdf/renderer or html-to-image minors that break with Next 16 / React 19.",
+      "detection_gap": "Verification checks package.json only, not lockfile hash or transitive tree. CI uses npm ci but plan does not mandate it for local verification.",
+      "blast_radius": "Build or runtime fails in Phase 2 when renderToBuffer or toPng is invoked"
+    },
+    {
+      "step": "2.1",
+      "attack": "Client POSTs a 50MB JSON body. request.json() buffers the entire body in memory before parsing. No body size limit. Node process OOMs or hangs.",
+      "detection_gap": "No max content-length check. Verification only tests valid and invalid payloads of normal size. Oversized chartDataUrl (2MB) is capped but total body is unbounded.",
+      "blast_radius": "Server crash; single malicious or buggy client can DoS the PDF endpoint"
+    },
+    {
+      "step": "3.2",
+      "attack": "User clicks Download PDF. toPng starts. After 10s, withTimeout rejects and captureChartToBase64 returns null. The toPng promise is never awaited or cancelled — it continues running. When toPng eventually rejects (e.g. 15s later), it becomes an orphaned rejected promise. Browser fires unhandledrejection.",
+      "detection_gap": "No test for timeout path. Step 4.3 mocks toPng returning null (resolve), not timeout (reject). Orphaned promise only surfaces under slow capture.",
+      "blast_radius": "Error overlay in dev; possible crash in error-reporting setups; memory retained until toPng settles"
+    },
+    {
+      "step": "2.3",
+      "attack": "BIG=$(printf 'A%.0s' {1..2100000}) — brace expansion creates 2.1M elements. On low-memory or resource-constrained CI runners, this can OOM or hang the shell.",
+      "detection_gap": "Verification assumes local dev. Plan does not run Phase 2 curl scripts in CI. Oversized test is manual.",
+      "blast_radius": "Verification script fails on some systems; false sense of coverage"
+    },
+    {
+      "step": "3.3",
+      "attack": "Deployment uses next.config basePath: '/weldingsense'. Build does not set NEXT_PUBLIC_BASE_PATH. getApiBase() returns ''. Fetch goes to /api/welder-report-pdf. Next.js serves at /weldingsense/api/.... Result: 404.",
+      "detection_gap": "Verification says 'If NEXT_PUBLIC_BASE_PATH set, fetch URL includes it' — no automated assertion. basePath is documented in Known Issues but not verified. Staging/prod build may omit the env var.",
+      "blast_radius": "Download PDF 404 in production; no CI signal"
+    },
+    {
+      "step": "1.2",
+      "attack": "chartDataUrl passes 'data:image/svg+xml;base64,...'. Component checks startsWith('data:image'). React PDF Image may not support SVG. Renderer throws or produces corrupt PDF.",
+      "detection_gap": "Step 1.3 uses data:image/png. No test for svg or webp. Client captures via html-to-image toPng which produces PNG. But if chartDataUrl is ever from another source (e.g. future feature), SVG could slip through.",
+      "blast_radius": "500 or corrupt PDF when chart source changes"
+    }
+  ],
+  "precondition_gaps": [
+    "Step 2.1 verification assumes dev server on localhost:3000. No PORT or base URL config. If Next.js runs on 3001, all curl fails.",
+    "Step 3.3 getApiBase() reads process.env.NEXT_PUBLIC_BASE_PATH. In browser this is inlined at build. No runtime verification that basePath and env match when basePath is configured.",
+    "Pre-Flight says 'my-app builds' but Step 1.1 adds deps. If npm install fails (network, registry), no explicit retry or fallback. Plan assumes install always succeeds."
+  ],
+  "untestable_verifications": [
+    "Step 3.1: 'Element has non-zero computed width/height (≥600×200)' and 'LineChart (svg or recharts element) renders inside it' — manual DevTools. No Jest or E2E assertion. A typo in id='tend-chart' would pass local 'I saw it' check but fail in prod.",
+    "Step 2.1: 'PDF opens and shows Mike Chen, 75, Good work (manual sanity)' — human inspection. Wrong implementation that renders empty page but returns 200 and valid PDF header would pass.",
+    "Step 3.3: 'basePath: If NEXT_PUBLIC_BASE_PATH set, fetch URL includes it' — no test mocks env or asserts fetch URL. Would pass even if getApiBase always returns ''."
+  ],
+  "cascade_points": [
+    "Step 2.1 is the single implementation of the API. Steps 2.2, 2.3, 4.4 verify it. If 2.1 has a subtle bug (e.g. wrong Content-Disposition quote escaping for filenames with spaces), no verification asserts header format.",
+    "Step 1.3 must pass before Phase 2. If 1.3 passes but uses a different code path than Next.js API route (e.g. prototype runs in plain Node, route runs in Next server context), renderToBuffer could behave differently. Step 4.4 invokes the actual route, so coverage exists."
+  ],
+  "phase_boundary_gaps": [
+    "Phase 2 to Phase 3: Plan assumes welder page has report and score in scope. The handler checks !report || !score and returns. Button is disabled when loading. Early return checks loading || !report || !session || !expertSession — not !score. If score were null but report present (theoretical), handler would run and hit early return. Low risk.",
+    "Phase 1 to Phase 2: Step 1.3 updates pdf-route.mts. If prototype import path is wrong, 1.3 fails. Plan specifies prototype/pdf-route.mts in my-app. Pre-Flight checks file exists."
+  ],
+  "pre_mortem": {
+    "partial_execution": "Stopping after Phase 2 leaves a working API route with no client. Welder page still shows 'Download PDF — coming soon' and no id='trend-chart'. State is consistent. Stopping after Phase 3 but before Phase 4 leaves handleDownloadPDF wired; old Download PDF test expects alert and would fail. Plan's afterEach and try/finally mitigate fetch pollution.",
+    "silent_corruption": "sanitizeText replaces < and > with ‹ ›. Unicode replacement chars, emoji, or RTL text could render as garbage or trigger React PDF edge cases. Plan does not assert PDF text encoding for edge chars.",
+    "prod_vs_local": "NEXT_PUBLIC_BASE_PATH is not set in current next.config. If deployment adds basePath without the env var, Download PDF returns 404. Step 3.2 withTimeout — orphaned toPng promise on timeout could trigger unhandledrejection in production error monitoring.",
+    "dependency_drift": "@react-pdf/renderer@3.4.0 and html-to-image@1.11.11 are pinned. When Next.js 17 or React 20 is adopted, compatibility may break. npm ci prevents lockfile drift during execution."
+  },
+  "critical_issues": [
+    "Step 3.2 withTimeout: When timeout wins, the toPng promise is orphaned. When it later rejects, unhandledrejection fires. In strict error-handling environments this can crash or surface unwanted errors. Fix: add .catch(() => {}) on the toPng promise or use AbortController."
+  ],
+  "latent_issues": [
+    "Step 2.1: request.json() buffers full body. No max body size. A 10MB+ POST causes OOM. For internal welder report tool this may be acceptable; document or add body size limit.",
+    "Step 3.3: basePath deployment → 404 when NEXT_PUBLIC_BASE_PATH is unset. Documented in Known Issues; no automated verification. Triggers when basePath is added without env var.",
+    "Step 1.3: Smoke test uses 1x1 PNG. Production charts are larger. Plan acknowledges; chartDataUrl 2MB cap mitigates. If @react-pdf Image fails only on large data URLs, 1.3 passes but prod could fail."
+  ],
+  "blind_spots": [
+    "Plan assumes generateAIFeedback returns FeedbackItem[] with message and severity. Type enforces this. API and component filter defensively. Adequate.",
+    "Plan assumes no Next.js rewrites or middleware that alter /api/welder-report-pdf. Current next.config has neither.",
+    "Plan assumes html-to-image toPng returns string on success. Real toPng throws on failure; it does not resolve to null. Step 4.3 mocks null to exercise fallback path; implementation is correct."
+  ],
+  "minor_issues": [
+    "Step 2.2: Redundant grep in fallback — grep runs twice on failure. Harmless.",
+    "Step 4.4: No automated test for valid body WITH chartDataUrl producing PDF with embedded chart. Step 2.1 manual verification covers it.",
+    "Step 2.1: Catch (err) logs stack but returns generic message. Actual error only in logs. Consider truncated error in 500 response when NODE_ENV=development."
+  ],
+  "what_the_author_cant_see": "The plan was written with sequential, successful execution in mind. Gaps are at the seams: (1) withTimeout does not cancel toPng — the author assumed 'return null' ends the flow, but the promise continues; (2) basePath is documented but never asserted; (3) request body size is bounded only by chartDataUrl, not total — the author focused on chart OOM, not body OOM.",
+  "recommended_action": "refine",
+  "minimum_fixes_before_execution": [
+    "Step 3.2: Add .catch(() => {}) on the toPng promise to prevent unhandledrejection when timeout wins",
+    "Document or add request body size limit in Step 2.1 if endpoint is ever exposed beyond internal use",
+    "Add automated test for Step 3.1 (trend-chart element) or basePath URL assertion in Download PDF test when env is set"
+  ]
+}
+```

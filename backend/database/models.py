@@ -48,6 +48,7 @@ class SessionModel(Base):
     locked_until = Column(DateTime(timezone=True), nullable=True)
     version = Column(Integer, nullable=False, default=1)
     score_total = Column(Integer, nullable=True)
+    process_type = Column(String, nullable=False, default="mig")
 
     frames = relationship(
         "FrameModel",
@@ -84,6 +85,7 @@ class SessionModel(Base):
             disable_sensor_continuity_checks=session.disable_sensor_continuity_checks,
             score_total=getattr(session, "score_total", None),
             version=1,
+            process_type=getattr(session, "process_type", None) or "mig",
         )
         model.frames = cls._frames_to_models(session.frames)
         for frame in model.frames:
@@ -110,6 +112,7 @@ class SessionModel(Base):
             completed_at=self.completed_at,
             disable_sensor_continuity_checks=self.disable_sensor_continuity_checks,
             score_total=self.score_total,
+            process_type=getattr(self, "process_type", None) or "mig",
         )
 
 
@@ -134,3 +137,17 @@ class FrameModel(Base):
 
     def to_pydantic(self) -> Frame:
         return Frame(**self.frame_data)
+
+
+class WeldThresholdModel(Base):
+    __tablename__ = "weld_thresholds"
+
+    weld_type = Column(String, primary_key=True, index=True)
+    angle_target_degrees = Column(Float, nullable=False)
+    angle_warning_margin = Column(Float, nullable=False)
+    angle_critical_margin = Column(Float, nullable=False)
+    thermal_symmetry_warning_celsius = Column(Float, nullable=False)
+    thermal_symmetry_critical_celsius = Column(Float, nullable=False)
+    amps_stability_warning = Column(Float, nullable=False)
+    volts_stability_warning = Column(Float, nullable=False)
+    heat_diss_consistency = Column(Float, nullable=False)

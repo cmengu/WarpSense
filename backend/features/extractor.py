@@ -14,7 +14,9 @@ from typing import List, Dict, Any
 from models.session import Session
 
 
-def extract_features(session: Session) -> Dict[str, Any]:
+def extract_features(
+    session: Session, angle_target_deg: float = 45
+) -> Dict[str, Any]:
     """
     Extract 5 features from a welding session for scoring.
 
@@ -52,7 +54,7 @@ def extract_features(session: Session) -> Dict[str, Any]:
 
     amps_stddev = statistics.stdev(amps) if len(amps) > 1 else 0.0
     angle_max_deviation = (
-        max(abs(a - 45) for a in angles) if angles else 0.0
+        max(abs(a - angle_target_deg) for a in angles) if angles else 0.0
     )
     north_south_delta_avg = (
         abs(statistics.mean(north_temps) - statistics.mean(south_temps))

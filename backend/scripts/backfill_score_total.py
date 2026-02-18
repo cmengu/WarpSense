@@ -18,6 +18,7 @@ from database.connection import SessionLocal
 from database.models import SessionModel
 from features.extractor import extract_features
 from scoring.rule_based import score_session
+from services.threshold_service import get_thresholds
 
 BATCH_SIZE = 10
 
@@ -51,8 +52,14 @@ def main():
             for s in batch:
                 try:
                     session = s.to_pydantic()
-                    features = extract_features(session)
-                    score = score_session(session, features)
+                    process_type = (
+                        getattr(session, "process_type", None) or "mig"
+                    ).lower()
+                    thresholds = get_thresholds(db, process_type)
+                    features = extract_features(
+                        session, angle_target_deg=thresholds.angle_target_degrees
+                    )
+                    score = score_session(session, features, thresholds)
                     s.score_total = score.total
                     print(f"  {s.session_id}: score_total={score.total}")
                 except Exception as e:

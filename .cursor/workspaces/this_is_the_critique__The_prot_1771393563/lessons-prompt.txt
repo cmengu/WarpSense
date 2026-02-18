@@ -1,0 +1,1807 @@
+# Learning Log
+
+> **Purpose:** Document mistakes to prevent repeating them. Feed lessons to AI tools.  
+> **For AI:** Reference with `@LEARNING_LOG.md` when implementing features.  
+> **Last Updated:** [DATE] | **Total Entries:** 0
+
+---
+
+## Quick Start
+
+**When something breaks:**
+1. Copy entry template below
+2. Fill out: Date, What, Why, Fix, Prevention
+3. Add to relevant category section
+
+**When implementing features:**
+- Search this file first (`Ctrl+F`)
+- Reference in prompts: `@LEARNING_LOG.md check for [topic] issues`
+- Follow ✅ patterns, avoid ❌ anti-patterns
+
+**For `.cursorrules`:**
+```markdown
+Before generating code, check LEARNING_LOG.md for:
+- Anti-patterns to avoid
+- Required patterns for this feature type
+- Past incidents in similar code
+```
+
+---
+
+## Entry Template
+
+```markdown
+### 📅 YYYY-MM-DD — [Short Title]
+
+**Category:** [Auth|Database|API|Frontend|Backend|DevOps|Testing|Performance]  
+**Severity:** 🔴 Critical | 🟡 High | 🟢 Medium | ⚪ Low
+
+**What Happened:** [1-2 sentences]
+
+**Impact:** [Users affected, downtime]
+
+**Root Cause:**
+- Technical: [Race condition, missing validation, etc.]
+- Process: [No review, skipped testing, etc.]
+- Knowledge: [Didn't know about X]
+
+**The Fix:**
+```language
+// ❌ BEFORE
+old code
+
+// ✅ AFTER
+fixed code
+```
+
+**Prevention:**
+- ✅ DO: [Pattern to follow]
+- ❌ DON'T: [Pattern to avoid]
+- [ ] Code review check: [What to verify]
+- [ ] Test case: [Scenario to cover]
+
+**AI Guidance:**
+```
+When implementing [feature type]:
+"[Instruction that would prevent this]"
+```
+
+**Warning Signs:** [What to watch for]
+```
+
+---
+
+## 🔐 Authentication
+
+### 📅 [Date] — [Title]
+
+**Category:** Auth | **Severity:** 🔴
+
+**What Happened:**
+
+**Impact:**
+
+**Root Cause:**
+- Technical:
+- Process:
+- Knowledge:
+
+**The Fix:**
+```python
+# ❌ BEFORE
+
+# ✅ AFTER
+```
+
+**Prevention:**
+- ✅ DO:
+- ❌ DON'T:
+
+**AI Guidance:**
+```
+When implementing auth:
+"[Instruction]"
+```
+
+---
+
+## 💾 Database
+
+### 📅 [Date] — [Title]
+
+**Category:** Database | **Severity:** 🔴
+
+**What Happened:**
+
+**Impact:**
+
+**Root Cause:**
+- Technical:
+- Process:
+
+**The Fix:**
+```sql
+-- ❌ BEFORE
+
+-- ✅ AFTER
+```
+
+**Prevention:**
+- ✅ DO:
+- ❌ DON'T:
+
+**AI Guidance:**
+```
+When creating migrations:
+"[Instruction]"
+```
+
+---
+
+## 🌐 API Integration
+
+### 📅 [Date] — [Title]
+
+**Category:** API | **Severity:** 🟡
+
+**What Happened:**
+
+**Impact:**
+
+**Root Cause:**
+- Technical:
+
+**The Fix:**
+```javascript
+// ❌ BEFORE
+
+// ✅ AFTER
+```
+
+**Prevention:**
+- ✅ DO:
+- ❌ DON'T:
+
+**AI Guidance:**
+```
+When integrating APIs:
+"[Instruction]"
+```
+
+---
+
+## 🎨 Frontend
+
+### 📅 [Date] — [Title]
+
+**Category:** Frontend | **Severity:** 🟢
+
+**What Happened:**
+
+**Root Cause:**
+- Technical:
+
+**The Fix:**
+```typescript
+// ❌ BEFORE
+
+// ✅ AFTER
+```
+
+**Prevention:**
+- ✅ DO:
+- ❌ DON'T:
+
+---
+
+## ⚙️ Backend
+
+### 📅 [Date] — [Title]
+
+**Category:** Backend | **Severity:** 🟡
+
+**What Happened:**
+
+**Root Cause:**
+- Technical:
+
+**The Fix:**
+```python
+# ❌ BEFORE
+
+# ✅ AFTER
+```
+
+**Prevention:**
+- ✅ DO:
+- ❌ DON'T:
+
+---
+
+## 🧪 Testing
+
+### 📅 [Date] — [Title]
+
+**Category:** Testing | **Severity:** 🟢
+
+**What Happened:**
+
+**The Fix:**
+```javascript
+// ❌ BEFORE
+
+// ✅ AFTER
+```
+
+**Prevention:**
+- ✅ DO:
+
+---
+
+## 🚀 DevOps
+
+### 📅 [Date] — [Title]
+
+**Category:** DevOps | **Severity:** 🔴
+
+**What Happened:**
+
+**The Fix:**
+```yaml
+# ❌ BEFORE
+
+# ✅ AFTER
+```
+
+**Prevention:**
+- ✅ DO:
+
+---
+
+## ⚡ Performance
+
+### 📅 [Date] — [Title]
+
+**Category:** Performance | **Severity:** 🟡
+
+**What Happened:**
+
+**The Fix:**
+```python
+# ❌ BEFORE
+
+# ✅ AFTER
+```
+
+**Prevention:**
+- ✅ DO:
+
+---
+
+## Quick Reference: Anti-Patterns
+
+### Authentication
+```python
+# ❌ NEVER: Skip token expiry validation
+payload = jwt.decode(token, SECRET_KEY)
+
+# ✅ ALWAYS: Explicitly validate expiry
+payload = jwt.decode(token, SECRET_KEY, verify_exp=True)
+```
+
+### Database
+```sql
+-- ❌ NEVER: Add non-nullable to existing tables
+ALTER TABLE users ADD COLUMN field TEXT NOT NULL;
+
+-- ✅ ALWAYS: Add nullable first, backfill later
+ALTER TABLE users ADD COLUMN field TEXT DEFAULT '';
+```
+
+### External APIs
+```javascript
+// ❌ NEVER: No retry logic
+const result = await externalAPI.call(data);
+
+// ✅ ALWAYS: Exponential backoff
+const result = await retryWithBackoff(() => externalAPI.call(data));
+```
+
+### Frontend State
+```typescript
+// ❌ NEVER: Mutate state directly
+state.items.push(newItem);
+
+// ✅ ALWAYS: Create new reference
+setState({ ...state, items: [...state.items, newItem] });
+```
+
+---
+
+## AI Prompting Patterns
+
+### Auth Implementation
+```
+Implement JWT validation that:
+1. Verifies expiry explicitly (see LEARNING_LOG.md entry [date])
+2. Validates signature with SECRET_KEY
+3. Extracts user_id from token, never request
+4. Handles ExpiredSignatureError, InvalidTokenError
+5. Logs failures with context (user_id, IP, timestamp)
+```
+
+### Database Migrations
+```
+Create migration for [field] on [table]:
+1. Handle existing data (assume 500k+ rows)
+2. Use nullable + default value approach
+3. Include rollback SQL in comments
+4. Test on production-sized dataset
+```
+
+### API Integration
+```
+Integrate [API] with:
+1. Exponential backoff (tenacity library)
+2. Circuit breaker (pybreaker)
+3. Timeout (5s default, 30s max)
+4. Response caching where appropriate
+5. Quota monitoring with alerts
+```
+
+---
+
+## Code Review Checklist
+
+**General:**
+- [ ] Checked LEARNING_LOG.md for this feature area
+- [ ] No documented anti-patterns used
+- [ ] Error handling for known failure modes
+- [ ] Tests cover scenarios from learning log
+
+**Auth:**
+- [ ] Token expiry validated?
+- [ ] User ID from token, not request?
+- [ ] Errors logged with context?
+
+**Database:**
+- [ ] New columns nullable initially?
+- [ ] Migration tested on large dataset?
+- [ ] Indexes on foreign keys?
+
+**APIs:**
+- [ ] Retry logic with backoff?
+- [ ] Circuit breaker implemented?
+- [ ] Timeout configured?
+
+**Frontend:**
+- [ ] No state mutations?
+- [ ] Error boundaries present?
+- [ ] Loading states handled?
+
+**Testing:**
+- [ ] Error paths tested?
+- [ ] Edge cases from log covered?
+
+---
+
+## Incident Metrics
+
+| Month | Total | Repeat | New | Avg Resolution |
+|-------|-------|--------|-----|----------------|
+| [Month] | - | - | - | - |
+
+**Goals:**
+- Repeat issues <10% of total
+- 50% faster resolution over 6 months
+- Increase prevention rate
+
+---
+
+## Monthly Review
+
+**Date:** [YYYY-MM]
+
+**This Month:**
+- [Issue 1] — [Category] — [Severity]
+- [Issue 2] — [Category] — [Severity]
+
+**Patterns:**
+- [Pattern]: [X] occurrences
+
+**Actions:**
+- [ ] Add linter rule for [pattern]
+- [ ] Update .cursorrules
+- [ ] Team training on [topic]
+
+**Working Well:**
+- [Success]
+
+**Needs Improvement:**
+- [Challenge]
+
+**Next Month Focus:**
+- [Priority]
+
+---
+
+## Maintenance
+
+**Daily:** Add entries when fixing bugs (5 min)  
+**Weekly:** Review with team, update .cursorrules  
+**Monthly:** Analyze trends, update checklist
+
+---
+
+## Related Docs
+
+| File | Purpose |
+|------|---------|
+| `CONTEXT.md` | What exists, patterns |
+| `.cursorrules` | AI configuration |
+| `README.md` | Project setup |
+
+---
+
+**Remember:** Every mistake documented is future productivity gained. Start small, be consistent. 🚀
+
+---
+# Task:
+
+this is the critique  The prototype is the most critical step but has the weakest mitigation
+Step 1.4 is the entire quality gate for the demo — if score bands drift, every badge on the dashboard is wrong. But the mitigation for "scores outside ±15 of base/delta" is just "tune angle/amps/volts." That's not a mitigation, it's a prayer.
+The plan has no guidance on how to tune. If fast_learner session 0 scores 38 instead of 58, what do you change — angle stddev, amps variance, or the base in WELDER_ARCHETYPES? An implementer hitting this will thrash randomly. The prototype is also run with random.seed(42) but the seed route uses the same seed — meaning if you run the prototype after calling seed once, random state is already advanced and results differ.
+Fix: Add a tuning guide to Step 1.4: "If fast_learner scores low → tighten _arc_angle_tight stddev. If declining scores high → increase _arc_angle_drift drift_factor." Also explicitly note that prototype must be run with a fresh Python process (not afng mock_sessions), or set seed immediately before each PASS_BAND check inside the loop.
+
+Problem 2: WELDER_ARCHETYPES is duplicated in three places with no enforcement
+WELDER_ARCHETYPES (Python) is the source of truth, but WELDERS in seagull/page.tsx and WELDER_SESSION_COUNT in welder/[id]/page.tsx are manual mirrors. The plan acknowledges this under Known Issues but the mitigation ("Follow-up: GET /api/dev/welders") is deferred with no urgency.
+For a demo, this is a real risk: adding or changing an archetype (which happens during tuning) requires updating three files. Miss one and you get a 404 or wrong badge for that welder on demo day. The plan's own pre-flight doesn't check for this drift.
+Fix: Add to Phase 3 pre-flight: "Verify WELDERS in page.tsx matches WELDER_ARCHETYPES: compare welder IDs and sessionCounts manually or with a quick script." It's a 2-minute check that prevents a silent mismatch.
+
+Problem 3: Step 2.4 (seed_demo_data.py) has a logic flaw in the spot-check
+The spot-check verifies sess_mike-chen_001.operator_id != "mike-chen" and re-seeds if mismatched. But the spot-check only runs when existing == expected_count — the happy path. If the DB has 44/45 sessions (partial seed), it goes straight to the re-seed branch without the spot-check. More critically: the spot-check uses a hardcoded welder ID (sess_mike-chen_001) rather than a random sample from derived IDs. If mike-chen is removed from archetypes in a future iteration, the spot-check silently passes (returns None, which passes the if sample and ... check) even if all remaining data is corrupt.
+Fix: Change spot-check to: pick session_ids[0] (first derived ID) and its expected operator_id from the first archetype. That way 's always valid regardless of which welders are in the list.
+
+Problem 4: Phase 3 fetches up to 20 scores in parallel but no loading state is specified
+Step 3.2 fires up to 20 fetchScore calls simultaneously via Promise.allSettled. The 5s timeout is good, but the plan doesn't specify what the UI shows while waiting. If the backend is slow (cold start, large session payloads), all 10 cards show "Score unavailable" momentarily before populating — which looks broken at a demo.
+The plan also doesn't address the case where all 20 fetches succeed but arrive in random order and trigger 20 separate setState calls. Depending on the React version, this could cause 20 re-renders.
+Fix: Specify that setWelderScores is called once after Promise.allSettled resolves (it already does this in the code, which is correct — just make it explicit in the step description). Add to verification: "Cardould show a skeleton/spinner during load, not empty score values." Add a loading state spec to Step 3.2.
+
+Problem 5: Step 5.3 is underspecified and almost certainly won't get built
+Step 5.3 says "conceptual — adapt to test setup" and gives pseudocode. It's classified P1 with a note "can be manual if test infra gaps." Given that this test covers the most subtle bug in the entire plan (the last-slot sc.total fix), marking it as optional with no concrete code is a gap.
+The historicalScores last-slot bug is exactly the kind of thing that regresses silently — someone "simplifies" the fetch logic, drops the if i === lastIdx && sc != null check, and the trend shows "declining" for fast_learner on demo day. There's no safety net.
+Fix: Either write the concrete test (it's ~20 lines with a fetch mock, saattern as the PDF tests) or be honest and call it out as "manual verification only — owner must run Step 4.4 verification before every demo." Don't leave it as aspirational pseudocode classified as P1.
+
+Minor Issues
+
+generate_frames_for_arc uses tuple[List[Frame], bool] return type annotation — requires Python 3.9+ (lowercase tuple). If Python 3.8 is in the environment, this fails at import. Use Tuple[List[Frame], bool] from typing or add from __future__ import annotations.
+Step 2.3 ("Add import random to dev.py") is a 1-line fix that should be folded into Step 2.1, not its own step with a 0.1h estimate.
+The wipe route uses .delete(synchronize_session=False) but the seed route uses individual db.delete(existing) in a loop. These should be consistent — loop delete is slower for 45 sessions but fine; just note the inconsistency so a reviewer doesn't think one is wrong.
+Step 3.3 badge logic: score > secondScore → On track is corremproving arcs, but plateaued will show neutral only if scores are exactly equal (unlikely with noise). In practice it'll flicker between on_track and needs_attention across runs due to random.uniform(-2, 2) noise. Document this as expected behavior or add a ±2 dead zone. for this plan # Implementation Plan: 10 Mock Welders With Skill Arcs
+
+**Issue:** 10-mock-welders-with-skill-arcs  
+**Source:** `.cursor/issues/10-mock-welders-with-skill-arcs.md` + exploration handoff  
+**Estimate:** 16h  
+
+---
+
+## Overview
+
+Implement 10 mock welder archetypes with distinct skill arcs (fast_learner, consistent_expert, plateaued, declining, new_hire, volatile) for an enterprise demo. Backend generates arc-specific frames; seed/wipe manage ~45 sessions; dashboard shows 10 cards with On track/Needs attention badges; welder report shows trend chart and expert comparison.
+
+---
+
+## Phase Breakdown
+
+### Phase 1 — Backend Mock Data Layer
+
+**Goal:** A welder archetypeist and arc-specific frame generator exist; prototype validates score ranges **using mock_sessions implementation**.  
+**Risk:** Medium  
+**Estimate:** 5h  
+
+### Phase 2 — Seed & Wipe
+
+**Goal:** POST /api/dev/seed-mock-sessions seeds ~45 sessions; wipe removes all derived sessions. seed_demo_data.py mirrors behavior with correct idempotent logic.  
+**Risk:** Low  
+**Estimate:** 3h  
+
+### Phase 3 — Dashboard (10 Welders + Badges)
+
+**Goal:** Seagull dashboard shows 10 welder cards with latest score and coaching badges (On track / Needs attention / neutral). **Prerequisite: run seed before opening dashboard.**  
+**Risk:** Low  
+**Estimate:** 3h  
+
+### Phase 4 — Welder Report (Historical + Expert Baseline)
+
+**Goal:** Welder report uses fetched score history for trend chart; expert comparison uses sess_expert-benchmark_005 with graceful degradation. **Prerequisite: run seed before opening welder report.**  
+**Risk:** Low  
+**Estimate:** 2h  
+
+### Phase 5 — Tests
+
+**Goal:** Univerify generate_score_arc, generate_frames_for_arc, and arc sessions; dev route tests expect session count from WELDER_ARCHETYPES.  
+**Risk:** Low  
+**Estimate:** 3h  
+
+---
+
+## Prerequisites
+
+- Python 3.10+
+- PostgreSQL (or SQLite for tests)
+- Node.js for my-app
+- Database migrations applied
+- No circular import: `mock_welders` does NOT import `mock_sessions`
+
+---
+
+## Implementation Steps
+
+### Phase 1 — Backend Mock Data Layer
+
+---
+
+**Step 1.1 — Create mock_welders.py with archetypes**
+
+*What:* Create `backend/data/mock_welders.py` with `WELDER_ARCHETYPES` (10 entries) and `generate_score_arc` (validation only; fix typo: use `base` not `bae`).
+
+*File:* `backend/data/mock_welders.py` (create)
+
+*Depends on:* none
+
+*Code:*
+```python
+"""
+Mock welder archetypes for enterprise demo.
+Each archetype has an arc_type that drives frame generation (angle/amps/thermal profiles).
+"""
+
+import random
+from typing import List
+
+# arc ∈ fast_learner|consistent_expert|plateaued|declining|new_hire|volatile
+WELCHETYPES = [
+    {"welder_id": "mike-chen", "name": "Mike Chen", "arc": "fast_learner", "sessions": 5, "base": 58, "delta": 4},
+    {"welder_id": "sara-okafor", "name": "Sara Okafor", "arc": "consistent_expert", "sessions": 5, "base": 88, "delta": 1},
+    {"welder_id": "james-park", "name": "James Park", "arc": "plateaued", "sessions": 5, "base": 71, "delta": 0},
+    {"welder_id": "lucia-reyes", "name": "Lucia Reyes", "arc": "declining", "sessions": 5, "base": 76, "delta": -4},
+    {"welder_id": "tom-bradley", "name": "Tom Bradley", "arc": "new_hire", "sessions": 3, "base": 42, "delta": 6},
+    {"welder_id": "ana-silva", "name": "Ana Silva", "arc": "volatile", "sessions": 5, "base": 65, "delta": 0},
+    {"welder_id": "derek-kwon", "name": "Derek Kwon", "arc": "fast_learner", "sessions": 5, "base": 61, "delta": 5},
+    {"welder_id": "priya-nair", "name": "Priya Nair", "arc": "consistent_expert", "sessions": 5, "base": 91, "delta": 0},
+    {"welder_id": "marcus-bell", "name": "Marcus Bell", "arc": "declining", "sessions": 5, "base": 80, "delta": -5},
+    {"welder_id": "expert-benchmark", "name": "Expert Benchmark", "arc": "consistent_expert", "sessions": 5, "base": 93, "delta": 0.5},
+]
+
+
+def generate_score_arc(base: float, delta: float, sessions: int, arc_type: str) -> List[float]:
+    """
+    Generate expected score arc for validation/tuning only. Actual scores come from score_session.
+    volatile: random swing; else: base + delta * session_idx + noise.
+    """
+    scores: List[float] = []
+    for i in range(sessions):
+        if arc_type == "volatile":
+            score = base + random.choice([-12, -6, 0, 8, 14])
+        else:
+            noise = random.uniform(-2, 2)
+            score = base + (delta * i) + noise
+        scores.append(round(min(max(score, 0), 100), 1))
+    return scores
+
+
+__all__ = ["WELDER_ARCHETYPES", "generate_score_arc"]
+```
+
+*Verification:*
+```
+Setup: cd backend; PYTHONPATH=. python -c "from data.mock_welders import WELDER_ARCHETYPES, generate_score_arc; random.seed(42); s = generate_score_arc(65,0,5,'volatile'); print(s)"
+Action: Run the command
+Expected: List of 5 floats, e.g. [53.0, 79.0, 65.0, 71.0, 59.0]
+Pass criteria:
+  [ ] WELDER_ARCHETYPES has 10 entries
+  [ ] Each entry has welder_id, name, arc, sessions, base, delta
+  [ ] generate_score_arc returns list of length sessions
+  [ ] volatile uses random.choice; non-volatile uses base + delta*i + noise
+If it fails: ImportError → check PYTHONPATH; random.seed(42) before volatile for reproducibility
+```
+
+*Estimate:* 0.5h  
+
+*Classification:* NON-CRITICAL  
+
+---
+
+**Step 1.2 — Add generate_frames_for_arc in mock_sessions.py**
+
+*What:* Add `generate_frames_for_arc(arc_type: str, session_index: iduration_ms: int = 15_000)` that returns `(List[Frame], bool)` with arc-specific angle/amps/thermal profiles. Use prototype patterns: angle_stddev (tight=2°, loose=8°, drift 2°→8°), thermal N/S (sym <10°C, asym 20–40°C), amps (±2A stable, ±8A unstable). **volatile and declining must return disable=True for sensor continuity.**
+
+*File:* `backend/data/mock_sessions.py` (modify)
+
+*Depends on:* Step 1.1
+
+*Code:*
+```python
+import math
+# Add after novice_angle; before generate_thermal_snapshots
+
+def _arc_angle_tight(t: int, session_idx: int) -> float:
+    """Tightening: session 0 loose (±4°), session 4 tight (±1°)."""
+    looseness = max(0.5, 4.0 - session_idx * 0.8)
+    return 45.0 + looseness * math.sin(t / 600.0)
+
+
+def _arc_angle_drift(t: int, session_idx: int) -> float:
+    """Declining: drift grows with drift_factor = 0.15 + session_idx * 0.15
+    drift = 20.0 * drift_factor * (t / 15000.0)
+    wobble = 4.0 * math.sin(t / 900.0)
+    return 45.0 + drift + wobble
+
+
+def _arc_amps_stable(t: int) -> float:
+    return NOMINAL_AMPS + 2.0 * math.sin(t / 4000.0)
+
+
+def _arc_amps_unstable(t: int) -> float:
+    return NOMINAL_AMPS + 8.0 * math.sin(t / 500.0)
+
+
+def _arc_volts_stable(t: int) -> float:
+    return NOMINAL_VOLTS + 0.15 * math.sin(t / 3500.0)
+
+
+def _arc_volts_unstable(t: int) -> float:
+    return NOMINAL_VOLTS + 2.0 * math.sin(t / 800.0)
+
+
+def generate_frames_for_arc(
+    arc_type: str,
+    session_index: int,
+    duration_ms: int = 15_000,
+) -> tuple[List[Frame], bool]:
+    """
+    Generate frames for an arc type and session index.
+    Returns (frames, disable_continuity): volatile/declining need continuity disabled.
+    """
+    if arc_type == "fast_learner":
+        get_angle = lambda t: _arc_angle_tight(t, session_index)
+        get_amps = _arc_amps_stable
+        get_volts = _arc_volts_stable
+        disable = False
+    elif arc_type == "declining":
+        get_angle = lambda t: _arc_angle_drift(t, session_index)
+        get_amps = _arc_amps_stable
+        get_volts = _arc_volts_stable
+        disable = True
+    elif arc_type == "volatile":
+        get_angle = lambda t: 45.0 + 6.0 * math.sin(t / 300.0)
+        get_amps = _arc_amps_unstable
+        get_volts = _arc_volts_unstable
+        disable = True
+    elif arc_type == "consistent_expert":
+        get_angle = expert_angle
+        get_amps = expert_amps
+        get_volts = expert_volts
+        disable = False
+    elif arc_type in ("plateaued", "new_hire"):
+        get_angle = lambda t: 45.0 + 3.0 * math.sin(t / 700.0)
+        get_amps = _arc_amps_stable
+        get_volts = _arc_volts_stable
+        disable = False
+    else:
+        get_angle = expert_angle
+        get_amps = expert_amps
+        get_volts = expert_volts
+        disable = False
+
+    frames = generate_frames(
+        duration_ms=duration_ms,
+        get_amps=get_amps,
+        get_volts=get_volts,
+        get_angle=get_angle,
+        include_thermal_gap=False,
+    )
+    return frames, disable
+
+
+# Add to __all__: "generate_frames_for_arc", "generate_session_for_welder"
+```
+
+*Verification:*
+```
+Setup: cd backend
+Action: PYTHONPATH=. python -c "
+from data.mock_sessions import generate_frames_for_arc
+frames, disable = generate_frames_for_arc('fast_learner', 4)
+assert len(frames) == 1500
+assert disable is False
+frames2, d2 = generate_frames_for_arc('volatile', 0)
+assert d2 is True
+frames3, d3 = generate_frames_for_arc('declining', 0)
+assert d3 is True
+print('OK: fast_learner 1500 frames, volatile/declining disable=True')
+"
+Expected: "OK: fast_learner 1500 frames, volatile/declining disable=True"
+Pass criteria:
+  [ ] generate_frames_for_arc returns (frames, disable) for all arc types
+  [ ] volatile and declining return disable=True
+  [ ] fast_learner returns 1500 frames
+  [ ] declining returns disable=True
+If it fails: Import error → add generate_frames_for_arc to __all__; ensure lambda captures session_index
+```
+
+*Estimate:* 2h  
+
+*Classification:* CRITICAL  
+
+---
+
+**Step 1.3 — Add generate_session_for_welder in mock_sessions.py**
+
+*What:* Add `generate_session_for_welder(welder_id: str, arc_type: str, session_index: int, session_id: str)` that builds a `Session` with `operator_id=welder_id`, calls `generate_frames_for_arc`, and sets `disable_sensor_continuity_checks` per arc.
+
+*File:* `backend/data/mock_sessions.py` (modify)
+
+*Depends on:* Step 1.2, Step 1.1
+
+*Code:*
+```python
+denerate_session_for_welder(
+    welder_id: str,
+    arc_type: str,
+    session_index: int,
+    session_id: str,
+    duration_ms: int = 15_000,
+) -> Session:
+    """
+    Build a Session for a welder at a given session index.
+    operator_id = welder_id for traceability.
+    Caller passes arc_type from WELDER_ARCHETYPES (avoids circular import).
+    """
+    frames, disable = generate_frames_for_arc(arc_type, session_index, duration_ms)
+
+    return Session(
+        session_id=session_id,
+        operator_id=welder_id,
+        start_time=datetime.now(timezone.utc),
+        weld_type="mild_steel",
+        thermal_sample_interval_ms=THERMAL_SAMPLE_INTERVAL_MS,
+        thermal_directions=THERMAL_DIRECTIONS,
+        thermal_distance_interval_mm=THERMAL_DISTANCE_INTERVAL_MM,
+        sensor_sample_rate_hz=SENSOR_SAMPLE_RATE_HZ,
+        frames=frames,
+        status=SessionStatus.COMPLETE,
+        frame_count=len(frames),
+        expected_frame_count=len(frames),
+        last_successful_frame_index=len(frames) - 1,
+        validation_errors=[],
+        completed_at=datetime.now(timezone.utc),
+        disable_sensor_continuity_checks=disable,
+    )
+```
+
+*Verification:*
+```
+Setup: cd backend; PYTHONPATH=. python -c "
+from data.mock_sessions import generate_session_for_welder
+s = generate_session_for_welder('ana-silva','volatile',2,'sess_ana-silva_003')
+print(s.operator_id, s.session_id, s.disable_sensor_continuity_checks, len(s.frames))
+s2 = generate_session_for_welder('lucia-reyes','declining',0,'sess_lucia-reyes_001')
+print(s2.disable_sensor_continuity_checks)
+"
+Action: Run the command
+Expected: operator_id=ana-silva, session_id=sess_ana-silva_003, disable_sensor_continuity_checks=True, 1500 frames; s2.disable=True
+Pass criteria:
+  [ ] Session validates
+  [ ] operator_id equals welder_id
+  [ ] volatile/declining have disable_sensor_continuity_checks=True
+If it fails: Circular import → mock_sessions must NOT be imported by mock_welders
+```
+
+*Estimate:* 0.5h  
+
+*Classification:* CRITICAL  
+
+---
+
+**Step 1.4 — Update prototype to use mock_sessions and assert score bands**
+
+*What:* Replace the prype's `make_session_for_arc` with `generate_session_for_welder` from `mock_sessions`. Add explicit pass-band assertions that **fail** if scores are outside ±15. This validates the **production** implementation, not a duplicate.
+
+*File:* `backend/scripts/prototype_arc_scoring.py` (modify)
+
+*Depends on:* Step 1.2, Step 1.3
+
+*Code:*
+```python
+#!/usr/bin/env python3
+"""
+Prototype: validate that mock_sessions arc generation produces target score ranges.
+Must use mock_sessions.generate_session_for_welder — same path as seed/Phase 2.
+Run from project root: PYTHONPATH=backend python backend/scripts/prototype_arc_scoring.py
+"""
+
+import random
+import sys
+from pathlib import Path
+
+backend = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(backend))
+
+from data.mock_sessions import generate_session_for_welder
+from features.extractor import extract_featu
+from scoring.rule_based import score_session
+
+# Explicit pass bands: arc -> (session_idx, min_score, max_score)
+# base ± 15 for session 0; target ± 15 for session 4
+PASS_BANDS = [
+    ("fast_learner", 0, 43, 73),
+    ("fast_learner", 4, 59, 98),
+    ("declining", 0, 61, 91),
+    ("declining", 4, 40, 70),
+    ("volatile", 0, 38, 92),
+    ("volatile", 2, 38, 92),
+    ("consistent_exrt", 0, 73, 103),
+    ("consistent_expert", 4, 78, 108),
+]
+
+
+def main():
+    random.seed(42)
+    print("Prototype: mock_sessions.generate_session_for_welder → Features → Score")
+    print("=" * 60)
+    failures = []
+    for arc, s_idx, min_s, max_s in PASS_BANDS:
+        sid = f"sess_{arc}_{s_idx + 1:03d}"
+        session = generate_session_for_welder(f"proto-{arc}", arc, s_idx, sid)
+        feas = extract_features(session)
+        sc = score_session(session, features)
+        ok = min_s <= sc.total <= max_s
+        status = "OK" if ok else "FAIL"
+        print(f"{arc} session {s_idx}: score={sc.total:.1f} [{min_s}-{max_s}] {status}")
+        if not ok:
+            failures.append((arc, s_idx, sc.total, min_s, max_s))
+
+    if failures:
+        print("\nFAILED: Scores outside pass bands:")
+        for arc, s_idx, score, min_s, max_s in failures:
+            print(f"  {arc} s{s_idx}: {score} not in [{min_s},{max_s}]")
+        sys.exit(1)
+    print("\nDone. All arcs in range.")
+
+
+if __name__ == "__main__":
+    main()
+```
+
+*Verification:*
+```
+Setup: cd project root; ensure Steps 1.2 and 1.3 complete
+Action: PYTHONPATH=backend python backend/scripts/prototype_arc_scoring.py
+Expected: All arcs print OK; exit 0
+Pass criteria:
+  [ ] All arc types produce scores within pass bands
+  [ ] No Session validation failures (declining and volatile use disable_sensor_continuity_checks)
+  [ ] Script exits 1 if any score out of band
+If it fails: Tune angle/amps/volts in mock_sessions.generate_frames_for_arc; do NOT change rule thresholds; do NOT add duplicate logic to prototype
+```
+
+*Estimate:* 1h  
+
+*Classification:* CRITICAL  
+
+---
+
+### Phase 2 — Seed & Wipe
+
+---
+
+**Step 2.1 — Extend seed route to loop archetypes**
+
+*What:* Update `POST /api/dev/seed-mock-sessions` to import `WELDER_ARCHETYPES` and `generate_session_for_welder`; loop over each archetype, generate `sessions` sessions per welder with IDs `sess_{welder_id}_{001..00n}`; use `random.seed(42)` before generating volatile arcs; delete existing mock sessions first (derive IDs from archetypes).ile:* `backend/routes/dev.py` (modify)
+
+*Depends on:* Step 1.3
+
+*Code:*
+```python
+@router.post("/seed-mock-sessions")
+async def seed_mock_sessions(db: OrmSession = Depends(get_db)):
+    if not _is_dev_mode():
+        raise HTTPException(status_code=403, detail="Seed route is only available in development (ENV=development or DEBUG=1)")
+
+    from data.mock_welders import WELDER_ARCHETYPES
+    from data.mock_sessions import generate_session_for_welder
+
+    # Derive all mock session IDs from archetypes — single source of truth
+    session_ids = []
+    for arch in WELDER_ARCHETYPES:
+      welder_id = arch["welder_id"]
+        n = arch["sessions"]
+        for i in range(1, n + 1):
+            session_ids.append(f"sess_{welder_id}_{i:03d}")
+
+    # Delete existing
+    for existing in db.query(SessionModel).filter(SessionModel.session_id.in_(session_ids)).all():
+        db.delete(existing)
+    db.flush()
+
+    random.seed(42)
+    for arch in WELDER_ARCHETYPES:
+        welder_id = arch["welder_id"]
+        arc_type = arch["arc"]
+        n = arch["sessions"]
+        for i in range(1, n + 1):
+            sid = f"sess_{welder_id}_{i:03d}"
+            session = generate_session_for_welder(welder_id, arc_type, i - 1, sid)
+            model = SessionModel.from_pydantic(session)
+            db.add(model)
+
+    db.commit()
+    return {"seeded": session_ids}
+```
+
+*Verification:*
+```
+Setup: ENV=development; backend running; database empty or pre-seeded
+Action: curl -X POST http://localhost:8000/api/dev/seed-mock-sessions
+Expected: {"seeded": ["sess_mike-chen_001", ..., "sess_expert-benchmark_005"]} — sum(arch["sessions"]) IDs
+Pass criteria:
+  [ ] Response 200
+  [ ] seeded array length equals sum(ah["sessions"] for arch in WELDER_ARCHETYPES)
+  [ ] GET /api/sessions/sess_mike-chen_001 returns 200
+  [ ] GET /api/sessions/sess_expert-benchmark_005 returns 200
+If it fails: 403 → set ENV=development; 500 → check generate_session_for_welder imports
+```
+
+*Estimate:* 1h  
+
+*Classification:* CRITICAL  
+
+---
+
+**Step 2.2 — Extend wipe route to delete all derived IDs**
+
+*What:* Update `POST /api/dev/wipe-mock-sessions` to derive session_ids from `WELDER_ARCHETYPES` (same logic as seed), then delete all matching sessions.
+
+*File:* `backend/routes/dev.py` (modify)
+
+*Depends on:* Step 2.1
+
+*Code:*
+```python
+@router.post("/wipe-mock-ses)
+async def wipe_mock_sessions(db: OrmSession = Depends(get_db)):
+    if not _is_dev_mode():
+        raise HTTPException(status_code=403, detail="Wipe route is only available in development (ENV=development or DEBUG=1)")
+
+    from data.mock_welders import WELDER_ARCHETYPES
+
+    session_ids = []
+    for arch in WELDER_ARCHETYPES:
+        welder_id = arch["welder_id"]
+        n = arch["sessions"]
+        for i in range(1, n + 1):
+            session_ids.append(f"sess_{welder_id}_{i:03d}")
+
+    deleted = db.query(SessionModel).filter(SessionModel.session_id.in_(session_ids)).delete(synchronize_session=False)
+    db.commit()
+    return {"deleted": deleted, "ids": session_ids}
+```
+
+*Verification:*
+```
+Setup: Seed first (Step 2.1); then run wipe
+Action: curl -X POST http://localhost:8000/api/dev/wipe-mock-sessions
+Expected: {"deleted": N, "ids": [...]} where N == len(ids)
+Pass criteria:
+  [ ] deleted matches count of seeded sessions
+  [ ] GET /api/sessions/sess_mike-chen_001 returns 404 after wipe
+  [ ] remaining = db.query(SessionModel).filter(SessionModel.session_id.in_(session_ids)).count() == 0
+If it fails: deleted=0 → sessions may have different IDs; verify seed ran first
+```
+
+*Note:* Wipe only deletes IDs derived from current WELDER_ARCHETYPES. Orphan sessions (`sess_old-demo_001` from removed archetypes) persist. For full cleanup, run `DELETE FROM sessions WHERE session_id LIKE 'sess_%'` manually if schema evolves.
+
+*Estimate:*.5h  
+
+*Classification:* CRITICAL  
+
+---
+
+**Step 2.3 — Add `import random` to dev.py**
+
+*What:* Add `import random` at top of `backend/routes/dev.py` for `random.seed(42)`.
+
+*File:* `backend/routes/dev.py` (modify)
+
+*Depends on:* Step 2.1
+
+*Code:*
+```python
+import os
+import random
+```
+
+*Verification:*
+```
+Setup: None
+Action: python -c "import routes.dev"
+Expected: No ImportError
+```
+
+*Estimate:* 0.1h  
+
+*Classification:* NON-CRITICAL  
+
+---
+
+**Step 2.4 — Update seed_demo_data.py to seed all 10 archetypes**
+
+*What:* Replace hardcoded sess_expert_001/sess_novice_001 with loop over WELDER_ARCHETYPES; call shared `generate_session_for_welder`; **idempotent: skip ONLY whxisting count equals full expected count** (not when existing > 0).
+
+*File:* `backend/scripts/seed_demo_data.py` (modify)
+
+*Depends on:* Step 2.1
+
+*Code:*
+```python
+from data.mock_welders import WELDER_ARCHETYPES
+from data.mock_sessions import generate_session_for_welder
+import random
+import sys
+
+def main() -> int:
+    db = SessionLocal()
+    try:
+        session_ids = []
+        for arch in WELDER_ARCHETYPES:
+            welder_id = arch["welder_id"]
+            n = arch["sessions"]
+            for i in range(1, n + 1):
+                session_ids.append(f"sess_{welder_id}_{i:03d}")
+
+        expected_count = len(session_ids)
+        existing = db.query(SessionModel).filter(SessionModel.session_id.in_(session_ids)).count()
+
+        if existing == expected_count:
+            print("Demo data already complete, skipping.", file=sys.stderr)
+            return 0
+
+        if existing > 0:
+            print(f"Warning: {existing}/{expected_count} sessions exist. Re-seeding all.", file=sys.stderr)
+            for s in db.query(SessionModel).filter(SessionModel.session_id.in_(session_ids)).all():
+                db.delete(s)
+            db.flush()
+
+        random.seed(42)
+        for arch in WELDER_ARCHETYPES:
+            welder_id = arch["welder_id"]
+            arc_type = arch["arc"]
+            n = arch["sessions"]
+            for i in range(1, n + 1):
+                sid = f"sess_{welder_id}_{i:03d}"
+                session = generate_session_for_welder(welder_id, arc_type, i - 1, sid)
+                model = SessionModel.from_pydantic(session)
+                db.add(model)
+
+        db.commit()
+        print(f"Demo data seeded: {len(session_ids)} sessions", file=sys.stderr)
+        return 0
+    except Exception as e:
+        ...
+```
+
+*Verification:*
+```
+Setup: Wipe database; cd backend
+Action: python scripts/seed_demo_data.py
+Expected: "Demo data seeded: 45 sessions"
+
+Action: python scripts/seed_demo_data.py (second run)
+Expected: "Demo data already complete, skipping"
+
+Setup: Manually delete sess_mike-chen_003 so only 44 exist
+Action: python scripts/seed_demo_data.py
+Expected: "Warning: 44/45 sessions exist. Re-seeding all." then "Demo data seeded: 45 sessions"
+
+Pass criteria:
+  [ ] Second run (full data) prints "Demo data already complete, skipping"
+  [ ] Partial data triggers re-seed, not skip
+  [ ] Database has sum(arch["sessions"]) sessions after seed
+If it fails: Check existing == expected_count logic; verify generate_session_for_welder signature
+```
+
+*Estimate:* 0.5h  
+
+*Classification:* CRITICAL  
+
+---
+
+### Phase 3 — Dashboard (10 Welders + Badges)
+
+**Prerequisite:** Run seed (Step 2.1 or seed_demo_data) before opening /seagull.
+
+---
+
+**Step 3.1 — Replace WELDERS array with 10 entries and sessionCount**
+
+*What:* Update `WELDERS` in `seagull/page.tsx` to include all 10 archetypith `{ id, name, sessionCount }`. Derive `latestSessionId = sess_${id}_${String(sessionCount).padStart(3,'0')}` and `secondLatestSessionId = sess_${id}_${String(sessionCount-1).padStart(3,'0')}` (when sessionCount >= 2).
+
+*File:* `my-app/src/app/seagull/page.tsx` (modify)
+
+*Depends on:* none
+
+*Code:*
+```typescript
+interface Welder {
+  id: string;
+  name: string;
+  sessionCount: number;
+}
+
+const WELDERS: Welder[] = [
+  { id: "mike-chen", name: "Mike Chen", sessionCount: 5 },
+  { id: "sara-okafor", name: "Sara Okafor", sessionCount: 5 },
+  { id: "james-park", name: "James Park", sessionCount: 5 },
+  { id: "lucia-reyes", name: "Lucia Reyes", sessionCount: 5 },
+  { id: "tom-bradley", name: "Tom Bradley", sessionCount: 3 },
+  { id: "ana-silva", name: "Ana Silva", sessionCount: 5 },
+  { id: "derek-kwon", name: "Derek Kwon", sessionCount: 5 },
+  { id: "priya-nair", name: "Priya Nair", sessionCount: 5 },
+  { id: "marcus-bell", name: "Marcus Bell", sessionCount: 5 },
+  { id: "expert-benchmark", name: "Expert Benchmark", sessionCount: 5 },
+];
+
+function getLatestSessionId(w: Welder): string {
+  return `sess_${w.id}_${String(w.sessionCount).padStart(3, "0")}`;
+}
+function getSecondLatestSessionId(w: Welder): string | null {
+  if (w.sessionCount < 2) return null;
+  return `sess_${w.id}_${String(w.sessionCount - 1).padStart(3, "0")}`;
+}
+```
+
+*Note:* Follow-up (OOS): Add `GET /api/dev/welders` returning archetypes + sessionCount so frontend uses single source of truth and new archetypes appear automatically.
+
+*Verification:*
+```
+Setup: Backend seeded; dev server running
+Action: Open /seagull in browser
+Expected: 10 welder cards visible
+Pass criteria:
+  [ ] Exactly 10 cards
+  [ ] Each card has name and score (or "Score unavailable")
+If it fails: Check WELDERS length; ensure fetchScore uses getLatestSessionId(w)
+```
+
+*Estimate:* 0.5h  
+
+*Classification:* NON-CRITICAL  
+
+---
+
+**Step 3.2 — Fetch latest and second-latest score per welder for badge**
+
+*What:* For each welder with sessionCount >= 2, fetch `fetchScore(latestSessionId)` and `fetchScore(secondLatestSessionId)`; use `Promise.allSettled` over a flattened array so one failure doesn't block others. **Add 5s timeout** to avoid indefinite hang on slow network.
+
+*File:* `my-apprc/app/seagull/page.tsx` (modify)
+
+*Depends on:* Step 3.1
+
+*Code:*
+```typescript
+const FETCH_TIMEOUT_MS = 5000;
+
+async function fetchScoreWithTimeout(sessionId: string): Promise<SessionScore | null> {
+  const timeout = new Promise<null>((_, reject) =>
+    setTimeout(() => reject(new Error("fetchScore timeout")), FETCH_TIMEOUT_MS)
+  );
+  try {
+    return await Promise.race([fetchScore(sessionId), timeout]);
+  } catch {
+    return null;
+  }
+}
+
+// In useEffect: build list of fetches for latest + secondLatest
+const fetches: { welder: Welder; sessionId: string; isLatest: boolean }[] = [];
+WELDERS.forEach((w) => {
+  fetches.push({ welder: w, sessionId: getLatestSessionId(w), isLatest: true });
+  const second = getSecondLatestSessionId(w);
+  if (second) fetches.push({ welder: w, sessionId: second, isLatest: false });
+});
+
+Promise.allSettled(
+  fetches.map((f) =>
+    fetchScoreWithTimeout(f.sessionId).catch(() => null)
+  )
+).then((results) => {
+  const byWelder = new Map<string, { latest: number | null; second: number | null }>();
+  WELDERS.forEach((w) => byWelder.set(w.id, { latest: null, second: null }));
+  fetches.forEach((f, i) => {
+    const r = results[i];
+    const val =
+      r.status === "fulfilled" && r.value != null
+        ? (r.value as SessionScore).total
+        : null;
+    const entry = byWelder.get(f.welder.id)!;
+    if (f.isLatest) entry.latest = val;
+    else entry.second = val;
+  });
+  setWelderScores(
+    WELDERS.map((w) => {
+      const { latest, second } = byWelder.get(w.id)!;
+      return { welder: w, score: latest, secondScore: second, error: null };
+    })
+  );
+  setLoading(false);
+});
+```
+
+*Verification:*
+```
+Setup: Seeded backend; open /seagull
+Action: Inspect network tab; verify fetchScore calls for sess_*_005, sess_*_004 etc.
+Expected: Up to 20 fetchScore calls (10 latest + up to 10 secondLatest)
+Pass criteria:
+  [ ] All welders with sessionCount>=2 have secondScore fetched
+  [ ] Failures/timeouts don't block other cards (Promise.allSettled)
+  [ ] Timeout prevents indefinite hang
+If it fails: Check fetches array construction; ensure byWelder keys match welder.id
+```
+
+*Estimate:* 1h  
+
+*Classification:* CRITICAL  
+
+---
+
+**Step 3.3 — Add badge UI: On track / Needs attention / neutral**
+
+*What:* Compute badge from `last` and `prev` (where lastcore, prev=secondScore): last > prev → "On track" (green); last < prev → "Needs attention" (amber); else neutral. Need 2+ scores. Render badge next to score on each card.
+
+*File:* `my-app/src/app/seagull/page.tsx` (modify)
+
+*Depends on:* Step 3.2
+
+*Code:*
+```typescript
+function getBadge(score: number | null, secondScore: number | null): "oack" | "needs_attention" | "neutral" | null {
+  if (score === null || secondScore === null) return null;
+  if (score > secondScore) return "on_track";
+  if (score < secondScore) return "needs_attention";
+  return "neutral";
+}
+
+// In card render:
+const badge = getBadge(score, secondScore);
+{badge === "on_track" && (
+  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
+    On track
+  </span>
+)}
+{badge === "needs_attention" && (
+  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
+    Needs attention
+  </span>
+)}
+```
+
+*Verification:*
+```
+Setup: Seeded; /seagull open
+Action: Visual check
+Expected: fast_learner/new_hire show green; declining show amber; plateaued/volatile may show neutral or either
+Pass criteria:
+  [ ] At least 2 green badges (e.g. Mike Chen, Derek Kwon)
+  [ ] At least 2 amber badges (e.g. Lucia Reyes, Marcus Bell)
+  [ ] Welders with sessionCount<2 show no badge
+If it fails: Verify secondScore is passed; check getBadge logic (last vs prev order)
+```
+
+*Estimate:* 0.5h  
+
+*Classification:* NON-CRITICAL  
+
+---
+
+### Phase 4 — Welder Report (Historical + Expert Baseline)
+
+**Prerequisite:** Run seed before opening welder report. Expert session sess_expert-benchmark_005 must exist.
+
+---
+
+**Step 4.1 — Replace WELDER_MAP and WELDER_DISPLAY_NAMES with 10 entries**
+
+*What:* Update `WELDER_Mand `WELDER_DISPLAY_NAMES` in `welder/[id]/page.tsx` to include all 10 welders. Map welder id → latest session ID (e.g. `sess_mike-chen_005`). Use same sessionCount as dashboard.
+
+*File:* `my-app/src/app/seagull/welder/[id]/page.tsx` (modify)
+
+*Depends on:* none
+
+*Code:*
+```typescript
+const WELR_SESSION_COUNT: Record<string, number> = {
+  "mike-chen": 5, "sara-okafor": 5, "james-park": 5, "lucia-reyes": 5,
+  "tom-bradley": 3, "ana-silva": 5, "derek-kwon": 5, "priya-nair": 5,
+  "marcus-bell": 5, "expert-benchmark": 5,
+};
+
+const WELDER_DISPLAY_NAMES: Record<string, string> = {
+  "mike-chen": "Mike Chen", "sara-okafor": "Sara Okafor", "james-park": "James Park",
+  "lucia-reyes": "Lucia Reyes", "tom-bradley": "Tom Bradley", "ana-silva": "Ana Silva",
+  "derek-kwon": "Derek Kwon", "priya-nair": "Priya Nair", "marcus-bell": "Marcus Bell",
+  "expert-benchmark": "Expert Benchmark",
+};
+
+function getLatestSessionId(welderId: string): string {
+  const n = WELDER_SESSION_COUNT[welderId] ?? 1;
+  return `sess_${welderId}_${String(n).padStart(3, "0")}`;
+}
+// sessionId = getLatestSessionId(welderId) for primary session
+```
+
+*Verification:*
+```
+Setup: Seeded; click Mike Chen from /seagull
+Action: Navigate to /seagull/welder/mike-chen
+Expected: Page loads with sess_mike-chen_005 as primary session
+Pass criteria:
+  [ ] All 10 welder IDs resolve to correct latest session
+If it fails: Check WELDER_SESSION_COUNT keys match route param id
+```
+
+*Estimate:* 0.25h  
+
+*Classification:* NON-CRITICAL  
+
+---
+
+**Step 4.2 — Replace expert comparison with sess_expert-benchmark_005**
+
+*What:* Change `fetchSession("sess_expert_001", ...)` to `fetchSession("sess_expert-benchmark_005", ...)` for expert comparison. **Use Promise.allSettled for expert fetch** to handle 404 gracefully — show report without expert comparison if expert not seeded.
+
+*File:* `my-app/src/app/seagull/welder/[id]/page.tsx` (modify)
+
+*Code``typescript
+const EXPERT_SESSION_ID = "sess_expert-benchmark_005";
+
+// In useEffect: use Promise.allSettled for primary, expert, score, and historical
+// so expert 404 does not abort the entire page
+```
+
+*Verification:*
+```
+Setup: Seeded
+Action: Open /seagull/welder/mike-chen; check network for fetchSession
+Expected: Request to /api/sessions/sess_expert-benchmark_005
+
+Setup: Delete sess_expert-benchmark_005 from DB
+Action: Open /seagull/welder/mike-chen
+Expected: Page loads; welder report shows without expert comparison; no uncaught rejection
+Pass criteria:
+  [2] No 404 crash when expert session missing
+If it fails: Ensure expert fetch uses allSettled; render "Expert comparison unavailable" when expert null
+```
+
+*Estimate:* 0.25h  
+
+*Classification:* NON-CRITICAL  
+
+---
+
+**Step 4.3 — Replace MOCK_HISTORICAL with fetched scores**
+
+*What:* Fetch scores for `sess_{welderId}_001` through `sess_{welderId}_{nnn}` using `fetchScore`; map to `{ date: "Session 1", value }` for LineChart; pass to `generateAIedback` as `historicalScores` (numeric array **in chronological order**, indices 0..sessionCount-1).
+
+*File:* `my-app/src/app/seagull/welder/[id]/page.tsx` (modify)
+
+*Depends on:* Step 4.1
+
+*Code:*
+```typescript
+const sessionCount = WELDER_SESSION_COUNT[welderId] ?? 1;
+const historicalSessionIds = Array.from(
+  { length: sessionCount },
+  (_, i) => `sess_${welderId}_${String(i + 1).padStart(3, "0")}`
+);
+
+// Use Promise.allSettled for all fetches (primary session, expert, score, historical)
+// so failures don't abort
+```
+
+*Verification:*
+```
+Setup: Seeded; open /seagull/welder/mike-chen
+Action: Check "Progress Over Time" chart
+Expected: Chart shows 5 points (Session 1..5) with real scores; AI feedback trend uses historicalScores
+Pass criteria:
+  [ ] Chart has sessionCount points
+  [ ] Values match fetchScore results
+  [ ] generateAIFeedback receives [score1, score2, ...] in chronological order (index i = Session i+1)
+If it fails: Ensure historicalScores order matches historicalSessionIds; see Step 4.4 for error handling
+```
+
+*Estimate:* 1h  
+
+*Classification:* CRITICAL  
+
+---
+
+**Step 4.4 — Handle fetch errors: preserve order for historicalScores**
+
+*What:* Use `Promise.allSettled` for historical `fetScore` calls. **Preserve index for generateAIFeedback**: `historicalScores[i]` must correspond to Session i+1. Use `0` (or `null` if generateAIFeedback accepts it) for failed fetches so order is correct.
+
+*File:* `my-app/src/app/seagull/welder/[id]/page.tsx` (modify)
+
+*Depends on:* Step 4.3
+
+*Code:*
+```typescript
+const histPromises = historicalSessionIds.map((sid) => fetchScore(sid));
+const histResults = await Promise.allSettled(histPromises);
+
+// Preserve order: historicalScores[i] = score for Session i+1
+// Failed fetches → use 0 so generateAIFeedback receives correct-length arrayn order
+const historicalScores = histResults.map((r, i) =>
+  r.status === "fulfilled" ? (r.value as SessionScore).total : 0
+);
+
+const chartData = historicalSessionIds.map((sid, i) => {
+  const val = histResults[i]?.status === "fulfilled"
+    ? (histResults[i] as PromiseFulfilledResult<SessionScore>).value.total
+    : 0;
+  return { date: `Session ${i + 1}`, value: val };
+});
+
+setReport(generateAIFeedback(s, sc, historicalScores));
+setChartData(chartData);
+```
+
+*Verification:*
+```
+Setup: Delete sess_mike-chen_003 from DB
+Action: Open /seagull/welder/mike-chen
+Expected: Page loads; chart shows 0 for Session 3; AI feedback receives [s1, s2, 0, s4, s5] — order preserved
+Pass criteria:
+  [ ] No caught rejection
+  [ ] Chart renders with partial data
+  [ ] historicalScores length equals sessionCount
+  [ ] generateAIFeedback receives array in Session 1..N order
+If it fails: Do NOT filter(fulfilled).map — that drops indices; use map over histResults with index
+```
+
+*Estimate:* 0.25h  
+
+*Classification:* CRITICAL  
+
+---
+
+### Phase 5 — Tests
+
+---
+
+**Step 5.1 — Create tck_welders.py for generate_score_arc and generate_frames_for_arc**
+
+*What:* Add `backend/tests/test_mock_welders.py` with tests: (1) `generate_score_arc` returns correct length and bounds; (2) volatile is reproducible with seed; (3) `generate_frames_for_arc` produces valid frames; (4) arc sessions pass Session validation; (5) volatile/declining have disable_sensor_continuity_checks=True; (6) **mock_sessions.generate_session_for_welder produces scores in band for fast_learner session 0** (43–73).
+
+*File:* `backend/tests/test_mock_welders.py` (create)
+
+*Depends on:* Step 1.1, Step 1.2, Step 1.3
+
+*Code:*
+```python
+"""Tests for mock welder archetypes and arc-specific frame generation."""
+
+import random
+import pytest
+from data.mock_welders import WELDER_ARCHETYPES, generate_score_arc
+from data.mock_sessions import generate_frames_for_arc, generate_session_for_welder
+from models.session import Session
+frofeatures.extractor import extract_features
+from scoring.rule_based import score_session
+
+
+def test_welder_archetypes_has_10():
+    assert len(WELDER_ARCHETYPES) == 10
+
+
+def test_generate_score_arc_length():
+    random.seed(42)
+    s = generate_score_arc(58, 4, 5, "fast_learner")
+    assert len(s) == 5
+    assert all(0 <= x <= 100 for x in s)
+
+
+def test_volatile_reproducible():
+    random.seed(42)
+    s1 = generate_score_arc(65, 0, 5, "volatile")
+    random.seed(42)
+    s2 = generate_score_arc(65, 0, 5, "volatile")
+    assert s1 == s2
+
+
+def test_generate_frames_for_arc_returns_valid_frames():
+    frames, disable = generate_frames_for_arc("fast_learner", 0)
+    assert len(frames) == 1500
+    assert isinstance(disable, bool)
+
+
+def test_volatile_declining_disable_continuity():
+    _, d_vol = generate_frames_for_arc("volatile", 0)
+    _, d_dec = generate_frames_for_arc("declining", 0)
+    assert d_vol is True
+    assert d_dec is True
+
+
+def test_fast_learner_expert_continuity_enabled():
+    _, d_fl = generate_frames_for_arc("fast_learner", 0)
+    _, d_exp = generate_frames_for_arc("consistent_expert", 0)
+    assert d_fl is False
+    assert d_exp is False
+
+
+def test_generate_session_for_welder_valid():
+    s = generate_session_for_welder("mike-chen", "fast_learner", 0, "sess_mike-chen_001")
+    assert isinstance(s, Session)
+    assert s.operator_id == "mike-chen"
+    assert s.session_id == "sess_mike-chen_001"
+    assert len(s.frames) == 1500
+
+
+def test_arc_scores_in_reasonable_range():
+    """Scores should be 0-100; accept ±20 from archetype base for session 0."""
+    for arch in [WELDER_ARCHETYPES[0], WELDER_ARCHETYPES[3]]:  # fast_learner, declining
+        s = generate_session_for_welder(
+            arch["welder_id"], arch["ac"], 0, f"sess_{arch['welder_id']}_001"
+        )
+        f = extract_features(s)
+        sc = score_session(s, f)
+        assert 0 <= sc.total <= 100
+
+
+def test_mock_sessions_fast_learner_session0_in_band():
+    """mock_sessions.generate_session_for_welder must produce scores in band (prototype validation path)."""
+    random.seed(42)
+    s = generate_session_for_welder("mike-chen", "fast_learner", 0, "sess_mike-chen_001")
+    f = extract_features(s)
+    sc = score_session(s, f)
+    assert 43 <= sc.total <= 73, f"fast_learner s0 score {sc.total} outside [43,73]"
+```
+
+*Verification:*
+```
+Setup: cd backend
+Action: PYTHONPATH=. pytest tests/test_mock_welders.py -v
+Expected: All tests pass
+Pass criteria:
+  [ ] test_volatile_reproducible passes
+  [ ] test_arc_scores_in_reasonable_range passes
+  [ ] test_mock_sessions_fast_learner_session0_in_band passes
+If it fails: Tune generate_frames_for_arc params; ensure score band matches prototype
+```
+
+*Estimate:* 1h  
+
+*Classification:* CRITICAL  
+
+---
+
+**Step 5.2 — Update test_dev_routes.py for ~45 sessions**
+
+*What:* Update seed/wipe tests to expect session count from `sum(arch["sessions"] for arch in WELDER_ARCHETYPES)`; use derived `session_ids` for wipe assertion (notlike(sess_*)` which can match orphans from other tests).
+
+*File:* `backend/tests/test_dev_routes.py` (modify)
+
+*Depends on:* Step 2.1, Step 2.2
+
+*Code:*
+```python
+from data.mock_welders import WELDER_ARCHETYPES
+
+EXPECTED_SESSION_COUNT = sum(arch["sessions"] for arch in WELDER_ARCHETYPES)
+
+def _derived_session_ids():
+    ids = []
+    for arch in WELDER_ARCHETYPES:
+        for i in range(1, arch["sessions"] + 1):
+            ids.append(f"sess_{arch['welder_id']}_{i:03d}")
+    return ids
+
+
+def test_seed_creates_mock_sessions_when_dev_mode(client, db_session, monkeypatch):
+    monkeypatch.setenv("ENV", "development")
+    response = client.post("/api/dev/seed-mock-sessions")
+    assert response.status_code == 200
+    data = response.json()
+    seeded = data["seeded"]
+    assert len(seeded) == EXPECTED_SESSION_COUNT
+    assert "sess_mike-chen_001" in seeded
+    assert "sess_expert-benchmark_005" in seeded
+
+    session = db_session.query(SessionModel).filter(
+        SessionModel.session_id == "sess_mike-chen_001"
+    ).first()
+    assert session is not None
+    assert session.frame_count > 0
+
+
+def test_wipe_deletes_mock_sessions_when_dev_mode(client, db_session, monkeypatch):
+    monkeypatch.setenv("ENV", "development")
+    client.post("/api/dev/seed-mock-sessions")
+    derived = _derived_session_ids()
+    response = client.post("/api/dev/wipe-mock-sessions")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["deleted"] == EXPECTED_SESSION_COUNT
+    remaining = db_session.query(SessionModel).filter(
+        SessionModel.session_id.in_(derived)
+    ).count()
+    assert remaining == 0
+
+
+def test_wipe_idempotent_returns_0_when_none_exist(client, monkeypatch):
+    monkeypatch.setenv("ENV", "development")
+    response = client.post("/api/dev/wipe-mock-sessions")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["deleted"] == 0
+    assert len(data["ids"]) == EXPECTED_SESSION_COUNT
+```
+
+*Verification:*
+```
+Setup: cd backend
+Action: PYTHONPATH=. pytest tests/test_dev_routes.py -v
+Expected: All dev route tests pass
+Pass criteria:
+  [ ] test_seed_creates_mock_sessions_when_dev_mode passes
+  [ ] test_wipe_deletes_mock_sessions_when_dev_mode passes
+  [ ] test_wipe_idempotent_returns_0_when_none_exist passes
+  [ ] wipe assertion uses derived IDs, not like(sess_*)
+If it fails: Ensure seed route returns full ids list; wipe uses same derivation
+```
+
+*Estimate:* 0.5h  
+
+*Classification:* CRITICAL  
+
+---
+
+## Risk Heatmap
+
+| Phase.Step | Risk Description | Probability | Impact | Early Warning | Mitigation |
+|------------|-------------------|-------------|--------|---------------|------------|
+| 1.2 | Frame params don't hit target score ranges | Med | High | Prototype scores outside ±15 of base/delta | Tune angle/amps/volts in generate_frames_for_arc; accept ±5–10 variance |
+| 1.2 | Volatile arc non-reproduci| Med | Low | Different scores across seed runs | random.seed(42) before generation in seed route and seed_demo_data |
+| 1.2 | Session validation fails on declining/volatile | Med | High | Ingest/validation error | Set disable_sensor_continuity_checks=True for volatile and declining |
+| 1.4 | Prototype validates wrong implementation | High | High | Seed produces different scores than prototype | Prototype MUST use mock_sessions.generate_session_for_welder |
+| 2.4 | Partial seed + re-run skips | Med | High | Incomplete demo data | existing == expected_count; re-seed when partial |
+| 2.1 | Wipe misses sessions | Low | Med | Orphan mock sessions after wipe | Derive session_ids from WELDER_ARCHETYPES; document orphan cleanup |
+| 2.1 | expert-benchmark not seeded | Low | Med | Welder report comparison 404 | Seed before demo; graceful degradation in Step 4.2 |
+| 3.2 | 20 fetchScore calls timeout | Low | Med | Slow dashboard load | 5s AbortController timeout; Promise.allSettled isolates failures |
+| 4.4 | historicalScores order wrong when fetches fail | Med | High | AI feedback trend wrong | Map over indices; use 0 for rejected; preserve order |
+| 5.2 | test_dev_routes brittle | Low | Low | Test failures on archetype change | Use EXPECTED_SESSION_COUNT from WELDER_ARCHETYPES |
+
+---
+
+## Pre-Flight Checklist
+
+### Phase 1 Prerequisites
+
+- [ ] `backend/data/mock_sessions.py` exists and has `generate_frames`, `expert_amps`, `expert_angle`, etc. — `grep def generate_frames backend/data/mock_sessions.py`
+- [ ] `backend/features/extractor.py` and `backend/scoring/rule_based.py` exist — `ls backend/features backend/scoring`
+- [ ] Python 3.10+ — `python --version`
+- [ ] No circular import: `mock_welders` does NOT import `mock_sessions` — inspect imports
+
+### Phase 2 Prerequisites
+
+- [ ] Phase 1 complete; `generate_session_for_welder` works — run Step 1.3 verification
+- [ ] **Database reachable** — `curl http://localhost:8000/health` or run backend
+- [ ] Database migrations applied — `alembic current` or equivalent
+- [ ] ENV=development or DEBUG=1 for seed/wipe — `echo $ENV`
+- [ ] Backend runs — start backend before seed
+
+### Phase 3 Prerequisites
+
+- [ ] **Phase 2 complete; seed has run** — Run `curl -X POST http://localhost:8000/api/dev/seed-mock-sessions` before openingsessions in DB — query sessions count
+- [ ] my-app builds — `cd my-app && npm run build`
+- [ ] fetchScore and SessionScore types exist in api.ts
+- [ ] Next.js app runs — `npm run dev`
+
+### Phase 4 Prerequisites
+
+- [ ] Phcomplete; dashboard shows 10 cards
+- [ ] **Expert-benchmark seeded (sess_expert-benchmark_005)** — run seed before demo
+- [ ] LineChart accepts `{ date, value }[]`
+- [ ] generateAIFeedback accepts historicalScores: number[]
+
+### Phase 5 Prerequisites
+
+- [ ] Phases 1–4 complete
+- [ytest and test deps installed
+- [ ] In-memory SQLite works for test_dev_routes
+- [ ] Tests use isolated db_session fixture
+
+---
+
+## Testing & Validation
+
+1. **Prototype validation (Step 1.4):** `PYTHONPATH=backend python backend/scripts/prototype_arc_scoring.py` — must exit 0
+2. **Unit tests:** `cd backend && PYTHONPATH=. pytest tests/test_mock_welders.py tests/test_dev_routes.pyv`
+3. **Seed + wipe cycle:** Seed, verify ~45 sessions, wipe, verify 0 derived sessions remain
+4. **Dashboard:** Open /seagull; 10 cards; green/amber badges on correct welders
+5. **Welder report:** Open /seagull/welder/mike-chen; trend chart; expert comparison
+6. **Partial fetch:** Delete one historical session; welder report loads with 0 for that slot; AI feedback order correct
+
+---
+
+## Rollback Procedure
+
+1. **Seed/wipe:** Run wipe to remove all mock sessions; re-seed if needed
+2. **Orphan cleanup:** If archetypes changed, `DELETE FROM sessions WHERE session_id LIKE 'sess_%'` (manual)
+3. **Frame params:** Revert mock_sessions.py changes; re-run prototype to validate
+4. **Frontend:** Revert seagull page changes; WELDERS and WELDER_SESSION_COUNT to previous values
+
+---
+
+## Known Issues & Limitations
+
+- **Orphan sessions:** Wipe only deletes IDs derived from current WELDER_ARCHETYPES. Removing an archetype and re-seeding leaves orphan sess_* rows. Manual DELETE for full cleanup.
+- **Single source of truth:** WELDERS/WELDER_SESSION_COUNT duplicated in page.tsx and welder/[id]/page.tsx. Adding 11th archetype requires updating both. Follow-up: `GET /api/dev/welders`.
+- **Batch scores:** 20 fetchScore calls on dashboard. Batch endpoint `GET /api/scores?ids=...` is OOS.
+
+---
+
+## Success Criteria
+
+| # | Condition | How to Verify | Priority |
+|---|-----------|---------------|----------|
+| 1 | 10 welder cards on /seagull | Open /seagull; count cards; names match spec | P0 |
+| 2 | Each welder's latest score 0–100 or "Score unavailable" | Inspect each card | P0 |
+| 3 | Green "On track" on improving welders (e.g. fast_learner) | Visual check | P0 |
+| 4 | Amber "Needs attention" oneclining welders | Visual check | P0 |
+| 5 | operator_id = welder_id on all seeded sessions | DB query: SELECT operator_id FROM sessions WHERE session_id LIKE 'sess_%' | P0 |
+| 6 | Welder report heatmap/feedback aligns with arc | Open declining welder; see angle drift | P0 |
+| 7 | Welder report trend chart uses fetched scores | Open report; chart shows Session 1..N with real values | P0 |
+| 8 | POST /api/dev/seed-mock-sessions seeds ~45 sessions | curl POST; check response and DB count | P0 |
+| 9 | POST /api/dev/wipe-mock-sessions deletes all mock | Seed then wipe; verify 0 derived sess_* remain | P0 |
+| 10 | All seeded sessions pass validation | No validation errors | P0 |
+| 11 | Prototype and test assert mock_sessions score bands | prototype_arc_scoring.py exits 0; test_mock_sessions_fast_learner_session0_in_band passes | P0 |
+| 12 | Unit test for generate_score_arc and generate_frames_for_arc | pytest test_mock_welders.py -v | P1 |
+| 13 | Dev route tests expect session count from WELDER_ARCHETYPES | pytest test_dev_routes.py -v | P1 |
+
+---
+
+## Progress Tracker
+
+```
+| Phase | Steps | Done | In Progress | Blocked | % |
+|-------|-------|------|-------------|---------|---|
+| Phase 1 | 4 | 0 | 0 | 0 | 0% |
+| Phase 2 | 4 | 0 | 0 | 0 | 0% |
+| Phase 3 | 3 | 0 | 0 | 0 | 0% |
+| Phase 4 | 4 | 0 | 0 | 0 | 0% |
+| Phase 5 | 2 | 0 | 0 | 0 | 0% |
+| TOTAL | 17 | 0 | 0 | 0 | 0% |
+```
+
+---
+
+## Self-Check Before Submitting
+
+- [x] Every step has a verification with specific pass criteria
+- [x] Every CRITICAL step has full working code
+- [x] Dependencies between steps are correctly sequenced
+- [x] All CRITICAL RISKS from critique appear in the risk heatmap with mitigation
+- [x] Prototype uses mock_sessions.generate_session_for_welder (not duplicate implementation)
+- [x] seed_demo_data idempotent: existing == expected_count (not existing > 0)
+- [x] historicalScores preserves order when fetches fail (map over indices, not filter)
+- [x] Phase 3 and 4 prerequisites document "Run seed before opening"
+- [x] Expert fetch has graceful degradation (allSettled)
+- [x] fetchScore has timeout to avoid indefinite hang
+
+
+---
+# Implementation excerpt:
+

@@ -44,7 +44,8 @@ const RULE_THRESHOLDS: Record<string, number> = {
  */
 export function createMockScore(
   total: number,
-  failedRuleIds: string[]
+  failedRuleIds: string[],
+  activeThresholdSpec?: SessionScore["active_threshold_spec"]
 ): SessionScore {
   const rules = RULE_IDS.map((rule_id) => ({
     rule_id,
@@ -52,7 +53,9 @@ export function createMockScore(
     passed: !failedRuleIds.includes(rule_id),
     actual_value: failedRuleIds.includes(rule_id) ? 5.5 : 2.0,
   }));
-  return { total, rules };
+  const out: SessionScore = { total, rules };
+  if (activeThresholdSpec) out.active_threshold_spec = activeThresholdSpec;
+  return out;
 }
 
 export const MOCK_EXPERT_SCORE = createMockScore(MOCK_EXPERT_SCORE_VALUE, []);

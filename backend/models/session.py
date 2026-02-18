@@ -27,6 +27,10 @@ class Session(BaseModel):
     operator_id: str = Field(..., description="Operator identifier for audit.")
     start_time: datetime = Field(..., description="Session start time (ISO 8601).")
     weld_type: str = Field(..., description="Weld type identifier.")
+    process_type: str = Field(
+        default="mig",
+        description="Process type: mig|tig|stick|flux_core",
+    )
 
     thermal_sample_interval_ms: int = Field(
         ...,

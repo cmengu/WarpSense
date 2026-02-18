@@ -10,6 +10,7 @@ import ScorePanel from '@/components/welding/ScorePanel';
 import FeedbackPanel from '@/components/welding/FeedbackPanel';
 import TimelineMarkers from '@/components/welding/TimelineMarkers';
 import { generateMicroFeedback } from '@/lib/micro-feedback';
+import type { WeldTypeThresholds } from '@/types/thresholds';
 import { fetchSession, fetchScore, type SessionScore } from '@/lib/api';
 import { alertOnReplayFailure, logWarn } from '@/lib/logger';
 import { FRAME_INTERVAL_MS } from '@/constants/validation';
@@ -121,6 +122,7 @@ function ReplayPageInner({ sessionId }: { sessionId: string }) {
   // Score state for both sessions (for 3D block score comparison)
   const [primaryScore, setPrimaryScore] = useState<SessionScore | null>(null);
   const [comparisonScore, setComparisonScore] = useState<SessionScore | null>(null);
+  const [scoreFetchError, setScoreFetchError] = useState<string | null>(null);
 
   const [currentTimestamp, setCurrentTimestamp] = useState<number | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -161,10 +163,35 @@ function ReplayPageInner({ sessionId }: { sessionId: string }) {
     ? extractAngleData(sessionData.frames)
     : null;
 
-  const microFeedback = useMemo(
-    () => generateMicroFeedback(sessionData?.frames ?? []),
-    [sessionData?.frames]
-  );
+  const thresholdsForMicroFeedback = useMemo((): WeldTypeThresholds | undefined => {
+    const spec = primaryScore?.active_threshold_spec;
+    if (!spec) return undefined;
+    return {
+      weld_type: spec.weld_type,
+      angle_target_degrees: spec.angle_target,
+      angle_warning_margin: spec.angle_warning,
+      angle_critical_margin: spec.angle_critical,
+      thermal_symmetry_warning_celsius: spec.thermal_symmetry_warning_celsius ?? 60,
+      thermal_symmetry_critical_celsius: spec.thermal_symmetry_critical_celsius ?? 80,
+      amps_stability_warning: spec.amps_stability_warning ?? 5,
+      volts_stability_warning: spec.volts_stability_warning ?? 1,
+      heat_diss_consistency: spec.heat_diss_consistency ?? 40,
+    };
+  }, [primaryScore?.active_threshold_spec]);
+
+  const microFeedback = useMemo(() => {
+    if (!sessionData?.frames) return [];
+    if (!primaryScore && !scoreFetchError) return [];
+    return generateMicroFeedback(
+      sessionData.frames,
+      thresholdsForMicroFeedback
+    );
+  }, [
+    sessionData?.frames,
+    primaryScore,
+    scoreFetchError,
+    thresholdsForMicroFeedback,
+  ]);
 
   const handleFrameSelect = (timestamp_ms: number) => {
     setIsPlaying(false);
@@ -315,7 +342,10 @@ function ReplayPageInner({ sessionId }: { sessionId: string }) {
     // Fetch primary session score
     fetchScore(sessionId)
       .then((data) => {
-        if (!cancelled) setPrimaryScore(data);
+        if (!cancelled) {
+          setPrimaryScore(data);
+          setScoreFetchError(null);
+        }
       })
       .catch((err) => {
         if (!cancelled) {
@@ -323,6 +353,9 @@ function ReplayPageInner({ sessionId }: { sessionId: string }) {
             error: err instanceof Error ? err.message : String(err),
           });
           setPrimaryScore(null);
+          setScoreFetchError(
+            err instanceof Error ? err.message : 'Score unavailable'
+          );
         }
       });
 
@@ -634,6 +667,15 @@ function ReplayPageInner({ sessionId }: { sessionId: string }) {
           </ErrorBoundary>
         </div>
 
+        {scoreFetchError && (
+          <p
+            className="text-amber-600 dark:text-amber-400 text-sm mb-2"
+            data-testid="score-fetch-error"
+          >
+            Score unavailable: {scoreFetchError}. Micro-feedback may use default
+            thresholds.
+          </p>
+        )}
         <div className="mb-6">
           <ErrorBoundary>
             <ScorePanel sessionId={sessionId} />
