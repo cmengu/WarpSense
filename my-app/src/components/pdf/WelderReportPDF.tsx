@@ -1,0 +1,189 @@
+/**
+ * PDF layout component for welder session report.
+ *
+ * Uses @react-pdf/renderer — PDF-native components, no DOM or canvas capture.
+ * Renders on server in Next.js API route.
+ */
+
+import {
+  Document,
+  Page,
+  View,
+  Text,
+  StyleSheet,
+  Image,
+} from "@react-pdf/renderer";
+
+/** Sanitize text for PDF rendering. Strips control chars, zero-width, RTL-override. */
+function sanitizeText(str: string): string {
+  if (typeof str !== "string") return "";
+  return str
+    .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, "")
+    .replace(/[\u200b-\u200d\u2060\ufeff]/g, "") // zero-width chars
+    .replace(/[\u202a-\u202e\u2066-\u2069]/g, "") // RTL override
+    .replace(/</g, "‹")
+    .replace(/>/g, "›");
+}
+
+const styles = StyleSheet.create({
+  page: {
+    backgroundColor: "#0a0a0a",
+    padding: 40,
+    fontFamily: "Helvetica",
+  },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 24,
+  },
+  scoreCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    border: "3px solid #3b82f6",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  scoreText: { fontSize: 28, color: "#3b82f6", fontWeight: "bold" },
+  sectionTitle: {
+    fontSize: 10,
+    color: "#6b7280",
+    textTransform: "uppercase",
+    letterSpacing: 2,
+    marginBottom: 8,
+  },
+  feedbackItem: { flexDirection: "row", marginBottom: 6, paddingLeft: 12 },
+  bullet: { color: "#f59e0b", marginRight: 8 },
+});
+
+export interface WelderReportPDFProps {
+  welder: { name: string };
+  score: { total: number };
+  feedback: {
+    summary: string;
+    feedback_items: Array<{
+      message: string;
+      severity: string;
+      suggestion?: string | null;
+    }>;
+  };
+  chartDataUrl?: string | null;
+}
+
+function isPngDataUrl(v: unknown): v is string {
+  return typeof v === "string" && v.startsWith("data:image/png");
+}
+
+/** Coerce welder name to string; always returns string. Whitespace-only → "Unknown". Matches API route behavior. */
+export function toWelderName(v: unknown): string {
+  if (typeof v === "string" && v.trim().length > 0) return v.trim();
+  if (typeof v === "number" || typeof v === "boolean") return String(v);
+  return "Unknown";
+}
+
+export function WelderReportPDF({
+  welder,
+  score,
+  feedback,
+  chartDataUrl,
+}: WelderReportPDFProps) {
+  const rawItems = feedback?.feedback_items ?? [];
+  const validItems = rawItems.filter(
+    (
+      item
+    ): item is {
+      message: string;
+      severity: string;
+      suggestion?: string | null;
+    } =>
+      item != null &&
+      typeof item === "object" &&
+      typeof (item as { message?: unknown }).message === "string" &&
+      typeof (item as { severity?: unknown }).severity === "string"
+  );
+  const top3 = validItems.slice(0, 3);
+  const welderName = sanitizeText(toWelderName(welder?.name ?? "Unknown"));
+  const totalScore = score?.total ?? 0;
+  const summary = sanitizeText(feedback?.summary ?? "");
+  const chartPng = isPngDataUrl(chartDataUrl) ? chartDataUrl : null;
+
+  return (
+    <Document>
+      <Page size="A4" style={styles.page}>
+        <View style={styles.header}>
+          <View>
+            <Text style={{ fontSize: 20, color: "#f9fafb", fontWeight: "bold" }}>
+              {welderName}
+            </Text>
+            <Text style={{ fontSize: 10, color: "#6b7280", marginTop: 4 }}>
+              Session Report · {new Date().toLocaleDateString()}
+            </Text>
+          </View>
+          <View style={styles.scoreCircle}>
+            <Text style={styles.scoreText}>{totalScore}</Text>
+          </View>
+        </View>
+
+        <Text style={styles.sectionTitle}>Coach Feedback</Text>
+        <Text
+          style={{
+            fontSize: 11,
+            color: "#d1d5db",
+            lineHeight: 1.6,
+            marginBottom: 20,
+          }}
+        >
+          {summary || "—"}
+        </Text>
+
+        {chartPng && (
+          <View style={{ marginBottom: 20 }}>
+            <Text style={styles.sectionTitle}>
+              Score Trend (Last 5 Sessions)
+            </Text>
+            <Image src={chartPng} style={{ height: 120 }} />
+          </View>
+        )}
+
+        <Text style={styles.sectionTitle}>Key Areas</Text>
+        {top3.map((item, i) => (
+          <View key={i} style={styles.feedbackItem}>
+            <Text style={styles.bullet}>
+              {item.severity === "warning" || item.severity === "critical"
+                ? "⚠"
+                : "•"}
+            </Text>
+            <View>
+              <Text style={{ fontSize: 10, color: "#f9fafb" }}>
+                {sanitizeText(item.message)}
+              </Text>
+              {item.suggestion && (
+                <Text style={{ fontSize: 9, color: "#6b7280", marginTop: 2 }}>
+                  → {sanitizeText(item.suggestion)}
+                </Text>
+              )}
+            </View>
+          </View>
+        ))}
+
+        <View
+          style={{
+            position: "absolute",
+            bottom: 30,
+            left: 40,
+            right: 40,
+            borderTop: "1px solid #1f2937",
+            paddingTop: 12,
+            flexDirection: "row",
+            justifyContent: "space-between",
+          }}
+        >
+          <Text style={{ fontSize: 8, color: "#374151" }}>
+            WarpSense Quality Intelligence
+          </Text>
+          <Text style={{ fontSize: 8, color: "#374151" }}>CONFIDENTIAL</Text>
+        </View>
+      </Page>
+    </Document>
+  );
+}

@@ -1,0 +1,414 @@
+# verify-execution
+
+You are conducting a ground-truth verification pass. The execution phase produced an output document describing what it did. Your job is to verify that what it SAID it did matches what ACTUALLY EXISTS in the codebase.
+
+You are not reviewing quality. You are auditing reality.
+
+---
+
+## Your Mandate
+
+The execution output is a claim. Every claim must be verified against actual file contents, actual test results, or actual command output. Unverified claims are failures.
+
+---
+
+## Verification Protocol
+
+### Step 1: File Existence Audit
+
+For every file listed as created or modified in the execution output:
+
+```bash
+# For each claimed file:
+ls -la [path]                    # Does it exist?
+wc -l [path]                     # Is it non-empty?
+head -20 [path]                  # Does it contain what was claimed?
+```
+
+Report:
+- `VERIFIED`: File exists and contains expected content
+- `MISSING`: File does not exist (execution claim was false)
+- `EMPTY`: File exists but is empty (likely placeholder)
+- `WRONG_CONTENT`: File exists but doesn't match execution description
+
+### Step 2: Interface Contract Verification
+
+For every API endpoint, exported function, or type contract claimed in the execution:
+
+```bash
+# TypeScript: verify exports
+grep -n "export" [path]
+
+# API routes: verify route registration  
+grep -rn "router\.\|app\." [routes-file]
+
+# Type definitions: verify shape
+grep -A 10 "interface\|type " [types-file]
+```
+
+Report whether each claimed contract actually exists with the claimed signature.
+
+### Step 3: Dependency Verification
+
+For every new dependency claimed to be installed:
+
+```bash
+cat package.json | grep [dependency]
+ls node_modules/[dependency] 2>/dev/null || echo "NOT INSTALLED"
+```
+
+If claimed as installed but absent: this is a blocking failure.
+
+### Step 4: Run What's Runnable
+
+If the project has a test suite:
+```bash
+# Run tests that touch modified files only
+npx jest --findRelatedTests [modified-files] --passWithNoTests 2>&1 | tail -20
+```
+
+If the project has a type checker:
+```bash
+npx tsc --noEmit 2>&1 | head -30
+```
+
+If the project has a linter:
+```bash
+npx eslint [modified-files] --max-warnings 0 2>&1 | tail -20
+```
+
+**These are not optional.** If they cannot run (missing config, wrong environment), document why. Do not skip and proceed.
+
+### Step 5: Integration Smoke Test
+
+For the primary user-facing change this execution implemented:
+
+Identify the single most important thing a user can now do that they couldn't before. Verify it exists end-to-end by tracing the code path manually:
+
+1. Entry point (route handler / event handler / component)
+2. Business logic layer
+3. Data layer / API call
+4. Return path
+
+Document each hop. If any hop is missing or broken, it's a critical finding.
+
+---
+
+## Output Format
+
+Output ONLY valid JSON.
+
+```json
+{
+  "ground_truth_score": 7.5,
+  "execution_claim_accuracy": "68%",
+  "summary": "8 of 12 claimed files exist. 2 are empty placeholders. 2 do not exist. TypeScript compilation has 3 errors. Primary user flow is broken at the data layer.",
+
+  "file_audit": [
+    { "path": "/src/store/auth.ts", "status": "VERIFIED", "note": "Exports useAuthStore as claimed" },
+    { "path": "/src/api/sessions.ts", "status": "MISSING", "note": "Execution claimed this was created — it does not exist" },
+    { "path": "/src/components/Login.tsx", "status": "EMPTY", "note": "File exists, 0 bytes. Execution described full implementation." }
+  ],
+
+  "contract_verification": [
+    { "claim": "POST /api/auth/login returns AuthUser", "status": "VERIFIED", "location": "src/routes/auth.ts:42" },
+    { "claim": "useAuthStore exports setUser action", "status": "WRONG_CONTENT", "note": "Store exists but action is named 'updateUser', not 'setUser'" }
+  ],
+
+  "tooling_results": {
+    "tests": "7 passed, 2 failed. Failures in auth.test.ts:34 (token validation) and session.test.ts:12 (null user handling)",
+    "typescript": "3 errors: src/api/sessions.ts not found (2 import errors), Type 'string | undefined' not assignable at auth.ts:67",
+    "lint": "4 warnings, 0 errors. Warnings are unused imports."
+  },
+
+  "integration_trace": {
+    "entry_point": "VERIFIED: POST /api/auth/login route exists at src/routes/auth.ts:38",
+    "business_logic": "VERIFIED: authService.login() exists at src/services/auth.ts:22",
+    "data_layer": "BROKEN: authService.login calls userRepository.findByEmail() which does not exist — file missing",
+    "return_path": "N/A — broken at data layer"
+  },
+
+  "critical_gaps": [
+    "src/api/sessions.ts was claimed as created but does not exist — 2 imports will fail at runtime",
+    "TypeScript has 3 compilation errors — code will not build",
+    "Primary auth flow is broken: userRepository.findByEmail is not implemented"
+  ],
+
+  "execution_can_proceed_to_review": false,
+  "blocking_reason": "TypeScript compilation failure and missing repository implementation mean the feature cannot run. Review is premature.",
+
+  "minimum_fixes_required": [
+    "Create src/api/sessions.ts with the claimed exports",
+    "Implement or stub userRepository.findByEmail",
+    "Fix TypeScript error at auth.ts:67"
+  ]
+}
+```
+
+---
+
+## Verdicts
+
+**`execution_can_proceed_to_review: true`** — All claimed files exist, tooling passes (or has documented blockers), primary user flow is traceable end-to-end. Minor issues noted but not blocking.
+
+**`execution_can_proceed_to_review: false`** — One or more of: missing files, broken compilation, broken primary user flow. Must be remediated before review adds any value.
+
+---
+
+## Rules
+
+- Never trust the execution output document over actual file contents
+- If you cannot run a tool (wrong environment, missing config), document that explicitly — do not assume it would pass
+- `execution_claim_accuracy` is `(verified files) / (claimed files)` as a percentage
+- `ground_truth_score` reflects reality, not intent — a 9/10 execution output with 3 missing files scores lower
+- If `execution_can_proceed_to_review` is false, the fix loop must run before the review phase
+
+---
+# Execution Output (claims to verify):
+
+
+All planned steps are implemented. Summary:
+
+---
+
+# Implementation Complete
+
+Summary of what was implemented:
+
+---
+
+## Step 1: Install Dependencies
+
+### What Was Done
+- **File:** `my-app/package.json`
+  - **Updated:** Added `@react-pdf/renderer@3.4.0` and `html-to-image@1.11.11` (exact versions)
+  - **Rationale:** Plan requires exact pinning; no `^` used
+
+### Verification
+Run `cd my-app && npm install` to install the new packages. `package-lock.json` must be committed before Phase 2 as described in the plan.
+
+---
+
+## Step 2: PDF Component, Chart Capture, and API Base
+
+### Implementation Details
+
+**Created:** `my-app/src/components/pdf/WelderReportPDF.tsx`
+- Uses @react-pdf/renderer (Document, Page, View, Text, Image, StyleSheet)
+- Dark theme (#0a0a0a)
+- Props: `welder`, `score`, `feedback`, `chartDataUrl`
+- `sanitizeText()` – strips control chars, zero-width, RTL override
+- `toWelderName()` – coerces `welder.name`; non-string/whitespace → `"Unknown"`
+- `isPngDataUrl()` – accepts only `data:image/png`
+- Defensive filtering for `feedback_items`; only top 3 rendered
+
+**Created:** `my-app/src/lib/pdf-chart-capture.ts`
+- `captureChartToBase64(elementId)` with 10s timeout
+- `.catch(() => {})` on `toPng` to avoid unhandledrejection on timeout
+
+**Created:** `my-app/src/lib/api-base.ts`
+- `getApiBase()` for basePath when `NEXT_PUBLIC_BASE_PATH` is set
+
+---
+
+## Step 3: PDF API Route
+
+### Implementation Details
+
+**Created:** `my-app/src/app/api/welder-report-pdf/route.ts`
+- Content-Length: 400 on invalid, 413 when > 5MB
+- 411 when Transfer-Encoding chunked without Content-Length
+- Body validation for welder, score, feedback
+- `feedback_items` validated and filtered
+- `chartDataUrl` only `data:image/png`, max 2MB
+- `toWelderName` for welder name
+- `sanitizeFilename` for filename
+- Renders PDF via `renderToBuffer(WelderReportPDF)`
+- Returns `application/pdf` with `Content-Disposition: attachment`
+
+---
+
+## Step 4: Prototype Smoke Test
+
+### Implementation Details
+
+**Updated:** `my-app/prototype/pdf-route.mts`
+- Replaced minimal PDF with `WelderReportPDF`
+- Sample props (Mike Chen, 75, Good work, PNG chart)
+- Header `%PDF-`
+- Content check for name, score, summary
+- Malformed `feedback_items` still renders valid items
+- `welder.name` as object → `"Unknown"`, no `[object Object]`
+
+---
+
+## Step 5: Client Integration
+
+### Implementation Details
+
+**Updated:** `my-app/src/app/seagull/welder/[id]/page.tsx`
+- Chart wrapper: `id="trend-chart"`, `style={{ width: 600, height: 200 }}`, `data-testid="trend-chart"`
+- `handleDownloadPDF`:
+  - `captureChartToBase64("trend-chart")`
+  - POST to `getApiBase() + '/api/welder-report-pdf'`
+  - Uses `toWelderName(displayName)` and `sanitizeDownloadFilename`
+  - Download via blob + `URL.createObjectURL`
+  - Error handling with `logError`
+- `pdfLoading`, `pdfError` state
+- Button disabled when loading or `pdfLoading`
+- PDF error message shown inline
+
+---
+
+## Step 6: Tests
+
+### Implementation Details
+
+**Created:** `my-app/src/__tests__/lib/api-base.node.test.ts`
+- Node: `getApiBase()` returns `""` when `window` is undefined
+
+**Created:** `my-app/src/__tests__/lib/api-base.jsdom.test.ts`
+- jsdom: base path with/without trailing slash, unset
+
+**Created:** `my-app/src/__tests__/api/welder-report-pdf.test.ts`
+- 200 PDF with valid payload
+- 400: missing welder, `score.total` string, oversized `chartDataUrl`, invalid Content-Length
+- 411: chunked without Content-Length
+- 413: body > 5MB (skipped when `CI_LOW_MEM=1` and `CI=true`/`CI=1`)
+- `welder.name` object → `"Unknown"`, no `[object Object]`
+- toWelderName invariant for null/undefined/array
+
+**Updated:** `my-app/src/__tests__/app/seagull/welder/[id]/page.test.tsx`
+- Mock `html-to-image` `toPng`
+- Download PDF: POST with correct payload, button disabled while generating
+- Chart capture fail: `chartDataUrl: null`
+- `trend-chart` wrapper with 600×200
+- Restore `fetch` and `toPng` in `afterEach` / `finally`
+
+---
+
+## Implementation Summary
+
+### Files Created
+
+1. `my-app/src/components/pdf/WelderReportPDF.tsx` – PDF layout component  
+2. `my-app/src/lib/pdf-chart-capture.ts` – Chart capture helper  
+3. `my-app/src/lib/api-base.ts` – API base path helper  
+4. `my-app/src/app/api/welder-report-pdf/route.ts` – PDF API route  
+5. `my-app/src/__tests__/lib/api-base.node.test.ts` – Node tests for `getApiBase`  
+6. `my-app/src/__tests__/lib/api-base.jsdom.test.ts` – jsdom tests for `getApiBase`  
+7. `my-app/src/__tests__/api/welder-report-pdf.test.ts` – API route tests  
+
+### Files Modified
+
+1. `my-app/package.json` – Added `@react-pdf/renderer` and `html-to-image`  
+2. `my-app/prototype/pdf-route.mts` – Uses `WelderReportPDF`  
+3. `my-app/src/app/seagull/welder/[id]/page.tsx` – Chart wrapper, `handleDownloadPDF`, state  
+4. `my-app/src/__tests__/app/seagull/welder/[id]/page.test.tsx` – Download PDF tests, mocks  
+
+### Feature Completeness Checklist
+
+- [x] All steps from plan implemented (6 phases)  
+- [x] Edge cases handled (invalid welder/score/feedback, chart limits)  
+- [x] Error handling and validation on API route  
+- [x] Types and interfaces added  
+- [x] No TODO/placeholder comments  
+- [x] Matches existing code style  
+- [x] Integrated with existing welder page and API  
+
+### Manual Verification
+
+1. `cd my-app && npm install`
+2. `npm run dev` and open `http://localhost:3000/seagull`
+3. Click a welder (e.g. Mike Chen)
+4. Click "Download PDF" – verify download and content
+5. Run prototype: `npx tsx prototype/pdf-route.mts` – expect exit 0 and "Content check: OK"
+6. Run tests: `npm test -- --testPathPattern="welder/\[id\]/page|api-base|welder-report-pdf"`
+
+### Known Limitations
+
+- **html-to-image:** Can fail on Recharts in some browsers; PDF is still generated without the chart.
+- **basePath:** Set `NEXT_PUBLIC_BASE_PATH` at build if `next.config` uses a basePath.
+- **CI OOM:** If the 413 test OOMs in CI, set `CI_LOW_MEM=1` and `CI=true` (or `CI=1`).
+
+---
+
+# Implementation Status: COMPLETE
+
+All steps from the plan are implemented. Ready for `npm install`, manual testing, and review.
+
+
+---
+# Original Plan:
+
+
+```json
+{
+  "phase_completed": "Beautiful PDF Report — Planning (Refined v5)",
+  "phase_goal_achieved": true,
+  "goal_delta": "Refined plan is done with critique and adversarial fixes. Implementation not started.",
+
+  "decisions_locked": [
+    { "topic": "PDF stack", "chosen": "@react-pdf/renderer 3.4.0 + html-to-image 1.11.11, exact versions", "reverting_this_requires": "Touching package.json, lockfile, API route, capture helper — non-trivial" },
+    { "topic": "Chart capture", "chosen": "Option A: html-to-image toPng on client; pre-render to base64 before POST", "reverting_this_requires": "New server-side Chart.js path — major change" },
+    { "topic": "chartDataUrl format", "chosen": "Only data:image/png accepted; SVG/webp rejected silently", "reverting_this_requires": "Component + API route + validation — hard" },
+    { "topic": "welder.name coercion", "chosen": "toWelderName; non-string/whitespace-only → \"Unknown\"", "reverting_this_requires": "Component, API, page, tests — 5+ files" },
+    { "topic": "Request limits", "chosen": "5MB body cap, 2MB chartDataUrl, 411 on chunked without Content-Length, 413 on oversized", "reverting_this_requires": "API route + tests — medium" },
+    { "topic": "trend-chart capture", "chosen": "id=\"trend-chart\", inline style 600×200, data-testid=\"trend-chart\"", "reverting_this_requires": "Page + tests — medium" }
+  ],
+
+  "files_state": {
+    "created": [
+      "my-app/src/components/pdf/WelderReportPDF.tsx",
+      "my-app/src/app/api/welder-report-pdf/route.ts",
+      "my-app/src/lib/pdf-chart-capture.ts",
+      "my-app/src/lib/api-base.ts",
+      "my-app/prototype/pdf-route.mts",
+      "my-app/src/__tests__/lib/api-base.node.test.ts",
+      "my-app/src/__tests__/lib/api-base.jsdom.test.ts",
+      "my-app/src/__tests__/api/welder-report-pdf.test.ts"
+    ],
+    "modified": [
+      "my-app/package.json — add @react-pdf/renderer, html-to-image",
+      "my-app/src/app/seagull/welder/[id]/page.tsx — chart wrapper, handleDownloadPDF, state",
+      "my-app/src/__tests__/app/seagull/welder/[id]/page.test.tsx — fetch mock, toPng mock, restore in afterEach/finally"
+    ],
+    "deleted": []
+  },
+
+  "contracts_established": [
+    "POST /api/welder-report-pdf body: { welder: { name }, score: { total, rules }, feedback: { summary, feedback_items }, chartDataUrl?: string | null }; returns application/pdf; Content-Disposition attachment; filename {sanitized}-warp-report.pdf",
+    "WelderReportPDFProps: welder: { name }, score: { total }, feedback: { summary, feedback_items }, chartDataUrl?: string | null",
+    "feedback_item: { message: string, severity: string, suggestion?: string | null }; top 3 rendered",
+    "toWelderName(v): string; sanitizeText(str): string; sanitizeFilename(name): string; isPngDataUrl(v): boolean"
+  ],
+
+  "assumptions_now_baked_in": [
+    "package-lock.json committed — automated check before Phase 2",
+    "NEXT_PUBLIC_BASE_PATH matches next.config basePath at build — not enforced",
+    "Content-Length trusted — request.json() buffers full body; client can lie; use reverse-proxy body limit in prod",
+    "getApiBase jsdom test mutates process.env — does not validate build-time inlining"
+  ],
+
+  "open_risks_for_next_phase": [
+    { "risk": "html-to-image fails on Recharts in some browsers", "trigger": "toPng rejects or times out", "owner": "Fallback: chartDataUrl null; PDF without chart" },
+    { "risk": "basePath deploy → 404 on PDF route", "trigger": "NEXT_PUBLIC_BASE_PATH not set or wrong", "owner": "Pre-Flight curl with basePath" },
+    { "risk": "Orphaned toPng promise → unhandledrejection on timeout", "trigger": "captureChartToBase64 timeout wins", "owner": "Attach toPng.catch(()=>{}) before race" },
+    { "risk": "CI OOM on 413 test", "trigger": "Low-memory CI runs welder-report-pdf tests", "owner": "Skip 413 when CI_LOW_MEM=1 and (CI=true or CI=1)" }
+  ],
+
+  "broken_or_incomplete": [
+    "Nothing implemented yet. Download PDF is a stub. Plan only."
+  ],
+
+  "next_phase_must_not": [
+    "Use ^ versions for @react-pdf/renderer or html-to-image — exact pinning required",
+    "Accept non-PNG chartDataUrl in WelderReportPDF or API — causes React PDF Image errors",
+    "Skip toWelderName — produces [object Object] in PDF/filename",
+    "Omit toPng.catch in captureChartToBase64 — causes unhandledrejection on timeout",
+    "Forget fetch/toPng restore in tests — mock bleed breaks other tests"
+  ],
+
+  "next_phase_starting_state": "Plan in .cursor/issues/beautiful-pdf-report-plan.md. Four phases: 1) Dependencies + WelderReportPDF + prototype smoke; 2) API route + validation; 3) Client integration; 4) Tests. Pre-Flight: Node 18+, my-app builds, prototype/pdf-route.mts exists. Run Phase 1 Step 1.1 before 2."
+}
+```

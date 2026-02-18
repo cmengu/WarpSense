@@ -1,0 +1,625 @@
+# Code Review (Autonomous Mode - Round 1)
+
+You are performing the **first comprehensive code review** in autonomous batch mode after initial implementation. Your goal is to identify ALL issues - no matter how minor - across the entire codebase that was just implemented.
+
+## Core Directive
+
+**REVIEW EVERY FILE** that was created or modified during implementation. Examine every line of code. Flag issues from CRITICAL to LOW. Err on the side of being too thorough - missing issues is worse than over-reporting.
+
+**Minimum Requirements:**
+- Review ALL files created/modified (list them explicitly)
+- Identify minimum 15-20 issues across all severity levels
+- Provide specific file paths and line numbers
+- Give actionable fix suggestions for each issue
+- Minimum output: 60 lines
+
+## What to Check (Exhaustive)
+
+### 1. Logging & Debugging (CRITICAL for production)
+- ❌ **No console.log, console.error, console.warn** anywhere
+- ❌ **No debugger statements**
+- ❌ **No alert() or confirm()** (except intentional UI)
+- ✅ Use proper logger with context (winston, pino, or project standard)
+- ✅ Log levels appropriate (error, warn, info, debug)
+- ✅ Sensitive data not logged (passwords, tokens, PII)
+
+**Check each file for:**
+```typescript
+// BAD
+console.log('user data:', user);
+debugger;
+
+// GOOD  
+logger.info('User authenticated', { userId: user.id, timestamp: Date.now() });
+```
+
+### 2. Error Handling (CRITICAL)
+- ✅ **All async functions** have try-catch blocks
+- ✅ **All API calls** handle network failures
+- ✅ **All file operations** handle missing files
+- ✅ **All JSON.parse()** wrapped in try-catch
+- ✅ Error messages are helpful (not "Error" or "Failed")
+- ✅ Errors logged with full context
+- ✅ User-facing errors are sanitized (no stack traces to users)
+- ✅ Error boundaries present (if React)
+
+**Check for:**
+```typescript
+// BAD - no error handling
+const data = await fetch('/api/data').then(r => r.json());
+
+// GOOD
+try {
+  const response = await fetch('/api/data');
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  const data = await response.json();
+} catch (error) {
+  logger.error('Failed to fetch data', { error, url: '/api/data' });
+  throw new Error('Unable to load data. Please try again.');
+}
+```
+
+### 3. TypeScript Strict Mode (HIGH)
+- ❌ **No `any` types** anywhere (use `unknown` if truly needed)
+- ❌ **No `@ts-ignore` or `@ts-expect-error`** without explanation
+- ❌ **No implicit any** (check function params, returns)
+- ✅ All props/interfaces defined
+- ✅ Return types explicit on functions
+- ✅ Strict null checks respected (no `!` operator without reason)
+- ✅ Enums or unions instead of magic strings
+- ✅ Generic types properly constrained
+
+**Flag violations like:**
+```typescript
+// BAD
+function process(data: any) { ... }
+const result = data as MyType; // @ts-ignore
+let value;  // implicit any
+
+// GOOD
+function process(data: ProcessInput): ProcessOutput { ... }
+const result = isMyType(data) ? data : null;
+let value: string | null = null;
+```
+
+### 4. Production Readiness (HIGH)
+- ❌ **No TODOs, FIXMEs, or XXX comments**
+- ❌ **No hardcoded secrets, API keys, passwords**
+- ❌ **No hardcoded URLs** (use env vars)
+- ❌ **No test/debug code** left in production paths
+- ❌ **No commented-out code** blocks
+- ✅ Environment variables properly used
+- ✅ Feature flags if needed for rollout
+- ✅ Build passes without warnings
+
+### 5. React/Hooks (if applicable) (HIGH)
+- ✅ **All useEffect hooks have cleanup** if needed
+- ✅ **Dependency arrays complete** (no eslint-disable)
+- ✅ **No infinite loops** (effect triggering itself)
+- ✅ **No missing dependencies** in useCallback/useMemo
+- ✅ Keys on list items (and not using index)
+- ✅ State updates are immutable
+- ✅ No direct DOM manipulation (use refs properly)
+- ✅ Conditional rendering doesn't break hooks order
+
+**Common issues:**
+```typescript
+// BAD
+useEffect(() => {
+  fetchData(); // missing cleanup, missing deps
+}, []);
+
+// GOOD
+useEffect(() => {
+  const controller = new AbortController();
+  fetchData(controller.signal);
+  return () => controller.abort(); // cleanup
+}, [fetchData]); // complete deps
+```
+
+### 6. Performance (MEDIUM)
+- ✅ **No unnecessary re-renders** (memo, useMemo, useCallback used wisely)
+- ✅ **Expensive calculations memoized** (useMemo)
+- ✅ **Large lists virtualized** (if >100 items)
+- ✅ **Images optimized** (next/image or similar)
+- ✅ **Bundle size impact** considered
+- ✅ **No N+1 queries** (if database access)
+- ✅ **Lazy loading** for routes/components (if applicable)
+- ✅ **Debouncing/throttling** for frequent events
+
+**Check for:**
+```typescript
+// BAD
+{items.map(item => <ExpensiveComponent key={item.id} />)} // 10000 items
+
+// GOOD
+<VirtualList items={items} renderItem={(item) => <ExpensiveComponent />} />
+```
+
+### 7. Security (CRITICAL)
+- ✅ **Auth checked** before sensitive operations
+- ✅ **Inputs validated** (type, format, length, range)
+- ✅ **SQL injection prevented** (parameterized queries)
+- ✅ **XSS prevented** (no dangerouslySetInnerHTML without sanitization)
+- ✅ **CSRF tokens** if needed
+- ✅ **RLS policies** in place (if using Supabase/Postgres)
+- ✅ **API rate limiting** considered
+- ✅ **Sensitive data not in client** (tokens, secrets)
+
+**Flag issues like:**
+```typescript
+// BAD - SQL injection
+const query = `SELECT * FROM users WHERE id = ${userId}`;
+
+// BAD - XSS
+<div dangerouslySetInnerHTML={{ __html: userInput }} />
+
+// GOOD
+const query = 'SELECT * FROM users WHERE id = $1';
+const result = await db.query(query, [userId]);
+```
+
+### 8. Architecture & Patterns (MEDIUM)
+- ✅ **Follows existing patterns** in codebase
+- ✅ **Files in correct directories** (components/, utils/, api/, etc.)
+- ✅ **Naming conventions consistent** (camelCase, PascalCase, etc.)
+- ✅ **Separation of concerns** (no business logic in components)
+- ✅ **DRY principle** (no duplicated code)
+- ✅ **Single responsibility** (functions/components do one thing)
+- ✅ **Proper abstractions** (not over-engineered, not under-engineered)
+
+### 9. Testing & Testability (MEDIUM)
+- ✅ **Pure functions** where possible (easier to test)
+- ✅ **Dependencies injected** (not hardcoded)
+- ✅ **Side effects isolated** (easier to mock)
+- ✅ **Edge cases documented** in comments
+- ✅ **Test data factories** if needed
+- ✅ **No tight coupling** to implementation details
+
+### 10. Documentation (LOW but important)
+- ✅ **Complex logic explained** in comments
+- ✅ **Functions have JSDoc** (params, returns, examples)
+- ✅ **Non-obvious decisions documented** (why, not what)
+- ✅ **API contracts documented** (request/response shapes)
+- ✅ **Magic numbers explained** (const with name)
+
+### 11. Accessibility (if UI) (HIGH)
+- ✅ **ARIA labels** on interactive elements
+- ✅ **Keyboard navigation** works (tab, enter, escape)
+- ✅ **Focus management** (modals trap focus)
+- ✅ **Color contrast** meets WCAG AA
+- ✅ **Alt text** on images
+- ✅ **Form labels** associated with inputs
+- ✅ **Error messages** announced to screen readers
+
+### 12. SSR/Next.js Specific (if applicable) (HIGH)
+- ✅ **No window/document access** in server components
+- ✅ **'use client' directive** where needed
+- ✅ **Dynamic imports** for client-only code
+- ✅ **typeof window checks** before browser APIs
+- ✅ **Metadata/SEO** configured
+- ✅ **Loading states** for server components
+
+## Review Process
+
+### Step 1: List All Files to Review
+```markdown
+## Files Under Review
+
+### Created Files
+1. `path/to/file1.ts` (234 lines)
+2. `path/to/file2.tsx` (156 lines)
+...
+
+### Modified Files  
+1. `path/to/file3.ts` (added 45 lines, modified 12 lines)
+2. `path/to/file4.tsx` (modified 8 lines)
+...
+
+**Total:** X files, Y lines of code
+```
+
+### Step 2: Review Each File Systematically
+Go through each file line by line checking all criteria above.
+
+### Step 3: Document All Issues Found
+
+## Output Format (REQUIRED STRUCTURE)
+
+```markdown
+# Code Review Report - Round 1
+
+## Summary
+- **Files Reviewed:** X
+- **Total Issues Found:** Y
+- **CRITICAL:** X issues
+- **HIGH:** X issues  
+- **MEDIUM:** X issues
+- **LOW:** X issues
+
+---
+
+## Issues by Severity
+
+### 🚨 CRITICAL Issues (Must Fix Before Deploy)
+
+1. **[CRITICAL]** `src/components/UserProfile.tsx:45`
+   - **Issue:** Hardcoded API key in client-side code
+   - **Code:** `const API_KEY = 'sk-1234567890abcdef';`
+   - **Risk:** API key exposed to users, potential abuse
+   - **Fix:** Move to environment variable, access only server-side
+   ```typescript
+   // In .env.local
+   API_SECRET_KEY=sk-1234567890abcdef
+   
+   // In app/api/route.ts (server-side)
+   const apiKey = process.env.API_SECRET_KEY;
+   ```
+
+2. **[CRITICAL]** `src/utils/database.ts:23`
+   - **Issue:** SQL injection vulnerability
+   - **Code:** `const query = \`SELECT * FROM users WHERE email = '\${email}'\`;`
+   - **Risk:** Attacker can inject SQL to access/modify data
+   - **Fix:** Use parameterized queries
+   ```typescript
+   const query = 'SELECT * FROM users WHERE email = $1';
+   const result = await db.query(query, [email]);
+   ```
+
+[Continue with all CRITICAL issues...]
+
+---
+
+### ⚠️ HIGH Priority Issues (Fix Soon)
+
+1. **[HIGH]** `src/components/DataTable.tsx:78`
+   - **Issue:** No error handling on async fetch
+   - **Code:** `const data = await fetch('/api/data').then(r => r.json());`
+   - **Risk:** Unhandled promise rejection crashes component
+   - **Fix:** Add try-catch with user feedback
+   ```typescript
+   try {
+     const response = await fetch('/api/data');
+     if (!response.ok) throw new Error('Failed to load');
+     const data = await response.json();
+   } catch (error) {
+     logger.error('Data fetch failed', { error });
+     setError('Unable to load data');
+   }
+   ```
+
+2. **[HIGH]** `src/hooks/useSession.ts:34`
+   - **Issue:** useEffect missing cleanup, potential memory leak
+   - **Code:** `useEffect(() => { subscribe(callback); }, []);`
+   - **Risk:** Subscription not cleaned up on unmount
+   - **Fix:** Return cleanup function
+   ```typescript
+   useEffect(() => {
+     const unsubscribe = subscribe(callback);
+     return () => unsubscribe();
+   }, [callback]);
+   ```
+
+[Continue with all HIGH issues...]
+
+---
+
+### 📋 MEDIUM Priority Issues (Should Fix)
+
+1. **[MEDIUM]** `src/utils/helpers.ts:12`
+   - **Issue:** Using `any` type instead of proper typing
+   - **Code:** `function process(data: any) { ... }`
+   - **Impact:** Loses type safety, harder to refactor
+   - **Fix:** Define proper interface
+   ```typescript
+   interface ProcessInput {
+     id: string;
+     value: number;
+     metadata?: Record<string, unknown>;
+   }
+   function process(data: ProcessInput): ProcessOutput { ... }
+   ```
+
+[Continue with all MEDIUM issues...]
+
+---
+
+### 💡 LOW Priority Issues (Nice to Have)
+
+1. **[LOW]** `src/components/Button.tsx:5`
+   - **Issue:** Missing JSDoc comment on exported component
+   - **Code:** `export const Button = ({ children, onClick }) => { ... }`
+   - **Impact:** Harder for other devs to understand usage
+   - **Fix:** Add JSDoc
+   ```typescript
+   /**
+    * Primary button component
+    * @param {React.ReactNode} children - Button label/content
+    * @param {() => void} onClick - Click handler
+    * @example
+    * <Button onClick={() => save()}>Save</Button>
+    */
+   export const Button = ({ children, onClick }) => { ... }
+   ```
+
+[Continue with all LOW issues...]
+
+---
+
+## Issues by File
+
+### `src/components/UserProfile.tsx`
+- Line 45: [CRITICAL] Hardcoded API key
+- Line 67: [HIGH] No error handling
+- Line 89: [MEDIUM] Using `any` type
+- Line 102: [LOW] Missing ARIA label
+
+### `src/utils/database.ts`
+- Line 23: [CRITICAL] SQL injection vulnerability
+- Line 56: [HIGH] No connection cleanup
+- Line 78: [MEDIUM] Inconsistent error handling
+
+[Continue for all files...]
+
+---
+
+## Positive Findings ✅
+
+What was done well (reinforce good patterns):
+- Proper TypeScript interfaces in `src/types/session.ts`
+- Excellent error boundaries in `src/components/ErrorBoundary.tsx`
+- Clean separation of concerns in API routes
+- Good use of environment variables for config
+- Consistent naming conventions throughout
+
+---
+
+## Recommendations for Round 2
+
+After fixes are applied:
+1. **Re-check all CRITICAL and HIGH issues** - Verify they're properly resolved
+2. **Look for new issues introduced by fixes** - Refactoring can create bugs
+3. **Check edge cases** - Null/undefined handling, empty arrays, error states
+4. **Verify integration** - Ensure fixes work with rest of codebase
+5. **Performance check** - Make sure fixes didn't hurt performance
+
+---
+
+## Testing Checklist for Developer
+
+Before requesting Round 2 review:
+- [ ] All CRITICAL issues fixed and tested
+- [ ] All HIGH issues fixed and tested
+- [ ] TypeScript compiles with no errors
+- [ ] ESLint passes with no errors
+- [ ] No console.log statements remain
+- [ ] All async operations have error handling
+- [ ] All useEffect hooks have cleanup (if needed)
+- [ ] All security vulnerabilities addressed
+- [ ] Manual testing of changed functionality complete
+
+---
+
+# Review Status: ⚠️ CRITICAL ISSUES FOUND
+
+**Do NOT proceed to deployment until CRITICAL and HIGH issues are resolved.**
+
+Total Issues: X (CRITICAL: X, HIGH: X, MEDIUM: X, LOW: X)
+
+Next Step: Fix issues and request Round 2 review.
+```
+
+## Quality Requirements
+
+Your review MUST:
+- [ ] List ALL files reviewed with line counts
+- [ ] Identify minimum 15-20 issues (if codebase is >500 lines)
+- [ ] Provide specific file paths and line numbers for every issue
+- [ ] Show actual problematic code snippets
+- [ ] Provide concrete fix suggestions with code examples
+- [ ] Categorize every issue by severity
+- [ ] Group issues both by severity and by file
+- [ ] Note positive findings (what was done well)
+- [ ] Provide testing checklist
+- [ ] Minimum 80 lines of output
+
+## What This Review Enables
+
+This thorough first review will:
+1. **Catch critical bugs** before they reach production
+2. **Maintain code quality** across the codebase
+3. **Document issues clearly** for fixing phase
+4. **Provide learning** by showing good vs bad patterns
+5. **Enable efficient Round 2** by having clear fix list
+
+## Remember
+
+- **Be thorough, not forgiving** - Better to over-flag than under-flag
+- **Provide examples** - Show don't tell for fixes
+- **Think like QA** - Try to break the code mentally
+- **Check everything** - Even "obvious" stuff can have issues
+- **Document well** - Developer needs clear guidance to fix
+
+This is Round 1 - be comprehensive. Round 2 will verify fixes and catch edge cases.
+
+---
+# Implementation:
+
+
+# Implementation summary
+
+All steps in the Threshold Configuration Admin UI plan are implemented. Summary below.
+
+---
+
+## Files created
+
+1. `backend/models/thresholds.py` – Pydantic `WeldTypeThresholds` and `WeldThresholdUpdate` (angle_target `gt=0`)
+2. `backend/scripts/preflight_migration.py` – DB writability and row-count pre-flight for migrations
+3. `backend/alembic/versions/004_weld_thresholds_and_process_type.py` – Migration for `weld_thresholds` and `process_type`
+4. `backend/services/threshold_service.py` – Cached threshold service with `_load_lock` in `invalidate_cache`
+5. `backend/routes/thresholds.py` – GET/PUT thresholds API
+6. `backend/tests/test_thresholds_api.py` – Tests for thresholds API and cache invalidation
+7. `backend/tests/test_scoring_thresholds.py` – Tests for scoring with different thresholds
+8. `my-app/src/types/thresholds.ts` – Frontend threshold types
+9. `my-app/src/components/admin/AngleArcDiagram.tsx` – SVG arc for target angle
+10. `my-app/src/app/admin/layout.tsx` – Admin layout with nav
+11. `my-app/src/app/admin/thresholds/page.tsx` – Admin thresholds page (tabs + form)
+
+---
+
+## Files modified
+
+1. `backend/database/models.py` – Added `WeldThresholdModel`, `process_type` on `SessionModel`, `from_pydantic` / `to_pydantic` updates
+2. `backend/models/session.py` – Added `process_type`
+3. `backend/main.py` – Registered `thresholds_router`
+4. `backend/routes/sessions.py` – `CreateSessionRequest.process_type`, validation, `get_session_score` thresholds wiring, <10 frames → 400, `active_threshold_spec`, `process_type` in payload
+5. `backend/features/extractor.py` – `angle_target_deg` parameter in `extract_features`
+6. `backend/scoring/rule_based.py` – `score_session` accepts optional `thresholds`
+7. `backend/scripts/backfill_score_total.py` – Uses `get_thresholds`, `angle_target_deg`, `score_session(..., thresholds)`
+8. `backend/scripts/prototype_arc_scoring.py` – Loads thresholds and passes to scoring
+9. `backend/scripts/prototype_aggregate_perf.py` – Loads thresholds and passes to scoring
+10. `my-app/src/lib/api.ts` – `SessionScore.active_threshold_spec`, `fetchThresholds`, `updateThreshold`
+11. `my-app/src/lib/micro-feedback.ts` – Optional thresholds, per-generator try/catch, thermal 60/80 fallback
+12. `my-app/src/app/replay/[sessionId]/page.tsx` – Thresholds from score, `scoreFetchError`, micro-feedback gating
+13. `my-app/src/app/seagull/welder/[id]/page.tsx` – Threshold callout from `active_threshold_spec`
+14. `my-app/src/components/welding/ScorePanel.tsx` – Threshold callout
+15. `my-app/src/app/demo/team/[welderId]/page.tsx` – `fetchThresholds`, callout from spec or MIG
+16. `my-app/src/lib/seagull-demo-data.ts` – Optional `active_threshold_spec` in `createMockScore`
+17. `my-app/src/types/session.ts` – `process_type`, `score_total`
+18. `my-app/src/__tests__/components/welding/ScorePanel.test.tsx` – Test for threshold callout
+
+---
+
+## Checklist
+
+- [x] All 22 plan steps implemented
+- [x] Migration pre-flight script
+- [x] `invalidate_cache` acquires `_load_lock`
+- [x] Form uses `parseFloat` without `|| 0`; `isCompleteForm` requires `angle_target_degrees > 0`
+- [x] Backend enforces `angle_target_degrees > 0`
+- [x] Session factory in tests creates sessions with 10+ frames
+- [x] GET/PUT dependency overrides for both routes
+- [x] Thermal fallback 60/80
+- [x] Demo callout prefers spec or fetched MIG
+
+---
+
+## Manual verification
+
+1. **Migration**  
+   ```bash
+   cd backend
+   python scripts/preflight_migration.py  # optional
+   alembic upgrade head --sql > migration_preview.sql  # inspect SQL
+   alembic upgrade head
+   ```
+
+2. **Backend**  
+   ```bash
+   cd backend && uvicorn main:app --reload
+   curl -s http://localhost:8000/api/thresholds  # expect 4 items
+   ```
+
+3. **Admin UI**  
+   - Open `http://localhost:3000/admin/thresholds`
+   - Switch MIG/TIG/Stick/Flux Core tabs
+   - Change angle target, save
+   - Confirm validation (warning > critical, angle 0)
+
+4. **Replay**  
+   - Open `/replay/{sessionId}` for a session with score
+   - Confirm “Evaluated against MIG spec…” in ScorePanel and micro-feedback
+
+5. **Tests**  
+   ```bash
+   cd backend && pytest tests/test_thresholds_api.py tests/test_scoring_thresholds.py tests/test_get_session_score.py -v
+   cd my-app && npm test -- ScorePanel.test
+   ```
+
+---
+
+## Known limitations
+
+- In-memory cache is per-process; multi-worker setups can serve stale thresholds until restart.
+- Pre-flight script does not run in CI; run `alembic upgrade head` in CI (SQLite or ephemeral Postgres).
+- `test_score_insufficient_frames_returns_400` truncates the session; ensure Session validators pass.
+
+---
+
+# Implementation status: complete
+
+All 22 steps from the plan are implemented. The feature is ready for manual testing and review.
+
+
+---
+# Original Plan (compressed):
+
+
+Here is the handoff JSON:
+
+```json
+{
+  "phase_completed": "Plan Critique & Refinement — Threshold Configuration Admin UI",
+  "phase_goal_achieved": true,
+  "goal_delta": "Plan refined with 5 critical fixes and minor updates. Implementation can proceed; prior bugs and underspecs are documented and addressed.",
+
+  "decisions_locked": [
+    {"topic": "Migration pre-flight", "chosen": "preflight_migration.py for DB writability and row-count; if sessions >1000 rows run UPDATE manual first; alembic upgrade head --sql > migration_preview.sql before upgrade", "reverting_this_requires": "Removes safety for highest-risk step — hard"},
+    {"topic": "invalidate_cache", "chosen": "Acquire _load_lock before setting _cache_loaded = False", "reverting_this_requires": "Reintroduces concurrent correctness bug — hard"},
+    {"topic": "Form NaN / cleared-field", "chosen": "parseFloat(e.target.value) with no ||0 fallback; isCompleteForm checks angle_target_degrees > 0; backend gt=0 on angle_target_degrees", "reverting_this_requires": "Silent 0 submission, useless scoring — medium"},
+    {"topic": "Step 4.6 session_factory", "chosen": "Explicit fixture: SessionModel + 10 frames via generate_session_for_welder; conftest imports WeldThresholdModel before create_all", "reverting_this_requires": "Test may pass for wrong reason (404) — medium"},
+    {"topic": "Step 1.4 missing-row behavior", "chosen": "Fail loudly when tig/stick/flux_core row missing; per-row try/except for corrupt rows; no silent MIG fallback", "reverting_this_requires": "Silent wrong thresholds — hard"},
+    {"topic": "Step 2.3 zero-frames", "chosen": "Reject sessions with <10 frames; return 400 with clear message", "reverting_this_requires": "get_session_score may 500 — medium"},
+    {"topic": "Step 4.2 thermal fallback", "chosen": "Thermal fallback 60/80 to match seed; wait for sessionData and primaryScore before micro-feedback or show skeleton", "reverting_this_requires": "Visual flicker — low"},
+    {"topic": "Step 4.5 demo callout", "chosen": "Fetch GET /api/thresholds, use mig row when mockScore has no spec; no hardcoded 45° ±5°", "reverting_this_requires": "Demo shows wrong spec — low"}
+  ],
+
+  "files_state": {
+    "created": ["backend/scripts/preflight_migration.py"],
+    "modified": [".cursor/issues/threshold-configuration-admin-ui-plan-refined.md"],
+    "deleted": []
+  },
+
+  "contracts_established": [
+    "WeldTypeThresholds: angle_target_degrees gt=0",
+    "PUT /api/thresholds/:weld_type: angle_warning <= angle_critical; angle_target_degrees > 0",
+    "GET /api/sessions/:id/score: 400 if frames < 10; active_threshold_spec with 9 fields",
+    "get_thresholds: raises when tig/stick/flux_core row missing",
+    "invalidate_cache: acquires _load_lock before _cache_loaded = False",
+    "preflight_migration.py: DB writability, sessions row count; migration_preview.sql",
+    "session_factory: SessionModel + 10 frames; WeldThresholdModel imported before create_all"
+  ],
+
+  "assumptions_now_baked_in": [
+    "Single-worker for cache; multi-worker backlogged",
+    "PostgreSQL vanilla; 100k+ sessions needs batched UPDATE",
+    "down_revision 003_add_score_total",
+    "ActiveThresholdSpec optional fields for legacy compat",
+    "angle_target ≤90° for AngleArcDiagram"
+  ],
+
+  "open_risks_for_next_phase": [
+    {"risk": "Migration UPDATE succeeds, ALTER fails", "trigger": "Connection drop between steps", "owner": "Step 1.2 pre-flight"},
+    {"risk": "Large table migration locks sessions", "trigger": "sessions >1000 rows", "owner": "preflight_migration.py"},
+    {"risk": "Micro-feedback flicker", "trigger": "Frames load fast, score slow", "owner": "Step 4.2"},
+    {"risk": "test_put_threshold_invalidates_cache fixture underspec", "trigger": "Missing session+frames", "owner": "Step 4.6"}
+  ],
+
+  "broken_or_incomplete": [
+    "Original plan had 5 critical bugs; refinement fixes all. No implementation yet."
+  ],
+
+  "next_phase_must_not": [
+    "Run alembic upgrade without pre-flight",
+    "Call invalidate_cache without _load_lock",
+    "Use parseFloat(x) || 0 for form inputs",
+    "Allow angle_target_degrees === 0",
+    "Implement Step 4.6 without explicit session_factory",
+    "Hardcode 45° ±5° in demo when fetch available",
+    "Compute micro-feedback before sessionData and primaryScore ready"
+  ],
+
+  "next_phase_starting_state": "Refined plan at .cursor/issues/threshold-configuration-admin-ui-plan-refined.md. 20 steps, 4 phases. Fixes: migration pre-flight, cache lock, form NaN/0, session_factory, thermal 60/80, demo fetch. Implement per refined steps; run preflight before Step 1.2."
+}
+```

@@ -83,4 +83,23 @@ describe('ScorePanel', () => {
 
     expect(screen.getByText(/session not found/i)).toBeInTheDocument();
   });
+
+  it('displays threshold callout when active_threshold_spec present', async () => {
+    mockFetchScore.mockResolvedValue({
+      total: 100,
+      rules: [],
+      active_threshold_spec: {
+        weld_type: 'mig',
+        angle_target: 45,
+        angle_warning: 5,
+        angle_critical: 15,
+      },
+    });
+
+    render(<ScorePanel sessionId="sess_1" />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/evaluated against mig spec/i)).toBeInTheDocument();
+    });
+  });
 });

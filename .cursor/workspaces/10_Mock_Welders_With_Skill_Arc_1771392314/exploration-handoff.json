@@ -1,0 +1,71 @@
+
+Use this handoff JSON:
+
+```json
+{
+  "phase_completed": "Technical Exploration — 10 Mock Welders With Skill Arcs",
+  "phase_goal_achieved": true,
+  "goal_delta": "Architecture chosen, file plan fixed, prototype script ready. No implementation yet; next phase builds it.",
+
+  "decisions_locked": [
+    {"topic": "Architecture", "chosen": "Option A: mock_welders.py + extend mock_sessions.py with generate_frames_for_arc", "reverting_this_requires": "Restructure frame generation ownership"},
+    {"topic": "Expert comparison baseline", "chosen": "sess_expert-benchmark_005 (not sess_expert_001)", "reverting_this_requires": "Welder report + seed changes"},
+    {"topic": "Session ID convention", "chosen": "sess_{welder_id}_{001..00n}", "reverting_this_requires": "Backend seed + frontend derivation"},
+    {"topic": "Badge and historical data", "chosen": "Fetch via existing fetchScore; no new endpoints", "reverting_this_requires": "Backend batch API + frontend changes"},
+    {"topic": "Volatile/declining arcs", "chosen": "disable_sensor_continuity_checks=True; random.seed(42) for volatile", "reverting_this_requires": "Validation failures on seed"}
+  ],
+
+  "files_state": {
+    "created": ["backend/data/mock_welders.py", "backend/scripts/prototype_arc_scoring.py"],
+    "modified": [
+      "backend/data/mock_sessions.py",
+      "backend/routes/dev.py",
+      "backend/scripts/seed_demo_data.py",
+      "my-app/src/app/seagull/page.tsx",
+      "my-app/src/app/seagull/welder/[id]/page.tsx",
+      "backend/tests/test_dev_routes.py",
+      "backend/tests/test_mock_sessions.py or test_mock_welders.py"
+    ],
+    "deleted": []
+  },
+
+  "contracts_established": [
+    "WELDER_ARCHETYPES: welder_id, name, arc, sessions, base, delta; arc ∈ fast_learner|consistent_expert|plateaued|declining|new_hire|volatile",
+    "generate_frames_for_arc(arc_type, session_index) → frames; params: angle_stddev (tight=2°, loose=8°, drift 2°→8°), thermal N/S delta (sym=<10°C, asym=20–40°C), amps (±2A stable, ±8A unstable)",
+    "operator_id = welder_id on Session",
+    "Badge: last>prev→on_track, last<prev→needs_attention, else neutral; need 2+ scores",
+    "Spec typo: use 'base' not 'bae' in generate_score_arc"
+  ],
+
+  "assumptions_now_baked_in": [
+    "Rule thresholds in rule_based.py fixed; do not change for mock",
+    "±5–10 score variance acceptable; tune iteratively",
+    "Prototype not run; validate with PYTHONPATH=backend python backend/scripts/prototype_arc_scoring.py during impl",
+    "sess_expert_001 removed unless product specifies retention"
+  ],
+
+  "open_risks_for_next_phase": [
+    {"risk": "Frame params don't hit target score ranges", "trigger": "Prototype scores outside ±10 of archetype base/delta", "owner": "Impl phase — tune or accept variance"},
+    {"risk": "Volatile arc non-reproducible", "trigger": "Different scores across seed runs", "owner": "Impl — must call random.seed(42) before generation"},
+    {"risk": "Session validation fails on declining/volatile", "trigger": "Ingest fails", "owner": "Impl — set disable_sensor_continuity_checks=True"},
+    {"risk": "Wipe misses sessions", "trigger": "Orphan mock sessions after wipe", "owner": "Impl — derive wipe IDs from WELDER_ARCHETYPES"},
+    {"risk": "expert-benchmark not seeded", "trigger": "Welder report comparison 404 for all welders", "owner": "Seed before demo"}
+  ],
+
+  "broken_or_incomplete": [
+    "Nothing implemented; exploration only. Prototype exists but execution not confirmed."
+  ],
+
+  "next_phase_must_not": [
+    "Change rule thresholds in rule_based.py for mock",
+    "Add new API endpoints — use fetchScore",
+    "Omit disable_sensor_continuity_checks for volatile/declining arcs",
+    "Omit random.seed(42) before volatile arc generation",
+    "Hardcode wipe session IDs — derive from WELDER_ARCHETYPES",
+    "Keep MOCK_HISTORICAL in welder report — replace with fetched sess_{id}_001..00n",
+    "Use sess_expert_001 for expert comparison — use sess_expert-benchmark_005"
+  ],
+
+  "next_phase_starting_state": "Exploration complete. mock_welders.py does not exist. mock_sessions has expert/novice only. Dashboard has 2 welders. Welder report uses MOCK_HISTORICAL and sess_expert_001. Prototype script ready for validation. Critical path: mock_welders → mock_sessions → dev seed/wipe → seed_demo_data → dashboard → welder report → tests."
+}
+```

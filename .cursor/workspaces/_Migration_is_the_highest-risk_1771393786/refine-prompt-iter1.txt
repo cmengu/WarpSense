@@ -1,0 +1,1020 @@
+# Refine Plan (Intelligent Improvement with Deep Analysis)
+
+You are a **principal engineer** conducting a targeted refinement of an implementation plan based on a comprehensive critique. This requires strategic thinking about what to preserve, what to fix, and how to integrate improvements seamlessly.
+
+---
+
+## CRITICAL: Your Mission
+
+You have received:
+1. **Current Plan** - The implementation plan being refined
+2. **Critique** - A detailed analysis with scores, issues, and recommendations
+3. **History** - Previous iterations and what was attempted
+
+Your task: **Output a COMPLETE, IMPROVED plan** that:
+- ✅ Fixes ALL critical issues completely
+- ✅ Addresses minor issues where they improve quality
+- ✅ Preserves ALL strengths and working sections
+- ✅ Maintains logical structure and flow
+- ✅ Remains executable and actionable
+
+**DO NOT:**
+- ❌ Just list changes or provide diffs
+- ❌ Explain what you're doing or why
+- ❌ Remove good working content
+- ❌ Add unnecessary complexity
+- ❌ Output anything except the refined plan
+
+---
+
+## Phase 1: Critique Analysis & Strategy Formation
+
+### 1.1 Parse the Critique
+
+First, extract from the critique JSON:
+- **Score:** What's the current quality level?
+- **Critical Issues:** What MUST be fixed? (execution-blocking)
+- **Minor Issues:** What SHOULD be fixed? (quality improvements)
+- **Strengths:** What MUST be preserved?
+- **Recommended Action:** Was this flagged for deep revision or polish?
+
+### 1.2 Issue Classification & Prioritization
+
+Organize issues by type:
+
+**Type A: Missing Core Steps**
+- Example: "No database backup before migration"
+- Fix: Add complete new step with verification
+- Impact: Could cause data loss
+- Priority: P0 - Must fix
+
+**Type B: Insufficient Error Handling**
+- Example: "No null check for API response"
+- Fix: Add try-catch, null guards, fallback behavior
+- Impact: Runtime errors, crashes
+- Priority: P0 - Must fix
+
+**Type C: Unclear/Vague Instructions**
+- Example: "Update the component" → needs specifics
+- Fix: Add file paths, function names, code examples
+- Impact: Execution ambiguity
+- Priority: P1 - High priority
+
+**Type D: Missing Verification**
+- Example: "Test manually" without test cases
+- Fix: Add specific test cases, expected outputs, validation commands
+- Impact: Can't verify success
+- Priority: P1 - High priority
+
+**Type E: Dependency/Sequencing Issues**
+- Example: Step 5 depends on Step 8
+- Fix: Reorder steps, add explicit prerequisites
+- Impact: Execution failure
+- Priority: P0 - Must fix
+
+**Type F: Missing Edge Cases**
+- Example: "Doesn't handle empty array"
+- Fix: Add edge case handling logic
+- Impact: Failures on boundary conditions
+- Priority: P1-P2 depending on likelihood
+
+**Type G: Polish/Optimization**
+- Example: "Could add TypeScript types"
+- Fix: Add if improves clarity significantly
+- Impact: Code quality, maintainability
+- Priority: P2 - Nice to have
+
+---
+
+## Phase 2: Refinement Strategy by Issue Type
+
+### Strategy A: Adding Missing Steps
+
+**When to use:** Critical issue indicates entire step is missing
+
+**Process:**
+1. Identify where in sequence the step belongs
+2. Draft the complete step with:
+   - Clear action description
+   - Code example or command
+   - Expected outcome
+   - Verification method
+   - Dependencies
+   - Error handling
+3. Integrate seamlessly into existing flow
+4. Update step numbering if needed
+5. Cross-reference with related steps
+
+**Example:**
+
+**Critique says:** "Missing database backup before migration in Step 4"
+
+**Bad refinement:**
+```
+3.5. Backup database
+```
+
+**Good refinement:**
+```
+## Step 3.5: Create Pre-Migration Database Backup
+
+**Action:**
+Create a timestamped backup of the production database before running migrations.
+
+**Implementation:**
+```bash
+# Create backup directory if it doesn't exist
+mkdir -p ./backups
+
+# Generate timestamped backup
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+pg_dump -h localhost -U postgres -d production_db > ./backups/backup_${TIMESTAMP}.sql
+
+# Verify backup created successfully
+if [ $? -eq 0 ]; then
+    echo "✅ Backup created: backup_${TIMESTAMP}.sql"
+    echo "Size: $(du -h ./backups/backup_${TIMESTAMP}.sql | cut -f1)"
+else
+    echo "❌ Backup failed - ABORT MIGRATION"
+    exit 1
+fi
+```
+
+**Verification:**
+- Backup file exists in `./backups/` directory
+- File size > 0 bytes
+- Can open file and see SQL commands
+
+**Rollback (if migration fails):**
+```bash
+# Restore from backup
+psql -h localhost -U postgres -d production_db < ./backups/backup_${TIMESTAMP}.sql
+```
+
+**Time estimate:** 2-5 minutes (depending on database size)
+
+**Dependencies:** Requires `pg_dump` installed, database credentials configured
+```
+
+---
+
+### Strategy B: Adding Error Handling
+
+**When to use:** Critical issue about missing error handling or null checks
+
+**Process:**
+1. Identify the risky operation
+2. Determine failure modes (what could go wrong?)
+3. Add defensive checks before operation
+4. Wrap in try-catch where applicable
+5. Provide fallback behavior
+6. Log errors for debugging
+
+**Example:**
+
+**Critique says:** "Step 7 doesn't handle null heatmapData"
+
+**Current (problematic):**
+```javascript
+function renderHeatmap() {
+  heatmapData.forEach(point => {
+    // render point
+  });
+}
+```
+
+**Refined (with error handling):**
+```javascript
+function renderHeatmap() {
+  // Guard: Check if data exists
+  if (!heatmapData) {
+    console.warn('⚠️ Heatmap data not loaded yet');
+    return; // Exit gracefully
+  }
+
+  // Guard: Check if array is empty
+  if (heatmapData.length === 0) {
+    console.warn('⚠️ Heatmap data is empty');
+    // Show "No data" UI instead of blank screen
+    showNoDataMessage();
+    return;
+  }
+
+  // Process data with error handling
+  try {
+    heatmapData.forEach(point => {
+      // Validate each point
+      if (!point || typeof point.temperature !== 'number') {
+        console.error('Invalid point data:', point);
+        return; // Skip this point
+      }
+      
+      // Render point
+      renderPoint(point);
+    });
+  } catch (error) {
+    console.error('Error rendering heatmap:', error);
+    // Fallback: show error state
+    showErrorMessage('Failed to render heatmap');
+  }
+}
+```
+
+---
+
+### Strategy C: Improving Clarity & Specificity
+
+**When to use:** Minor issue about vague instructions
+
+**Process:**
+1. Identify what's ambiguous
+2. Add concrete details:
+   - File paths
+   - Function names
+   - Import statements
+   - Exact commands
+   - Expected outputs
+3. Provide code examples
+4. Show before/after if modifying existing code
+
+**Example:**
+
+**Critique says:** "Step 2 'Import required libraries' is too vague"
+
+**Current (vague):**
+```
+## Step 2: Import Libraries
+
+Import the necessary libraries for 3D rendering and heatmap visualization.
+```
+
+**Refined (specific):**
+```
+## Step 2: Import Required Dependencies
+
+**Action:**
+Add the following imports to the top of `src/components/ReplayViewer.tsx`:
+
+**Code:**
+```typescript
+// Three.js core and loaders
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
+
+// Custom shaders
+import { HeatmapShader } from '@/shaders/HeatmapShader';
+
+// React and state management
+import { useEffect, useRef, useState } from 'react';
+import { useReplayStore } from '@/stores/replayStore';
+
+// Utils
+import { temperatureToColor } from '@/utils/colorMapping';
+import { interpolateHeatData } from '@/utils/heatInterpolation';
+```
+
+**Verification:**
+- No TypeScript errors in file
+- Imports resolve (check with `npm run typecheck`)
+- Auto-complete works for imported functions
+
+**Dependencies:**
+Ensure these packages are installed:
+```bash
+npm install three@0.160.0
+npm install @types/three@0.160.0 --save-dev
+```
+
+**Time estimate:** 2-3 minutes
+```
+
+---
+
+### Strategy D: Adding Verification Steps
+
+**When to use:** Issue about missing or weak verification
+
+**Process:**
+1. For each step, define "done" criteria
+2. Provide specific test cases
+3. Include expected outputs
+4. Add commands to run tests
+5. Include negative test cases (what should fail)
+
+**Example:**
+
+**Critique says:** "Step 5 verification just says 'check colors' - not specific"
+
+**Current (weak):**
+```
+**Verification:**
+- Check that colors change with temperature
+```
+
+**Refined (specific):**
+```
+**Verification:**
+
+**Manual Visual Test:**
+1. Open browser DevTools (F12)
+2. Go to Console tab
+3. Run these test scenarios:
+
+```javascript
+// Test 1: Cold temperature (0°F) - should be deep blue
+testTemperature(0);
+// Expected: RGB(0, 0, 139) - dark blue
+
+// Test 2: Warm temperature (250°F) - should be yellow-orange  
+testTemperature(250);
+// Expected: RGB(255, 165, 0) - orange
+
+// Test 3: Hot temperature (500°F) - should be bright red/white
+testTemperature(500);
+// Expected: RGB(255, 255, 255) - white-hot
+
+// Test 4: 5°F increments - should see visible color change
+for (let temp = 0; temp <= 50; temp += 5) {
+  console.log(`${temp}°F:`, temperatureToColor(temp));
+}
+// Expected: Should see gradual transition from blue → cyan
+
+// Test 5: Negative temperature - should clamp to 0°F color
+testTemperature(-50);
+// Expected: Same as 0°F (deep blue), no error
+
+// Test 6: Above max temperature - should clamp to 500°F color  
+testTemperature(1000);
+// Expected: Same as 500°F (white), no error
+```
+
+**Automated Test:**
+```typescript
+// Add to src/__tests__/colorMapping.test.ts
+describe('temperatureToColor', () => {
+  test('visible change every 5°F', () => {
+    for (let temp = 0; temp < 500; temp += 5) {
+      const color1 = temperatureToColor(temp);
+      const color2 = temperatureToColor(temp + 5);
+      
+      // Calculate color difference
+      const diff = Math.abs(color1.r - color2.r) + 
+                   Math.abs(color1.g - color2.g) + 
+                   Math.abs(color1.b - color2.b);
+      
+      // Expect visible difference (threshold: 10 on 0-765 scale)
+      expect(diff).toBeGreaterThan(10);
+    }
+  });
+
+  test('handles edge cases', () => {
+    expect(() => temperatureToColor(-100)).not.toThrow();
+    expect(() => temperatureToColor(9999)).not.toThrow();
+    expect(temperatureToColor(null)).toEqual({ r: 0, g: 0, b: 0 }); // fallback
+  });
+});
+```
+
+**Success Criteria:**
+- All manual tests show expected colors
+- Automated tests pass (`npm test`)
+- Color transitions are smooth and visible
+- No console errors
+```
+
+---
+
+### Strategy E: Fixing Dependencies & Sequencing
+
+**When to use:** Critical issue about step ordering or missing prerequisites
+
+**Process:**
+1. Map dependencies between steps
+2. Identify circular dependencies or out-of-order steps
+3. Reorder steps logically
+4. Add explicit prerequisite sections
+5. Update step references throughout plan
+
+**Example:**
+
+**Critique says:** "Step 5 uses heatmapShader but it's not created until Step 8"
+
+**Current (broken sequence):**
+```
+## Step 5: Apply Shader to Metal
+Use heatmapShader on material...
+
+## Step 8: Create Heatmap Shader
+Define the shader code...
+```
+
+**Refined (correct sequence):**
+```
+## Step 5: Create Heatmap Shader
+
+**Prerequisites:** None (this step must come first)
+
+**Action:**
+Define the custom shader for heatmap rendering.
+
+**Implementation:**
+```typescript
+// src/shaders/HeatmapShader.ts
+export const HeatmapShader = {
+  uniforms: {
+    temperatureMap: { value: null },
+    minTemp: { value: 0.0 },
+    maxTemp: { value: 500.0 }
+  },
+  vertexShader: `
+    varying vec2 vUv;
+    void main() {
+      vUv = uv;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `,
+  fragmentShader: `
+    uniform sampler2D temperatureMap;
+    uniform float minTemp;
+    uniform float maxTemp;
+    varying vec2 vUv;
+    
+    vec3 temperatureToColor(float temp) {
+      // Normalize temp to 0-1 range
+      float t = clamp((temp - minTemp) / (maxTemp - minTemp), 0.0, 1.0);
+      
+      // Color gradient: blue → cyan → green → yellow → red → white
+      if (t < 0.2) {
+        return mix(vec3(0.0, 0.0, 0.545), vec3(0.0, 1.0, 1.0), t * 5.0);
+      } else if (t < 0.4) {
+        return mix(vec3(0.0, 1.0, 1.0), vec3(0.0, 1.0, 0.0), (t - 0.2) * 5.0);
+      } else if (t < 0.6) {
+        return mix(vec3(0.0, 1.0, 0.0), vec3(1.0, 1.0, 0.0), (t - 0.4) * 5.0);
+      } else if (t < 0.8) {
+        return mix(vec3(1.0, 1.0, 0.0), vec3(1.0, 0.0, 0.0), (t - 0.6) * 5.0);
+      } else {
+        return mix(vec3(1.0, 0.0, 0.0), vec3(1.0, 1.0, 1.0), (t - 0.8) * 5.0);
+      }
+    }
+    
+    void main() {
+      float temp = texture2D(temperatureMap, vUv).r;
+      vec3 color = temperatureToColor(temp);
+      gl_FragColor = vec4(color, 1.0);
+    }
+  `
+};
+```
+
+**Verification:**
+- File created at `src/shaders/HeatmapShader.ts`
+- No TypeScript errors
+- Can import in other files: `import { HeatmapShader } from '@/shaders/HeatmapShader'`
+
+**Time estimate:** 15-20 minutes
+
+---
+
+## Step 6: Apply Shader to Metal Material
+
+**Prerequisites:** 
+- Step 5 completed (HeatmapShader created)
+- Metal model loaded in scene
+
+**Action:**
+Replace metal's standard material with shader material using HeatmapShader.
+
+**Implementation:**
+```typescript
+// In ReplayViewer.tsx
+import { HeatmapShader } from '@/shaders/HeatmapShader';
+
+// Find metal mesh
+const metalMesh = scene.getObjectByName('metal_surface');
+
+if (metalMesh) {
+  // Create shader material
+  const shaderMaterial = new THREE.ShaderMaterial({
+    uniforms: THREE.UniformsUtils.clone(HeatmapShader.uniforms),
+    vertexShader: HeatmapShader.vertexShader,
+    fragmentShader: HeatmapShader.fragmentShader
+  });
+  
+  // Apply to mesh
+  metalMesh.material = shaderMaterial;
+  
+  console.log('✅ Heatmap shader applied to metal');
+} else {
+  console.error('❌ Metal mesh not found in scene');
+}
+```
+
+**Verification:**
+- Metal surface visible in viewport
+- No console errors
+- Material shows as ShaderMaterial in Three.js DevTools
+```
+
+---
+
+### Strategy F: Adding Edge Case Handling
+
+**When to use:** Issue about missing edge cases or boundary conditions
+
+**Process:**
+1. Enumerate edge cases for the operation
+2. Add handling code for each case
+3. Provide examples
+4. Add tests for edge cases
+
+**Example:**
+
+**Critique says:** "Doesn't handle case when replay has no temperature data"
+
+**Refined (with edge cases):**
+```
+## Step 9: Render Heatmap Frame
+
+**Action:**
+Render heatmap for current replay frame, handling edge cases.
+
+**Implementation:**
+```typescript
+function renderHeatmapFrame(frameIndex: number) {
+  // Edge Case 1: Invalid frame index
+  if (frameIndex < 0 || frameIndex >= totalFrames) {
+    console.warn(`⚠️ Frame ${frameIndex} out of range (0-${totalFrames-1})`);
+    return;
+  }
+
+  // Edge Case 2: No temperature data for this replay
+  const temperatureData = replayStore.getTemperatureData();
+  if (!temperatureData || temperatureData.length === 0) {
+    console.warn('⚠️ No temperature data available');
+    // Show default/neutral color
+    setUniformTemperature(metalMesh, 70); // Room temperature
+    return;
+  }
+
+  // Edge Case 3: Frame exists but has no data points
+  const frameData = temperatureData[frameIndex];
+  if (!frameData || frameData.points.length === 0) {
+    console.warn(`⚠️ Frame ${frameIndex} has no data points`);
+    // Interpolate from adjacent frames
+    const interpolated = interpolateFromAdjacentFrames(frameIndex);
+    applyTemperatureData(interpolated);
+    return;
+  }
+
+  // Edge Case 4: Sparse data (missing measurements at some points)
+  if (frameData.points.length < metalMesh.geometry.vertices.length * 0.5) {
+    console.warn(`⚠️ Frame ${frameIndex} has sparse data, interpolating...`);
+    const filled = fillSparsedData(frameData);
+    applyTemperatureData(filled);
+    return;
+  }
+
+  // Normal case: Full data available
+  applyTemperatureData(frameData);
+}
+
+// Helper: Interpolate when frame has no data
+function interpolateFromAdjacentFrames(frameIndex: number) {
+  const prevFrame = findPreviousValidFrame(frameIndex);
+  const nextFrame = findNextValidFrame(frameIndex);
+  
+  if (prevFrame && nextFrame) {
+    // Linear interpolation between frames
+    const t = (frameIndex - prevFrame.index) / (nextFrame.index - prevFrame.index);
+    return interpolateFrames(prevFrame.data, nextFrame.data, t);
+  } else if (prevFrame) {
+    // Use previous frame
+    return prevFrame.data;
+  } else if (nextFrame) {
+    // Use next frame
+    return nextFrame.data;
+  } else {
+    // No data at all - use defaults
+    return getDefaultTemperatureData();
+  }
+}
+```
+
+**Edge Cases Covered:**
+1. ✅ Invalid frame index (negative or beyond range)
+2. ✅ No temperature data loaded
+3. ✅ Frame with zero data points
+4. ✅ Sparse/incomplete data points
+5. ✅ First frame (no previous frame to interpolate from)
+6. ✅ Last frame (no next frame to interpolate from)
+
+**Test Cases:**
+```typescript
+describe('renderHeatmapFrame edge cases', () => {
+  test('handles negative frame index', () => {
+    expect(() => renderHeatmapFrame(-1)).not.toThrow();
+  });
+
+  test('handles frame beyond range', () => {
+    expect(() => renderHeatmapFrame(9999)).not.toThrow();
+  });
+
+  test('handles missing temperature data', () => {
+    replayStore.temperatureData = null;
+    expect(() => renderHeatmapFrame(0)).not.toThrow();
+  });
+
+  test('handles empty data points', () => {
+    replayStore.temperatureData = [{ points: [] }];
+    expect(() => renderHeatmapFrame(0)).not.toThrow();
+  });
+});
+```
+```
+
+---
+
+## Phase 3: Execution - Building the Refined Plan
+
+### 3.1 Structure Preservation
+
+**Preserve the original structure unless critique explicitly says to reorganize.**
+
+**Keep:**
+- Main section headings
+- Step numbering scheme
+- Overall flow and narrative
+- Introduction and overview sections
+
+**Modify only:**
+- Content that has issues
+- Steps that need reordering (if dependency issue)
+- Sections flagged in critique
+
+---
+
+### 3.2 Integration Approach
+
+**For each issue in the critique:**
+
+1. **Locate** the affected section in current plan
+2. **Apply** the appropriate refinement strategy (A-G above)
+3. **Verify** the fix doesn't break other sections
+4. **Update** any cross-references
+5. **Maintain** consistent formatting and style
+
+---
+
+### 3.3 Quality Checks Before Output
+
+Before outputting the refined plan, verify:
+
+**Completeness:**
+- [ ] All critical issues addressed
+- [ ] All minor issues addressed (or consciously skipped)
+- [ ] All strengths preserved
+- [ ] No sections accidentally deleted
+
+**Consistency:**
+- [ ] Step numbers sequential
+- [ ] Cross-references updated
+- [ ] Consistent terminology
+- [ ] Uniform formatting
+
+**Executability:**
+- [ ] Each step has clear action
+- [ ] Code examples are complete and runnable
+- [ ] Verification criteria are specific
+- [ ] Dependencies are explicit
+
+**Clarity:**
+- [ ] No ambiguous instructions
+- [ ] File paths and names provided
+- [ ] Expected outputs specified
+- [ ] Time estimates included
+
+---
+
+## Phase 4: Output Format
+
+### 4.1 What to Output
+
+**Output ONLY the complete refined plan as markdown.**
+
+**DO NOT include:**
+- ❌ This meta-instruction document
+- ❌ Explanations of what you changed
+- ❌ Diffs or change summaries
+- ❌ Commentary about the critique
+- ❌ Preamble or conclusion about the refinement
+
+**DO include:**
+- ✅ Complete refined plan from beginning to end
+- ✅ All sections (even unchanged ones)
+- ✅ All fixes integrated seamlessly
+- ✅ Proper markdown formatting
+
+---
+
+### 4.2 Output Template Structure
+
+Your output should follow this general structure (adapt to specific plan):
+
+```markdown
+# [Plan Title]
+
+## Overview
+[High-level description of what will be implemented]
+
+## Prerequisites
+- [Dependency 1]
+- [Dependency 2]
+- [etc.]
+
+## Implementation Steps
+
+### Phase 1: [Phase Name]
+
+#### Step 1.1: [Step Name]
+
+**Action:**
+[What to do]
+
+**Implementation:**
+```[language]
+[Complete code]
+```
+
+**Verification:**
+- [Specific test 1]
+- [Specific test 2]
+
+**Expected Outcome:**
+[What success looks like]
+
+**Time Estimate:** [X minutes/hours]
+
+**Dependencies:** [What must be done first]
+
+---
+
+#### Step 1.2: [Step Name]
+
+[... repeat pattern ...]
+
+---
+
+### Phase 2: [Phase Name]
+
+[... continue ...]
+
+---
+
+## Testing & Validation
+
+[Comprehensive testing section]
+
+---
+
+## Rollback Procedure
+
+[How to undo if things go wrong]
+
+---
+
+## Known Issues & Limitations
+
+[Any caveats or edge cases still not handled]
+
+---
+
+## Success Criteria
+
+[How to know the entire implementation is complete]
+```
+
+---
+
+## Phase 5: Special Cases & Advanced Scenarios
+
+### Scenario A: Score 8-9 (Minor Polish)
+
+**What it means:** Plan is mostly good, just needs small improvements
+
+**Approach:**
+- Address minor issues without disrupting working sections
+- Focus on clarity and specificity
+- Add verification where weak
+- Don't over-refine
+
+**Example fixes:**
+- Add missing import statement
+- Clarify vague file path
+- Add specific test case
+- Fix typo in command
+
+---
+
+### Scenario B: Score 5-7 (Significant Revision)
+
+**What it means:** Plan has critical flaws, needs substantial work
+
+**Approach:**
+- Fix all critical issues first (execution-blocking)
+- Reorder steps if sequencing is broken
+- Add missing core steps
+- Beef up error handling significantly
+- May need to restructure sections
+
+**Example fixes:**
+- Add entire missing phase
+- Reorder 5+ steps for correct dependencies
+- Add comprehensive error handling throughout
+- Replace vague steps with specific implementations
+
+---
+
+### Scenario C: Score <5 (Major Overhaul)
+
+**What it means:** Plan is fundamentally flawed
+
+**Approach:**
+- Consider if plan addresses the original task at all
+- May need to restructure entire plan
+- Add multiple missing phases
+- Complete rewrite of vague sections
+- Extensive verification added throughout
+
+**Example fixes:**
+- Add 3 new major phases
+- Complete rewrite of implementation approach
+- Add all error handling, verification, testing
+- Fix fundamental technical errors
+
+---
+
+### Scenario D: Conflicting Critique Points
+
+**What to do when critique has contradictory suggestions:**
+
+**Example:** 
+- Issue #1: "Too vague, add more detail"
+- Issue #5: "Too verbose, simplify Step 3"
+
+**Resolution:**
+1. Look at which is critical vs minor
+2. Critical issues take precedence
+3. For same priority: Balance both concerns
+   - Add detail where execution requires it
+   - Simplify prose without losing critical information
+
+---
+
+### Scenario E: Preserving Existing Good Code
+
+**When critique says:** "Add error handling to Step 7" but Step 7 already has working code
+
+**Approach:**
+```typescript
+// EXISTING (keep this):
+function processData(data) {
+  const result = transform(data);
+  return result;
+}
+
+// ADD (integrate with existing):
+function processData(data) {
+  // NEW: Validation
+  if (!data) {
+    console.error('Data is null or undefined');
+    return null;
+  }
+
+  // NEW: Error handling
+  try {
+    // EXISTING: Keep original logic
+    const result = transform(data);
+    return result;
+  } catch (error) {
+    // NEW: Error recovery
+    console.error('Transform failed:', error);
+    return getDefaultData();
+  }
+}
+```
+
+**Don't replace working code entirely - wrap it with improvements.**
+
+---
+
+## Phase 6: Final Checklist
+
+Before submitting the refined plan, verify:
+
+### Critical Requirements
+- [ ] **All critical issues fixed** - None remain unaddressed
+- [ ] **Plan is executable** - Someone could follow it step-by-step
+- [ ] **Strengths preserved** - Good sections untouched
+- [ ] **Complete output** - No placeholders like "TODO" or "[add details]"
+
+### Quality Requirements
+- [ ] **Specific, not vague** - File paths, function names, exact commands
+- [ ] **Verifiable** - Clear success criteria for each step
+- [ ] **Error handling** - Defensive code where needed
+- [ ] **Edge cases** - Boundary conditions handled
+
+### Formatting Requirements
+- [ ] **Valid markdown** - Proper headers, code blocks, lists
+- [ ] **Consistent style** - Uniform formatting throughout
+- [ ] **Code blocks tagged** - Language specified (```typescript, ```bash, etc.)
+- [ ] **No meta-content** - Only the plan itself, no explanations
+
+---
+
+## Remember
+
+**You are outputting THE REFINED PLAN, not a report about the plan.**
+
+**The refined plan should be:**
+- ✅ Complete (beginning to end)
+- ✅ Improved (all issues fixed)
+- ✅ Executable (ready to implement)
+- ✅ Clear (no ambiguity)
+
+**The refined plan should NOT be:**
+- ❌ A diff or changelog
+- ❌ A summary of changes
+- ❌ Commentary about the critique
+- ❌ Partial or incomplete
+
+---
+
+**Now, examine the critique, apply the appropriate strategies, and output the complete refined plan.**
+
+---
+# Current Plan:
+
+
+Applied all critique fixes to the Threshold Configuration Admin UI plan. Summary:
+
+## Critique fixes applied
+
+### Problem 1 — Migration pre-flight (Step 1.2)
+- **Pre-migration verification** now includes:
+  1. `alembic upgrade head --sql > migration_preview.sql` for SQL preview
+  2. Row-count check: if `sessions` > 1000 rows, run manual `UPDATE sessions SET process_type = 'mig' WHERE process_type IS NULL` and verify before running `alembic upgrade head`
+- **Phase 1 prerequisites** updated with these two checks
+
+### Problem 2 — Cache race (Step 1.4)
+- `invalidate_cache()` now acquires `_load_lock` before setting `_cache_loaded = False`
+- Service docstring documents threading: `_load_lock` protects both `_load_all` and `invalidate_cache`
+
+### Problem 3 — Form NaN bug (Step 3.4)
+- Removed `|| 0` fallback: uses `parseFloat(e.target.value)` only
+- `isCompleteForm` now requires `angle_target_degrees > 0`
+- `handleSave` validates `angle_target_degrees > 0` before submit
+- Step 1.5: backend rejects `angle_target_degrees=0` with 422 and a clear message
+- Verification extended to cover cleared fields and `angle_target_degrees=0`
+
+### Problem 4 — Test fixture (Step 4.6)
+- Added explicit `session_factory` fixture using:
+  - `generate_expert_session`
+  - `session.model_copy(update={"process_type": process_type})`
+  - `SessionModel.from_pydantic(session)`
+  - 10+ frames for valid score
+- Added note that `WeldThresholdModel` must be imported before `Base.metadata.create_all`
+
+### Problem 5 — Micro-feedback flicker (Step 4.2)
+- Micro-feedback computed only when both `sessionData?.frames` and `primaryScore` are present: `if (!sessionData?.frames || !primaryScore) return []`
+- Verification updated: “Micro-feedback doesn’t visibly re-render when score loads after frames”; throttle score API to confirm
+
+### Minor changes
+- **Step 1.5:** Comment added for validation asymmetry (angle/thermal vs amps/volts/heat_diss)
+- **Step 3.1:** Documented optional `ActiveThresholdSpec` fields for legacy API
+- **Step 4.5:** Note added that hardcoded “MIG spec — Target 45° ±5°” can be wrong if admin changes MIG seed
+
+### Risk heatmap & checklist
+- 1.2 risk merged to cover partial migration
+- 1.4 risk added for `invalidate_cache` race
+- 4.2 risk added for micro-feedback flicker
+- 4.6 risk added for `session_factory` without frames
+- Phase 1 prerequisites updated with environment-aware checks
+
+### Success criteria
+- #4: Validation includes rejection of `angle_target_degrees=0`
+- #8: Micro-feedback uses configured thresholds and does not visibly flicker
+
+Plan file updated: `threshold-configuration-admin-ui-plan.md`
+
+
+---
+# Standard Critique (issues to fix):
+
+
+{"overall_strategy_score": 8.3, "top_3_avg_priority": 8.4, "context_type": "product", "goal_alignment_score": 8.5, "task_scores": [{"task_number": 1, "task_title": "Phase 1 Backend Foundation — Migration, threshold_service, API routes", "strategic_value": 9.0, "strategic_value_after_penalty": 9.0, "context_alignment": 9.0, "leverage_optionality": 9.0, "resource_efficiency": 7.0, "risk_balance": 5.0, "dependencies": 8.0, "execution_quality": 9.0, "overall_score": 8.5, "feedback_penalty_applied": false, "ships_wrong_risk": "Partial migration on large tables (sessions >1000) can leave process_type NULL if UPDATE locks or times out before ALTER completes — scoring would fail or use wrong defaults.", "higher_leverage_alternative": null, "reasoning": "Pre-migration checks (row count, migration_preview.sql, manual UPDATE for >1000 rows) reduce migration risk; cache lock fix prevents invalidate_cache race."}, {"task_number": 2, "task_title": "Phase 2 — Wire thresholds into extract_features, score_session, get_session_score", "strategic_value": 9.0, "strategic_value_after_penalty": 9.0, "context_alignment": 9.0, "leverage_optionality": 8.5, "resource_efficiency": 8.0, "risk_balance": 7.0, "dependencies": 5.0, "execution_quality": 9.0, "overall_score": 8.6, "feedback_penalty_applied": false, "ships_wrong_risk": "If process_type is missing or wrong for a session, scoring uses wrong thresholds (e.g. TIG scored as MIG) — backfill in migration plus default mig in code mitigates.", "higher_leverage_alternative": null, "reasoning": "Core value path; optional thresholds param keeps backward compat; Step 2.3 returns full active_threshold_spec for micro-feedback."}, {"task_number": 3, "task_title": "Phase 3 Admin UI + Phase 4 Micro-Feedback and report callouts", "strategic_value": 9.0, "strategic_value_after_penalty": 9.0, "context_alignment": 9.0, "leverage_optionality": 7.5, "resource_efficiency": 6.5, "risk_balance": 8.0, "dependencies": 5.0, "execution_quality": 8.0, "overall_score": 8.1, "feedback_penalty_applied": false, "ships_wrong_risk": "Form NaN bug (parseFloat without ||0) and angle_target_degrees=0 are fixed; micro-feedback gate on sessionData && primaryScore prevents flicker.", "higher_leverage_alternative": "Phase 4 callouts (4.3–4.5) could be deferred — admin UI and micro-feedback are the main visible outcomes.", "reasoning": "Admin page is the main user-facing deliverable; form validation and micro-feedback fixes close prior critique; Step 4.6 session_factory ensures test coverage."}], "critical_issues": ["Step 1.2: If sessions >1000 and operator skips manual UPDATE, alembic upgrade may partially apply — migration can succeed on add_column but fail on UPDATE, leaving inconsistent state.", "Multi-worker cache: In-memory cache invalidates only in the worker that handled PUT; other workers serve stale thresholds until restart — documented but no MVP mitigation."], "minor_issues": ["Step 4.5: Hardcoded fallback 'MIG spec — Target 45° ±5°' is wrong if admin changes MIG seed — low risk for demo.", "Step 4.6: session_factory must use generate_expert_session with 10+ frames for valid score — now documented."], "suggestions": ["Add Phase 1 pre-flight script that runs migration_preview.sql and row-count guard and exits with clear instructions if sessions >1000.", "Add a smoke check after migration: SELECT process_type FROM sessions WHERE process_type IS NULL — expect 0 rows.", "For test_put_threshold_invalidates_cache, assert session has frames (e.g. len(session.frames) >= 10) to avoid false pass from session without frames."], "dependency_order": "T1 (1.2 migration) before T1 (1.4 service) — service needs weld_thresholds table. T1 (1.4) before T1 (1.5) — API uses get_thresholds. T1 complete before T2 — T2 needs process_type column and threshold_service. T2 complete before T3 — Admin UI and micro-feedback need GET/PUT API and active_threshold_spec in score response.", "premortem_top_risk": "Operator runs alembic upgrade on staging with sessions >1000 without manual UPDATE first — migration UPDATE locks table and times out, leaving partial migration state.", "goal_alignment_notes": "These 3 tasks deliver the goal: admin configures thresholds at /admin/thresholds, scoring and micro-feedback use DB values, reports show spec. Critique fixes (migration pre-flight, cache lock, form NaN, micro-feedback gate, session_factory) close prior gaps. Visible outcome within 48h after Phase 3: admin can edit and save; replay and report show configured spec.", "context_aware_feedback": {"current_context_type": "product", "penalties_applied": [], "penalties_skipped": []}}
+
+---
+# Adversarial Findings (also must fix):
+
+
+{"score":6.2,"adversarial_verdict":"This plan will execute to completion in a clean dev environment. Applied fixes address the most severe prior issues. Remaining vulnerabilities: Pydantic model allows angle_target_degrees=0 while backend rejects it; create_session accepts invalid process_type without validation; prototype scripts (prototype_arc_scoring.py, prototype_aggregate_perf.py) are not updated and will score TIG sessions with MIG constants; migration is never run in CI (tests use SQLite + create_all); and flicker verification is subjective.","sabotage_vectors":[{"step":"1.1","attack":"WeldTypeThresholds has angle_target_degrees: ge=0 (allows 0). Backend PUT rejects 0 in Step 1.5. A test or script instantiates WeldTypeThresholds(angle_target_degrees=0, ...) and passes it to extract_features/score_session. Every angle deviation from 0 triggers warning; scoring silently wrong.","detection_gap":"Verification only tests 'Field validation rejects negative values'. Zero is not tested. Instantiation with 0 passes.","blast_radius":"extract_features with angle_target_deg=0 produces wrong angle_max_deviation; all angle-based scoring is wrong"},{"step":"1.2","attack":"Pre-flight runs psql $DATABASE_URL for manual UPDATE when sessions>1000. If DATABASE_URL points to a read replica, UPDATE fails with permission error. Operator assumes migration blocked for other reason.","detection_gap":"No step verifies database is writable. Pre-flight checklist has no read-only check.","blast_radius":"Migration cannot complete; Phase 1 blocked"},{"step":"1.2","attack":"Migration 004 runs only on real PostgreSQL. Tests use in-memory SQLite with Base.metadata.create_all. Alembic upgrade is never executed in CI. PostgreSQL-specific migration failure (e.g. op.execute syntax, lock timeout) goes undetected until production deploy.","detection_gap":"No CI step runs alembic upgrade head against Postgres or even SQLite. test_thresholds_api creates tables from models, not migrations.","blast_radius":"First production migration run may fail; schema drift if partial"},{"step":"1.7","attack":"create_session accepts process_type in CreateSessionRequest with no validation. Client POSTs process_type='submerged_arc' or 'typo_tig'. Session stored; get_thresholds falls back to mig; session scored with MIG. Wrong process type persists in DB; no audit trail.","detection_gap":"Verification checks POST accepts process_type and GET returns it. Invalid values pass both. No validation that process_type in (mig,tig,stick,flux_core).","blast_radius":"All scoring for incorrectly-typed sessions uses MIG thresholds; WelderReport callout shows wrong spec"},{"step":"4.1","attack":"generateMicroFeedback catch block returns [] on any exception. Malformed frames (e.g. thermal_snapshots with wrong structure, NaN in angle_degrees) cause inner generators to throw. Catch swallows; returns empty array. User sees no micro-feedback; no error surfaced.","detection_gap":"Verification tests valid frames only. No test with malformed frame structure. logWarn is fire-and-forget; no assertion checks for empty feedback when frames exist.","blast_radius":"Replay page shows no feedback for sessions with edge-case frame data; debugging requires inspecting logs"},{"step":"4.2","attack":"Gate 'if (!sessionData?.frames || !primaryScore) return []' prevents flicker by not rendering until both load. If primaryScore API returns 500 or times out, primaryScore stays undefined. microFeedback stays []. User sees no feedback indefinitely with no error state.","detection_gap":"Verification says 'Micro-feedback does not re-render visibly when score loads after frames'. No handling for score never loading. No error UI for failed score fetch.","blast_radius":"Replay page with failed score fetch shows empty feedback; user may think session has no issues"},{"step":"4.6","attack":"test_put_threshold_invalidates_cache overrides get_db for sessions and thresholds. If thresholds router uses a different dependency name (e.g. get_db vs get_db_session), the override may not apply. Threshold route hits real DB; weld_thresholds empty; PUT 404. Test fails for wrong reason.","detection_gap":"Plan says 'override get_db for routes.thresholds and routes.sessions'. Does not specify exact dependency override key. FastAPI uses function reference; route module may import get_db from different module.","blast_radius":"test_put_threshold_invalidates_cache flaky or fails; cache invalidation unverified"}],"precondition_gaps":["Step 1.7: create_session accepts any process_type string. No validation that process_type in (mig,tig,stick,flux_core). Invalid values stored; scoring falls back to mig.","Step 4.6: session_factory imports from data.mock_sessions. Tests assume PYTHONPATH or cwd includes backend. If test run from repo root without setup, import fails. Plan does not document test run requirements.","Step 1.1: WeldTypeThresholds.angle_target_degrees has ge=0. Backend requires >0. Model allows 0; creates inconsistency for programmatic creation outside PUT."],"untestable_verifications":["Step 4.2: 'verify markers don't visibly re-render when score loads after frames' — subjective. No DOM assertion, no timing check. A 50ms flash would pass for one reviewer and fail for another. Throttle test is manual; not automatable in CI.","Step 3.2: 'Arc spans correct angle (visual: 45° arc)' — verification is visual. No assertion of SVG path d attribute or computed angles. Wrong formula could render a 30° arc; visual check might miss it."],"cascade_points":["Step 1.2 migration: Single point of failure. If upgrade fails or is partially applied, weld_thresholds table or process_type column missing. All of Phase 2 and 3 (backend) fail. Rollback documented but partial migration recovery (e.g. UPDATE succeeded, ALTER failed) not.","Step 2.2 score_session: All scoring flows through it. If thresholds param passed incorrectly (e.g. wrong weld_type mapping), every score uses wrong thresholds. test_put_threshold_invalidates_cache verifies cache; test_scoring_thresholds verifies one TIG case. No exhaustive process_type matrix."],"phase_boundary_gaps":["Phase 2 to Phase 3: Backend deploys before frontend. If frontend expects full active_threshold_spec (thermal, amps, volts, heat_diss) and backend returns legacy 4-field spec during deploy race, Replay uses fallbacks (20, 40 for thermal). TIG should use 60. Wrong micro-feedback until backend fully deployed.","Phase 1 to Phase 2: test_put_threshold_invalidates_cache is in Step 4.6 (Phase 4) but Phase 2 prereq says 'run early to verify cache invalidation'. No explicit Phase 1 exit criterion that this test passes. Implementer may skip."],"pre_mortem":{"partial_execution":"We got through Phase 1 and Phase 2 but had to stop. The state of the codebase was: migration 004 applied, weld_thresholds seeded, threshold_service and score route wired. Phase 3 (admin UI) was not started. Backfill script (Step 1.8) was updated. prototype_arc_scoring.py and prototype_aggregate_perf.py were never updated. A dev ran prototype_aggregate_perf.py after seeding a TIG session; output showed MIG-based scores. Root cause: plan updates backfill but not prototype scripts.","silent_corruption":"Everything appeared to work. Users reported issues 3 days later. The root cause was: create_session accepted process_type='tig' from a client typo (e.g. 't1g'). Stored in DB. get_thresholds('t1g') not in cache, falls back to mig. All such sessions scored with MIG. WelderReport showed 'Evaluated against MIG spec' for sessions that should be TIG. No validation at session creation.","prod_vs_local":"The staging deployment revealed: tests passed (SQLite, create_all). Production migration 004 failed with 'column process_type already exists' because a previous partial run had added the column but not completed. Alembic revision table was inconsistent. Migration was never run in CI against a real DB.","dependency_drift":"Three months later, when Pydantic 2.x updated validation behaviour for ge/le on floats, WeldTypeThresholds(angle_target_degrees=0) began raising instead of passing. A script that had relied on 0 for 'unset' broke. The plan allowed ge=0; we had added ad-hoc 0 checks in PUT. Drift between model and API validation surfaced."},"critical_issues":["Step 1.7: create_session does not validate process_type. Invalid values (e.g. 'submerged_arc', typos) stored. All such sessions scored with MIG. Add validation: reject if process_type not in (mig,tig,stick,flux_core).","Plan omits updates to prototype_arc_scoring.py and prototype_aggregate_perf.py. They call extract_features(session) and score_session(session, features) with no thresholds. If run with TIG/stick/flux_core sessions in DB, output is wrong. Add step or document as known limitation."],"latent_issues":["Step 1.1: WeldTypeThresholds.angle_target_degrees ge=0 allows 0. Backend PUT rejects 0. Model should use gt=0 to match. Trigger: programmatic creation of WeldTypeThresholds with 0.","Step 1.2: Migration never run in CI. Trigger: PostgreSQL-specific migration failure on first prod deploy.","Step 4.1: generateMicroFeedback catch returns []. Trigger: malformed frames cause exception; user sees no feedback.","Step 4.2: No error UI when score fetch fails. microFeedback stays []. Trigger: score API 500 or timeout."],"blind_spots":["Plan assumes prototype_arc_scoring.py and prototype_aggregate_perf.py are not in the critical path. They are dev/tuning scripts but use the same scoring stack. If TIG sessions exist, their output is wrong. Plan does not mention them.","Plan assumes DATABASE_URL is writable. Read replicas are common in staging. Pre-flight has no read-only check.","Plan assumes test client override applies to all routes that need DB. Dependency injection key must match. If thresholds router uses a differently-named dependency, override fails silently."],"minor_issues":["Step 3.4: Tab switch with unsaved edits overwrites form state. No 'unsaved changes' prompt. UX irritant.","Step 4.5: Hardcoded fallback 'MIG spec — Target 45° ±5°' in demo. Note says it can be wrong if admin changes MIG. Minor for demo."],"what_the_author_cant_see":"The plan was written with primary flows in mind: migration, threshold service, score route, admin UI, Replay. The author updated backfill_score_total.py because it was in the 'score sessions' path. prototype_arc_scoring.py and prototype_aggregate_perf.py are in a different mental bucket — dev tools. They never appeared in the dependency graph. The same gap: create_session validation. The author focused on PUT validation (angle_target_degrees=0) and form validation. Session creation was 'add optional field, default mig'. Validating process_type at creation didn't occur because the mental model was 'sessions come from controlled sources'. Production has typos and future integrations.","recommended_action":"refine","minimum_fixes_before_execution":["Add process_type validation to create_session: reject if not in (mig,tig,stick,flux_core) with 422.","Change WeldTypeThresholds.angle_target_degrees to gt=0 (or add WeldThresholdUpdate with gt=0) for consistency.","Add plan step or Known Issues entry: prototype_arc_scoring.py and prototype_aggregate_perf.py use legacy score_session/extract_features; will score with MIG constants if non-MIG sessions exist. Update or document.","Add Phase 1 CI checkpoint: run alembic upgrade head against SQLite (or ephemeral Postgres) in CI to catch migration syntax errors.","Specify exact FastAPI dependency override for test client (e.g. routes.thresholds.get_db, routes.sessions.get_db)."]}

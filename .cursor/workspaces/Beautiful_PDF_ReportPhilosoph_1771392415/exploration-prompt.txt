@@ -1,0 +1,373 @@
+# explore-autonomous
+
+You are a senior engineer conducting technical exploration for an issue. You have a complete issue specification. Your job is to answer every "how do we build this" question so the planning phase can proceed without gaps.
+
+Do not plan steps. Do not write production code. Explore, prototype, decide, and document.
+
+---
+
+## Your Output Contract
+
+Produce exactly these sections. Be specific — vague exploration is useless to the planner.
+
+---
+
+### 1. Complexity Classification
+State: Trivial / Simple / Moderate / Complex / Critical. Justify in one sentence.
+
+---
+
+### 2. Risk Profile
+Assess each axis as Low / Medium / High with a one-line reason:
+- Data loss risk
+- Service disruption risk
+- Security risk
+- Dependency risk
+- Rollback complexity
+
+---
+
+### 3. Codebase Findings
+
+**Search the codebase now.** Do not guess. Run searches, open files, read implementations.
+
+For each relevant file or pattern found, document:
+- File path
+- What it does (one line)
+- Pattern used
+- What we can reuse
+- What we should avoid
+
+Find at least 3 similar existing implementations. If fewer exist, document what's closest and why the gap matters.
+
+---
+
+### 4. Known Constraints
+List every constraint that limits our approach:
+- Locked dependencies or packages
+- Framework-specific rules (SSR, hydration, hook rules)
+- Performance ceilings (e.g. must handle 10k items)
+- Reference stability issues (e.g. parent re-renders replacing array references)
+- Environment or browser requirements
+
+This is the "Known Constraints" field that shapes every decision downstream. Be precise.
+
+---
+
+### 5. Approach Options
+
+Identify 2–4 viable approaches. For each:
+- **Name:** Short label
+- **Description:** How it works in 2–3 sentences
+- **Pros:** 3–5 specific advantages
+- **Cons:** 3–5 specific disadvantages
+- **Key risk:** Single biggest concern
+- **Complexity estimate:** Low / Medium / High
+
+---
+
+### 6. Prototype Results
+
+For each approach that has an uncertain or risky critical path, build a minimal proof-of-concept. This means actual runnable code, not pseudocode.
+
+For each prototype:
+- **What was tested:** The specific assumption being validated
+- **Code:** The actual implementation
+- **Result:** Did it work? Any surprises?
+- **Decision:** Proceed / Modify (describe how) / Abandon (and why)
+
+If an approach is well-understood and low-risk, state that explicitly instead of prototyping.
+
+---
+
+### 7. Recommended Approach
+
+**Chosen approach:** [Name from Section 5]
+
+**Justification (be specific, minimum 150 words):**
+Explain why this beats alternatives. Cover: performance characteristics, maintainability, fit with existing patterns, risk profile, and what trade-offs you are explicitly accepting. Reference your prototype results and codebase findings.
+
+**Trade-offs accepted:**
+List what you're giving up and why it's worth it.
+
+**Fallback approach:**
+Which alternative to switch to, and what would trigger that switch.
+
+---
+
+### 8. Architecture Decisions
+
+Document every significant decision using this format. Minimum 5 decisions.
+
+**Decision: [Topic]**
+- Options considered: A, B, C
+- Chosen: [option]
+- Reason: [one sentence]
+- Reversibility: Easy / Hard / Irreversible
+- Downstream impact: [what this decision locks in or enables]
+
+Cover at minimum: primary approach, state management, data fetching, error handling, and file structure.
+
+---
+
+### 9. Edge Cases
+
+List all edge cases grouped by category. For each: scenario, how the chosen approach handles it, and whether handling is graceful or partial.
+
+Categories to cover:
+- Empty / null / missing data
+- Maximum scale (e.g. 10k items, large payloads)
+- Concurrent or rapid user actions
+- Network failures and timeouts
+- Browser / device / accessibility edge cases
+- Permission or session edge cases
+
+Minimum 15 edge cases total.
+
+---
+
+### 10. Risk Analysis
+
+List 8–12 risks specific to the chosen approach. For each:
+- Description
+- Probability: Low / Med / High
+- Impact: Low / Med / High
+- Early warning sign (what you'd observe before it becomes a problem)
+- Mitigation strategy
+
+Flag any risk with High probability AND High impact as a **CRITICAL RISK** — these must be addressed in the plan before execution.
+
+---
+
+### 11. Exploration Summary
+
+Provide a concise handoff for the planning phase:
+
+**Files to create:** [path — purpose] for each new file
+**Files to modify:** [path — what changes] for each existing file
+**New dependencies:** [package@version — reason] or "none"
+**Bundle impact:** estimated KB delta
+**Critical path order:** the sequence in which major components must be built (numbered list)
+**Effort estimate:** Frontend _h + Backend _h + Testing _h + Review _h = Total _h, confidence _%
+**Blockers for planning:** any open questions that must be resolved before the plan can be written (list or "none")
+
+---
+
+## Output Rules
+
+- Every finding must reference a real file path or a real prototype result. No hypothetical findings.
+- Edge cases must be specific to this feature. No generic lists.
+- Risks must reference the chosen approach, not generic engineering risks.
+- The summary in Section 11 is the direct input to the planning phase — it must be self-contained.
+- Target length: 800–1200 words of substantive content across all sections. No padding.
+- If you discover during exploration that the issue specification is incomplete or contradictory, document the gap in Section 11 under "Blockers for planning" and state your assumption. Do not silently fill in gaps.
+
+---
+# Task Context:
+
+Beautiful PDF Report
+Philosophy
+Don't screenshot the UI. Build the PDF as a first-class layout. @react-pdf/renderer lets you define PDF-native components — no DOM, no canvas capture hacks, no puppeteer. It renders on the server in a Next.js API route.
+Step 1: Install
+bashnpm install @react-pdf/renderer
+npm install -D @types/react-pdf
+Step 2: PDF Layout Component (components/pdf/WelderReportPDF.tsx)
+typescriptimport { Document, Page, View, Text, StyleSheet, Image } from '@react-pdf/renderer';
+
+const styles = StyleSheet.create({
+  page: { backgroundColor: '#0a0a0a', padding: 40, fontFamily: 'Helvetica' },
+  header: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 24 },
+  scoreCircle: { width: 80, height: 80, borderRadius: 40, border: '3px solid #3b82f6',
+                 alignItems: 'center', justifyContent: 'center' },
+  scoreText: { fontSize: 28, color: '#3b82f6', fontWeight: 'bold' },
+  sectionTitle: { fontSize: 10, color: '#6b7280', textTransform: 'uppercase', 
+                  leerSpacing: 2, marginBottom: 8 },
+  feedbackItem: { flexDirection: 'row', marginBottom: 6, paddingLeft: 12 },
+  bullet: { color: '#f59e0b', marginRight: 8 },
+});
+
+export function WelderReportPDF({ welder, score, feedback, chartDataUrl, heatmapUrl }) {
+  return (
+    <Document>
+      <Page size="A4" style={styles.page}>
+        {/* Header */}
+        <View style={styles.header}>
+          <View>
+            <Text style={{ fontSize: 20, color: '#f9fafb', fontWeight: 'bold' }}>
+              {welder.name}
+            </Text>
+            <Text style={{ fontSize: 10, color: '#6b7280', marginTop: 4 }}>
+              Session Report · {new Date().toLocaleDateString()}
+            </Text>
+          </View>
+          <View style={styles.scoreCircle}>
+            <Text style={styles.scoreText}>{score.total}</Text>
+          </View>
+        </View>
+
+        {/* AI Summary */}
+        <Text style={styles.sectionTitle}>Coach Feedback</Text>
+        <Text style={{ fontSize: 11, color: '#d1d5db', lineHeght: 1.6, marginBottom: 20 }}>
+          {feedback.summary}
+        </Text>
+
+        {/* Trend chart image - pre-rendered to base64 PNG */}
+        {chartDataUrl && (
+          <View style={{ marginBottom: 20 }}>
+            <Text style={styles.sectionTitle}>Score Trend (Last 5 Sessions)</Text>
+            <Image src={chartDataUrl} style={{ height: 120 }} />
+          </View>
+        )}
+
+        {/* Top 3 feedback items */}
+        <Text style={styles.sectionTitle}>Key Areas</Text>
+        {feedback.feedback_items.slice(0, 3).map((item, i) => (
+          <View key={i} style={styles.feedbackItem}>
+            <Text style={styles.bullet}>{item.severity === 'warning' ? '⚠' : '•'}</Text>
+            <View>
+              <Text style={{ fontSize: 10, color: '#f9fafb' }}>{item.message}</Text>
+              {item.suggestion && (
+                <Text style={{ fontSize: 9, color: '#6b7280', marginTop: 2 }}>
+                  → {item.suggestion}
+          </Text>
+              )}
+            </View>
+          </View>
+        ))}
+
+        {/* Footer */}
+        <View style={{ position: 'absolute', bottom: 30, left: 40, right: 40,
+                       borderTop: '1px solid #1f2937', paddingTop: 12,
+                       flexDirection: 'row', justifyContent: 'space-between' }}>
+          <Text style={{ fontSize: 8, color: '#374151' }}>WarpSense Quality Intelligence</Text>
+          <Text style={{ fontSize: 8, color: '#374151' }}>CONFIDENTIAL</Text>
+        </View>
+      </Page>
+    </Document>
+  );
+}
+Step 3: Chart → PNG (the tricky bit)
+@react-pdf/renderer can't render Recharts. You need to pre-render the trend chart to a base64 PNG. Two options:
+Option A (fast, good enough): Use html-to-image on the client to capture the existing LineChart div into a PNG, pass it as base64 to the PDF route. Ship this first.
+Option B (clean, proper): Build a <canvas> chart in the API route using chartjs-node-canvas (server-side Chart.js). More work, no DOM dependcy.
+Start with Option A.
+typescript// In WelderReport, on "Download PDF" click:
+import { toPng } from 'html-to-image';
+
+const chartEl = document.getElementById('trend-chart');
+const chartDataUrl = await toPng(chartEl);
+// POST to /api/welder-report-pdf with session + score + feedback + chartDataUrl
+Step 4: PDF API Route
+typescript// app/api/welder-report-pdf/route.ts
+import { renderToBuffer } from '@react-pdf/renderer';
+import { WelderReportPDF } from '@/components/pdf/WelderReportPDF';
+
+export async function POST(req: Request) {
+  const { welder, score, feedback, chartDataUrl } = await req.json();
+  
+  const buffer = await renderToBuffer(
+    <WelderReportPDF welder={welder} score={score} 
+                     feedback={feedback} chartDataUrl={chartDataUrl} />
+  );
+  
+  return new Response(buffer, {
+    headers: {
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="${welder.name}-report.pdf"`,
+    },
+  });
+}
+Step 5: Replace the stub button
+typescriptasync function handleDownloadPDF() {
+  const chartEl = document.getElementById('trend-chart');
+  const chartDataUrl = chartEl ? await toPng(chartEl) : null;
+  
+  const res = await fetch('/api/welder-report-pdf', {
+    method: 'POST',
+    body: JSON.stringify({ welder, score, feedback, chartDataUrl }),
+  });
+  
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${welder.name}-warp-report.pdf`;
+  a.click();
+}
+
+
+---
+# Issue Details:
+
+
+Created the issue specification at `.cursor/issues/beautiful-pdf-report.md`.
+
+**Summary of the issue:**
+
+- **Title:** `[Feature] Welder report PDF export via @react-pdf/renderer`
+- **Scope:** Replace the stub "Download PDF" button on `/seagull/welder/[id]` with real export logic.
+- **Approach:** PDF-native layout with `@react-pdf/renderer`; chart via `html-to-image` (client) → base64 PNG → POST to `/api/welder-report-pdf`.
+
+**Findings from codebase:**
+
+1. **Welder report page** at `my-app/src/app/seagull/welder/[id]/page.tsx` has the stub button and all needed data: `report`, `score`, `welder`, `LineChart`.
+2. **`LineChart`** has no `id="trend-chart"`; the wrapper needs this for capture.
+3. **No `/app/api` routes** exist yet; the PDF route will be new.
+4. **Dependencies:** `@react-pdf/renderer` and `html-to-image` must be added.
+5. **Tests:** `page.test.tsx` asserts the alert; it must be updated to cover the real download flow (or a mocked fetch).
+
+**Out of scope in the spec:** Heatmap in PDF, Email report, demo team page export. Heatmap is left for a follow-up because the spec says to start with Option A (chart only).
+
+---
+# Past Learnings (last 50 lines):
+
+Supervisors can see team performance at a glance.
+
+Ena training, scheduling, and resource allocation decisions.
+
+Scalable for multi-line / multi-project yards without touching low-level sensors or frames.
+
+3. Key Differences Summary Table
+Aspect	Current MVP Dashboard	WWAD Proposal
+Focus	Per-session, per-welder, per-frame	Multi-session, team/line/project trends
+Data Dependency	Frame-level + 3D visualization	Session-level aggregation only
+Coupling	Tightly coupled with micro-feedback & 3D	Fully orthogonal; no frame/3D dependency
+Visualizations	3D heatmaps, Torch angle, per-frame graphs	KPI tiles, trend lines, heatmap calendar, export reports
+User	Individual welder / technical QA	Supervisor / yard manager
+Insights	Immediate performance feedback	Training, scheduling, resource allocation, overall quality trends
+Risk of breaking existing MVP	High (changes to 3D / scoring affect dashboard)	Low (uses aggregate session data only)
+
+✅ Bottom line:
+Your current dashboard is micro-focused, tied to per-frame data and visualization. The WWAD is macro-focused, purely aggrate, and orthogonal — it adds supervisor-level analytics and actionable insights without touching any files, logic, or components from the MVP micro-feedback system.
+
+
+
+Updates to `LEARNING_LOG.md` are done. Summary of changes:
+
+### Updates Made
+
+1. **Metadata**
+   - `Last Updated` → 2025-02-17
+   - `Total Entries` → 5 incidents + Lessons & Reflections
+
+2. **Summary line**
+   - Added: WWAD macro-analytics (2025-02-17): orthogonal design, session-level only, nullable `score_total` + backfill, export with truncation logging
+
+3. **Quick reference**
+   - New row: WWAD Macro-Analytics (Supervisor Dashboard) | Backend / Architecture | Medium
+
+4. **New section: Backend / Architecture**
+   - Added entry for WWAD implementation with:
+   - Patterns: orthogonal design vs. frame-level coupling
+   - DB pattern: nullable + backfill for new columns
+   - Prevention: DO/DON'T
+   - AI guidance for future macro features
+   - References to aggregate service, supervisor page, backfill script
+
+5. **Lessons & Reflections**
+   - **What Worked Well #1:** Orthogonal macro analytics (WWAD)
+   - **Scope:** Added WWAD macro-analytics
+   - **Patterns to Reuse #1:** Orthogonal macro analytics pattern
+
+These updates capture the WWAD design (session-level, no frame/3D coupling) and migration approach (nullable columns, backfill) for future features.
+

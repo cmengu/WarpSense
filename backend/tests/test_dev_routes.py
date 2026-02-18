@@ -91,43 +91,36 @@ def test_wipe_returns_403_when_not_dev_mode(client, db_session, monkeypatch):
     assert "development" in response.json()["detail"].lower()
 
 
+def _derived_session_ids():
+    from data.mock_welders import WELDER_ARCHETYPES
+
+    ids = []
+    for arch in WELDER_ARCHETYPES:
+        for i in range(1, arch["sessions"] + 1):
+            ids.append(f"sess_{arch['welder_id']}_{i:03d}")
+    return ids
+
+
+def _expected_session_count():
+    from data.mock_welders import WELDER_ARCHETYPES
+
+    return sum(arch["sessions"] for arch in WELDER_ARCHETYPES)
+
+
 def test_wipe_deletes_mock_sessions_when_dev_mode(client, db_session, monkeypatch):
-    """POST /api/dev/wipe-mock-sessions deletes sess_expert_001 and sess_novice_001."""
+    """POST /api/dev/wipe-mock-sessions deletes all derived mock sessions."""
     monkeypatch.setenv("ENV", "development")
 
-    # Add mock sessions
-    from datetime import datetime, timezone
-
-    for sid in ["sess_expert_001", "sess_novice_001"]:
-        db_session.add(
-            SessionModel(
-                session_id=sid,
-                operator_id="op-test",
-                start_time=datetime(2026, 2, 7, 10, 0, 0, tzinfo=timezone.utc),
-                weld_type="mild_steel",
-                thermal_sample_interval_ms=100,
-                thermal_directions=[],
-                thermal_distance_interval_mm=10.0,
-                sensor_sample_rate_hz=100,
-                status="recording",
-                frame_count=0,
-                validation_errors=[],
-                disable_sensor_continuity_checks=False,
-                version=1,
-                locked_until=None,
-            )
-        )
-    db_session.commit()
+    # Seed first
+    client.post("/api/dev/seed-mock-sessions")
+    derived = _derived_session_ids()
 
     response = client.post("/api/dev/wipe-mock-sessions")
     assert response.status_code == 200
     data = response.json()
-    assert data["deleted"] == 2
-    assert set(data["ids"]) == {"sess_expert_001", "sess_novice_001"}
-
-    # Verify sessions are gone
+    assert data["deleted"] == _expected_session_count()
     remaining = db_session.query(SessionModel).filter(
-        SessionModel.session_id.in_(["sess_expert_001", "sess_novice_001"])
+        SessionModel.session_id.in_(derived)
     ).count()
     assert remaining == 0
 
@@ -140,7 +133,7 @@ def test_wipe_idempotent_returns_0_when_none_exist(client, monkeypatch):
     assert response.status_code == 200
     data = response.json()
     assert data["deleted"] == 0
-    assert data["ids"] == ["sess_expert_001", "sess_novice_001"]
+    assert len(data["ids"]) == _expected_session_count()
 
 
 # ---------------------------------------------------------------------------
@@ -159,18 +152,19 @@ def test_seed_returns_403_when_not_dev_mode(client, monkeypatch):
 
 
 def test_seed_creates_mock_sessions_when_dev_mode(client, db_session, monkeypatch):
-    """POST /api/dev/seed-mock-sessions creates sess_expert_001 and sess_novice_001."""
+    """POST /api/dev/seed-mock-sessions creates sessions from WELDER_ARCHETYPES."""
     monkeypatch.setenv("ENV", "development")
 
     response = client.post("/api/dev/seed-mock-sessions")
     assert response.status_code == 200
     data = response.json()
-    assert data["seeded"] == ["sess_expert_001", "sess_novice_001"]
+    seeded = data["seeded"]
+    assert len(seeded) == _expected_session_count()
+    assert "sess_mike-chen_001" in seeded
+    assert "sess_expert-benchmark_005" in seeded
 
-    # Verify sessions exist with frames
-    for sid in ["sess_expert_001", "sess_novice_001"]:
-        session = db_session.query(SessionModel).filter(
-            SessionModel.session_id == sid
-        ).first()
-        assert session is not None
-        assert session.frame_count > 0
+    session = db_session.query(SessionModel).filter(
+        SessionModel.session_id == "sess_mike-chen_001"
+    ).first()
+    assert session is not None
+    assert session.frame_count > 0

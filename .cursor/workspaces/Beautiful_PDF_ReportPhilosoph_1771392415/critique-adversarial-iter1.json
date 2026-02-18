@@ -1,0 +1,90 @@
+
+```json
+{
+  "score": 6.2,
+  "adversarial_verdict": "This plan will execute to completion in a clean dev environment. It will fail silently in production when clients use chunked encoding to bypass the body-size limit, and the getApiBase tests may pass for the wrong reason due to Next.js env inlining. Two precondition gaps and one verification/code mismatch create latent risk.",
+  "sabotage_vectors": [
+    {
+      "step": "2.1",
+      "attack": "Client sends Transfer-Encoding: chunked instead of Content-Length. The 5MB check only runs when Content-Length is present. Server reads full body (e.g. 50MB) into memory before request.json(), causing OOM.",
+      "detection_gap": "413 test uses Content-Length header. No test for chunked transfer with oversized payload.",
+      "blast_radius": "Server crash; production instability under malicious or misconfigured clients"
+    },
+    {
+      "step": "2.1",
+      "attack": "body.welder.name is an object or array. Route passes it through; sanitizeFilename does String(name) → '[object Object]'; WelderReportPDF receives it. PDF contains '[object Object]', filename is mangled.",
+      "detection_gap": "No validation that welder.name is string. 2.1 verification uses valid payload only. 4.6 VALID has welder.name as string.",
+      "blast_radius": "Confusing PDF content and filenames; no data corruption but UX and auditability impact"
+    },
+    {
+      "step": "1.3",
+      "attack": "Verification expects 'Large PNG (~130KB) PDF: OK' in output. The provided code does not include a large-PNG test (plan marks it optional). Running verification as written fails because the code never prints that string.",
+      "detection_gap": "Verification pass criteria are inconsistent with provided code. Implementer may skip the check or add code that wasn't reviewed.",
+      "blast_radius": "Step 1.3 verification is unexecutable as written; large-PNG render path remains untested; React PDF may fail on 100KB+ images in production"
+    },
+    {
+      "step": "4.5",
+      "attack": "Next.js inlines process.env.NEXT_PUBLIC_BASE_PATH at build time. In Jest, the compiled code may already have the literal value. Mutating process.env in the test does not change the inlined value. Tests pass because getApiBase always returns '' when var wasn't set at build, not because the logic works.",
+      "detection_gap": "Test asserts env branches but cannot simulate them if Next.js has already replaced process.env at transform time. A wrong implementation that ignores env would still pass when NEXT_PUBLIC_BASE_PATH is unset.",
+      "blast_radius": "basePath deployment fails with 404; test gave false confidence"
+    },
+    {
+      "step": "4.6",
+      "attack": "API tests create 6MB (413 test) and 2MB+ (oversized chartDataUrl test) in-memory strings. In CI with limited memory (e.g. 2GB), running these together can cause OOM or severe slowdown. Tests may pass locally and flake in CI.",
+      "detection_gap": "No memory constraint or CI-specific verification. Plan does not document minimum RAM for test suite.",
+      "blast_radius": "Flaky CI; engineers disable tests or add --testPathIgnorePatterns; regressions slip through"
+    }
+  ],
+  "precondition_gaps": [
+    "Phase 2 verification (Steps 2.1–2.3) assumes dev server is running on localhost:3000. No Pre-Flight step starts the server; no step verifies it before curl. First curl fails with connection refused; implementer may assume API is broken.",
+    "Step 1.3 verification pass criteria mention 'Large PNG (~130KB) PDF: OK' but the provided code omits this. Precondition for passing verification is undefined.",
+    "getApiBase reads process.env.NEXT_PUBLIC_BASE_PATH. If next.config adds basePath, NEXT_PUBLIC_BASE_PATH must be set at build. Plan documents this in Known Issues but no Pre-Flight step verifies the two match when basePath is configured."
+  ],
+  "untestable_verifications": [
+    "Step 3.3: 'Remove id=trend-chart via DevTools; click; PDF downloads without chart' — manual only. Step 4.3 asserts chartDataUrl is null in fetch body but does not verify the returned PDF omits the chart. A wrong implementation could return a PDF with an error placeholder instead of omitting the chart.",
+    "Step 2.1: 'head -c 5 /tmp/test.pdf | xxd' — requires manual inspection. No automated assertion that the binary PDF header is correct; a 200 response with wrong Content-Type could pass if file type is guessed."
+  ],
+  "cascade_points": [
+    "Step 2.1 is single point of failure for Steps 2.2, 2.3, 3.3, and 4.6. If the route has a subtle bug (e.g. wrong MIME, corrupted buffer), no downstream verification validates the PDF bytestream end-to-end.",
+    "Step 1.2 WelderReportPDF: If React PDF throws on a specific chartDataUrl format (e.g. PNG with unusual encoding), Step 1.3 smoke uses 1x1 PNG only. Bug surfaces only when a real Recharts capture is sent in Step 3."
+  ],
+  "phase_boundary_gaps": [
+    "Phase 1 to Phase 2: Pre-Flight requires Step 1.3 smoke passed but does not require prototype/pdf-route.mts to have been updated to use WelderReportPDF (it currently uses a minimal Doc). If implementer runs the existing prototype, it tests the wrong component.",
+    "Phase 2 to Phase 3: Phase 3 assumes API returns PDF. If Phase 2 was verified with curl against a different port or basePath, handleDownloadPDF may call the wrong URL and get 404. No explicit handoff verification of fetch URL."
+  ],
+  "pre_mortem": {
+    "partial_execution": "We got through Phase 1 and Phase 2 but had to stop. The state of the codebase was: WelderReportPDF exists, API route exists and passes curl, but handleDownloadPDF was not wired. The Download PDF button still shows the alert. Phase 3 was never started. Rollback is trivial (revert), but the prototype pdf-route.mts was overwritten in Step 1.3 — the original minimal Doc is lost unless restored from git.",
+    "silent_corruption": "Everything appeared to work. Users reported issues 3 days later. The root cause was: welder names containing special objects (from a buggy upstream) were passed through. PDFs showed '[object Object]' and filenames were mangled. The validation in Step 2.1 never enforced welder.name as string. No test covered non-string welder.name.",
+    "prod_vs_local": "The staging deployment revealed: the app is served under /app basePath. NEXT_PUBLIC_BASE_PATH was not set at build. getApiBase() returns ''. The fetch goes to /api/welder-report-pdf instead of /app/api/welder-report-pdf. All PDF downloads return 404. The Step 4.5 test passed because it runs in Jest with no basePath, so getApiBase returning '' was the expected case.",
+    "dependency_drift": "Three months later, when @react-pdf/renderer updated to 3.5.x, the breakage was: renderToBuffer signature or React PDF Image handling for base64 changed. The 1x1 PNG smoke still passed. Production charts (larger, different encoding) caused 'Invalid image' or crash. The pinned 3.4.0 in package.json was overridden by a transitive update when a different package brought in a newer react-pdf."
+  },
+  "critical_issues": [
+    "Step 2.1: Content-Length check is bypassed by chunked encoding. Malicious or chunked clients can send oversized bodies and cause OOM. No mitigation in plan.",
+    "Step 1.3: Verification criteria reference 'Large PNG (~130KB) PDF: OK' but the code does not produce it. Verification is unexecutable as written; implementer cannot satisfy pass criteria with the provided code."
+  ],
+  "latent_issues": [
+    "Step 2.1: welder.name is not validated as string. Objects/arrays produce '[object Object]' in PDF and filename. Documented in Known Issues for Content-Length; welder.name gap is not.",
+    "Step 4.6: 2MB+ and 6MB payloads in tests may cause CI OOM. No benchmark or memory limit documented. Latent under resource-constrained CI.",
+    "Step 4.5: getApiBase unit test may pass for wrong reason due to Next.js env inlining. basePath deployment could fail with 404 despite green tests."
+  ],
+  "blind_spots": [
+    "Plan assumes request bodies use Content-Length. Chunked encoding is common for large uploads and some proxies. The 5MB protection does not apply there.",
+    "Plan assumes npm ci is run after npm install. Pre-Flight says 'Use npm ci' but Step 1.1 only does npm install. Package-lock must be committed. No explicit step to commit lockfile.",
+    "Plan assumes html-to-image toPng works on Recharts LineChart in all target browsers. Known Issues documents 'best-effort' but there is no fallback UX (e.g. 'Chart unavailable' message). User gets PDF without chart with no indication why."
+  ],
+  "minor_issues": [
+    "Step 2.2 verification script uses two curl calls (one for body, one for status). Could be simplified to one call with -w for status.",
+    "Step 3.1 Depends on: none — could note that it is independent and can be done in parallel with Phase 2.",
+    "Step 4.3 code uses try/finally to restore toPng; plan text says 'beforeEach/afterEach'. Slight documentation mismatch; implementation is correct."
+  ],
+  "what_the_author_cant_see": "The plan was written with a mental model of clients that send Content-Length. Production traffic often uses chunked encoding for POST bodies. The body-size safeguard is effectively optional. Likewise, the author ran verification in an environment where the prototype was already updated — the Phase 1 to 2 boundary assumes prototype uses WelderReportPDF, but the current prototype in-repo uses a minimal Doc. Step 1.3 says 'modify' but the delta is a full replacement; the original prototype is gone. The author's 'modify' implies incremental change; the actual change is wholesale.",
+  "recommended_action": "refine",
+  "minimum_fixes_before_execution": [
+    "Step 2.1: Add streaming body-size check or reject requests with Transfer-Encoding: chunked when body is expected to be large. Document that 5MB limit applies only when Content-Length is present; or implement a streaming parser with size cap.",
+    "Step 2.1: Validate welder.name is string (and non-empty for display). Reject or coerce before passing to component.",
+    "Step 1.3: Align verification with code — either add the large-PNG smoke to the prototype or remove 'Large PNG (~130KB) PDF: OK' from pass criteria.",
+    "Phase 2 Pre-Flight: Add step to verify dev server is running before curl (e.g. curl -s -o /dev/null -w '%{http_code}' http://localhost:3000/api/... or document that server must be started manually).",
+    "Step 4.5: Document that getApiBase test may need special setup (e.g. unmocked module or build-time env) to reliably test basePath. Or add an integration test that fetches with basePath in jsdom."
+  ]
+}
+```

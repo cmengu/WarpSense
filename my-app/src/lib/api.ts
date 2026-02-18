@@ -10,6 +10,8 @@
  *   - Callers should catch and display errors to the operator.
  */
 
+import type { ActiveThresholdSpec } from "@/types/thresholds";
+import type { WeldTypeThresholds } from "@/types/thresholds";
 import type { AggregateKPIResponse } from "@/types/aggregate";
 import type { DashboardData } from "@/types/dashboard";
 import type { Frame } from "@/types/frame";
@@ -276,6 +278,8 @@ export interface SessionScore {
   total: number;
   /** Per-rule results with actual_value. */
   rules: ScoreRule[];
+  /** Active threshold spec used for scoring (for micro-feedback and callouts). */
+  active_threshold_spec?: ActiveThresholdSpec;
 }
 
 /**
@@ -292,6 +296,29 @@ export async function fetchScore(
 ): Promise<SessionScore> {
   const url = buildUrl(`/api/sessions/${encodeURIComponent(sessionId)}/score`);
   return apiFetch<SessionScore>(url);
+}
+
+/**
+ * Fetch all weld quality thresholds. Admin uses this to populate forms.
+ */
+export async function fetchThresholds(): Promise<WeldTypeThresholds[]> {
+  const url = buildUrl("/api/thresholds");
+  return apiFetch<WeldTypeThresholds[]>(url);
+}
+
+/**
+ * Update thresholds for one process type. Returns the single updated threshold.
+ */
+export async function updateThreshold(
+  weldType: string,
+  body: Partial<WeldTypeThresholds>
+): Promise<WeldTypeThresholds> {
+  const url = buildUrl(`/api/thresholds/${encodeURIComponent(weldType)}`);
+  return apiFetch<WeldTypeThresholds>(url, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
 }
 
 // ---------------------------------------------------------------------------

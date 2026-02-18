@@ -1,0 +1,226 @@
+# Strategy Critique Framework v2
+
+You are evaluating a strategic task list for product development.
+
+## ⚠️ CRITICAL OUTPUT RULE — READ FIRST
+
+**You MUST output ONLY a valid JSON object. Nothing else.**
+
+- No markdown tables
+- No prose summaries  
+- No headers
+- No code fences (no ```json)
+- No text before or after the JSON
+- The FIRST character of your output must be `{`
+- The LAST character of your output must be `}`
+
+If your output cannot be parsed by `JSON.parse()`, it has failed.
+The fields `overall_strategy_score` and `top_3_avg_priority` are REQUIRED.
+
+---
+
+## Your Job: Three Questions
+
+Ask these three questions about each task and the plan as a whole:
+
+**Q1 — Forward:** Does this task directly serve the stated goal for the specific human in the time window?
+
+**Q2 — Backward (pre-mortem):** If this plan fails, is this task the reason? What hidden dependency, scope assumption, or integration risk kills it?
+
+**Q3 — Lateral:** Is there a higher-leverage version of this task that ships in less time and produces the same investor/operator outcome?
+
+---
+
+## Scoring Weights
+
+```
+Overall Score =
+  (Strategic Value      × 0.35) +
+  (Context Alignment    × 0.25) +
+  (Leverage/Optionality × 0.20) +
+  (Resource Efficiency  × 0.10) +
+  (Risk Balance         × 0.05) +
+  (Dependencies         × 0.03) +
+  (Execution Quality    × 0.02)
+```
+
+---
+
+## Context-Aware Feedback (Critical — Read Before Scoring)
+
+Penalties are CONTEXT-TYPE SPECIFIC. Only penalize if BOTH match:
+1. Task type matches a previously rejected task type
+2. AND current context type matches the rejection context type
+
+If context types differ → NO penalty.
+
+---
+
+## Scoring Dimensions
+
+### 1. Strategic Value (35%)
+Does this move the needle for the specific human in the stated time window?
+- 9-10: This task is the reason the human says yes
+- 7-8: Clear value-add, clearly related to goal
+- 5-6: Nice-to-have, weakly connected to goal
+- 3-4: Wrong timing or wrong audience
+- 1-2: Actively distracts from goal
+
+Penalty: task type + context type match a past rejection → -2.0
+
+### 2. Context Alignment (25%)
+Does this match the stated goal, time window, and specific human?
+- 9-10: Perfect — this task IS the goal
+- 7-8: Related and useful
+- 5-6: Tangential
+- 3-4: Misaligned
+- 1-2: Contradicts the priority
+
+### 3. Leverage & Optionality (20%)
+Does this create compounding returns or unlock future paths?
+- 9-10: High leverage AND high optionality (unlocks multiple future steps)
+- 7-8: High leverage OR high optionality (one but not both)
+- 5-6: Linear value only
+- 3-4: Locks in poor architectural choices
+- 1-2: Destroys optionality
+
+### 4. Resource Efficiency (10%)
+Time-to-impact ratio.
+- 9-10: <1hr, clearly high impact
+- 7-8: 2-4hrs, clear value
+- 5-6: Long effort, moderate value
+- 3-4: Massive effort, small gain
+- 1-2: Time sink with no clear payoff
+
+### 5. Risk Balance (5%)
+Reversible (Type B) vs irreversible (Type A) decisions.
+- 9-10: Easily reversed if wrong
+- 5-6: Mixed — some irreversible elements
+- 1-2: Hard to undo — data model, auth, billing, schema
+
+### 6. Dependencies (3%)
+Is this blocked by anything not yet done?
+- 9-10: No blockers, can ship independently
+- 5-6: Soft dependencies (order matters but not blocking)
+- 1-2: Hard blocker — can't ship without completing another task first
+
+### 7. Execution Quality (2%)
+Is the task description clear and specific enough to hand to an executor?
+- 9-10: Exact file paths, component names, observable outcome
+- 5-6: Directionally correct but missing specifics
+- 1-2: Vague — an executor would have to make major assumptions
+
+---
+
+## Required JSON Output
+
+Output exactly this structure. No extra fields. No missing fields.
+
+{
+  "overall_strategy_score": 7.8,
+  "top_3_avg_priority": 8.2,
+  "context_type": "fundraise",
+  "goal_alignment_score": 8.5,
+  "task_scores": [
+    {
+      "task_number": 1,
+      "task_title": "Task name here",
+      "strategic_value": 9.0,
+      "strategic_value_after_penalty": 9.0,
+      "context_alignment": 10.0,
+      "leverage_optionality": 8.5,
+      "resource_efficiency": 7.0,
+      "risk_balance": 9.0,
+      "dependencies": 10.0,
+      "execution_quality": 8.0,
+      "overall_score": 9.2,
+      "feedback_penalty_applied": false,
+      "ships_wrong_risk": "One sentence: what breaks if the implementation is subtly wrong?",
+      "higher_leverage_alternative": "One sentence: is there a faster version of this task? If not, write null.",
+      "reasoning": "One sentence: why this score."
+    }
+  ],
+  "critical_issues": [
+    "Issue 1 — be specific: which task, which assumption, which line breaks"
+  ],
+  "minor_issues": ["Minor issue 1"],
+  "suggestions": [
+    "Specific suggestion 1 — actionable, not generic"
+  ],
+  "dependency_order": "Which task must ship first? e.g. 'T2 before T3 — T3 fetches from T2 endpoint'",
+  "premortem_top_risk": "Single most likely failure mode for the ENTIRE plan, in one sentence.",
+  "goal_alignment_notes": "How well do these 3 tasks together serve the user's stated goal and time window?",
+  "context_aware_feedback": {
+    "current_context_type": "fundraise",
+    "penalties_applied": [],
+    "penalties_skipped": []
+  }
+}
+
+---
+
+## Scoring Calibration
+
+`top_3_avg_priority` = average of the three `overall_score` values.
+`overall_strategy_score` = holistic assessment of the strategy as a whole.
+`goal_alignment_score` = how well the tasks serve the user's stated goal.
+
+High scores (9-10) require:
+- Directly tied to the user's primary goal for this time window
+- Specific enough to execute without clarification
+- Visible to the primary stakeholder (investor or operator)
+- High leverage: one task unlocks multiple future paths
+- Demo line: a human can see or click a result within 48 hours
+
+Score below 7.0 if:
+- Any task has no visible output within 48 hours
+- Any task description lacks specific file paths or component names
+- Any task requires a hidden dependency not mentioned in the plan
+
+## ⚠️ FINAL REMINDER
+
+Output ONLY the JSON. First character: `{`. Last character: `}`.
+No markdown. No tables. No commentary. Pure JSON.
+
+---
+# Plan to Critique:
+
+
+The implementation plan is in `.cursor/issues/threshold-configuration-admin-ui-plan.md`. Summary:
+
+---
+
+## Plan Overview
+
+**4 phases, 20 steps, ~22h total**
+
+| Phase | Focus | Est. |
+|-------|--------|------|
+| **Phase 1** | Data model & backend (migration, process_type, weld_thresholds table, threshold service, GET/PUT API) | 6h |
+| **Phase 2** | Scoring wiring (extract_features angle_target, score_session thresholds, active_threshold_spec in score API) | 5h |
+| **Phase 3** | Admin UI (types, API, AngleArcDiagram, layout, tabs/form with validation) | 6h |
+| **Phase 4** | Micro-feedback & callouts (generateMicroFeedback thresholds, Replay + WelderReport + ScorePanel + demo, tests) | 5h |
+
+---
+
+## Decisions Applied
+
+- **process_type column** on sessions (default `mig`), backfilled in migration
+- **TIG spec**: 75° ±10° (typo fix)
+- **`heat_diss_consistency`** added to weld_thresholds model
+- **Cache** invalidated on PUT
+- **`active_threshold_spec`** in score API response
+- **Micro-feedback** takes optional thresholds; Replay passes them from the score
+- **Standalone** `/admin` route group
+
+---
+
+## Files
+
+**Create:** `backend/models/thresholds.py`, `backend/services/threshold_service.py`, `backend/routes/thresholds.py`, `backend/alembic/versions/004_weld_thresholds_and_process_type.py`, `my-app/src/types/thresholds.ts`, `my-app/src/components/admin/AngleArcDiagram.tsx`, `my-app/src/app/admin/layout.tsx`, `my-app/src/app/admin/thresholds/page.tsx`
+
+**Modify:** `backend/database/models.py`, `backend/models/session.py`, `backend/features/extractor.py`, `backend/scoring/rule_based.py`, `backend/routes/sessions.py`, `backend/main.py`, `my-app/src/lib/api.ts`, `my-app/src/lib/micro-feedback.ts`, `my-app/src/app/replay/[sessionId]/page.tsx`, `my-app/src/app/seagull/welder/[id]/page.tsx`, `my-app/src/components/welding/ScorePanel.tsx`, `my-app/src/app/demo/team/[welderId]/page.tsx`
+
+---
+
+The plan matches the create-plan-autonomous output structure: phases, steps with file/code/verification/dependencies, risk heatmap, pre-flight checklists, success criteria, and a progress tracker. All CRITICAL steps have full code; non-critical steps have concise snippets.

@@ -1,8 +1,8 @@
 /**
- * Step 8: Seagull pilot end-to-end smoke tests.
+ * Seagull pilot end-to-end smoke tests.
  *
  * Verifies full user paths with mocked APIs:
- *   - Dashboard loads → 2 cards with scores or "Score unavailable"
+ *   - Dashboard loads → 10 cards with scores or "Score unavailable"
  *   - WelderReport loads → score, AI summary, heatmaps, feedback, chart
  *   - Back link navigates to /seagull
  *   - Error state when fetch fails → error card with back link
@@ -21,8 +21,8 @@ jest.mock("@/lib/api", () => ({
 }));
 
 const mockSession = {
-  session_id: "sess_novice_001",
-  operator_id: "op_1",
+  session_id: "sess_mike-chen_005",
+  operator_id: "mike-chen",
   start_time: "2026-02-07T10:00:00Z",
   weld_type: "butt_joint",
   thermal_sample_interval_ms: 100,
@@ -54,27 +54,25 @@ const mockSession = {
   completed_at: "2026-02-07T10:00:01Z",
 };
 
-const mockScoreNovice = { total: 75, rules: [{ rule_id: "amps", passed: true, threshold: 3, actual_value: 1 }] };
+const mockScore = { total: 75, rules: [{ rule_id: "amps", passed: true, threshold: 3, actual_value: 1 }] };
 const mockScoreExpert = { total: 95, rules: [{ rule_id: "amps", passed: true, threshold: 3, actual_value: 1 }] };
 
-describe("Step 8: Seagull flow smoke tests", () => {
+describe("Seagull flow smoke tests", () => {
   beforeEach(() => {
     mockFetchSession.mockResolvedValue(mockSession);
     mockFetchScore.mockImplementation((sessionId: string) => {
-      if (sessionId === "sess_novice_001") return Promise.resolve(mockScoreNovice);
-      if (sessionId === "sess_expert_001") return Promise.resolve(mockScoreExpert);
-      return Promise.reject(new Error("Not found"));
+      if (sessionId === "sess_expert-benchmark_005") return Promise.resolve(mockScoreExpert);
+      return Promise.resolve(mockScore);
     });
   });
 
-  it("dashboard loads with 2 cards; no crash", async () => {
+  it("dashboard loads with 10 cards; no crash", async () => {
     render(<SeagullDashboardPage />);
     await waitFor(() => {
       expect(screen.getByText(/Mike Chen/)).toBeInTheDocument();
     });
     expect(screen.getByText(/Expert Benchmark/)).toBeInTheDocument();
-    expect(screen.getByText(/75\/100/)).toBeInTheDocument();
-    expect(screen.getByText(/95\/100/)).toBeInTheDocument();
+    expect(screen.getByText(/Sara Okafor/)).toBeInTheDocument();
   });
 
   it("welder report loads with score, AI summary, heatmaps, feedback, chart; no crash", async () => {

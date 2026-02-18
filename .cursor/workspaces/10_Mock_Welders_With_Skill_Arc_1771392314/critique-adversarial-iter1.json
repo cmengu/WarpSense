@@ -1,0 +1,107 @@
+
+```json
+{
+  "score": 5.2,
+  "adversarial_verdict": "This plan will pass verification in a clean dev environment but contains a critical prototype/implementation split that invalidates Phase 1.4 validation, plus multiple silent-failure vectors at the frontend/backend boundary and in partial execution paths.",
+  "sabotage_vectors": [
+    {
+      "step": "1.4",
+      "attack": "Step 1.4 runs prototype_arc_scoring.py to validate score ranges. The prototype uses its OWN make_session_for_arc - it does NOT import generate_frames_for_arc or generate_session_for_welder from mock_sessions. Implement mock_sessions.generate_frames_for_arc with subtly different angle/amps params. Prototype passes. Seed (Phase 2) uses generate_session_for_welder which calls mock_sessions. Real scores diverge from prototype bands. Badges and reports show wrong data.",
+      "detection_gap": "Verification runs the prototype script, not the mock_sessions implementation. No step asserts that mock_sessions.generate_frames_for_arc produces scores within +/-15.",
+      "blast_radius": "Phase 2 seed produces sessions with wrong score bands; Phase 3 badges incorrect for declining/fast_learner; Phase 4 welder report trend chart misleading; success criteria 3-4 fail"
+    },
+    {
+      "step": "2.4",
+      "attack": "seed_demo_data uses existing > 0 to skip. Seed 44 sessions; process crashes on session 45. Re-run: 44 exist, skip. Database has incomplete demo. Dashboard shows broken links; welder report 404s.",
+      "detection_gap": "Verification expects Demo data seeded or skip. Second run prints skip, which is a pass. No assertion that count equals sum(arch['sessions']).",
+      "blast_radius": "Deploy uses seed_demo_data; demo has partial data; success criteria 1-7 fail silently"
+    },
+    {
+      "step": "2.1",
+      "attack": "Wipe deletes only IDs derived from current WELDER_ARCHETYPES. Add welder then remove from archetypes and re-seed. Orphan sess_old-demo_001 sessions remain. Wipe never removes them.",
+      "detection_gap": "Wipe verification checks deleted matches seeded count. Orphan sessions from prior schema are not in derived list. No step verifies zero sess_* sessions remain for all historical IDs.",
+      "blast_radius": "Schema evolution leaves orphan sessions"
+    },
+    {
+      "step": "3.1",
+      "attack": "WELDERS and sessionCount hardcoded in page.tsx. Add 11th archetype to backend. Seed creates 49 sessions. Dashboard still shows 10 cards; 11th welder invisible.",
+      "detection_gap": "Verification counts exactly 10 cards. Adding an 11th to backend would make 11 seeded welders; frontend would still show 10.",
+      "blast_radius": "Backend/frontend schema drift; new welders never appear"
+    },
+    {
+      "step": "4.4",
+      "attack": "Step 4.4 uses filter(fulfilled).map(r => r.value.total) for historicalScores. If sess_mike-chen_003 fetch fails, filtered historicalScores loses index. generateAIFeedback receives wrong order. AI feedback trend is wrong.",
+      "detection_gap": "Verification says chart renders with partial data. Chart uses histResults[i] so position is correct. But historicalScores passed to generateAIFeedback is the filtered array - order is wrong when some fetches fail.",
+      "blast_radius": "AI feedback trend wrong when any historical fetch fails"
+    },
+    {
+      "step": "4.3",
+      "attack": "Promise.all - any single rejection aborts. Expert session 404 causes full page error. User sees Session not found with no path to recover.",
+      "detection_gap": "Verification assumes seed ran. No step verifies graceful degradation when expert fetch fails.",
+      "blast_radius": "Welder report page unusable if expert-benchmark not seeded"
+    },
+    {
+      "step": "1.2",
+      "attack": "Prototype sets disable_sensor_continuity_checks only for volatile. Plan says declining needs it. If declining frames exceed 20% amps jump, Session validation fails during seed.",
+      "detection_gap": "Prototype does not build declining sessions. Declining validation path untested.",
+      "blast_radius": "Seed fails on declining archetypes; Phase 2 blocks"
+    }
+  ],
+  "precondition_gaps": [
+    "Step 1.4 assumes prototype will be updated to import from mock_sessions. Plan says modify if needed but provides no code change. Prototype currently uses its own make_session_for_arc.",
+    "Step 2.1 assumes database connection and migrations applied. No step asserts DB is reachable before seed.",
+    "Step 3.1 depends on Backend seeded but Phase 3 has no step that runs seed. Phase boundary handoff is implicit.",
+    "Step 4.2 assumes sess_expert-benchmark_005 exists. No Phase 4 step seeds data.",
+    "Step 5.2 test_seed_creates expects SessionModel.frame_count > 0. No step verifies frame persistence."
+  ],
+  "untestable_verifications": [
+    "Step 3.3 Visual check for badges - no DOM selector, no assertion. getBadge with swapped args would show wrong badges; visual pass.",
+    "Step 1.4 All arc types produce scores in expected bands - bands are +/-15, manually observed. No automated assertion.",
+    "Step 4.1 All 10 welder IDs resolve to correct latest session - no automated check. Manual click-through."
+  ],
+  "cascade_points": [
+    "Step 1.2 generate_frames_for_arc is single point of failure for 1.3, 1.4, 2.1, 2.4, 5.1. Wrong frame params propagate to every seeded session.",
+    "WELDER_ARCHETYPES typo in one place - seed creates sess_mike-chen_001, frontend looks for sess_mike_chen_001. 404. Cascade: dashboard Score unavailable."
+  ],
+  "phase_boundary_gaps": [
+    "Phase 1 to Phase 2: Phase 1.4 runs prototype, not mock_sessions. Phase 2 uses mock_sessions. Handoff is invalid.",
+    "Phase 2 to Phase 3: No step ensures seed ran before opening /seagull. Executor may open dashboard with empty DB.",
+    "Phase 2 to Phase 4: seed_demo_data and seed route are separate. If seed_demo_data has idempotent bug, Phase 4 fails for some welders.",
+    "Phase 3 to Phase 4: Dashboard WELDERS and welder report WELDER_SESSION_COUNT are duplicated. Changing one without the other causes wrong session link."
+  ],
+  "pre_mortem": {
+    "partial_execution": "We got through Phase 1 and Phase 2 but stopped at Step 2.4. seed_demo_data first run crashed on session 40. Second run hit existing > 0 and skipped. Database has 39 sessions. Phase 3 dashboard loads; some welders show Score unavailable. Rollback requires manual DELETE; no documented down path.",
+    "silent_corruption": "Everything appeared to work. Users reported wrong coaching badges. Root cause: Step 1.4 validated prototype; seed used mock_sessions with different angle drift. Frame params produced different scores. Prototype passed; production data wrong.",
+    "prod_vs_local": "Staging revealed dashboard load timeouts. 10 welders = 20 fetchScore calls. Under latency, 3 timeout. Cards show Score unavailable. Local dev has low latency; all 20 complete.",
+    "dependency_drift": "When SQLAlchemy 2.x updated, delete with IN clause for 45 session_ids caused too many SQL variables in SQLite. Wipe started failing. Tests use in-memory SQLite."
+  },
+  "critical_issues": [
+    "Step 1.4 validates the wrong implementation. Prototype must be updated to call mock_sessions.generate_session_for_welder and assert score bands.",
+    "Step 2.4 idempotent check existing > 0 is wrong. Should skip only when existing == len(session_ids).",
+    "Step 4.4 historicalScores order is corrupted when filtering fulfilled results. Must preserve index for failed fetches."
+  ],
+  "latent_issues": [
+    "Step 2.1 and 2.2: Wipe does not handle schema evolution. Orphan sess_* from removed archetypes persist.",
+    "Step 3.2: 20 fetchScore calls with no batching. Under load, timeouts cause Score unavailable.",
+    "Step 5.2: test_wipe uses like(sess_*). If another test left sess_* rows, remaining > 0."
+  ],
+  "blind_spots": [
+    "Plan assumes executor will run seed before viewing dashboard or welder report. No step in Phase 3 or 4 runs seed.",
+    "Plan assumes WELDER_ARCHETYPES will never change. Frontend hardcodes 10 welders. No single source of truth across stack.",
+    "Plan assumes generate_session_for_welder never calls generate_score_arc. Unvalidated."
+  ],
+  "minor_issues": [
+    "Step 1.3 What says generate_session_for_welder without arc_type but signature includes it.",
+    "Step 3.3 verification At least 2 green badges - volatile may randomly show either. Test could be flaky.",
+    "Pre-flight grep for generate_frames does not verify params."
+  ],
+  "what_the_author_cant_see": "The plan mentally merged prototype and mock_sessions. Step 1.4 runs the prototype. The plan never migrates that validation to mock_sessions. The author believes Phase 1 validates the production path. It does not.",
+  "recommended_action": "refine",
+  "minimum_fixes_before_execution": [
+    "Add assertion that mock_sessions.generate_session_for_welder produces scores in band for fast_learner session 0",
+    "Change Step 2.4 idempotent check from existing > 0 to existing == len(session_ids)",
+    "Fix Step 4.4: Build historicalScores preserving order when some fetches fail (map over indices, use 0 for rejected)",
+    "Document in Phase 3 and 4 prerequisites: Run seed before opening dashboard or welder report"
+  ]
+}
+```

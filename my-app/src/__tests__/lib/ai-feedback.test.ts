@@ -120,6 +120,50 @@ describe("generateAIFeedback", () => {
 });
 
 // ---------------------------------------------------------------------------
+// generateAIFeedback — last-slot historicalScores contract (Step 5.3)
+// Caller must pass sc.total for last slot when available; never 0.
+// Engine does not special-case 0; [..., 0] when prev is higher → "declining".
+// ---------------------------------------------------------------------------
+
+describe("generateAIFeedback — last-slot historicalScores", () => {
+  it("trend is improving when last slot has real score and prev is lower", () => {
+    const result = generateAIFeedback(
+      mockSession(),
+      mockScore({ total: 74 }),
+      [58, 62, 66, 70, 74]
+    );
+    expect(result.trend).toBe("improving");
+  });
+
+  it("trend is declining when last slot is 0 and prev is higher (caller pitfall)", () => {
+    const result = generateAIFeedback(
+      mockSession(),
+      mockScore({ total: 50 }),
+      [72, 75, 78, 80, 0]
+    );
+    expect(result.trend).toBe("declining");
+  });
+
+  it("trend is declining when last slot has real lower score", () => {
+    const result = generateAIFeedback(
+      mockSession(),
+      mockScore({ total: 60 }),
+      [76, 72, 68, 64, 60]
+    );
+    expect(result.trend).toBe("declining");
+  });
+
+  it("trend is stable when last two scores equal", () => {
+    const result = generateAIFeedback(
+      mockSession(),
+      mockScore({ total: 71 }),
+      [68, 70, 71, 71]
+    );
+    expect(result.trend).toBe("stable");
+  });
+});
+
+// ---------------------------------------------------------------------------
 // generateAIFeedback — empty score guard
 // ---------------------------------------------------------------------------
 

@@ -22,6 +22,7 @@ from database.connection import SessionLocal
 from database.models import SessionModel, FrameModel
 from features.extractor import extract_features
 from scoring.rule_based import score_session
+from services.threshold_service import get_thresholds
 
 
 def query_sessions_metadata_only(db, date_start=None, date_end=None):
@@ -56,8 +57,14 @@ def batch_score_sessions(db, session_ids, limit=None):
         if not session_model:
             continue
         session = session_model.to_pydantic()
-        features = extract_features(session)
-        score = score_session(session, features)
+        process_type = (
+            getattr(session, "process_type", None) or "mig"
+        ).lower()
+        thresholds = get_thresholds(db, process_type)
+        features = extract_features(
+            session, angle_target_deg=thresholds.angle_target_degrees
+        )
+        score = score_session(session, features, thresholds)
         results.append((sid, score.total))
     return results
 

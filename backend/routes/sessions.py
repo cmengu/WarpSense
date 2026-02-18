@@ -29,6 +29,7 @@ from models.frame import Frame
 from models.session import Session, SessionStatus
 from scoring.rule_based import score_session
 from services.thermal_service import calculate_heat_dissipation, get_previous_frame
+from services.threshold_service import get_thresholds
 
 router = APIRouter()
 
@@ -36,6 +37,9 @@ router = APIRouter()
 # ---------------------------------------------------------------------------
 # POST /sessions request body
 # ---------------------------------------------------------------------------
+
+
+VALID_PROCESS_TYPES = frozenset({"mig", "tig", "stick", "flux_core"})
 
 
 class CreateSessionRequest(BaseModel):
@@ -46,6 +50,10 @@ class CreateSessionRequest(BaseModel):
     session_id: Optional[str] = Field(
         None,
         description="Optional session ID. If omitted, a UUID is generated.",
+    )
+    process_type: Optional[str] = Field(
+        None,
+        description="Process type: mig|tig|stick|flux_core. Default mig.",
     )
 
 
@@ -74,6 +82,13 @@ async def create_session(
             detail=f"Session {session_id} already exists",
         )
 
+    process_type = (body.process_type or "mig").lower().strip()
+    if process_type not in VALID_PROCESS_TYPES:
+        raise HTTPException(
+            status_code=422,
+            detail=f"process_type must be one of: mig, tig, stick, flux_core (got: {body.process_type!r})",
+        )
+
     model = SessionModel(
         session_id=session_id,
         operator_id=body.operator_id,
@@ -92,6 +107,7 @@ async def create_session(
         disable_sensor_continuity_checks=False,
         locked_until=None,
         version=1,
+        process_type=process_type,
     )
     db.add(model)
     db.commit()
@@ -174,6 +190,7 @@ async def get_session(
             "completed_at": completed_at.isoformat() if completed_at else None,
             "disable_sensor_continuity_checks": session_model.disable_sensor_continuity_checks,
             "score_total": getattr(session_model, "score_total", None),
+            "process_type": getattr(session_model, "process_type", None) or "mig",
             "frames": frames,
         }
 
@@ -277,9 +294,20 @@ async def get_session_score(
     if not session_model:
         raise HTTPException(status_code=404, detail="Session not found")
 
+    frames = getattr(session_model, "frames", None) or []
+    if not frames or len(frames) < 10:
+        raise HTTPException(
+            status_code=400,
+            detail="Session has insufficient frames for scoring (minimum 10 required)",
+        )
+
     session = session_model.to_pydantic()
-    features = extract_features(session)
-    score = score_session(session, features)
+    process_type = getattr(session_model, "process_type", None) or "mig"
+    thresholds = get_thresholds(db, process_type)
+    features = extract_features(
+        session, angle_target_deg=thresholds.angle_target_degrees
+    )
+    score = score_session(session, features, thresholds)
 
     # Lazy persistence: if COMPLETE and score_total is null, persist
     if (
@@ -290,7 +318,19 @@ async def get_session_score(
         session_model.score_total = score.total
         db.commit()
 
-    return score.model_dump()
+    result = score.model_dump()
+    result["active_threshold_spec"] = {
+        "weld_type": thresholds.weld_type,
+        "angle_target": thresholds.angle_target_degrees,
+        "angle_warning": thresholds.angle_warning_margin,
+        "angle_critical": thresholds.angle_critical_margin,
+        "thermal_symmetry_warning_celsius": thresholds.thermal_symmetry_warning_celsius,
+        "thermal_symmetry_critical_celsius": thresholds.thermal_symmetry_critical_celsius,
+        "amps_stability_warning": thresholds.amps_stability_warning,
+        "volts_stability_warning": thresholds.volts_stability_warning,
+        "heat_diss_consistency": thresholds.heat_diss_consistency,
+    }
+    return result
 
 
 @router.post("/sessions/{session_id}/frames")

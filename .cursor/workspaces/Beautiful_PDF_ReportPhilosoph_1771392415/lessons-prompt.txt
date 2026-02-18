@@ -1,0 +1,584 @@
+# Learning Log
+
+> **Purpose:** Document mistakes to prevent repeating them. Feed lessons to AI tools.  
+> **For AI:** Reference with `@LEARNING_LOG.md` when implementing features.  
+> **Last Updated:** [DATE] | **Total Entries:** 0
+
+---
+
+## Quick Start
+
+**When something breaks:**
+1. Copy entry template below
+2. Fill out: Date, What, Why, Fix, Prevention
+3. Add to relevant category section
+
+**When implementing features:**
+- Search this file first (`Ctrl+F`)
+- Reference in prompts: `@LEARNING_LOG.md check for [topic] issues`
+- Follow ✅ patterns, avoid ❌ anti-patterns
+
+**For `.cursorrules`:**
+```markdown
+Before generating code, check LEARNING_LOG.md for:
+- Anti-patterns to avoid
+- Required patterns for this feature type
+- Past incidents in similar code
+```
+
+---
+
+## Entry Template
+
+```markdown
+### 📅 YYYY-MM-DD — [Short Title]
+
+**Category:** [Auth|Database|API|Frontend|Backend|DevOps|Testing|Performance]  
+**Severity:** 🔴 Critical | 🟡 High | 🟢 Medium | ⚪ Low
+
+**What Happened:** [1-2 sentences]
+
+**Impact:** [Users affected, downtime]
+
+**Root Cause:**
+- Technical: [Race condition, missing validation, etc.]
+- Process: [No review, skipped testing, etc.]
+- Knowledge: [Didn't know about X]
+
+**The Fix:**
+```language
+// ❌ BEFORE
+old code
+
+// ✅ AFTER
+fixed code
+```
+
+**Prevention:**
+- ✅ DO: [Pattern to follow]
+- ❌ DON'T: [Pattern to avoid]
+- [ ] Code review check: [What to verify]
+- [ ] Test case: [Scenario to cover]
+
+**AI Guidance:**
+```
+When implementing [feature type]:
+"[Instruction that would prevent this]"
+```
+
+**Warning Signs:** [What to watch for]
+```
+
+---
+
+## 🔐 Authentication
+
+### 📅 [Date] — [Title]
+
+**Category:** Auth | **Severity:** 🔴
+
+**What Happened:**
+
+**Impact:**
+
+**Root Cause:**
+- Technical:
+- Process:
+- Knowledge:
+
+**The Fix:**
+```python
+# ❌ BEFORE
+
+# ✅ AFTER
+```
+
+**Prevention:**
+- ✅ DO:
+- ❌ DON'T:
+
+**AI Guidance:**
+```
+When implementing auth:
+"[Instruction]"
+```
+
+---
+
+## 💾 Database
+
+### 📅 [Date] — [Title]
+
+**Category:** Database | **Severity:** 🔴
+
+**What Happened:**
+
+**Impact:**
+
+**Root Cause:**
+- Technical:
+- Process:
+
+**The Fix:**
+```sql
+-- ❌ BEFORE
+
+-- ✅ AFTER
+```
+
+**Prevention:**
+- ✅ DO:
+- ❌ DON'T:
+
+**AI Guidance:**
+```
+When creating migrations:
+"[Instruction]"
+```
+
+---
+
+## 🌐 API Integration
+
+### 📅 [Date] — [Title]
+
+**Category:** API | **Severity:** 🟡
+
+**What Happened:**
+
+**Impact:**
+
+**Root Cause:**
+- Technical:
+
+**The Fix:**
+```javascript
+// ❌ BEFORE
+
+// ✅ AFTER
+```
+
+**Prevention:**
+- ✅ DO:
+- ❌ DON'T:
+
+**AI Guidance:**
+```
+When integrating APIs:
+"[Instruction]"
+```
+
+---
+
+## 🎨 Frontend
+
+### 📅 [Date] — [Title]
+
+**Category:** Frontend | **Severity:** 🟢
+
+**What Happened:**
+
+**Root Cause:**
+- Technical:
+
+**The Fix:**
+```typescript
+// ❌ BEFORE
+
+// ✅ AFTER
+```
+
+**Prevention:**
+- ✅ DO:
+- ❌ DON'T:
+
+---
+
+## ⚙️ Backend
+
+### 📅 [Date] — [Title]
+
+**Category:** Backend | **Severity:** 🟡
+
+**What Happened:**
+
+**Root Cause:**
+- Technical:
+
+**The Fix:**
+```python
+# ❌ BEFORE
+
+# ✅ AFTER
+```
+
+**Prevention:**
+- ✅ DO:
+- ❌ DON'T:
+
+---
+
+## 🧪 Testing
+
+### 📅 [Date] — [Title]
+
+**Category:** Testing | **Severity:** 🟢
+
+**What Happened:**
+
+**The Fix:**
+```javascript
+// ❌ BEFORE
+
+// ✅ AFTER
+```
+
+**Prevention:**
+- ✅ DO:
+
+---
+
+## 🚀 DevOps
+
+### 📅 [Date] — [Title]
+
+**Category:** DevOps | **Severity:** 🔴
+
+**What Happened:**
+
+**The Fix:**
+```yaml
+# ❌ BEFORE
+
+# ✅ AFTER
+```
+
+**Prevention:**
+- ✅ DO:
+
+---
+
+## ⚡ Performance
+
+### 📅 [Date] — [Title]
+
+**Category:** Performance | **Severity:** 🟡
+
+**What Happened:**
+
+**The Fix:**
+```python
+# ❌ BEFORE
+
+# ✅ AFTER
+```
+
+**Prevention:**
+- ✅ DO:
+
+---
+
+## Quick Reference: Anti-Patterns
+
+### Authentication
+```python
+# ❌ NEVER: Skip token expiry validation
+payload = jwt.decode(token, SECRET_KEY)
+
+# ✅ ALWAYS: Explicitly validate expiry
+payload = jwt.decode(token, SECRET_KEY, verify_exp=True)
+```
+
+### Database
+```sql
+-- ❌ NEVER: Add non-nullable to existing tables
+ALTER TABLE users ADD COLUMN field TEXT NOT NULL;
+
+-- ✅ ALWAYS: Add nullable first, backfill later
+ALTER TABLE users ADD COLUMN field TEXT DEFAULT '';
+```
+
+### External APIs
+```javascript
+// ❌ NEVER: No retry logic
+const result = await externalAPI.call(data);
+
+// ✅ ALWAYS: Exponential backoff
+const result = await retryWithBackoff(() => externalAPI.call(data));
+```
+
+### Frontend State
+```typescript
+// ❌ NEVER: Mutate state directly
+state.items.push(newItem);
+
+// ✅ ALWAYS: Create new reference
+setState({ ...state, items: [...state.items, newItem] });
+```
+
+---
+
+## AI Prompting Patterns
+
+### Auth Implementation
+```
+Implement JWT validation that:
+1. Verifies expiry explicitly (see LEARNING_LOG.md entry [date])
+2. Validates signature with SECRET_KEY
+3. Extracts user_id from token, never request
+4. Handles ExpiredSignatureError, InvalidTokenError
+5. Logs failures with context (user_id, IP, timestamp)
+```
+
+### Database Migrations
+```
+Create migration for [field] on [table]:
+1. Handle existing data (assume 500k+ rows)
+2. Use nullable + default value approach
+3. Include rollback SQL in comments
+4. Test on production-sized dataset
+```
+
+### API Integration
+```
+Integrate [API] with:
+1. Exponential backoff (tenacity library)
+2. Circuit breaker (pybreaker)
+3. Timeout (5s default, 30s max)
+4. Response caching where appropriate
+5. Quota monitoring with alerts
+```
+
+---
+
+## Code Review Checklist
+
+**General:**
+- [ ] Checked LEARNING_LOG.md for this feature area
+- [ ] No documented anti-patterns used
+- [ ] Error handling for known failure modes
+- [ ] Tests cover scenarios from learning log
+
+**Auth:**
+- [ ] Token expiry validated?
+- [ ] User ID from token, not request?
+- [ ] Errors logged with context?
+
+**Database:**
+- [ ] New columns nullable initially?
+- [ ] Migration tested on large dataset?
+- [ ] Indexes on foreign keys?
+
+**APIs:**
+- [ ] Retry logic with backoff?
+- [ ] Circuit breaker implemented?
+- [ ] Timeout configured?
+
+**Frontend:**
+- [ ] No state mutations?
+- [ ] Error boundaries present?
+- [ ] Loading states handled?
+
+**Testing:**
+- [ ] Error paths tested?
+- [ ] Edge cases from log covered?
+
+---
+
+## Incident Metrics
+
+| Month | Total | Repeat | New | Avg Resolution |
+|-------|-------|--------|-----|----------------|
+| [Month] | - | - | - | - |
+
+**Goals:**
+- Repeat issues <10% of total
+- 50% faster resolution over 6 months
+- Increase prevention rate
+
+---
+
+## Monthly Review
+
+**Date:** [YYYY-MM]
+
+**This Month:**
+- [Issue 1] — [Category] — [Severity]
+- [Issue 2] — [Category] — [Severity]
+
+**Patterns:**
+- [Pattern]: [X] occurrences
+
+**Actions:**
+- [ ] Add linter rule for [pattern]
+- [ ] Update .cursorrules
+- [ ] Team training on [topic]
+
+**Working Well:**
+- [Success]
+
+**Needs Improvement:**
+- [Challenge]
+
+**Next Month Focus:**
+- [Priority]
+
+---
+
+## Maintenance
+
+**Daily:** Add entries when fixing bugs (5 min)  
+**Weekly:** Review with team, update .cursorrules  
+**Monthly:** Analyze trends, update checklist
+
+---
+
+## Related Docs
+
+| File | Purpose |
+|------|---------|
+| `CONTEXT.md` | What exists, patterns |
+| `.cursorrules` | AI configuration |
+| `README.md` | Project setup |
+
+---
+
+**Remember:** Every mistake documented is future productivity gained. Start small, be consistent. 🚀
+
+---
+# Task:
+
+Beautiful PDF Report
+Philosophy
+Don't screenshot the UI. Build the PDF as a first-class layout. @react-pdf/renderer lets you define PDF-native components — no DOM, no canvas capture hacks, no puppeteer. It renders on the server in a Next.js API route.
+Step 1: Install
+bashnpm install @react-pdf/renderer
+npm install -D @types/react-pdf
+Step 2: PDF Layout Component (components/pdf/WelderReportPDF.tsx)
+typescriptimport { Document, Page, View, Text, StyleSheet, Image } from '@react-pdf/renderer';
+
+const styles = StyleSheet.create({
+  page: { backgroundColor: '#0a0a0a', padding: 40, fontFamily: 'Helvetica' },
+  header: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 24 },
+  scoreCircle: { width: 80, height: 80, borderRadius: 40, border: '3px solid #3b82f6',
+                 alignItems: 'center', justifyContent: 'center' },
+  scoreText: { fontSize: 28, color: '#3b82f6', fontWeight: 'bold' },
+  sectionTitle: { fontSize: 10, color: '#6b7280', textTransform: 'uppercase', 
+                  leerSpacing: 2, marginBottom: 8 },
+  feedbackItem: { flexDirection: 'row', marginBottom: 6, paddingLeft: 12 },
+  bullet: { color: '#f59e0b', marginRight: 8 },
+});
+
+export function WelderReportPDF({ welder, score, feedback, chartDataUrl, heatmapUrl }) {
+  return (
+    <Document>
+      <Page size="A4" style={styles.page}>
+        {/* Header */}
+        <View style={styles.header}>
+          <View>
+            <Text style={{ fontSize: 20, color: '#f9fafb', fontWeight: 'bold' }}>
+              {welder.name}
+            </Text>
+            <Text style={{ fontSize: 10, color: '#6b7280', marginTop: 4 }}>
+              Session Report · {new Date().toLocaleDateString()}
+            </Text>
+          </View>
+          <View style={styles.scoreCircle}>
+            <Text style={styles.scoreText}>{score.total}</Text>
+          </View>
+        </View>
+
+        {/* AI Summary */}
+        <Text style={styles.sectionTitle}>Coach Feedback</Text>
+        <Text style={{ fontSize: 11, color: '#d1d5db', lineHeght: 1.6, marginBottom: 20 }}>
+          {feedback.summary}
+        </Text>
+
+        {/* Trend chart image - pre-rendered to base64 PNG */}
+        {chartDataUrl && (
+          <View style={{ marginBottom: 20 }}>
+            <Text style={styles.sectionTitle}>Score Trend (Last 5 Sessions)</Text>
+            <Image src={chartDataUrl} style={{ height: 120 }} />
+          </View>
+        )}
+
+        {/* Top 3 feedback items */}
+        <Text style={styles.sectionTitle}>Key Areas</Text>
+        {feedback.feedback_items.slice(0, 3).map((item, i) => (
+          <View key={i} style={styles.feedbackItem}>
+            <Text style={styles.bullet}>{item.severity === 'warning' ? '⚠' : '•'}</Text>
+            <View>
+              <Text style={{ fontSize: 10, color: '#f9fafb' }}>{item.message}</Text>
+              {item.suggestion && (
+                <Text style={{ fontSize: 9, color: '#6b7280', marginTop: 2 }}>
+                  → {item.suggestion}
+          </Text>
+              )}
+            </View>
+          </View>
+        ))}
+
+        {/* Footer */}
+        <View style={{ position: 'absolute', bottom: 30, left: 40, right: 40,
+                       borderTop: '1px solid #1f2937', paddingTop: 12,
+                       flexDirection: 'row', justifyContent: 'space-between' }}>
+          <Text style={{ fontSize: 8, color: '#374151' }}>WarpSense Quality Intelligence</Text>
+          <Text style={{ fontSize: 8, color: '#374151' }}>CONFIDENTIAL</Text>
+        </View>
+      </Page>
+    </Document>
+  );
+}
+Step 3: Chart → PNG (the tricky bit)
+@react-pdf/renderer can't render Recharts. You need to pre-render the trend chart to a base64 PNG. Two options:
+Option A (fast, good enough): Use html-to-image on the client to capture the existing LineChart div into a PNG, pass it as base64 to the PDF route. Ship this first.
+Option B (clean, proper): Build a <canvas> chart in the API route using chartjs-node-canvas (server-side Chart.js). More work, no DOM dependcy.
+Start with Option A.
+typescript// In WelderReport, on "Download PDF" click:
+import { toPng } from 'html-to-image';
+
+const chartEl = document.getElementById('trend-chart');
+const chartDataUrl = await toPng(chartEl);
+// POST to /api/welder-report-pdf with session + score + feedback + chartDataUrl
+Step 4: PDF API Route
+typescript// app/api/welder-report-pdf/route.ts
+import { renderToBuffer } from '@react-pdf/renderer';
+import { WelderReportPDF } from '@/components/pdf/WelderReportPDF';
+
+export async function POST(req: Request) {
+  const { welder, score, feedback, chartDataUrl } = await req.json();
+  
+  const buffer = await renderToBuffer(
+    <WelderReportPDF welder={welder} score={score} 
+                     feedback={feedback} chartDataUrl={chartDataUrl} />
+  );
+  
+  return new Response(buffer, {
+    headers: {
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="${welder.name}-report.pdf"`,
+    },
+  });
+}
+Step 5: Replace the stub button
+typescriptasync function handleDownloadPDF() {
+  const chartEl = document.getElementById('trend-chart');
+  const chartDataUrl = chartEl ? await toPng(chartEl) : null;
+  
+  const res = await fetch('/api/welder-report-pdf', {
+    method: 'POST',
+    body: JSON.stringify({ welder, score, feedback, chartDataUrl }),
+  });
+  
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${welder.name}-warp-report.pdf`;
+  a.click();
+}
+
+
+---
+# Implementation excerpt:
+

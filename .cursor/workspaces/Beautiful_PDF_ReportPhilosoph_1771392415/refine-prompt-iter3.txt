@@ -1,0 +1,1079 @@
+# Refine Plan (Intelligent Improvement with Deep Analysis)
+
+You are a **principal engineer** conducting a targeted refinement of an implementation plan based on a comprehensive critique. This requires strategic thinking about what to preserve, what to fix, and how to integrate improvements seamlessly.
+
+---
+
+## CRITICAL: Your Mission
+
+You have received:
+1. **Current Plan** - The implementation plan being refined
+2. **Critique** - A detailed analysis with scores, issues, and recommendations
+3. **History** - Previous iterations and what was attempted
+
+Your task: **Output a COMPLETE, IMPROVED plan** that:
+- ✅ Fixes ALL critical issues completely
+- ✅ Addresses minor issues where they improve quality
+- ✅ Preserves ALL strengths and working sections
+- ✅ Maintains logical structure and flow
+- ✅ Remains executable and actionable
+
+**DO NOT:**
+- ❌ Just list changes or provide diffs
+- ❌ Explain what you're doing or why
+- ❌ Remove good working content
+- ❌ Add unnecessary complexity
+- ❌ Output anything except the refined plan
+
+---
+
+## Phase 1: Critique Analysis & Strategy Formation
+
+### 1.1 Parse the Critique
+
+First, extract from the critique JSON:
+- **Score:** What's the current quality level?
+- **Critical Issues:** What MUST be fixed? (execution-blocking)
+- **Minor Issues:** What SHOULD be fixed? (quality improvements)
+- **Strengths:** What MUST be preserved?
+- **Recommended Action:** Was this flagged for deep revision or polish?
+
+### 1.2 Issue Classification & Prioritization
+
+Organize issues by type:
+
+**Type A: Missing Core Steps**
+- Example: "No database backup before migration"
+- Fix: Add complete new step with verification
+- Impact: Could cause data loss
+- Priority: P0 - Must fix
+
+**Type B: Insufficient Error Handling**
+- Example: "No null check for API response"
+- Fix: Add try-catch, null guards, fallback behavior
+- Impact: Runtime errors, crashes
+- Priority: P0 - Must fix
+
+**Type C: Unclear/Vague Instructions**
+- Example: "Update the component" → needs specifics
+- Fix: Add file paths, function names, code examples
+- Impact: Execution ambiguity
+- Priority: P1 - High priority
+
+**Type D: Missing Verification**
+- Example: "Test manually" without test cases
+- Fix: Add specific test cases, expected outputs, validation commands
+- Impact: Can't verify success
+- Priority: P1 - High priority
+
+**Type E: Dependency/Sequencing Issues**
+- Example: Step 5 depends on Step 8
+- Fix: Reorder steps, add explicit prerequisites
+- Impact: Execution failure
+- Priority: P0 - Must fix
+
+**Type F: Missing Edge Cases**
+- Example: "Doesn't handle empty array"
+- Fix: Add edge case handling logic
+- Impact: Failures on boundary conditions
+- Priority: P1-P2 depending on likelihood
+
+**Type G: Polish/Optimization**
+- Example: "Could add TypeScript types"
+- Fix: Add if improves clarity significantly
+- Impact: Code quality, maintainability
+- Priority: P2 - Nice to have
+
+---
+
+## Phase 2: Refinement Strategy by Issue Type
+
+### Strategy A: Adding Missing Steps
+
+**When to use:** Critical issue indicates entire step is missing
+
+**Process:**
+1. Identify where in sequence the step belongs
+2. Draft the complete step with:
+   - Clear action description
+   - Code example or command
+   - Expected outcome
+   - Verification method
+   - Dependencies
+   - Error handling
+3. Integrate seamlessly into existing flow
+4. Update step numbering if needed
+5. Cross-reference with related steps
+
+**Example:**
+
+**Critique says:** "Missing database backup before migration in Step 4"
+
+**Bad refinement:**
+```
+3.5. Backup database
+```
+
+**Good refinement:**
+```
+## Step 3.5: Create Pre-Migration Database Backup
+
+**Action:**
+Create a timestamped backup of the production database before running migrations.
+
+**Implementation:**
+```bash
+# Create backup directory if it doesn't exist
+mkdir -p ./backups
+
+# Generate timestamped backup
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+pg_dump -h localhost -U postgres -d production_db > ./backups/backup_${TIMESTAMP}.sql
+
+# Verify backup created successfully
+if [ $? -eq 0 ]; then
+    echo "✅ Backup created: backup_${TIMESTAMP}.sql"
+    echo "Size: $(du -h ./backups/backup_${TIMESTAMP}.sql | cut -f1)"
+else
+    echo "❌ Backup failed - ABORT MIGRATION"
+    exit 1
+fi
+```
+
+**Verification:**
+- Backup file exists in `./backups/` directory
+- File size > 0 bytes
+- Can open file and see SQL commands
+
+**Rollback (if migration fails):**
+```bash
+# Restore from backup
+psql -h localhost -U postgres -d production_db < ./backups/backup_${TIMESTAMP}.sql
+```
+
+**Time estimate:** 2-5 minutes (depending on database size)
+
+**Dependencies:** Requires `pg_dump` installed, database credentials configured
+```
+
+---
+
+### Strategy B: Adding Error Handling
+
+**When to use:** Critical issue about missing error handling or null checks
+
+**Process:**
+1. Identify the risky operation
+2. Determine failure modes (what could go wrong?)
+3. Add defensive checks before operation
+4. Wrap in try-catch where applicable
+5. Provide fallback behavior
+6. Log errors for debugging
+
+**Example:**
+
+**Critique says:** "Step 7 doesn't handle null heatmapData"
+
+**Current (problematic):**
+```javascript
+function renderHeatmap() {
+  heatmapData.forEach(point => {
+    // render point
+  });
+}
+```
+
+**Refined (with error handling):**
+```javascript
+function renderHeatmap() {
+  // Guard: Check if data exists
+  if (!heatmapData) {
+    console.warn('⚠️ Heatmap data not loaded yet');
+    return; // Exit gracefully
+  }
+
+  // Guard: Check if array is empty
+  if (heatmapData.length === 0) {
+    console.warn('⚠️ Heatmap data is empty');
+    // Show "No data" UI instead of blank screen
+    showNoDataMessage();
+    return;
+  }
+
+  // Process data with error handling
+  try {
+    heatmapData.forEach(point => {
+      // Validate each point
+      if (!point || typeof point.temperature !== 'number') {
+        console.error('Invalid point data:', point);
+        return; // Skip this point
+      }
+      
+      // Render point
+      renderPoint(point);
+    });
+  } catch (error) {
+    console.error('Error rendering heatmap:', error);
+    // Fallback: show error state
+    showErrorMessage('Failed to render heatmap');
+  }
+}
+```
+
+---
+
+### Strategy C: Improving Clarity & Specificity
+
+**When to use:** Minor issue about vague instructions
+
+**Process:**
+1. Identify what's ambiguous
+2. Add concrete details:
+   - File paths
+   - Function names
+   - Import statements
+   - Exact commands
+   - Expected outputs
+3. Provide code examples
+4. Show before/after if modifying existing code
+
+**Example:**
+
+**Critique says:** "Step 2 'Import required libraries' is too vague"
+
+**Current (vague):**
+```
+## Step 2: Import Libraries
+
+Import the necessary libraries for 3D rendering and heatmap visualization.
+```
+
+**Refined (specific):**
+```
+## Step 2: Import Required Dependencies
+
+**Action:**
+Add the following imports to the top of `src/components/ReplayViewer.tsx`:
+
+**Code:**
+```typescript
+// Three.js core and loaders
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
+
+// Custom shaders
+import { HeatmapShader } from '@/shaders/HeatmapShader';
+
+// React and state management
+import { useEffect, useRef, useState } from 'react';
+import { useReplayStore } from '@/stores/replayStore';
+
+// Utils
+import { temperatureToColor } from '@/utils/colorMapping';
+import { interpolateHeatData } from '@/utils/heatInterpolation';
+```
+
+**Verification:**
+- No TypeScript errors in file
+- Imports resolve (check with `npm run typecheck`)
+- Auto-complete works for imported functions
+
+**Dependencies:**
+Ensure these packages are installed:
+```bash
+npm install three@0.160.0
+npm install @types/three@0.160.0 --save-dev
+```
+
+**Time estimate:** 2-3 minutes
+```
+
+---
+
+### Strategy D: Adding Verification Steps
+
+**When to use:** Issue about missing or weak verification
+
+**Process:**
+1. For each step, define "done" criteria
+2. Provide specific test cases
+3. Include expected outputs
+4. Add commands to run tests
+5. Include negative test cases (what should fail)
+
+**Example:**
+
+**Critique says:** "Step 5 verification just says 'check colors' - not specific"
+
+**Current (weak):**
+```
+**Verification:**
+- Check that colors change with temperature
+```
+
+**Refined (specific):**
+```
+**Verification:**
+
+**Manual Visual Test:**
+1. Open browser DevTools (F12)
+2. Go to Console tab
+3. Run these test scenarios:
+
+```javascript
+// Test 1: Cold temperature (0°F) - should be deep blue
+testTemperature(0);
+// Expected: RGB(0, 0, 139) - dark blue
+
+// Test 2: Warm temperature (250°F) - should be yellow-orange  
+testTemperature(250);
+// Expected: RGB(255, 165, 0) - orange
+
+// Test 3: Hot temperature (500°F) - should be bright red/white
+testTemperature(500);
+// Expected: RGB(255, 255, 255) - white-hot
+
+// Test 4: 5°F increments - should see visible color change
+for (let temp = 0; temp <= 50; temp += 5) {
+  console.log(`${temp}°F:`, temperatureToColor(temp));
+}
+// Expected: Should see gradual transition from blue → cyan
+
+// Test 5: Negative temperature - should clamp to 0°F color
+testTemperature(-50);
+// Expected: Same as 0°F (deep blue), no error
+
+// Test 6: Above max temperature - should clamp to 500°F color  
+testTemperature(1000);
+// Expected: Same as 500°F (white), no error
+```
+
+**Automated Test:**
+```typescript
+// Add to src/__tests__/colorMapping.test.ts
+describe('temperatureToColor', () => {
+  test('visible change every 5°F', () => {
+    for (let temp = 0; temp < 500; temp += 5) {
+      const color1 = temperatureToColor(temp);
+      const color2 = temperatureToColor(temp + 5);
+      
+      // Calculate color difference
+      const diff = Math.abs(color1.r - color2.r) + 
+                   Math.abs(color1.g - color2.g) + 
+                   Math.abs(color1.b - color2.b);
+      
+      // Expect visible difference (threshold: 10 on 0-765 scale)
+      expect(diff).toBeGreaterThan(10);
+    }
+  });
+
+  test('handles edge cases', () => {
+    expect(() => temperatureToColor(-100)).not.toThrow();
+    expect(() => temperatureToColor(9999)).not.toThrow();
+    expect(temperatureToColor(null)).toEqual({ r: 0, g: 0, b: 0 }); // fallback
+  });
+});
+```
+
+**Success Criteria:**
+- All manual tests show expected colors
+- Automated tests pass (`npm test`)
+- Color transitions are smooth and visible
+- No console errors
+```
+
+---
+
+### Strategy E: Fixing Dependencies & Sequencing
+
+**When to use:** Critical issue about step ordering or missing prerequisites
+
+**Process:**
+1. Map dependencies between steps
+2. Identify circular dependencies or out-of-order steps
+3. Reorder steps logically
+4. Add explicit prerequisite sections
+5. Update step references throughout plan
+
+**Example:**
+
+**Critique says:** "Step 5 uses heatmapShader but it's not created until Step 8"
+
+**Current (broken sequence):**
+```
+## Step 5: Apply Shader to Metal
+Use heatmapShader on material...
+
+## Step 8: Create Heatmap Shader
+Define the shader code...
+```
+
+**Refined (correct sequence):**
+```
+## Step 5: Create Heatmap Shader
+
+**Prerequisites:** None (this step must come first)
+
+**Action:**
+Define the custom shader for heatmap rendering.
+
+**Implementation:**
+```typescript
+// src/shaders/HeatmapShader.ts
+export const HeatmapShader = {
+  uniforms: {
+    temperatureMap: { value: null },
+    minTemp: { value: 0.0 },
+    maxTemp: { value: 500.0 }
+  },
+  vertexShader: `
+    varying vec2 vUv;
+    void main() {
+      vUv = uv;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `,
+  fragmentShader: `
+    uniform sampler2D temperatureMap;
+    uniform float minTemp;
+    uniform float maxTemp;
+    varying vec2 vUv;
+    
+    vec3 temperatureToColor(float temp) {
+      // Normalize temp to 0-1 range
+      float t = clamp((temp - minTemp) / (maxTemp - minTemp), 0.0, 1.0);
+      
+      // Color gradient: blue → cyan → green → yellow → red → white
+      if (t < 0.2) {
+        return mix(vec3(0.0, 0.0, 0.545), vec3(0.0, 1.0, 1.0), t * 5.0);
+      } else if (t < 0.4) {
+        return mix(vec3(0.0, 1.0, 1.0), vec3(0.0, 1.0, 0.0), (t - 0.2) * 5.0);
+      } else if (t < 0.6) {
+        return mix(vec3(0.0, 1.0, 0.0), vec3(1.0, 1.0, 0.0), (t - 0.4) * 5.0);
+      } else if (t < 0.8) {
+        return mix(vec3(1.0, 1.0, 0.0), vec3(1.0, 0.0, 0.0), (t - 0.6) * 5.0);
+      } else {
+        return mix(vec3(1.0, 0.0, 0.0), vec3(1.0, 1.0, 1.0), (t - 0.8) * 5.0);
+      }
+    }
+    
+    void main() {
+      float temp = texture2D(temperatureMap, vUv).r;
+      vec3 color = temperatureToColor(temp);
+      gl_FragColor = vec4(color, 1.0);
+    }
+  `
+};
+```
+
+**Verification:**
+- File created at `src/shaders/HeatmapShader.ts`
+- No TypeScript errors
+- Can import in other files: `import { HeatmapShader } from '@/shaders/HeatmapShader'`
+
+**Time estimate:** 15-20 minutes
+
+---
+
+## Step 6: Apply Shader to Metal Material
+
+**Prerequisites:** 
+- Step 5 completed (HeatmapShader created)
+- Metal model loaded in scene
+
+**Action:**
+Replace metal's standard material with shader material using HeatmapShader.
+
+**Implementation:**
+```typescript
+// In ReplayViewer.tsx
+import { HeatmapShader } from '@/shaders/HeatmapShader';
+
+// Find metal mesh
+const metalMesh = scene.getObjectByName('metal_surface');
+
+if (metalMesh) {
+  // Create shader material
+  const shaderMaterial = new THREE.ShaderMaterial({
+    uniforms: THREE.UniformsUtils.clone(HeatmapShader.uniforms),
+    vertexShader: HeatmapShader.vertexShader,
+    fragmentShader: HeatmapShader.fragmentShader
+  });
+  
+  // Apply to mesh
+  metalMesh.material = shaderMaterial;
+  
+  console.log('✅ Heatmap shader applied to metal');
+} else {
+  console.error('❌ Metal mesh not found in scene');
+}
+```
+
+**Verification:**
+- Metal surface visible in viewport
+- No console errors
+- Material shows as ShaderMaterial in Three.js DevTools
+```
+
+---
+
+### Strategy F: Adding Edge Case Handling
+
+**When to use:** Issue about missing edge cases or boundary conditions
+
+**Process:**
+1. Enumerate edge cases for the operation
+2. Add handling code for each case
+3. Provide examples
+4. Add tests for edge cases
+
+**Example:**
+
+**Critique says:** "Doesn't handle case when replay has no temperature data"
+
+**Refined (with edge cases):**
+```
+## Step 9: Render Heatmap Frame
+
+**Action:**
+Render heatmap for current replay frame, handling edge cases.
+
+**Implementation:**
+```typescript
+function renderHeatmapFrame(frameIndex: number) {
+  // Edge Case 1: Invalid frame index
+  if (frameIndex < 0 || frameIndex >= totalFrames) {
+    console.warn(`⚠️ Frame ${frameIndex} out of range (0-${totalFrames-1})`);
+    return;
+  }
+
+  // Edge Case 2: No temperature data for this replay
+  const temperatureData = replayStore.getTemperatureData();
+  if (!temperatureData || temperatureData.length === 0) {
+    console.warn('⚠️ No temperature data available');
+    // Show default/neutral color
+    setUniformTemperature(metalMesh, 70); // Room temperature
+    return;
+  }
+
+  // Edge Case 3: Frame exists but has no data points
+  const frameData = temperatureData[frameIndex];
+  if (!frameData || frameData.points.length === 0) {
+    console.warn(`⚠️ Frame ${frameIndex} has no data points`);
+    // Interpolate from adjacent frames
+    const interpolated = interpolateFromAdjacentFrames(frameIndex);
+    applyTemperatureData(interpolated);
+    return;
+  }
+
+  // Edge Case 4: Sparse data (missing measurements at some points)
+  if (frameData.points.length < metalMesh.geometry.vertices.length * 0.5) {
+    console.warn(`⚠️ Frame ${frameIndex} has sparse data, interpolating...`);
+    const filled = fillSparsedData(frameData);
+    applyTemperatureData(filled);
+    return;
+  }
+
+  // Normal case: Full data available
+  applyTemperatureData(frameData);
+}
+
+// Helper: Interpolate when frame has no data
+function interpolateFromAdjacentFrames(frameIndex: number) {
+  const prevFrame = findPreviousValidFrame(frameIndex);
+  const nextFrame = findNextValidFrame(frameIndex);
+  
+  if (prevFrame && nextFrame) {
+    // Linear interpolation between frames
+    const t = (frameIndex - prevFrame.index) / (nextFrame.index - prevFrame.index);
+    return interpolateFrames(prevFrame.data, nextFrame.data, t);
+  } else if (prevFrame) {
+    // Use previous frame
+    return prevFrame.data;
+  } else if (nextFrame) {
+    // Use next frame
+    return nextFrame.data;
+  } else {
+    // No data at all - use defaults
+    return getDefaultTemperatureData();
+  }
+}
+```
+
+**Edge Cases Covered:**
+1. ✅ Invalid frame index (negative or beyond range)
+2. ✅ No temperature data loaded
+3. ✅ Frame with zero data points
+4. ✅ Sparse/incomplete data points
+5. ✅ First frame (no previous frame to interpolate from)
+6. ✅ Last frame (no next frame to interpolate from)
+
+**Test Cases:**
+```typescript
+describe('renderHeatmapFrame edge cases', () => {
+  test('handles negative frame index', () => {
+    expect(() => renderHeatmapFrame(-1)).not.toThrow();
+  });
+
+  test('handles frame beyond range', () => {
+    expect(() => renderHeatmapFrame(9999)).not.toThrow();
+  });
+
+  test('handles missing temperature data', () => {
+    replayStore.temperatureData = null;
+    expect(() => renderHeatmapFrame(0)).not.toThrow();
+  });
+
+  test('handles empty data points', () => {
+    replayStore.temperatureData = [{ points: [] }];
+    expect(() => renderHeatmapFrame(0)).not.toThrow();
+  });
+});
+```
+```
+
+---
+
+## Phase 3: Execution - Building the Refined Plan
+
+### 3.1 Structure Preservation
+
+**Preserve the original structure unless critique explicitly says to reorganize.**
+
+**Keep:**
+- Main section headings
+- Step numbering scheme
+- Overall flow and narrative
+- Introduction and overview sections
+
+**Modify only:**
+- Content that has issues
+- Steps that need reordering (if dependency issue)
+- Sections flagged in critique
+
+---
+
+### 3.2 Integration Approach
+
+**For each issue in the critique:**
+
+1. **Locate** the affected section in current plan
+2. **Apply** the appropriate refinement strategy (A-G above)
+3. **Verify** the fix doesn't break other sections
+4. **Update** any cross-references
+5. **Maintain** consistent formatting and style
+
+---
+
+### 3.3 Quality Checks Before Output
+
+Before outputting the refined plan, verify:
+
+**Completeness:**
+- [ ] All critical issues addressed
+- [ ] All minor issues addressed (or consciously skipped)
+- [ ] All strengths preserved
+- [ ] No sections accidentally deleted
+
+**Consistency:**
+- [ ] Step numbers sequential
+- [ ] Cross-references updated
+- [ ] Consistent terminology
+- [ ] Uniform formatting
+
+**Executability:**
+- [ ] Each step has clear action
+- [ ] Code examples are complete and runnable
+- [ ] Verification criteria are specific
+- [ ] Dependencies are explicit
+
+**Clarity:**
+- [ ] No ambiguous instructions
+- [ ] File paths and names provided
+- [ ] Expected outputs specified
+- [ ] Time estimates included
+
+---
+
+## Phase 4: Output Format
+
+### 4.1 What to Output
+
+**Output ONLY the complete refined plan as markdown.**
+
+**DO NOT include:**
+- ❌ This meta-instruction document
+- ❌ Explanations of what you changed
+- ❌ Diffs or change summaries
+- ❌ Commentary about the critique
+- ❌ Preamble or conclusion about the refinement
+
+**DO include:**
+- ✅ Complete refined plan from beginning to end
+- ✅ All sections (even unchanged ones)
+- ✅ All fixes integrated seamlessly
+- ✅ Proper markdown formatting
+
+---
+
+### 4.2 Output Template Structure
+
+Your output should follow this general structure (adapt to specific plan):
+
+```markdown
+# [Plan Title]
+
+## Overview
+[High-level description of what will be implemented]
+
+## Prerequisites
+- [Dependency 1]
+- [Dependency 2]
+- [etc.]
+
+## Implementation Steps
+
+### Phase 1: [Phase Name]
+
+#### Step 1.1: [Step Name]
+
+**Action:**
+[What to do]
+
+**Implementation:**
+```[language]
+[Complete code]
+```
+
+**Verification:**
+- [Specific test 1]
+- [Specific test 2]
+
+**Expected Outcome:**
+[What success looks like]
+
+**Time Estimate:** [X minutes/hours]
+
+**Dependencies:** [What must be done first]
+
+---
+
+#### Step 1.2: [Step Name]
+
+[... repeat pattern ...]
+
+---
+
+### Phase 2: [Phase Name]
+
+[... continue ...]
+
+---
+
+## Testing & Validation
+
+[Comprehensive testing section]
+
+---
+
+## Rollback Procedure
+
+[How to undo if things go wrong]
+
+---
+
+## Known Issues & Limitations
+
+[Any caveats or edge cases still not handled]
+
+---
+
+## Success Criteria
+
+[How to know the entire implementation is complete]
+```
+
+---
+
+## Phase 5: Special Cases & Advanced Scenarios
+
+### Scenario A: Score 8-9 (Minor Polish)
+
+**What it means:** Plan is mostly good, just needs small improvements
+
+**Approach:**
+- Address minor issues without disrupting working sections
+- Focus on clarity and specificity
+- Add verification where weak
+- Don't over-refine
+
+**Example fixes:**
+- Add missing import statement
+- Clarify vague file path
+- Add specific test case
+- Fix typo in command
+
+---
+
+### Scenario B: Score 5-7 (Significant Revision)
+
+**What it means:** Plan has critical flaws, needs substantial work
+
+**Approach:**
+- Fix all critical issues first (execution-blocking)
+- Reorder steps if sequencing is broken
+- Add missing core steps
+- Beef up error handling significantly
+- May need to restructure sections
+
+**Example fixes:**
+- Add entire missing phase
+- Reorder 5+ steps for correct dependencies
+- Add comprehensive error handling throughout
+- Replace vague steps with specific implementations
+
+---
+
+### Scenario C: Score <5 (Major Overhaul)
+
+**What it means:** Plan is fundamentally flawed
+
+**Approach:**
+- Consider if plan addresses the original task at all
+- May need to restructure entire plan
+- Add multiple missing phases
+- Complete rewrite of vague sections
+- Extensive verification added throughout
+
+**Example fixes:**
+- Add 3 new major phases
+- Complete rewrite of implementation approach
+- Add all error handling, verification, testing
+- Fix fundamental technical errors
+
+---
+
+### Scenario D: Conflicting Critique Points
+
+**What to do when critique has contradictory suggestions:**
+
+**Example:** 
+- Issue #1: "Too vague, add more detail"
+- Issue #5: "Too verbose, simplify Step 3"
+
+**Resolution:**
+1. Look at which is critical vs minor
+2. Critical issues take precedence
+3. For same priority: Balance both concerns
+   - Add detail where execution requires it
+   - Simplify prose without losing critical information
+
+---
+
+### Scenario E: Preserving Existing Good Code
+
+**When critique says:** "Add error handling to Step 7" but Step 7 already has working code
+
+**Approach:**
+```typescript
+// EXISTING (keep this):
+function processData(data) {
+  const result = transform(data);
+  return result;
+}
+
+// ADD (integrate with existing):
+function processData(data) {
+  // NEW: Validation
+  if (!data) {
+    console.error('Data is null or undefined');
+    return null;
+  }
+
+  // NEW: Error handling
+  try {
+    // EXISTING: Keep original logic
+    const result = transform(data);
+    return result;
+  } catch (error) {
+    // NEW: Error recovery
+    console.error('Transform failed:', error);
+    return getDefaultData();
+  }
+}
+```
+
+**Don't replace working code entirely - wrap it with improvements.**
+
+---
+
+## Phase 6: Final Checklist
+
+Before submitting the refined plan, verify:
+
+### Critical Requirements
+- [ ] **All critical issues fixed** - None remain unaddressed
+- [ ] **Plan is executable** - Someone could follow it step-by-step
+- [ ] **Strengths preserved** - Good sections untouched
+- [ ] **Complete output** - No placeholders like "TODO" or "[add details]"
+
+### Quality Requirements
+- [ ] **Specific, not vague** - File paths, function names, exact commands
+- [ ] **Verifiable** - Clear success criteria for each step
+- [ ] **Error handling** - Defensive code where needed
+- [ ] **Edge cases** - Boundary conditions handled
+
+### Formatting Requirements
+- [ ] **Valid markdown** - Proper headers, code blocks, lists
+- [ ] **Consistent style** - Uniform formatting throughout
+- [ ] **Code blocks tagged** - Language specified (```typescript, ```bash, etc.)
+- [ ] **No meta-content** - Only the plan itself, no explanations
+
+---
+
+## Remember
+
+**You are outputting THE REFINED PLAN, not a report about the plan.**
+
+**The refined plan should be:**
+- ✅ Complete (beginning to end)
+- ✅ Improved (all issues fixed)
+- ✅ Executable (ready to implement)
+- ✅ Clear (no ambiguity)
+
+**The refined plan should NOT be:**
+- ❌ A diff or changelog
+- ❌ A summary of changes
+- ❌ Commentary about the critique
+- ❌ Partial or incomplete
+
+---
+
+**Now, examine the critique, apply the appropriate strategies, and output the complete refined plan.**
+
+---
+# Current Plan:
+
+
+Refinements are in place. Summary of what changed:
+
+**Critical**
+
+- **Step 2.1**: Invalid `Content-Length` (non-numeric or negative) now returns 400 before size checks.
+- **Step 3.3**: Added `toWelderName(displayName)` before `sanitizeDownloadFilename` so filenames never show `[object Object]`.
+- **Step 2.3**: Added `set -e` and explicit checks: `grep -q 'Unknown' /tmp/obj.pdf` and `! grep -q '\[object Object\]' /tmp/obj.pdf`.
+- **Step 4.5**: Split tests into `api-base.node.test.ts` (Node) and `api-base.jsdom.test.ts` (jsdom) so the basePath path is actually run.
+- **Step 4.6**: Added test for invalid `Content-Length` → 400; added `CI_LOW_MEM=1` to skip the 413 test in low-memory CI; fixed comment vs code mismatch.
+
+**Other**
+
+- **Step 1.2**: `sanitizeText` now strips zero-width and RTL-override characters.
+- **Step 2.1**: Clarified route path as `src/app/api/...`.
+- **Known issues**: Documented invalid `Content-Length` handling and 411 chunked test limitations.
+- **Risk heatmap**: Updated getApiBase risk for jsdom test coverage.
+
+
+---
+# Standard Critique (issues to fix):
+
+
+{"overall_strategy_score": 7.4,"top_3_avg_priority": 8.3,"context_type": "operator","goal_alignment_score": 7.8,"task_scores":[{"task_number":1,"task_title":"sanitizeText: strip zero-width and RTL-override characters","strategic_value":6.0,"strategic_value_after_penalty":6.0,"context_alignment":7.0,"leverage_optionality":6.0,"resource_efficiency":8.0,"risk_balance":9.0,"dependencies":10.0,"execution_quality":7.0,"overall_score":6.8,"feedback_penalty_applied":false,"ships_wrong_risk":"If stripping logic is too aggressive, valid Unicode in welder names could be corrupted in PDF text.","higher_leverage_alternative":"Combine with Step 3.3 if both touch display/sanitization; otherwise null.","reasoning":"Defensive hygiene; low strategic impact unless RTL/zero-width bugs are observed."},{"task_number":2,"task_title":"Invalid Content-Length returns 400 before size checks","strategic_value":9.0,"strategic_value_after_penalty":9.0,"context_alignment":9.0,"leverage_optionality":7.5,"resource_efficiency":8.5,"risk_balance":9.0,"dependencies":10.0,"execution_quality":9.0,"overall_score":8.8,"feedback_penalty_applied":false,"ships_wrong_risk":"Rejecting valid edge-case Content-Length formats (e.g. whitespace) could break real clients.","higher_leverage_alternative":null,"reasoning":"Direct fix for bad input handling; clear behavior, high correctness value."},{"task_number":3,"task_title":"set -e and grep validation in shell script","strategic_value":7.0,"strategic_value_after_penalty":7.0,"context_alignment":8.0,"leverage_optionality":6.0,"resource_efficiency":7.0,"risk_balance":8.0,"dependencies":9.0,"execution_quality":8.0,"overall_score":7.3,"feedback_penalty_applied":false,"ships_wrong_risk":"Grep patterns may miss new failure modes; script could pass while PDF still contains bad content.","higher_leverage_alternative":"Add programmatic PDF parsing/assertion instead of grep if available.","reasoning":"Improves CI reliability but remains brittle; grep is heuristic."},{"task_number":4,"task_title":"toWelderName(displayName) before sanitizeDownloadFilename","strategic_value":9.5,"strategic_value_after_penalty":9.5,"context_alignment":9.5,"leverage_optionality":8.0,"resource_efficiency":9.0,"risk_balance":9.0,"dependencies":9.0,"execution_quality":9.0,"overall_score":9.1,"feedback_penalty_applied":false,"ships_wrong_risk":"If toWelderName returns object or undefined in edge cases, filename could still be wrong.","higher_leverage_alternative":null,"reasoning":"Direct fix for [object Object] in filenames; high user-visible impact."},{"task_number":5,"task_title":"Split api-base tests into Node vs jsdom","strategic_value":8.0,"strategic_value_after_penalty":8.0,"context_alignment":8.0,"leverage_optionality":8.0,"resource_efficiency":6.0,"risk_balance":9.0,"dependencies":8.0,"execution_quality":8.5,"overall_score":7.9,"feedback_penalty_applied":false,"ships_wrong_risk":"Env-specific tests may diverge; basePath logic could regress in one env and go unnoticed.","higher_leverage_alternative":"Consider a single test with env parameterization if maintenance is high.","reasoning":"Correct test coverage for basePath; moderate effort, good regression protection."},{"task_number":6,"task_title":"Invalid Content-Length test, CI_LOW_MEM, comment fix","strategic_value":8.5,"strategic_value_after_penalty":8.5,"context_alignment":8.5,"leverage_optionality":7.0,"resource_efficiency":8.0,"risk_balance":9.0,"dependencies":9.0,"execution_quality":9.0,"overall_score":8.4,"feedback_penalty_applied":false,"ships_wrong_risk":"Skipping 413 in low-mem CI may hide real OOM or size-limit bugs in prod.","higher_leverage_alternative":null,"reasoning":"Validates Step 2.1; CI_LOW_MEM is pragmatic but reduces coverage."}],"critical_issues":["Step 2.3: grep for 'Unknown' and '[object Object]' is heuristic—new bad values (e.g. 'undefined') could slip through","Step 4.6: CI_LOW_MEM skip of 413 test creates a coverage gap; prod and CI may diverge on large-payload behavior","Task 4 (toWelderName): No explicit guarantee that toWelderName always returns a string; edge cases (null/object) could still leak into filename"],"minor_issues":["Step 1.2: sanitizeText scope not tied to a specific file path; executor may need to locate usage","Documented known issues exist but no remediation timeline"],"suggestions":["Add invariant test: toWelderName(displayName) is always string before sanitizeDownloadFilename","Document CI_LOW_MEM semantics and when 413 is actually exercised (e.g. in nightly or staging)","Consider PDF content assertions via a library (e.g. pdf-parse) instead of grep for Step 2.3"],"dependency_order":"T2 (Content-Length 400) and T4 (toWelderName) can ship in parallel. T6 (invalid Content-Length test) depends on T2. T3 (shell script) should run after T2/T4. T5 (test split) is independent. T1 (sanitizeText) independent.","premortem_top_risk":"Grep-based PDF validation in T3 passes CI while a new failure mode (e.g. 'null' or wrong encoding) ships to production.","goal_alignment_notes":"The plan directly targets PDF download correctness: invalid input handling, [object Object] filenames, and CI validation. It serves operator reliability well; without a stated demo date, 48-hour visibility is implicit in each fix.","context_aware_feedback":{"current_context_type": "operator","penalties_applied":[],"penalties_skipped":[]}}
+
+---
+# Adversarial Findings (also must fix):
+
+
+```json
+{
+  "score": 7.2,
+  "adversarial_verdict": "The plan executes in dev with the refinements applied. The remaining risks are: (1) Step 2.3 verification script does not assert most 400/411/413 cases—only welder.name object is explicitly checked; (2) Client can lie about Content-Length and send unbounded body; (3) 411 chunked branch is untestable with standard fetch; (4) getApiBase jsdom test exercises the logic path but production bundling inlines env—Pre-Flight curl remains the only production proof.",
+  "sabotage_vectors": [
+    {
+      "step": "2.3",
+      "attack": "Step 2.3 script uses set -e and grep assertions for welder.name object only. The 'Missing score', 'score.total string', 'Malformed JSON', 'Oversized chartDataUrl', '411 chunked', '413 body' cases run curl/node but never capture and assert HTTP status. curl returns exit 0 for HTTP 400/413. The script would exit 0 even if all those endpoints returned 200.",
+      "detection_gap": "Pass criteria list 'Missing score: 400' etc. but the code block has no HTTP=$(curl ...); test \"$HTTP\" = \"400\" for those cases. Only welder.name object has test \"$HTTP_OBJ\" = \"200\" and grep assertions.",
+      "blast_radius": "Validation regressions (score, feedback, JSON, chartDataUrl, Content-Length, chunked, 413) would not be caught by Step 2.3. Would rely on Step 4.6 API tests—but Step 2.3 is the manual Phase 2 verification."
+    },
+    {
+      "step": "2.1",
+      "attack": "Content-Length check runs before request.json(). If client sends Content-Length: 5000 (under 5MB) but actually streams 20MB, request.json() buffers the entire body. Node/fetch does not enforce read limit based on Content-Length. Server OOMs.",
+      "detection_gap": "No stream-level body size cap. The 413 defense only triggers when client honestly declares > 5MB. A lying client bypasses it.",
+      "blast_radius": "OOM from malicious or buggy client. Infrastructure (reverse proxy) could enforce limit; plan does not require it."
+    },
+    {
+      "step": "2.1",
+      "attack": "When Request is constructed with body and Transfer-Encoding: chunked, fetch/undici may auto-add Content-Length, stripping chunked. The 411 branch may never execute in production.",
+      "detection_gap": "Step 4.6 411 test uses Request with body—runtime may add Content-Length. Known Issues documents this. No raw-socket test. Defense exists but is unprovable.",
+      "blast_radius": "Chunked OOM defense is documented but untestable. Audit trail exists; behavior under true chunked unknown."
+    },
+    {
+      "step": "4.4",
+      "attack": "expect(chartEl).toHaveAttribute('style') passes for any style attribute. style=\"width: 1px; height: 1px\" or style=\"color: red\" would pass. Step 3.1 specifies 600×200 for html-to-image capture.",
+      "detection_gap": "Verification does not assert width: 600 or height: 200. Wrong dimensions would not be caught. Chart capture could fail or produce tiny image.",
+      "blast_radius": "PDF chart could be wrong size; capture could fail on different dimensions; no regression guard."
+    },
+    {
+      "step": "1.3",
+      "attack": "Prototype checks buffer.slice(0,5)==='%PDF-' and str.includes('Mike Chen'). A truncated PDF or one that corrupts after the first page could pass. No verification that PDF opens in a viewer.",
+      "detection_gap": "No check that PDF is well-formed beyond header and substring. React PDF could produce malformed structure in edge cases.",
+      "blast_radius": "Phase 2 could ship PDFs that fail to open in Acrobat/Chrome; low probability but nonzero."
+    },
+    {
+      "step": "3.3",
+      "attack": "getApiBase reads process.env.NEXT_PUBLIC_BASE_PATH. In production, Next.js inlines this at build. The jsdom test mutates process.env—that exercises the source code path. But the bundled client has no process.env; it's a literal. Test validates logic; build config is separate.",
+      "detection_gap": "If next.config basePath is /app but NEXT_PUBLIC_BASE_PATH is unset or wrong at build, fetch goes to /api/... instead of /app/api/.... 404. Test would pass (env set in Jest). Pre-Flight curl is the only production verification.",
+      "blast_radius": "Production 404 on Download PDF when basePath misconfigured at build."
+    }
+  ],
+  "precondition_gaps": [
+    "Step 2.1, 2.2, 2.3: Dev server must be running. Pre-Flight curl to localhost:3000 returns 200 for any page—no /api/health. 'Connection refused' is the only automatic failure mode.",
+    "Step 4.6: 413 test runs unless CI=true AND CI_LOW_MEM=1. If CI runs with CI_LOW_MEM=1 unset and has <2GB RAM, test may OOM and fail flakily. Document that CI_LOW_MEM must be set in low-memory CI config.",
+    "Phase 3 Pre-Flight: 'curl with basePath prefix when next.config basePath is /app'—but plan says path is /app/api/welder-report-pdf. Next.js basePath prefixes the app, so route would be at {basePath}/api/welder-report-pdf. Verify the curl URL matches Next.js routing."
+  ],
+  "untestable_verifications": [
+    "Step 2.3: Missing score, score.total string, malformed JSON, oversized chartDataUrl, 411, 413—script runs curl but does not assert response code. Manual inspection assumed.",
+    "Step 3.1: 'document.getElementById(\"trend-chart\")?.offsetWidth' is manual. Step 4.4 only checks style attribute exists, not width: 600px.",
+    "Step 3.3: 'Remove id=trend-chart via DevTools; click Download' is manual smoke. Step 4.3 tests chartDataUrl null in fetch body, not that API returns valid PDF without chart.",
+    "Step 4.1: Asserts mockFetch called with correct payload. Does not verify URL.createObjectURL, a.click(), or URL.revokeObjectURL. Implementation could omit download logic and pass."
+  ],
+  "cascade_points": [
+    "Step 2.1 remains single point of failure for Phase 2 and 4. If validation order is wrong or isValidFeedbackItem is too strict, 400 could block valid requests. No step verifies validation order matches plan.",
+    "Step 1.2 WelderReportPDF: Both prototype and API depend on it. toWelderName in component uses v.length > 0; API uses v.trim().length > 0. Inconsistent for whitespace-only names. Component could render '   ' in PDF; API would use 'Unknown'."
+  ],
+  "phase_boundary_gaps": [
+    "Phase 1 to 2: Prototype and route both use WelderReportPDF. No contract test that route passes identical prop shapes. chartDataUrl from body could be typed differently in edge cases.",
+    "Phase 3 to 4: Tests mock fetch. Real flow, basePath, CORS never exercised in automation. Pre-Flight curl is manual.",
+    "Phase 2 to 3: handleDownloadPDF uses displayName. Plan adds toWelderName(displayName)—good. If report.feedback_items shape diverges from API expectation (e.g. AI adds new fields), implicit coupling."
+  ],
+  "pre_mortem": {
+    "partial_execution": "Stopping after Phase 2 leaves API route and WelderReportPDF in place; client unintegrated. Rollback: remove route and component; deps remain. No schema migration; npm ci still works. Low risk.",
+    "silent_corruption": "report.feedback_items from generateAIFeedback could include items with message as object. isValidFeedbackItem filters—all items could fail. feedback_items.length === 0 && rawItems.length > 0 triggers 400. User gets error instead of PDF with empty Key Areas. Depends on AI output shape.",
+    "prod_vs_local": "getApiBase returns '' when NEXT_PUBLIC_BASE_PATH not set at build. With basePath /app, fetch goes to /api/welder-report-pdf (wrong). Actual route at /app/api/welder-report-pdf. 404. Works locally (no basePath). Pre-Flight curl would catch; easy to skip.",
+    "dependency_drift": "@react-pdf/renderer 3.4.0 with React 19—compatibility matrix may not list React 19. html-to-image with Recharts—toPng could start failing in future browser/Recharts updates. Build passes; runtime chart capture fails; PDF without chart (fallback works)."
+  },
+  "critical_issues": [],
+  "latent_issues": [
+    "Step 2.1: Client can lie about Content-Length; no stream-level read cap. Document as limitation; recommend nginx/cloudflare body limit for production.",
+    "Step 2.3: Most verification curl commands do not assert HTTP status. Implementer could miss adding test \"$HTTP\" = \"400\" etc. Script would 'pass' with green curls.",
+    "Step 1.2: Component toWelderName does not trim. API toWelderName trims. Whitespace-only 'name' renders in PDF (component) vs 'Unknown' (API). Minor inconsistency.",
+    "getApiBase: jsdom test exercises env path; production bundle inlines. No automated production basePath verification. Pre-Flight curl is manual."
+  ],
+  "blind_spots": [
+    "Plan assumes request.json() respects Content-Length. It does not—it reads the full stream. Body size limit is advisory, not enforced at read.",
+    "Plan assumes displayName and welder.name sources remain string. toWelderName added defensively; good. Future API could return displayName as object—client now coerces.",
+    "Plan assumes html-to-image toPng eventually settles or rejects. If toPng hangs (browser/Recharts bug), withTimeout returns null after 10s. User waits 10s; gets PDF without chart. No refinement for slow capture UX."
+  ],
+  "minor_issues": [
+    "Step 4.6: it.skip condition uses process.env.CI === 'true'. Some CI systems use different values (e.g. '1'). Document expected CI env format.",
+    "Step 2.3: 'Oversized chartDataUrl' curl pipes to jq then grep. If jq missing, fallback uses grep on raw response. Script may behave differently across machines.",
+    "Step 1.1: 'package-lock.json exists and is committed'—verification does not run git status. Manual."
+  ],
+  "what_the_author_cant_see": "Step 2.3 looks comprehensive—it lists many validation cases. But only welder.name object has explicit assertions. The author's mental model is 'we run all these curls'; the adversarial model is 'curl exits 0 on 400, so we never fail.' The set -e and grep for welder.name fix one case; the rest are illusory.",
+  "recommended_action": "execute",
+  "minimum_fixes_before_execution": [
+    "Add HTTP capture and test assertions to Step 2.3 for: Missing score, score.total string, malformed JSON, oversized chartDataUrl, 413. Example: HTTP=$(curl -s -o /dev/null -w '%{http_code}' ...); test \"$HTTP\" = \"400\" || { echo \"Expected 400 got $HTTP\"; exit 1; }",
+    "Document Content-Length trust assumption: server does not enforce read limit; client can lie. Recommend reverse-proxy body limit for production.",
+    "Consider Step 4.4 assertion for style containing width/height (e.g. expect(chartEl.getAttribute('style')).toMatch(/width.*600|600.*width/) or parse and assert) to guard 600×200."
+  ]
+}
+```

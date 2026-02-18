@@ -1,0 +1,67 @@
+
+Here is the HANDOFF as requested:
+
+```json
+{
+  "phase_completed": "Critique Fixes Exploration",
+  "phase_goal_achieved": true,
+  "goal_delta": "Exploration complete; 5 main + 4 minor fixes mapped to plan and code. Ready for implementation (Option A).",
+
+  "decisions_locked": [
+    {"topic": "Prototype path", "chosen": "Replace make_session_for_arc with generate_session_for_welder from mock_sessions", "reverting_this_requires": "Reintroduce duplicate frame logic — prototype validates wrong path"},
+    {"topic": "Spot-check sample", "chosen": "Use session_ids[0] and WELDER_ARCHETYPES[0].welder_id, never hardcoded sess_mike-chen_001", "reverting_this_requires": "Spot-check silently passes when mike-chen removed"},
+    {"topic": "seed_demo_data idempotent", "chosen": "Skip only when existing == expected_count; re-seed when partial", "reverting_this_requires": "44/45 sessions → skip instead of re-seed"},
+    {"topic": "Historical last slot", "chosen": "Caller passes sc.total for last index when building historicalScores; never 0 when score available", "reverting_this_requires": "fast_learner wrongly shows declining — demo risk"},
+    {"topic": "Fix delivery", "chosen": "Option A: Plan doc + code in single pass", "reverting_this_requires": "Two docs or code-only loses tuning/pre-flight guidance"}
+  ],
+
+  "files_state": {
+    "created": [],
+    "modified": [
+      "plan-10-mock-welders-refined.md — tuning guide 1.4, pre-flight Phase 3, fold 2.3→2.1, wipe/seed note, badge flicker 3.3, loading spec 3.2, concrete 5.3",
+      "backend/scripts/prototype_arc_scoring.py — use generate_session_for_welder; seed before each PASS_BAND or fresh process",
+      "backend/scripts/seed_demo_data.py — WELDER_ARCHETYPES loop, existing==expected_count, spot-check session_ids[0]+first archetype",
+      "my-app/src/app/seagull/page.tsx — skeleton during load; setWelderScores once after allSettled",
+      "my-app/src/app/seagull/welder/[id]/page.tsx — sc.total for last slot in historicalScores",
+      "my-app/src/__tests__/lib/ai-feedback.test.ts — test [72,0]→declining"
+    ],
+    "deleted": []
+  },
+
+  "contracts_established": [
+    "generateAIFeedback historicalScores[i] = score for Session i+1; last slot = sc.total when available",
+    "Spot-check: session_ids[0].operator_id == WELDER_ARCHETYPES[0].welder_id",
+    "Tuning: fast_learner low → tighten _arc_angle_tight stddev; declining high → increase _arc_angle_drift drift_factor"
+  ],
+
+  "assumptions_now_baked_in": [
+    "Plan doc editable; else Option B fallback",
+    "Python 3.10+; use Tuple if 3.8",
+    "Skeleton = animate-pulse or Loading; no new component",
+    "Prototype needs fresh process or seed inside loop — seed route advances RNG"
+  ],
+
+  "open_risks_for_next_phase": [
+    {"risk": "Plan doc overwritten", "trigger": "Plan regeneration", "owner": "Option B fallback"},
+    {"risk": "Badge flicker plateaued/volatile", "trigger": "±2 noise", "owner": "Document or ±2 dead zone"},
+    {"risk": "Tuning guide wrong", "trigger": "Scores still out of band", "owner": "Iterate; prototype catches"}
+  ],
+
+  "broken_or_incomplete": [
+    "prototype uses make_session_for_arc — generate_session_for_welder not yet in codebase",
+    "seed_demo_data skips on existing>0; no spot-check",
+    "Step 5.3 pseudocode — no concrete last-slot test",
+    "WELDERS duplicated; pre-flight sync not in plan"
+  ],
+
+  "next_phase_must_not": [
+    "Run prototype after seed in same process without re-seeding",
+    "Use 0 for last slot when sc.total available",
+    "Spot-check with hardcoded sess_mike-chen_001",
+    "Skip seed when existing>0 — only existing==expected_count",
+    "Show empty scores during fetch — use skeleton"
+  ],
+
+  "next_phase_starting_state": "Exploration complete. Plan needs embedded fixes; prototype/seed_demo_data/ai-feedback need edits. Parent Step 1.1–1.3 must finish before prototype fix. Effort ~7h."
+}
+```

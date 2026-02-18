@@ -40,7 +40,7 @@ WHAT THIS MEANS FOR COMPARISON
 
 import math
 from datetime import datetime, timezone
-from typing import Callable, List, Optional
+from typing import Callable, List, Optional, Tuple
 
 from models.frame import Frame
 from models.session import Session, SessionStatus
@@ -186,6 +186,133 @@ def novice_angle(t: int) -> float:
     drift = 20.0 * (t / 15000.0)
     wobble = 5.0 * math.sin(t / 900.0 + 1.1)
     return 45.0 + drift + wobble
+
+
+# ---------------------------------------------------------------------------
+# Arc-specific signal generators (for welder archetypes)
+# ---------------------------------------------------------------------------
+
+
+def _arc_angle_tight(t: int, session_idx: int) -> float:
+    """Tightening: session 0 loose (±4°), session 4 tight (±1°)."""
+    looseness = max(0.5, 4.0 - session_idx * 0.8)
+    return 45.0 + looseness * math.sin(t / 600.0)
+
+
+def _arc_angle_drift(t: int, session_idx: int) -> float:
+    """Declining: drift grows with drift_factor = 0.15 + session_idx * 0.15."""
+    drift_factor = 0.15 + session_idx * 0.15
+    drift = 20.0 * drift_factor * (t / 15000.0)
+    wobble = 4.0 * math.sin(t / 900.0)
+    return 45.0 + drift + wobble
+
+
+def _arc_amps_stable(t: int) -> float:
+    """Stable ±2A."""
+    return NOMINAL_AMPS + 2.0 * math.sin(t / 4000.0)
+
+
+def _arc_amps_unstable(t: int) -> float:
+    """Unstable ±8A."""
+    return NOMINAL_AMPS + 8.0 * math.sin(t / 500.0)
+
+
+def _arc_volts_stable(t: int) -> float:
+    """Stable ±0.15V."""
+    return NOMINAL_VOLTS + 0.15 * math.sin(t / 3500.0)
+
+
+def _arc_volts_unstable(t: int) -> float:
+    """Unstable ±2V."""
+    return NOMINAL_VOLTS + 2.0 * math.sin(t / 800.0)
+
+
+def generate_frames_for_arc(
+    arc_type: str,
+    session_index: int,
+    duration_ms: int = 15_000,
+) -> Tuple[List[Frame], bool]:
+    """
+    Generate frames for an arc type and session index.
+    Returns (frames, disable_continuity): volatile/declining need continuity disabled.
+
+    Tuning guide (Step 1.4):
+      - If fast_learner scores low → tighten _arc_angle_tight stddev (reduce looseness).
+      - If declining scores high → increase _arc_angle_drift drift_factor.
+    """
+    if arc_type == "fast_learner":
+        get_angle = lambda t: _arc_angle_tight(t, session_index)
+        get_amps = _arc_amps_stable
+        get_volts = _arc_volts_stable
+        disable = False
+    elif arc_type == "declining":
+        get_angle = lambda t: _arc_angle_drift(t, session_index)
+        get_amps = _arc_amps_stable
+        get_volts = _arc_volts_stable
+        disable = True
+    elif arc_type == "volatile":
+        get_angle = lambda t: 45.0 + 6.0 * math.sin(t / 300.0)
+        get_amps = _arc_amps_unstable
+        get_volts = _arc_volts_unstable
+        disable = True
+    elif arc_type == "consistent_expert":
+        get_angle = expert_angle
+        get_amps = expert_amps
+        get_volts = expert_volts
+        disable = False
+    elif arc_type in ("plateaued", "new_hire"):
+        get_angle = lambda t: 45.0 + 3.0 * math.sin(t / 700.0)
+        get_amps = _arc_amps_stable
+        get_volts = _arc_volts_stable
+        disable = False
+    else:
+        get_angle = expert_angle
+        get_amps = expert_amps
+        get_volts = expert_volts
+        disable = False
+
+    frames = generate_frames(
+        duration_ms=duration_ms,
+        get_amps=get_amps,
+        get_volts=get_volts,
+        get_angle=get_angle,
+        include_thermal_gap=False,
+    )
+    return frames, disable
+
+
+def generate_session_for_welder(
+    welder_id: str,
+    arc_type: str,
+    session_index: int,
+    session_id: str,
+    duration_ms: int = 15_000,
+) -> Session:
+    """
+    Build a Session for a welder at a given session index.
+    operator_id = welder_id for traceability.
+    Caller passes arc_type from WELDER_ARCHETYPES (avoids circular import).
+    """
+    frames, disable = generate_frames_for_arc(arc_type, session_index, duration_ms)
+
+    return Session(
+        session_id=session_id,
+        operator_id=welder_id,
+        start_time=datetime.now(timezone.utc),
+        weld_type="mild_steel",
+        thermal_sample_interval_ms=THERMAL_SAMPLE_INTERVAL_MS,
+        thermal_directions=THERMAL_DIRECTIONS,
+        thermal_distance_interval_mm=THERMAL_DISTANCE_INTERVAL_MM,
+        sensor_sample_rate_hz=SENSOR_SAMPLE_RATE_HZ,
+        frames=frames,
+        status=SessionStatus.COMPLETE,
+        frame_count=len(frames),
+        expected_frame_count=len(frames),
+        last_successful_frame_index=len(frames) - 1,
+        validation_errors=[],
+        completed_at=datetime.now(timezone.utc),
+        disable_sensor_continuity_checks=disable,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -475,4 +602,6 @@ __all__ = [
     "generate_large_session",
     "generate_frames",
     "generate_thermal_snapshots",
+    "generate_frames_for_arc",
+    "generate_session_for_welder",
 ]

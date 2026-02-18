@@ -1,0 +1,346 @@
+# verify-execution
+
+You are conducting a ground-truth verification pass. The execution phase produced an output document describing what it did. Your job is to verify that what it SAID it did matches what ACTUALLY EXISTS in the codebase.
+
+You are not reviewing quality. You are auditing reality.
+
+---
+
+## Your Mandate
+
+The execution output is a claim. Every claim must be verified against actual file contents, actual test results, or actual command output. Unverified claims are failures.
+
+---
+
+## Verification Protocol
+
+### Step 1: File Existence Audit
+
+For every file listed as created or modified in the execution output:
+
+```bash
+# For each claimed file:
+ls -la [path]                    # Does it exist?
+wc -l [path]                     # Is it non-empty?
+head -20 [path]                  # Does it contain what was claimed?
+```
+
+Report:
+- `VERIFIED`: File exists and contains expected content
+- `MISSING`: File does not exist (execution claim was false)
+- `EMPTY`: File exists but is empty (likely placeholder)
+- `WRONG_CONTENT`: File exists but doesn't match execution description
+
+### Step 2: Interface Contract Verification
+
+For every API endpoint, exported function, or type contract claimed in the execution:
+
+```bash
+# TypeScript: verify exports
+grep -n "export" [path]
+
+# API routes: verify route registration  
+grep -rn "router\.\|app\." [routes-file]
+
+# Type definitions: verify shape
+grep -A 10 "interface\|type " [types-file]
+```
+
+Report whether each claimed contract actually exists with the claimed signature.
+
+### Step 3: Dependency Verification
+
+For every new dependency claimed to be installed:
+
+```bash
+cat package.json | grep [dependency]
+ls node_modules/[dependency] 2>/dev/null || echo "NOT INSTALLED"
+```
+
+If claimed as installed but absent: this is a blocking failure.
+
+### Step 4: Run What's Runnable
+
+If the project has a test suite:
+```bash
+# Run tests that touch modified files only
+npx jest --findRelatedTests [modified-files] --passWithNoTests 2>&1 | tail -20
+```
+
+If the project has a type checker:
+```bash
+npx tsc --noEmit 2>&1 | head -30
+```
+
+If the project has a linter:
+```bash
+npx eslint [modified-files] --max-warnings 0 2>&1 | tail -20
+```
+
+**These are not optional.** If they cannot run (missing config, wrong environment), document why. Do not skip and proceed.
+
+### Step 5: Integration Smoke Test
+
+For the primary user-facing change this execution implemented:
+
+Identify the single most important thing a user can now do that they couldn't before. Verify it exists end-to-end by tracing the code path manually:
+
+1. Entry point (route handler / event handler / component)
+2. Business logic layer
+3. Data layer / API call
+4. Return path
+
+Document each hop. If any hop is missing or broken, it's a critical finding.
+
+---
+
+## Output Format
+
+Output ONLY valid JSON.
+
+```json
+{
+  "ground_truth_score": 7.5,
+  "execution_claim_accuracy": "68%",
+  "summary": "8 of 12 claimed files exist. 2 are empty placeholders. 2 do not exist. TypeScript compilation has 3 errors. Primary user flow is broken at the data layer.",
+
+  "file_audit": [
+    { "path": "/src/store/auth.ts", "status": "VERIFIED", "note": "Exports useAuthStore as claimed" },
+    { "path": "/src/api/sessions.ts", "status": "MISSING", "note": "Execution claimed this was created — it does not exist" },
+    { "path": "/src/components/Login.tsx", "status": "EMPTY", "note": "File exists, 0 bytes. Execution described full implementation." }
+  ],
+
+  "contract_verification": [
+    { "claim": "POST /api/auth/login returns AuthUser", "status": "VERIFIED", "location": "src/routes/auth.ts:42" },
+    { "claim": "useAuthStore exports setUser action", "status": "WRONG_CONTENT", "note": "Store exists but action is named 'updateUser', not 'setUser'" }
+  ],
+
+  "tooling_results": {
+    "tests": "7 passed, 2 failed. Failures in auth.test.ts:34 (token validation) and session.test.ts:12 (null user handling)",
+    "typescript": "3 errors: src/api/sessions.ts not found (2 import errors), Type 'string | undefined' not assignable at auth.ts:67",
+    "lint": "4 warnings, 0 errors. Warnings are unused imports."
+  },
+
+  "integration_trace": {
+    "entry_point": "VERIFIED: POST /api/auth/login route exists at src/routes/auth.ts:38",
+    "business_logic": "VERIFIED: authService.login() exists at src/services/auth.ts:22",
+    "data_layer": "BROKEN: authService.login calls userRepository.findByEmail() which does not exist — file missing",
+    "return_path": "N/A — broken at data layer"
+  },
+
+  "critical_gaps": [
+    "src/api/sessions.ts was claimed as created but does not exist — 2 imports will fail at runtime",
+    "TypeScript has 3 compilation errors — code will not build",
+    "Primary auth flow is broken: userRepository.findByEmail is not implemented"
+  ],
+
+  "execution_can_proceed_to_review": false,
+  "blocking_reason": "TypeScript compilation failure and missing repository implementation mean the feature cannot run. Review is premature.",
+
+  "minimum_fixes_required": [
+    "Create src/api/sessions.ts with the claimed exports",
+    "Implement or stub userRepository.findByEmail",
+    "Fix TypeScript error at auth.ts:67"
+  ]
+}
+```
+
+---
+
+## Verdicts
+
+**`execution_can_proceed_to_review: true`** — All claimed files exist, tooling passes (or has documented blockers), primary user flow is traceable end-to-end. Minor issues noted but not blocking.
+
+**`execution_can_proceed_to_review: false`** — One or more of: missing files, broken compilation, broken primary user flow. Must be remediated before review adds any value.
+
+---
+
+## Rules
+
+- Never trust the execution output document over actual file contents
+- If you cannot run a tool (wrong environment, missing config), document that explicitly — do not assume it would pass
+- `execution_claim_accuracy` is `(verified files) / (claimed files)` as a percentage
+- `ground_truth_score` reflects reality, not intent — a 9/10 execution output with 3 missing files scores lower
+- If `execution_can_proceed_to_review` is false, the fix loop must run before the review phase
+
+---
+# Execution Output (claims to verify):
+
+
+# Implementation summary
+
+All steps in the Threshold Configuration Admin UI plan are implemented. Summary below.
+
+---
+
+## Files created
+
+1. `backend/models/thresholds.py` – Pydantic `WeldTypeThresholds` and `WeldThresholdUpdate` (angle_target `gt=0`)
+2. `backend/scripts/preflight_migration.py` – DB writability and row-count pre-flight for migrations
+3. `backend/alembic/versions/004_weld_thresholds_and_process_type.py` – Migration for `weld_thresholds` and `process_type`
+4. `backend/services/threshold_service.py` – Cached threshold service with `_load_lock` in `invalidate_cache`
+5. `backend/routes/thresholds.py` – GET/PUT thresholds API
+6. `backend/tests/test_thresholds_api.py` – Tests for thresholds API and cache invalidation
+7. `backend/tests/test_scoring_thresholds.py` – Tests for scoring with different thresholds
+8. `my-app/src/types/thresholds.ts` – Frontend threshold types
+9. `my-app/src/components/admin/AngleArcDiagram.tsx` – SVG arc for target angle
+10. `my-app/src/app/admin/layout.tsx` – Admin layout with nav
+11. `my-app/src/app/admin/thresholds/page.tsx` – Admin thresholds page (tabs + form)
+
+---
+
+## Files modified
+
+1. `backend/database/models.py` – Added `WeldThresholdModel`, `process_type` on `SessionModel`, `from_pydantic` / `to_pydantic` updates
+2. `backend/models/session.py` – Added `process_type`
+3. `backend/main.py` – Registered `thresholds_router`
+4. `backend/routes/sessions.py` – `CreateSessionRequest.process_type`, validation, `get_session_score` thresholds wiring, <10 frames → 400, `active_threshold_spec`, `process_type` in payload
+5. `backend/features/extractor.py` – `angle_target_deg` parameter in `extract_features`
+6. `backend/scoring/rule_based.py` – `score_session` accepts optional `thresholds`
+7. `backend/scripts/backfill_score_total.py` – Uses `get_thresholds`, `angle_target_deg`, `score_session(..., thresholds)`
+8. `backend/scripts/prototype_arc_scoring.py` – Loads thresholds and passes to scoring
+9. `backend/scripts/prototype_aggregate_perf.py` – Loads thresholds and passes to scoring
+10. `my-app/src/lib/api.ts` – `SessionScore.active_threshold_spec`, `fetchThresholds`, `updateThreshold`
+11. `my-app/src/lib/micro-feedback.ts` – Optional thresholds, per-generator try/catch, thermal 60/80 fallback
+12. `my-app/src/app/replay/[sessionId]/page.tsx` – Thresholds from score, `scoreFetchError`, micro-feedback gating
+13. `my-app/src/app/seagull/welder/[id]/page.tsx` – Threshold callout from `active_threshold_spec`
+14. `my-app/src/components/welding/ScorePanel.tsx` – Threshold callout
+15. `my-app/src/app/demo/team/[welderId]/page.tsx` – `fetchThresholds`, callout from spec or MIG
+16. `my-app/src/lib/seagull-demo-data.ts` – Optional `active_threshold_spec` in `createMockScore`
+17. `my-app/src/types/session.ts` – `process_type`, `score_total`
+18. `my-app/src/__tests__/components/welding/ScorePanel.test.tsx` – Test for threshold callout
+
+---
+
+## Checklist
+
+- [x] All 22 plan steps implemented
+- [x] Migration pre-flight script
+- [x] `invalidate_cache` acquires `_load_lock`
+- [x] Form uses `parseFloat` without `|| 0`; `isCompleteForm` requires `angle_target_degrees > 0`
+- [x] Backend enforces `angle_target_degrees > 0`
+- [x] Session factory in tests creates sessions with 10+ frames
+- [x] GET/PUT dependency overrides for both routes
+- [x] Thermal fallback 60/80
+- [x] Demo callout prefers spec or fetched MIG
+
+---
+
+## Manual verification
+
+1. **Migration**  
+   ```bash
+   cd backend
+   python scripts/preflight_migration.py  # optional
+   alembic upgrade head --sql > migration_preview.sql  # inspect SQL
+   alembic upgrade head
+   ```
+
+2. **Backend**  
+   ```bash
+   cd backend && uvicorn main:app --reload
+   curl -s http://localhost:8000/api/thresholds  # expect 4 items
+   ```
+
+3. **Admin UI**  
+   - Open `http://localhost:3000/admin/thresholds`
+   - Switch MIG/TIG/Stick/Flux Core tabs
+   - Change angle target, save
+   - Confirm validation (warning > critical, angle 0)
+
+4. **Replay**  
+   - Open `/replay/{sessionId}` for a session with score
+   - Confirm “Evaluated against MIG spec…” in ScorePanel and micro-feedback
+
+5. **Tests**  
+   ```bash
+   cd backend && pytest tests/test_thresholds_api.py tests/test_scoring_thresholds.py tests/test_get_session_score.py -v
+   cd my-app && npm test -- ScorePanel.test
+   ```
+
+---
+
+## Known limitations
+
+- In-memory cache is per-process; multi-worker setups can serve stale thresholds until restart.
+- Pre-flight script does not run in CI; run `alembic upgrade head` in CI (SQLite or ephemeral Postgres).
+- `test_score_insufficient_frames_returns_400` truncates the session; ensure Session validators pass.
+
+---
+
+# Implementation status: complete
+
+All 22 steps from the plan are implemented. The feature is ready for manual testing and review.
+
+
+---
+# Original Plan:
+
+
+Here is the handoff JSON:
+
+```json
+{
+  "phase_completed": "Plan Critique & Refinement — Threshold Configuration Admin UI",
+  "phase_goal_achieved": true,
+  "goal_delta": "Plan refined with 5 critical fixes and minor updates. Implementation can proceed; prior bugs and underspecs are documented and addressed.",
+
+  "decisions_locked": [
+    {"topic": "Migration pre-flight", "chosen": "preflight_migration.py for DB writability and row-count; if sessions >1000 rows run UPDATE manual first; alembic upgrade head --sql > migration_preview.sql before upgrade", "reverting_this_requires": "Removes safety for highest-risk step — hard"},
+    {"topic": "invalidate_cache", "chosen": "Acquire _load_lock before setting _cache_loaded = False", "reverting_this_requires": "Reintroduces concurrent correctness bug — hard"},
+    {"topic": "Form NaN / cleared-field", "chosen": "parseFloat(e.target.value) with no ||0 fallback; isCompleteForm checks angle_target_degrees > 0; backend gt=0 on angle_target_degrees", "reverting_this_requires": "Silent 0 submission, useless scoring — medium"},
+    {"topic": "Step 4.6 session_factory", "chosen": "Explicit fixture: SessionModel + 10 frames via generate_session_for_welder; conftest imports WeldThresholdModel before create_all", "reverting_this_requires": "Test may pass for wrong reason (404) — medium"},
+    {"topic": "Step 1.4 missing-row behavior", "chosen": "Fail loudly when tig/stick/flux_core row missing; per-row try/except for corrupt rows; no silent MIG fallback", "reverting_this_requires": "Silent wrong thresholds — hard"},
+    {"topic": "Step 2.3 zero-frames", "chosen": "Reject sessions with <10 frames; return 400 with clear message", "reverting_this_requires": "get_session_score may 500 — medium"},
+    {"topic": "Step 4.2 thermal fallback", "chosen": "Thermal fallback 60/80 to match seed; wait for sessionData and primaryScore before micro-feedback or show skeleton", "reverting_this_requires": "Visual flicker — low"},
+    {"topic": "Step 4.5 demo callout", "chosen": "Fetch GET /api/thresholds, use mig row when mockScore has no spec; no hardcoded 45° ±5°", "reverting_this_requires": "Demo shows wrong spec — low"}
+  ],
+
+  "files_state": {
+    "created": ["backend/scripts/preflight_migration.py"],
+    "modified": [".cursor/issues/threshold-configuration-admin-ui-plan-refined.md"],
+    "deleted": []
+  },
+
+  "contracts_established": [
+    "WeldTypeThresholds: angle_target_degrees gt=0",
+    "PUT /api/thresholds/:weld_type: angle_warning <= angle_critical; angle_target_degrees > 0",
+    "GET /api/sessions/:id/score: 400 if frames < 10; active_threshold_spec with 9 fields",
+    "get_thresholds: raises when tig/stick/flux_core row missing",
+    "invalidate_cache: acquires _load_lock before _cache_loaded = False",
+    "preflight_migration.py: DB writability, sessions row count; migration_preview.sql",
+    "session_factory: SessionModel + 10 frames; WeldThresholdModel imported before create_all"
+  ],
+
+  "assumptions_now_baked_in": [
+    "Single-worker for cache; multi-worker backlogged",
+    "PostgreSQL vanilla; 100k+ sessions needs batched UPDATE",
+    "down_revision 003_add_score_total",
+    "ActiveThresholdSpec optional fields for legacy compat",
+    "angle_target ≤90° for AngleArcDiagram"
+  ],
+
+  "open_risks_for_next_phase": [
+    {"risk": "Migration UPDATE succeeds, ALTER fails", "trigger": "Connection drop between steps", "owner": "Step 1.2 pre-flight"},
+    {"risk": "Large table migration locks sessions", "trigger": "sessions >1000 rows", "owner": "preflight_migration.py"},
+    {"risk": "Micro-feedback flicker", "trigger": "Frames load fast, score slow", "owner": "Step 4.2"},
+    {"risk": "test_put_threshold_invalidates_cache fixture underspec", "trigger": "Missing session+frames", "owner": "Step 4.6"}
+  ],
+
+  "broken_or_incomplete": [
+    "Original plan had 5 critical bugs; refinement fixes all. No implementation yet."
+  ],
+
+  "next_phase_must_not": [
+    "Run alembic upgrade without pre-flight",
+    "Call invalidate_cache without _load_lock",
+    "Use parseFloat(x) || 0 for form inputs",
+    "Allow angle_target_degrees === 0",
+    "Implement Step 4.6 without explicit session_factory",
+    "Hardcode 45° ±5° in demo when fetch available",
+    "Compute micro-feedback before sessionData and primaryScore ready"
+  ],
+
+  "next_phase_starting_state": "Refined plan at .cursor/issues/threshold-configuration-admin-ui-plan-refined.md. 20 steps, 4 phases. Fixes: migration pre-flight, cache lock, form NaN/0, session_factory, thermal 60/80, demo fetch. Implement per refined steps; run preflight before Step 1.2."
+}
+```

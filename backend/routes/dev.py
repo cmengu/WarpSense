@@ -4,6 +4,7 @@ Enabled only when ENV=development or DEBUG=1.
 """
 
 import os
+import random
 
 from fastapi import APIRouter, Depends, HTTPException
 
@@ -33,14 +34,11 @@ def get_db():
 @router.post("/seed-mock-sessions")
 async def seed_mock_sessions(db: OrmSession = Depends(get_db)):
     """
-    Seed expert and novice mock sessions into the database.
+    Seed mock sessions from WELDER_ARCHETYPES into the database.
     Only available when ENV=development or DEBUG=1.
 
-    Seeds:
-      - sess_expert_001 (expert welder, 15s, stable signals)
-      - sess_novice_001 (novice welder, 15s, erratic + thermal gap)
-
-    Visit /replay/sess_expert_001 or /replay/sess_novice_001 after seeding.
+    Seeds ~45 sessions (sess_{welder_id}_{001..00n}) per archetype.
+    Run seed before opening /seagull dashboard or welder report.
     """
     if not _is_dev_mode():
         raise HTTPException(
@@ -48,9 +46,18 @@ async def seed_mock_sessions(db: OrmSession = Depends(get_db)):
             detail="Seed route is only available in development (ENV=development or DEBUG=1)",
         )
 
-    from data.mock_sessions import generate_expert_session, generate_novice_session
+    from data.mock_welders import WELDER_ARCHETYPES
+    from data.mock_sessions import generate_session_for_welder
 
-    session_ids = ["sess_expert_001", "sess_novice_001"]
+    session_ids = []
+    for arch in WELDER_ARCHETYPES:
+        welder_id = arch["welder_id"]
+        n = arch["sessions"]
+        for i in range(1, n + 1):
+            session_ids.append(f"sess_{welder_id}_{i:03d}")
+
+    if len(session_ids) == 0:
+        raise HTTPException(status_code=500, detail="WELDER_ARCHETYPES is empty")
 
     for existing in db.query(SessionModel).filter(
         SessionModel.session_id.in_(session_ids)
@@ -58,23 +65,29 @@ async def seed_mock_sessions(db: OrmSession = Depends(get_db)):
         db.delete(existing)
     db.flush()
 
-    expert = generate_expert_session(session_id="sess_expert_001")
-    novice = generate_novice_session(session_id="sess_novice_001")
-
-    for session in [expert, novice]:
-        model = SessionModel.from_pydantic(session)
-        db.add(model)
+    random.seed(42)
+    for arch in WELDER_ARCHETYPES:
+        welder_id = arch["welder_id"]
+        arc_type = arch["arc"]
+        n = arch["sessions"]
+        for i in range(1, n + 1):
+            sid = f"sess_{welder_id}_{i:03d}"
+            session = generate_session_for_welder(welder_id, arc_type, i - 1, sid)
+            model = SessionModel.from_pydantic(session)
+            db.add(model)
 
     db.commit()
-
     return {"seeded": session_ids}
 
 
 @router.post("/wipe-mock-sessions")
 async def wipe_mock_sessions(db: OrmSession = Depends(get_db)):
     """
-    Delete mock sessions (sess_expert_001, sess_novice_001).
+    Delete mock sessions derived from WELDER_ARCHETYPES.
     Only available when ENV=development or DEBUG=1.
+
+    Deletes sess_{welder_id}_{001..00n} for all archetypes.
+    Orphan sessions (from removed archetypes) persist; manual cleanup if needed.
     """
     if not _is_dev_mode():
         raise HTTPException(
@@ -82,7 +95,15 @@ async def wipe_mock_sessions(db: OrmSession = Depends(get_db)):
             detail="Wipe route is only available in development (ENV=development or DEBUG=1)",
         )
 
-    session_ids = ["sess_expert_001", "sess_novice_001"]
+    from data.mock_welders import WELDER_ARCHETYPES
+
+    session_ids = []
+    for arch in WELDER_ARCHETYPES:
+        welder_id = arch["welder_id"]
+        n = arch["sessions"]
+        for i in range(1, n + 1):
+            session_ids.append(f"sess_{welder_id}_{i:03d}")
+
     deleted = db.query(SessionModel).filter(
         SessionModel.session_id.in_(session_ids)
     ).delete(synchronize_session=False)

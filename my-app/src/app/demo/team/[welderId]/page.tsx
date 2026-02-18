@@ -6,11 +6,14 @@
  * Uses getDemoTeamData; no fetchSession/fetchScore.
  * When session.frames is empty or thermal data absent: PlaceholderHeatMap (neutral gradient).
  * Never white screen.
+ * Threshold callout: prefer mock score's active_threshold_spec; else fetch GET /api/thresholds.
  */
 
-import { use, Suspense } from "react";
+import { use, Suspense, useState, useEffect } from "react";
 import Link from "next/link";
 import { getDemoTeamData, DEMO_WELDERS } from "@/lib/seagull-demo-data";
+import { fetchThresholds } from "@/lib/api";
+import type { WeldTypeThresholds } from "@/types/thresholds";
 import { useFrameData } from "@/hooks/useFrameData";
 import {
   extractHeatmapData,
@@ -52,6 +55,15 @@ function PlaceholderHeatMap({ label }: { label: string }) {
 function WelderReportContent({ welderId }: { welderId: string }) {
   const data = getDemoTeamData(welderId);
   const { session, expertSession, report } = data;
+  const [fetchedThresholds, setFetchedThresholds] = useState<
+    WeldTypeThresholds[] | null
+  >(null);
+
+  useEffect(() => {
+    fetchThresholds()
+      .then(setFetchedThresholds)
+      .catch(() => setFetchedThresholds(null));
+  }, []);
 
   const sessionFrames = session?.frames ?? [];
   const expertFrames = expertSession?.frames ?? [];
@@ -95,6 +107,26 @@ function WelderReportContent({ welderId }: { welderId: string }) {
             <div className="text-sm text-zinc-600 dark:text-zinc-400">
               {report.skill_level} • {report.trend}
             </div>
+            {data.score?.active_threshold_spec ? (
+              <div className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
+                Evaluated against{' '}
+                {data.score.active_threshold_spec.weld_type.toUpperCase()} spec
+                — Target {data.score.active_threshold_spec.angle_target}° ±
+                {data.score.active_threshold_spec.angle_warning}°
+              </div>
+            ) : (
+              (() => {
+                const mig = fetchedThresholds?.find(
+                  (t) => t.weld_type === 'mig'
+                );
+                return mig ? (
+                  <div className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
+                    Evaluated against MIG spec — Target{' '}
+                    {mig.angle_target_degrees}° ±{mig.angle_warning_margin}°
+                  </div>
+                ) : null;
+              })()
+            )}
           </div>
         </div>
         <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-950/30 border-l-4 border-blue-500 rounded">

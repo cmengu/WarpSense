@@ -1,0 +1,1100 @@
+# Refine Plan (Intelligent Improvement with Deep Analysis)
+
+You are a **principal engineer** conducting a targeted refinement of an implementation plan based on a comprehensive critique. This requires strategic thinking about what to preserve, what to fix, and how to integrate improvements seamlessly.
+
+---
+
+## CRITICAL: Your Mission
+
+You have received:
+1. **Current Plan** - The implementation plan being refined
+2. **Critique** - A detailed analysis with scores, issues, and recommendations
+3. **History** - Previous iterations and what was attempted
+
+Your task: **Output a COMPLETE, IMPROVED plan** that:
+- ✅ Fixes ALL critical issues completely
+- ✅ Addresses minor issues where they improve quality
+- ✅ Preserves ALL strengths and working sections
+- ✅ Maintains logical structure and flow
+- ✅ Remains executable and actionable
+
+**DO NOT:**
+- ❌ Just list changes or provide diffs
+- ❌ Explain what you're doing or why
+- ❌ Remove good working content
+- ❌ Add unnecessary complexity
+- ❌ Output anything except the refined plan
+
+---
+
+## Phase 1: Critique Analysis & Strategy Formation
+
+### 1.1 Parse the Critique
+
+First, extract from the critique JSON:
+- **Score:** What's the current quality level?
+- **Critical Issues:** What MUST be fixed? (execution-blocking)
+- **Minor Issues:** What SHOULD be fixed? (quality improvements)
+- **Strengths:** What MUST be preserved?
+- **Recommended Action:** Was this flagged for deep revision or polish?
+
+### 1.2 Issue Classification & Prioritization
+
+Organize issues by type:
+
+**Type A: Missing Core Steps**
+- Example: "No database backup before migration"
+- Fix: Add complete new step with verification
+- Impact: Could cause data loss
+- Priority: P0 - Must fix
+
+**Type B: Insufficient Error Handling**
+- Example: "No null check for API response"
+- Fix: Add try-catch, null guards, fallback behavior
+- Impact: Runtime errors, crashes
+- Priority: P0 - Must fix
+
+**Type C: Unclear/Vague Instructions**
+- Example: "Update the component" → needs specifics
+- Fix: Add file paths, function names, code examples
+- Impact: Execution ambiguity
+- Priority: P1 - High priority
+
+**Type D: Missing Verification**
+- Example: "Test manually" without test cases
+- Fix: Add specific test cases, expected outputs, validation commands
+- Impact: Can't verify success
+- Priority: P1 - High priority
+
+**Type E: Dependency/Sequencing Issues**
+- Example: Step 5 depends on Step 8
+- Fix: Reorder steps, add explicit prerequisites
+- Impact: Execution failure
+- Priority: P0 - Must fix
+
+**Type F: Missing Edge Cases**
+- Example: "Doesn't handle empty array"
+- Fix: Add edge case handling logic
+- Impact: Failures on boundary conditions
+- Priority: P1-P2 depending on likelihood
+
+**Type G: Polish/Optimization**
+- Example: "Could add TypeScript types"
+- Fix: Add if improves clarity significantly
+- Impact: Code quality, maintainability
+- Priority: P2 - Nice to have
+
+---
+
+## Phase 2: Refinement Strategy by Issue Type
+
+### Strategy A: Adding Missing Steps
+
+**When to use:** Critical issue indicates entire step is missing
+
+**Process:**
+1. Identify where in sequence the step belongs
+2. Draft the complete step with:
+   - Clear action description
+   - Code example or command
+   - Expected outcome
+   - Verification method
+   - Dependencies
+   - Error handling
+3. Integrate seamlessly into existing flow
+4. Update step numbering if needed
+5. Cross-reference with related steps
+
+**Example:**
+
+**Critique says:** "Missing database backup before migration in Step 4"
+
+**Bad refinement:**
+```
+3.5. Backup database
+```
+
+**Good refinement:**
+```
+## Step 3.5: Create Pre-Migration Database Backup
+
+**Action:**
+Create a timestamped backup of the production database before running migrations.
+
+**Implementation:**
+```bash
+# Create backup directory if it doesn't exist
+mkdir -p ./backups
+
+# Generate timestamped backup
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+pg_dump -h localhost -U postgres -d production_db > ./backups/backup_${TIMESTAMP}.sql
+
+# Verify backup created successfully
+if [ $? -eq 0 ]; then
+    echo "✅ Backup created: backup_${TIMESTAMP}.sql"
+    echo "Size: $(du -h ./backups/backup_${TIMESTAMP}.sql | cut -f1)"
+else
+    echo "❌ Backup failed - ABORT MIGRATION"
+    exit 1
+fi
+```
+
+**Verification:**
+- Backup file exists in `./backups/` directory
+- File size > 0 bytes
+- Can open file and see SQL commands
+
+**Rollback (if migration fails):**
+```bash
+# Restore from backup
+psql -h localhost -U postgres -d production_db < ./backups/backup_${TIMESTAMP}.sql
+```
+
+**Time estimate:** 2-5 minutes (depending on database size)
+
+**Dependencies:** Requires `pg_dump` installed, database credentials configured
+```
+
+---
+
+### Strategy B: Adding Error Handling
+
+**When to use:** Critical issue about missing error handling or null checks
+
+**Process:**
+1. Identify the risky operation
+2. Determine failure modes (what could go wrong?)
+3. Add defensive checks before operation
+4. Wrap in try-catch where applicable
+5. Provide fallback behavior
+6. Log errors for debugging
+
+**Example:**
+
+**Critique says:** "Step 7 doesn't handle null heatmapData"
+
+**Current (problematic):**
+```javascript
+function renderHeatmap() {
+  heatmapData.forEach(point => {
+    // render point
+  });
+}
+```
+
+**Refined (with error handling):**
+```javascript
+function renderHeatmap() {
+  // Guard: Check if data exists
+  if (!heatmapData) {
+    console.warn('⚠️ Heatmap data not loaded yet');
+    return; // Exit gracefully
+  }
+
+  // Guard: Check if array is empty
+  if (heatmapData.length === 0) {
+    console.warn('⚠️ Heatmap data is empty');
+    // Show "No data" UI instead of blank screen
+    showNoDataMessage();
+    return;
+  }
+
+  // Process data with error handling
+  try {
+    heatmapData.forEach(point => {
+      // Validate each point
+      if (!point || typeof point.temperature !== 'number') {
+        console.error('Invalid point data:', point);
+        return; // Skip this point
+      }
+      
+      // Render point
+      renderPoint(point);
+    });
+  } catch (error) {
+    console.error('Error rendering heatmap:', error);
+    // Fallback: show error state
+    showErrorMessage('Failed to render heatmap');
+  }
+}
+```
+
+---
+
+### Strategy C: Improving Clarity & Specificity
+
+**When to use:** Minor issue about vague instructions
+
+**Process:**
+1. Identify what's ambiguous
+2. Add concrete details:
+   - File paths
+   - Function names
+   - Import statements
+   - Exact commands
+   - Expected outputs
+3. Provide code examples
+4. Show before/after if modifying existing code
+
+**Example:**
+
+**Critique says:** "Step 2 'Import required libraries' is too vague"
+
+**Current (vague):**
+```
+## Step 2: Import Libraries
+
+Import the necessary libraries for 3D rendering and heatmap visualization.
+```
+
+**Refined (specific):**
+```
+## Step 2: Import Required Dependencies
+
+**Action:**
+Add the following imports to the top of `src/components/ReplayViewer.tsx`:
+
+**Code:**
+```typescript
+// Three.js core and loaders
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
+
+// Custom shaders
+import { HeatmapShader } from '@/shaders/HeatmapShader';
+
+// React and state management
+import { useEffect, useRef, useState } from 'react';
+import { useReplayStore } from '@/stores/replayStore';
+
+// Utils
+import { temperatureToColor } from '@/utils/colorMapping';
+import { interpolateHeatData } from '@/utils/heatInterpolation';
+```
+
+**Verification:**
+- No TypeScript errors in file
+- Imports resolve (check with `npm run typecheck`)
+- Auto-complete works for imported functions
+
+**Dependencies:**
+Ensure these packages are installed:
+```bash
+npm install three@0.160.0
+npm install @types/three@0.160.0 --save-dev
+```
+
+**Time estimate:** 2-3 minutes
+```
+
+---
+
+### Strategy D: Adding Verification Steps
+
+**When to use:** Issue about missing or weak verification
+
+**Process:**
+1. For each step, define "done" criteria
+2. Provide specific test cases
+3. Include expected outputs
+4. Add commands to run tests
+5. Include negative test cases (what should fail)
+
+**Example:**
+
+**Critique says:** "Step 5 verification just says 'check colors' - not specific"
+
+**Current (weak):**
+```
+**Verification:**
+- Check that colors change with temperature
+```
+
+**Refined (specific):**
+```
+**Verification:**
+
+**Manual Visual Test:**
+1. Open browser DevTools (F12)
+2. Go to Console tab
+3. Run these test scenarios:
+
+```javascript
+// Test 1: Cold temperature (0°F) - should be deep blue
+testTemperature(0);
+// Expected: RGB(0, 0, 139) - dark blue
+
+// Test 2: Warm temperature (250°F) - should be yellow-orange  
+testTemperature(250);
+// Expected: RGB(255, 165, 0) - orange
+
+// Test 3: Hot temperature (500°F) - should be bright red/white
+testTemperature(500);
+// Expected: RGB(255, 255, 255) - white-hot
+
+// Test 4: 5°F increments - should see visible color change
+for (let temp = 0; temp <= 50; temp += 5) {
+  console.log(`${temp}°F:`, temperatureToColor(temp));
+}
+// Expected: Should see gradual transition from blue → cyan
+
+// Test 5: Negative temperature - should clamp to 0°F color
+testTemperature(-50);
+// Expected: Same as 0°F (deep blue), no error
+
+// Test 6: Above max temperature - should clamp to 500°F color  
+testTemperature(1000);
+// Expected: Same as 500°F (white), no error
+```
+
+**Automated Test:**
+```typescript
+// Add to src/__tests__/colorMapping.test.ts
+describe('temperatureToColor', () => {
+  test('visible change every 5°F', () => {
+    for (let temp = 0; temp < 500; temp += 5) {
+      const color1 = temperatureToColor(temp);
+      const color2 = temperatureToColor(temp + 5);
+      
+      // Calculate color difference
+      const diff = Math.abs(color1.r - color2.r) + 
+                   Math.abs(color1.g - color2.g) + 
+                   Math.abs(color1.b - color2.b);
+      
+      // Expect visible difference (threshold: 10 on 0-765 scale)
+      expect(diff).toBeGreaterThan(10);
+    }
+  });
+
+  test('handles edge cases', () => {
+    expect(() => temperatureToColor(-100)).not.toThrow();
+    expect(() => temperatureToColor(9999)).not.toThrow();
+    expect(temperatureToColor(null)).toEqual({ r: 0, g: 0, b: 0 }); // fallback
+  });
+});
+```
+
+**Success Criteria:**
+- All manual tests show expected colors
+- Automated tests pass (`npm test`)
+- Color transitions are smooth and visible
+- No console errors
+```
+
+---
+
+### Strategy E: Fixing Dependencies & Sequencing
+
+**When to use:** Critical issue about step ordering or missing prerequisites
+
+**Process:**
+1. Map dependencies between steps
+2. Identify circular dependencies or out-of-order steps
+3. Reorder steps logically
+4. Add explicit prerequisite sections
+5. Update step references throughout plan
+
+**Example:**
+
+**Critique says:** "Step 5 uses heatmapShader but it's not created until Step 8"
+
+**Current (broken sequence):**
+```
+## Step 5: Apply Shader to Metal
+Use heatmapShader on material...
+
+## Step 8: Create Heatmap Shader
+Define the shader code...
+```
+
+**Refined (correct sequence):**
+```
+## Step 5: Create Heatmap Shader
+
+**Prerequisites:** None (this step must come first)
+
+**Action:**
+Define the custom shader for heatmap rendering.
+
+**Implementation:**
+```typescript
+// src/shaders/HeatmapShader.ts
+export const HeatmapShader = {
+  uniforms: {
+    temperatureMap: { value: null },
+    minTemp: { value: 0.0 },
+    maxTemp: { value: 500.0 }
+  },
+  vertexShader: `
+    varying vec2 vUv;
+    void main() {
+      vUv = uv;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `,
+  fragmentShader: `
+    uniform sampler2D temperatureMap;
+    uniform float minTemp;
+    uniform float maxTemp;
+    varying vec2 vUv;
+    
+    vec3 temperatureToColor(float temp) {
+      // Normalize temp to 0-1 range
+      float t = clamp((temp - minTemp) / (maxTemp - minTemp), 0.0, 1.0);
+      
+      // Color gradient: blue → cyan → green → yellow → red → white
+      if (t < 0.2) {
+        return mix(vec3(0.0, 0.0, 0.545), vec3(0.0, 1.0, 1.0), t * 5.0);
+      } else if (t < 0.4) {
+        return mix(vec3(0.0, 1.0, 1.0), vec3(0.0, 1.0, 0.0), (t - 0.2) * 5.0);
+      } else if (t < 0.6) {
+        return mix(vec3(0.0, 1.0, 0.0), vec3(1.0, 1.0, 0.0), (t - 0.4) * 5.0);
+      } else if (t < 0.8) {
+        return mix(vec3(1.0, 1.0, 0.0), vec3(1.0, 0.0, 0.0), (t - 0.6) * 5.0);
+      } else {
+        return mix(vec3(1.0, 0.0, 0.0), vec3(1.0, 1.0, 1.0), (t - 0.8) * 5.0);
+      }
+    }
+    
+    void main() {
+      float temp = texture2D(temperatureMap, vUv).r;
+      vec3 color = temperatureToColor(temp);
+      gl_FragColor = vec4(color, 1.0);
+    }
+  `
+};
+```
+
+**Verification:**
+- File created at `src/shaders/HeatmapShader.ts`
+- No TypeScript errors
+- Can import in other files: `import { HeatmapShader } from '@/shaders/HeatmapShader'`
+
+**Time estimate:** 15-20 minutes
+
+---
+
+## Step 6: Apply Shader to Metal Material
+
+**Prerequisites:** 
+- Step 5 completed (HeatmapShader created)
+- Metal model loaded in scene
+
+**Action:**
+Replace metal's standard material with shader material using HeatmapShader.
+
+**Implementation:**
+```typescript
+// In ReplayViewer.tsx
+import { HeatmapShader } from '@/shaders/HeatmapShader';
+
+// Find metal mesh
+const metalMesh = scene.getObjectByName('metal_surface');
+
+if (metalMesh) {
+  // Create shader material
+  const shaderMaterial = new THREE.ShaderMaterial({
+    uniforms: THREE.UniformsUtils.clone(HeatmapShader.uniforms),
+    vertexShader: HeatmapShader.vertexShader,
+    fragmentShader: HeatmapShader.fragmentShader
+  });
+  
+  // Apply to mesh
+  metalMesh.material = shaderMaterial;
+  
+  console.log('✅ Heatmap shader applied to metal');
+} else {
+  console.error('❌ Metal mesh not found in scene');
+}
+```
+
+**Verification:**
+- Metal surface visible in viewport
+- No console errors
+- Material shows as ShaderMaterial in Three.js DevTools
+```
+
+---
+
+### Strategy F: Adding Edge Case Handling
+
+**When to use:** Issue about missing edge cases or boundary conditions
+
+**Process:**
+1. Enumerate edge cases for the operation
+2. Add handling code for each case
+3. Provide examples
+4. Add tests for edge cases
+
+**Example:**
+
+**Critique says:** "Doesn't handle case when replay has no temperature data"
+
+**Refined (with edge cases):**
+```
+## Step 9: Render Heatmap Frame
+
+**Action:**
+Render heatmap for current replay frame, handling edge cases.
+
+**Implementation:**
+```typescript
+function renderHeatmapFrame(frameIndex: number) {
+  // Edge Case 1: Invalid frame index
+  if (frameIndex < 0 || frameIndex >= totalFrames) {
+    console.warn(`⚠️ Frame ${frameIndex} out of range (0-${totalFrames-1})`);
+    return;
+  }
+
+  // Edge Case 2: No temperature data for this replay
+  const temperatureData = replayStore.getTemperatureData();
+  if (!temperatureData || temperatureData.length === 0) {
+    console.warn('⚠️ No temperature data available');
+    // Show default/neutral color
+    setUniformTemperature(metalMesh, 70); // Room temperature
+    return;
+  }
+
+  // Edge Case 3: Frame exists but has no data points
+  const frameData = temperatureData[frameIndex];
+  if (!frameData || frameData.points.length === 0) {
+    console.warn(`⚠️ Frame ${frameIndex} has no data points`);
+    // Interpolate from adjacent frames
+    const interpolated = interpolateFromAdjacentFrames(frameIndex);
+    applyTemperatureData(interpolated);
+    return;
+  }
+
+  // Edge Case 4: Sparse data (missing measurements at some points)
+  if (frameData.points.length < metalMesh.geometry.vertices.length * 0.5) {
+    console.warn(`⚠️ Frame ${frameIndex} has sparse data, interpolating...`);
+    const filled = fillSparsedData(frameData);
+    applyTemperatureData(filled);
+    return;
+  }
+
+  // Normal case: Full data available
+  applyTemperatureData(frameData);
+}
+
+// Helper: Interpolate when frame has no data
+function interpolateFromAdjacentFrames(frameIndex: number) {
+  const prevFrame = findPreviousValidFrame(frameIndex);
+  const nextFrame = findNextValidFrame(frameIndex);
+  
+  if (prevFrame && nextFrame) {
+    // Linear interpolation between frames
+    const t = (frameIndex - prevFrame.index) / (nextFrame.index - prevFrame.index);
+    return interpolateFrames(prevFrame.data, nextFrame.data, t);
+  } else if (prevFrame) {
+    // Use previous frame
+    return prevFrame.data;
+  } else if (nextFrame) {
+    // Use next frame
+    return nextFrame.data;
+  } else {
+    // No data at all - use defaults
+    return getDefaultTemperatureData();
+  }
+}
+```
+
+**Edge Cases Covered:**
+1. ✅ Invalid frame index (negative or beyond range)
+2. ✅ No temperature data loaded
+3. ✅ Frame with zero data points
+4. ✅ Sparse/incomplete data points
+5. ✅ First frame (no previous frame to interpolate from)
+6. ✅ Last frame (no next frame to interpolate from)
+
+**Test Cases:**
+```typescript
+describe('renderHeatmapFrame edge cases', () => {
+  test('handles negative frame index', () => {
+    expect(() => renderHeatmapFrame(-1)).not.toThrow();
+  });
+
+  test('handles frame beyond range', () => {
+    expect(() => renderHeatmapFrame(9999)).not.toThrow();
+  });
+
+  test('handles missing temperature data', () => {
+    replayStore.temperatureData = null;
+    expect(() => renderHeatmapFrame(0)).not.toThrow();
+  });
+
+  test('handles empty data points', () => {
+    replayStore.temperatureData = [{ points: [] }];
+    expect(() => renderHeatmapFrame(0)).not.toThrow();
+  });
+});
+```
+```
+
+---
+
+## Phase 3: Execution - Building the Refined Plan
+
+### 3.1 Structure Preservation
+
+**Preserve the original structure unless critique explicitly says to reorganize.**
+
+**Keep:**
+- Main section headings
+- Step numbering scheme
+- Overall flow and narrative
+- Introduction and overview sections
+
+**Modify only:**
+- Content that has issues
+- Steps that need reordering (if dependency issue)
+- Sections flagged in critique
+
+---
+
+### 3.2 Integration Approach
+
+**For each issue in the critique:**
+
+1. **Locate** the affected section in current plan
+2. **Apply** the appropriate refinement strategy (A-G above)
+3. **Verify** the fix doesn't break other sections
+4. **Update** any cross-references
+5. **Maintain** consistent formatting and style
+
+---
+
+### 3.3 Quality Checks Before Output
+
+Before outputting the refined plan, verify:
+
+**Completeness:**
+- [ ] All critical issues addressed
+- [ ] All minor issues addressed (or consciously skipped)
+- [ ] All strengths preserved
+- [ ] No sections accidentally deleted
+
+**Consistency:**
+- [ ] Step numbers sequential
+- [ ] Cross-references updated
+- [ ] Consistent terminology
+- [ ] Uniform formatting
+
+**Executability:**
+- [ ] Each step has clear action
+- [ ] Code examples are complete and runnable
+- [ ] Verification criteria are specific
+- [ ] Dependencies are explicit
+
+**Clarity:**
+- [ ] No ambiguous instructions
+- [ ] File paths and names provided
+- [ ] Expected outputs specified
+- [ ] Time estimates included
+
+---
+
+## Phase 4: Output Format
+
+### 4.1 What to Output
+
+**Output ONLY the complete refined plan as markdown.**
+
+**DO NOT include:**
+- ❌ This meta-instruction document
+- ❌ Explanations of what you changed
+- ❌ Diffs or change summaries
+- ❌ Commentary about the critique
+- ❌ Preamble or conclusion about the refinement
+
+**DO include:**
+- ✅ Complete refined plan from beginning to end
+- ✅ All sections (even unchanged ones)
+- ✅ All fixes integrated seamlessly
+- ✅ Proper markdown formatting
+
+---
+
+### 4.2 Output Template Structure
+
+Your output should follow this general structure (adapt to specific plan):
+
+```markdown
+# [Plan Title]
+
+## Overview
+[High-level description of what will be implemented]
+
+## Prerequisites
+- [Dependency 1]
+- [Dependency 2]
+- [etc.]
+
+## Implementation Steps
+
+### Phase 1: [Phase Name]
+
+#### Step 1.1: [Step Name]
+
+**Action:**
+[What to do]
+
+**Implementation:**
+```[language]
+[Complete code]
+```
+
+**Verification:**
+- [Specific test 1]
+- [Specific test 2]
+
+**Expected Outcome:**
+[What success looks like]
+
+**Time Estimate:** [X minutes/hours]
+
+**Dependencies:** [What must be done first]
+
+---
+
+#### Step 1.2: [Step Name]
+
+[... repeat pattern ...]
+
+---
+
+### Phase 2: [Phase Name]
+
+[... continue ...]
+
+---
+
+## Testing & Validation
+
+[Comprehensive testing section]
+
+---
+
+## Rollback Procedure
+
+[How to undo if things go wrong]
+
+---
+
+## Known Issues & Limitations
+
+[Any caveats or edge cases still not handled]
+
+---
+
+## Success Criteria
+
+[How to know the entire implementation is complete]
+```
+
+---
+
+## Phase 5: Special Cases & Advanced Scenarios
+
+### Scenario A: Score 8-9 (Minor Polish)
+
+**What it means:** Plan is mostly good, just needs small improvements
+
+**Approach:**
+- Address minor issues without disrupting working sections
+- Focus on clarity and specificity
+- Add verification where weak
+- Don't over-refine
+
+**Example fixes:**
+- Add missing import statement
+- Clarify vague file path
+- Add specific test case
+- Fix typo in command
+
+---
+
+### Scenario B: Score 5-7 (Significant Revision)
+
+**What it means:** Plan has critical flaws, needs substantial work
+
+**Approach:**
+- Fix all critical issues first (execution-blocking)
+- Reorder steps if sequencing is broken
+- Add missing core steps
+- Beef up error handling significantly
+- May need to restructure sections
+
+**Example fixes:**
+- Add entire missing phase
+- Reorder 5+ steps for correct dependencies
+- Add comprehensive error handling throughout
+- Replace vague steps with specific implementations
+
+---
+
+### Scenario C: Score <5 (Major Overhaul)
+
+**What it means:** Plan is fundamentally flawed
+
+**Approach:**
+- Consider if plan addresses the original task at all
+- May need to restructure entire plan
+- Add multiple missing phases
+- Complete rewrite of vague sections
+- Extensive verification added throughout
+
+**Example fixes:**
+- Add 3 new major phases
+- Complete rewrite of implementation approach
+- Add all error handling, verification, testing
+- Fix fundamental technical errors
+
+---
+
+### Scenario D: Conflicting Critique Points
+
+**What to do when critique has contradictory suggestions:**
+
+**Example:** 
+- Issue #1: "Too vague, add more detail"
+- Issue #5: "Too verbose, simplify Step 3"
+
+**Resolution:**
+1. Look at which is critical vs minor
+2. Critical issues take precedence
+3. For same priority: Balance both concerns
+   - Add detail where execution requires it
+   - Simplify prose without losing critical information
+
+---
+
+### Scenario E: Preserving Existing Good Code
+
+**When critique says:** "Add error handling to Step 7" but Step 7 already has working code
+
+**Approach:**
+```typescript
+// EXISTING (keep this):
+function processData(data) {
+  const result = transform(data);
+  return result;
+}
+
+// ADD (integrate with existing):
+function processData(data) {
+  // NEW: Validation
+  if (!data) {
+    console.error('Data is null or undefined');
+    return null;
+  }
+
+  // NEW: Error handling
+  try {
+    // EXISTING: Keep original logic
+    const result = transform(data);
+    return result;
+  } catch (error) {
+    // NEW: Error recovery
+    console.error('Transform failed:', error);
+    return getDefaultData();
+  }
+}
+```
+
+**Don't replace working code entirely - wrap it with improvements.**
+
+---
+
+## Phase 6: Final Checklist
+
+Before submitting the refined plan, verify:
+
+### Critical Requirements
+- [ ] **All critical issues fixed** - None remain unaddressed
+- [ ] **Plan is executable** - Someone could follow it step-by-step
+- [ ] **Strengths preserved** - Good sections untouched
+- [ ] **Complete output** - No placeholders like "TODO" or "[add details]"
+
+### Quality Requirements
+- [ ] **Specific, not vague** - File paths, function names, exact commands
+- [ ] **Verifiable** - Clear success criteria for each step
+- [ ] **Error handling** - Defensive code where needed
+- [ ] **Edge cases** - Boundary conditions handled
+
+### Formatting Requirements
+- [ ] **Valid markdown** - Proper headers, code blocks, lists
+- [ ] **Consistent style** - Uniform formatting throughout
+- [ ] **Code blocks tagged** - Language specified (```typescript, ```bash, etc.)
+- [ ] **No meta-content** - Only the plan itself, no explanations
+
+---
+
+## Remember
+
+**You are outputting THE REFINED PLAN, not a report about the plan.**
+
+**The refined plan should be:**
+- ✅ Complete (beginning to end)
+- ✅ Improved (all issues fixed)
+- ✅ Executable (ready to implement)
+- ✅ Clear (no ambiguity)
+
+**The refined plan should NOT be:**
+- ❌ A diff or changelog
+- ❌ A summary of changes
+- ❌ Commentary about the critique
+- ❌ Partial or incomplete
+
+---
+
+**Now, examine the critique, apply the appropriate strategies, and output the complete refined plan.**
+
+---
+# Current Plan:
+
+
+Refined plan is in place. Summary of changes that address both critiques:
+
+**Critical fixes**
+1. **Pre-flight automation** — Added `PYTHONPATH=backend python -c "from data.mock_sessions import generate_session_for_welder; from data.mock_welders import WELDER_ARCHETYPES"` at the top so missing dependencies fail fast.
+2. **Step 2.1 `session_ids` undefined** — Defined `session_ids` and `expected_count` at the very start of `main()` and included the full `main()` flow so the skip path cannot see them undefined. Added an invariant note on ordering.
+3. **Step 3.2 `sc` null** — When `fetchScore` fails, avoid appending 0 to the last slot; added a guard and requirement to use `insufficient_data` or not render the trend.
+4. **Step 1.2 plan file path** — Defined a resolution order (taskspace → `.cursor/issues` → create `docs/`), plus an abort path if nothing exists.
+5. **Step 4.3 integration test** — New Step 4.3 to verify the welder report caller passes `sc.total` for the last slot, with a manual fallback if E2E is not set up.
+
+**Other improvements**
+- **Terminology** — Switched "sessionCounts" to "sessions" to match `WELDER_ARCHETYPES`.
+- **Step 1.4 verification** — Replaced `python3.8` with `python` for 3.10+.
+- **Tuning guide validation** — Step 1.1 verification includes a grep check that the tuning guide params exist in `mock_sessions`.
+- **Orphan sessions** — Documented in Step 2.2 that orphan sessions may remain.
+- **Risk heatmap** — Added a row for "session_ids undefined in skip path".
+- **Success criteria** — Added checks for the pre-flight, `sc` null handling, and integration test.
+- **Rollback & known issues** — Added sections to match the template.
+
+
+---
+# Standard Critique (issues to fix):
+
+
+{"overall_strategy_score": 7.6, "top_3_avg_priority": 8.1, "context_type": "operator", "goal_alignment_score": 8.0, "task_scores": [{"task_number": 1, "task_title": "Pre-flight automation — PYTHONPATH check for missing dependencies", "strategic_value": 8.5, "strategic_value_after_penalty": 8.5, "context_alignment": 9.0, "leverage_optionality": 8.0, "resource_efficiency": 9.0, "risk_balance": 9.0, "dependencies": 10.0, "execution_quality": 8.5, "overall_score": 8.5, "feedback_penalty_applied": false, "ships_wrong_risk": "If the import path or module layout changes, the pre-flight may pass while runtime still fails.", "higher_leverage_alternative": null, "reasoning": "Fail-fast on missing deps reduces debug time and aligns with data integrity."}, {"task_number": 2, "task_title": "Step 2.1 — Define session_ids and expected_count at start of main()", "strategic_value": 9.0, "strategic_value_after_penalty": 9.0, "context_alignment": 9.5, "leverage_optionality": 7.5, "resource_efficiency": 8.0, "risk_balance": 9.0, "dependencies": 9.0, "execution_quality": 8.5, "overall_score": 8.8, "feedback_penalty_applied": false, "ships_wrong_risk": "If the skip path runs before session_ids is populated, NameError returns.", "higher_leverage_alternative": null, "reasoning": "Removes core undefined variable bug that would block the pipeline."}, {"task_number": 3, "task_title": "Step 3.2 — Guard on sc null when fetchScore fails", "strategic_value": 9.0, "strategic_value_after_penalty": 9.0, "context_alignment": 9.5, "leverage_optionality": 7.5, "resource_efficiency": 8.0, "risk_balance": 8.0, "dependencies": 9.0, "execution_quality": 8.0, "overall_score": 8.6, "feedback_penalty_applied": false, "ships_wrong_risk": "If guard is wrong, trend shows 0 instead of insufficient_data and misleads operators.", "higher_leverage_alternative": "Consider failing loudly (error UI) instead of silent fallback when sc is null.", "reasoning": "Prevents silent wrong data in the last slot."}, {"task_number": 4, "task_title": "Step 1.2 — Plan file path resolution (taskspace → .cursor/issues → docs/)", "strategic_value": 7.0, "strategic_value_after_penalty": 7.0, "context_alignment": 8.0, "leverage_optionality": 7.0, "resource_efficiency": 8.0, "risk_balance": 9.0, "dependencies": 10.0, "execution_quality": 7.5, "overall_score": 7.5, "feedback_penalty_applied": false, "ships_wrong_risk": "Resolution order may conflict if multiple plan files exist in different locations.", "higher_leverage_alternative": "Single canonical path (e.g. docs/) to avoid resolution ambiguity.", "reasoning": "Unblocks script execution but adds path complexity."}, {"task_number": 5, "task_title": "Step 4.3 — Integration test for welder report sc.total in last slot", "strategic_value": 8.0, "strategic_value_after_penalty": 8.0, "context_alignment": 8.5, "leverage_optionality": 8.0, "resource_efficiency": 6.0, "risk_balance": 9.0, "dependencies": 6.0, "execution_quality": 7.0, "overall_score": 7.7, "feedback_penalty_applied": false, "ships_wrong_risk": "Manual fallback may drift from actual integration behavior over time.", "higher_leverage_alternative": "Automated E2E test for welder report caller; avoid manual-only verification.", "reasoning": "Validates critical data path but depends on E2E setup."}], "critical_issues": ["T4 path resolution — Multiple plan locations may lead to different scripts loading different plans.", "T5 — Manual fallback for integration test is a weak guarantee; regression risk remains if E2E is not automated."], "minor_issues": ["Orphan sessions (Step 2.2) are documented but no explicit cleanup or constraint is defined.", "Tuning guide grep check in Step 1.1 does not specify which params or files to search."], "suggestions": ["Canonicalize plan location to a single path (e.g. docs/plans/) and reference it consistently.", "Add a unit test that mocks fetchScore returning null and asserts insufficient_data or no trend render.", "Document in risk heatmap the manual fallback drift risk for Step 4.3."], "dependency_order": "T1 (pre-flight) first — all other tasks assume env works. T4 (path resolution) before T2 — T2's main() flow depends on plan being loadable. T2 before T3 — T3 consumes session data. T5 can run after T3.", "premortem_top_risk": "Manual Step 4.3 verification decays: nobody re-runs it when the welder report caller changes.", "goal_alignment_notes": "The five tasks remove runtime failures (undefined vars, null handling) and increase determinism; together they advance the mock welders / skill arcs goal by making the pipeline reliable and verifiable.", "context_aware_feedback": {"current_context_type": "operator", "penalties_applied": [], "penalties_skipped": []}}
+
+---
+# Adversarial Findings (also must fix):
+
+
+Adversarial critique:
+
+```json
+{
+  "score": 6.2,
+  "adversarial_verdict": "This plan will execute in a dev environment where the parent plan is complete, but will fail or corrupt state if: (1) plan file resolution points to the wrong file in CI, (2) parent implements generate_session_for_welder with different param names than the tuning guide, (3) any archetype has sessions: 0, or (4) Step 4.3 falls back to manual verification and that never runs before demo.",
+  "sabotage_vectors": [
+    {
+      "step": "1.1",
+      "attack": "Parent implements generate_session_for_welder with internal params named differently (e.g. looseness_factor instead of _arc_angle_tight). Prototype runs, scores drift, tuning guide says 'tighten _arc_angle_tight' but grep finds nothing—implementer edits wrong file or gives up. Verification grep catches missing params, but the tuning guide stays wrong for the actual code.",
+      "detection_gap": "Verification checks param NAMES exist via grep; it does not verify the tuning guide maps to the code path that drives scores.",
+      "blast_radius": "Implementers thrash when scores drift; prototype stays red; demo blocked"
+    },
+    {
+      "step": "1.1",
+      "attack": "PASS_BANDS in plan are (arc, s_idx, min, max) from exploration. Parent's generate_session_for_welder yields different score distributions (e.g. different frame counts, thermal model). All arcs fail bands. Tuning guide is applied but params in parent's mock_sessions don't exist or behave differently. Iteration never converges.",
+      "detection_gap": "No verification that PASS_BANDS are attainable by parent's implementation. Plan assumes exploration bands match production path.",
+      "blast_radius": "Step 1.1 blocks; Phase 1 incomplete; pre-flight passes but prototype never does"
+    },
+    {
+      "step": "1.2",
+      "attack": "Step 1.2 resolution order: taskspace first, then .cursor/issues/10-mock-welders-with-skill-arcs.md. The second path is the ISSUE file, not the implementation plan. The issue has no Step 1.4. Implementer greps the issue file, finds nothing, creates docs/plan-10-mock-welders-tuning.md. Parent plan Step 1.4 is never updated. CI runs parent plan; parent Step 1.4 still says 'tune angle/amps/volts'. Tuning guide ends up in orphan doc.",
+      "detection_gap": "Verification says 'grep -A2 Tuning guide'—succeeds if ANY file has it. Orphan docs/ file passes. Parent plan remains unupdated.",
+      "blast_radius": "Implementers following parent plan never see tuning guide; prototype failures unresolved"
+    },
+    {
+      "step": "2.1",
+      "attack": "WELDER_ARCHETYPES includes an archetype with sessions: 0. List comp yields session_ids where the first archetype contributes no IDs. session_ids[0] is from the second archetype. _spot_check compares session_ids[0] to WELDER_ARCHETYPES[0]['welder_id']—mismatch. Spot-check fails. Re-seed loop runs. For archetype with sessions:0, loop 'for i in range(0)' creates nothing. expected_count omits them. No validation enforces sessions >= 1.",
+      "detection_gap": "Plan assumes all archetypes have sessions >= 1. No step validates WELDER_ARCHETYPES structure. If parent adds a 'placeholder' archetype with sessions:0, spot-check logic breaks.",
+      "blast_radius": "Re-seed always triggered; spot-check fails after seed; RuntimeError; seed never completes"
+    },
+    {
+      "step": "2.1",
+      "attack": "Parent uses 'sessionCount' instead of 'sessions' in archetype dict. Code accesses a['sessions']—KeyError at runtime. Pre-flight imports WELDER_ARCHETYPES but doesn't assert structure. Script crashes on first run.",
+      "detection_gap": "Pre-flight only imports; no structure assertion. KeyError is loud but happens late—after implementer has made edits.",
+      "blast_radius": "Seed script fails; Phase 2 blocked"
+    },
+    {
+      "step": "2.1",
+      "attack": "WELDER_ARCHETYPES is empty. session_ids = []. expected_count = 0. existing = 0. existing == expected_count. _spot_check(session_ids=[], ...) returns True (if not session_ids: return True). Skip path taken. Zero sessions seeded. 'Demo data already complete, skipping.' Silent success with no data.",
+      "detection_gap": "Empty session_ids passes spot-check. No step validates that expected_count > 0 or that skipping when zero sessions exist is correct.",
+      "blast_radius": "Dashboard shows 10 welders, all 'Score unavailable'; demo appears broken but seed 'succeeded'"
+    },
+    {
+      "step": "3.2",
+      "attack": "Welder report fetches historicalSessionIds from parent. If historicalSessionIds is empty or single-element, histFetchIds = slice(0,-1) = []. histResults = []. histScores = []. historicalScores = [sc.total]. Length 1. generateAIFeedback gets historicalScores.length < 2 → 'insufficient_data'. Trend never shown. Plan assumes parent provides multi-session history. If parent's historical fetch has different structure, we may double-count or misalign.",
+      "detection_gap": "No verification of historicalSessionIds structure. Plan shows histFetchIds = historicalSessionIds.slice(0,-1) but doesn't verify parent provides [older...newest] with current last.",
+      "blast_radius": "Trend always insufficient_data; or wrong scores in history if parent format differs"
+    },
+    {
+      "step": "4.3",
+      "attack": "E2E not set up. Plan says 'manual Step 4.4 verification before demo'. No CI gate. Implementer ships. Demo day: nobody ran manual verification. Caller passes 0 for last slot due to a different bug. 'declining' shows for fast_learner. Demo fails.",
+      "detection_gap": "Manual fallback has no enforcement. Success criterion 14 requires 'welder report trend correct' but if manual is deferred, nothing blocks merge.",
+      "blast_radius": "Production regression; same bug the plan was meant to fix"
+    }
+  ],
+  "precondition_gaps": [
+    "Step 1.2 plan file resolution: .cursor/issues/10-mock-welders-with-skill-arcs.md is the parent ISSUE, not the parent implementation plan. The parent implementation plan lives in taskspace (plan-10-mock-welders-refined.md) or workspaces. Resolution order may update the wrong file.",
+    "Step 2.1: No verification that WELDER_ARCHETYPES keys include 'sessions' and 'welder_id'. Parent could use different keys.",
+    "Step 3.2: Depends on Parent 4.3-4.4 for historicalSessionIds. If parent provides session IDs in different order (e.g. current first), slice(0,-1) logic is wrong.",
+    "Pre-flight verifies generate_session_for_welder and WELDER_ARCHETYPES exist but does not verify WELDER_ARCHETYPES has sessions >= 1 for all archetypes."
+  ],
+  "untestable_verifications": [
+    "Step 3.1: 'Throttled network shows skeleton visibly before scores' — requires manual DevTools throttle. No automated assertion. A wrong implementation that never sets loading=true could pass if reviewer doesn't throttle.",
+    "Step 1.2: 'Edits landed in a file that will be committed' — verification is 'grep -A2 Tuning guide'. Passes if tuning guide exists anywhere. Does not verify it's in the parent plan or that the right file was modified.",
+    "Step 4.3 fallback: 'unit test that mocks fetchScore and verifies the welder report component passes [...histScores, sc.total] to generateAIFeedback' — requires rendering the page component, mocking fetch, waiting for useEffect, and spying on generateAIFeedback. No concrete test code. 'Manual Step 4.4 verification' is the realistic fallback; no test proves caller correctness."
+  ],
+  "cascade_points": [
+    "Pre-flight is the single gate for Phases 1-4. If it passes but parent's generate_session_for_welder has a different signature (e.g. extra required arg), Step 1.1 prototype fails. No intermediate check.",
+    "Step 2.1 is the seed foundation. If session_ids derivation or spot-check logic is wrong, Phase 2 and Phase 3 verification (seeded backend) are invalid. All dashboard/welder report checks assume good data.",
+    "Step 3.2 caller fix is the core regression fix. If it's wrong or skipped (manual fallback), Step 4.1 engine tests pass but production still shows false declining."
+  ],
+  "phase_boundary_gaps": [
+    "Phase 1 to Phase 2: Phase 2 requires 'Parent Step 2.4 seed_demo_data loops WELDER_ARCHETYPES'. If parent delivers seed_demo_data that uses different structure, this plan's Step 2.1 replaces it entirely. No verification that parent's seed format is compatible.",
+    "Phase 2 to Phase 3: Phase 3 assumes 'Seeded data for verification'. If Phase 2 spot-check passes but data is subtly wrong (e.g. wrong operator_id on a different session), Phase 3 verification could pass for one welder and fail for another. No cross-welder validation.",
+    "Phase 4.3: Integration test or manual. If E2E not set up, the 'unit test that mocks fetchScore' is underspecified. The handoff from 'we have a test' to 'we have manual only' is a phase boundary with no automated gate."
+  ],
+  "pre_mortem": {
+    "partial_execution": "We got through Phase 1 and Phase 2 but had to stop before Phase 4. The state: prototype uses generate_session_for_welder and passes; seed_demo_data has spot-check; plan docs updated. Phase 3 dashboard/welder changes are partial. The integration test (Step 4.3) was never added—E2E not set up, manual fallback documented. We merged. Two weeks later: fast_learner welder report shows 'declining'. Root cause: Step 3.2 was implemented but a race (sc set after historicalScores built) or a different caller path still passed 0. Step 4.3 manual verification was never run.",
+    "silent_corruption": "Everything appeared to work. Users reported 'wrong trend' 3 days later. Root cause: Spot-check only validates session_ids[0]. If a different session (e.g. session 3 of 5) had wrong operator_id due to a bug in generate_session_for_welder, spot-check wouldn't catch it. Seeded data had one bad row. Welder report for that operator showed wrong history.",
+    "prod_vs_local": "Staging deployment revealed: .cursor/taskspace/20260218_130707/ does not exist in CI build. Step 1.2 resolution falls through to .cursor/issues/10-mock-welders-with-skill-arcs.md. That file has no Step 1.4. Implementer created docs/plan-10-mock-welders-tuning.md. CI passed. But the parent plan in a different branch still has old Step 1.4. Merge conflict or overwrite: tuning guide lost. Local had taskspace; CI did not.",
+    "dependency_drift": "Three months later, when SQLAlchemy or the SessionModel schema updated, the seed_demo_data loop 'db.delete(s)' per session may hit deferred flush or constraint issues. The plan uses db.flush() after delete loop. If ORM behavior changes, the loop delete could fail or leave orphan frames. No test pins ORM version."
+  },
+  "critical_issues": [
+    "Step 1.2 plan file resolution: In CI, taskspace often absent. Fallback .cursor/issues/10-mock-welders-with-skill-arcs.md is the issue, not the implementation plan. Tuning guide lands in wrong place; parent plan unupdated.",
+    "Step 2.1 empty session_ids: When WELDER_ARCHETYPES is empty or all sessions:0, spot-check returns True and skip succeeds with zero data. No validation that we have meaningful seed.",
+    "Step 4.3: Manual fallback has no gate. If E2E not set up, the plan permits 'manual Step 4.4 verification' but nothing enforces it. Regression can ship."
+  ],
+  "latent_issues": [
+    "Tuning guide param names may not exist in parent's mock_sessions. Parent could use generate_frames_for_arc with different internal params. Grep verification fails, but the guide is still wrong for the code that runs.",
+    "Spot-check only validates session_ids[0]. Corrupt operator_id on session 2..N passes. One bad row can cause wrong welder-report trend.",
+    "Step 3.1 skeleton verification is manual (throttle network). CI cannot catch 'skeleton never shows'."
+  ],
+  "blind_spots": [
+    "Plan assumes parent implementation plan and issue are the same document or that resolution order finds the implementation plan. The implementation plan may live in workspaces or a differently named file.",
+    "Plan assumes WELDER_ARCHETYPES always has sessions >= 1 per archetype. Parent schema does not validate this.",
+    "Plan assumes generate_session_for_welder will have tunable params named _arc_angle_tight and _arc_angle_drift. Parent may use different architecture (e.g. config-driven, no such symbols).",
+    "Plan assumes historicalSessionIds from parent is [oldest...newest, current]. Parent's design is not specified."
+  ],
+  "minor_issues": [
+    "Step 1.4: Import test uses 'from backend dir with PYTHONPATH=.' — ambiguous. Should specify 'PYTHONPATH=backend' from project root for consistency with pre-flight.",
+    "Step 2.2: 'Delete one session manually' for verification — no script. Manual step in automated plan.",
+    "Risk heatmap row 1.2 'Plan doc overwritten' — no mitigation for version control conflict when both plans edit same file."
+  ],
+  "what_the_author_cant_see": "The plan conflates the parent ISSUE (10-mock-welders-with-skill-arcs.md) with the parent IMPLEMENTATION PLAN (plan-10-mock-welders-refined.md). Step 1.2 resolution order puts taskspace first, then the issue file. The issue file does not have Step 1.4. The author's mental model: 'we're editing the plan.' The filesystem reality: two different documents, wrong one in fallback chain.",
+  "recommended_action": "refine",
+  "minimum_fixes_before_execution": [
+    "Fix Step 1.2 resolution: Add .cursor/issues/10-mock-welders-plan.md or equivalent parent plan path; ensure second fallback is the implementation plan, not the issue. If no implementation plan path is stable, create docs/ and use it first.",
+    "Add precondition: Assert WELDER_ARCHETYPES non-empty and all archetypes have sessions >= 1. Add to pre-flight or Step 2.1.",
+    "Add Step 4.3 gate: If E2E not set up, require explicit 'manual verification completed' checkbox in PR or block merge until Step 4.4 has been run and documented.",
+    "Add structure assertion to pre-flight: Verify WELDER_ARCHETYPES[0] has 'welder_id' and 'sessions' keys."
+  ]
+}
+```
