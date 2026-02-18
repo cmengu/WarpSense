@@ -49,6 +49,11 @@ class SessionModel(Base):
     version = Column(Integer, nullable=False, default=1)
     score_total = Column(Integer, nullable=True)
     process_type = Column(String, nullable=False, default="mig")
+    team_id = Column(
+        String(64),
+        ForeignKey("teams.id", ondelete="SET NULL"),
+        nullable=True,
+    )
 
     frames = relationship(
         "FrameModel",
@@ -151,3 +156,6 @@ class WeldThresholdModel(Base):
     amps_stability_warning = Column(Float, nullable=False)
     volts_stability_warning = Column(Float, nullable=False)
     heat_diss_consistency = Column(Float, nullable=False)
+
+
+from models.site import Site, Team  # noqa: E402, F401

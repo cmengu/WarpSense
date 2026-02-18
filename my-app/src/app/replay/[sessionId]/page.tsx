@@ -11,7 +11,8 @@ import FeedbackPanel from '@/components/welding/FeedbackPanel';
 import TimelineMarkers from '@/components/welding/TimelineMarkers';
 import { generateMicroFeedback } from '@/lib/micro-feedback';
 import type { WeldTypeThresholds } from '@/types/thresholds';
-import { fetchSession, fetchScore, type SessionScore } from '@/lib/api';
+import { fetchSession, fetchScore, fetchWarpRisk, type SessionScore } from '@/lib/api';
+import type { WarpRiskResponse } from '@/types/prediction';
 import { alertOnReplayFailure, logWarn } from '@/lib/logger';
 import { FRAME_INTERVAL_MS } from '@/constants/validation';
 import {
@@ -28,6 +29,12 @@ import type { Session } from '@/types/session';
 
 // Dynamic import for TorchWithHeatmap3D — unified torch + thermal metal (replaces TorchViz3D + HeatmapPlate3D)
 // Per WEBGL_CONTEXT_LOSS.md: max 2 instances (see constants/webgl.ts)
+const WarpRiskGauge = dynamic(
+  () =>
+    import('@/components/welding/WarpRiskGauge').then((m) => m.WarpRiskGauge),
+  { ssr: false }
+);
+
 const TorchWithHeatmap3D = dynamic(
   () => import('@/components/welding/TorchWithHeatmap3D').then((m) => m.default),
   {
@@ -131,6 +138,8 @@ function ReplayPageInner({ sessionId }: { sessionId: string }) {
   /** Brief "Copied!" feedback for Copy Session ID button. Resets after 2s. */
   const [copyFeedback, setCopyFeedback] = useState(false);
   const copyFeedbackTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const [warpRisk, setWarpRisk] = useState<WarpRiskResponse | null>(null);
 
   // Clear copy-feedback timer on unmount to avoid state update on unmounted component.
   useEffect(() => {
@@ -389,6 +398,36 @@ function ReplayPageInner({ sessionId }: { sessionId: string }) {
     };
   }, [sessionId, showComparison, comparisonSession, COMPARISON_SESSION_ID]);
 
+  const FETCH_TIMEOUT_MS = 10_000;
+  useEffect(() => {
+    let mounted = true;
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('fetchWarpRisk timeout')), FETCH_TIMEOUT_MS)
+    );
+    Promise.race([fetchWarpRisk(sessionId), timeoutPromise])
+      .then((r) => {
+        if (mounted) setWarpRisk(r);
+      })
+      .catch((err) => {
+        if (mounted) {
+          logWarn('ReplayPage', 'Failed to fetch warp risk', {
+            sessionId,
+            error: err instanceof Error ? err.message : String(err),
+          });
+          setWarpRisk({
+            session_id: sessionId,
+            probability: 0,
+            risk_level: 'ok',
+            model_available: false,
+            window_frames_used: 0,
+          });
+        }
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [sessionId]);
+
   // Loading state
   if (loading) {
     return (
@@ -567,6 +606,16 @@ function ReplayPageInner({ sessionId }: { sessionId: string }) {
                           minTemp={THERMAL_MIN_TEMP}
                           colorSensitivity={THERMAL_COLOR_SENSITIVITY}
                         />
+                        {/* Warp risk gauge */}
+                        {warpRisk && (
+                          <div className="mt-2">
+                            <WarpRiskGauge
+                              probability={warpRisk.probability}
+                              riskLevel={warpRisk.risk_level}
+                              modelAvailable={warpRisk.model_available}
+                            />
+                          </div>
+                        )}
                         {/* Inline score display */}
                         {primaryScore ? (
                           <div className="mt-2 p-3 bg-white dark:bg-zinc-900 rounded border border-zinc-200 dark:border-zinc-800">
