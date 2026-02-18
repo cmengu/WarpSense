@@ -14,8 +14,12 @@ from database.connection import check_db_connectivity
 from routes.aggregate import router as aggregate_router
 from routes.dashboard import router as dashboard_router
 from routes.dev import router as dev_router
+from routes import narratives
+from routes.predictions import router as predictions_router
 from routes.sessions import router as sessions_router
+from routes.sites import router as sites_router
 from routes.thresholds import router as thresholds_router
+from routes.welders import router as welders_router
 
 
 @asynccontextmanager
@@ -58,8 +62,14 @@ app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.include_router(dashboard_router)
 # Aggregate BEFORE sessions so /api/sessions/aggregate matches aggregate route
 app.include_router(aggregate_router, prefix="/api")
+# Narratives BEFORE sessions so /api/sessions/{id}/narrative matches
+app.include_router(narratives.router)
 app.include_router(sessions_router, prefix="/api")
 app.include_router(thresholds_router, prefix="/api")
+app.include_router(welders_router)
+app.include_router(sites_router)
+# Warp risk: GET /api/sessions/{session_id}/warp-risk
+app.include_router(predictions_router)
 # Dev seed route: POST /api/dev/seed-mock-sessions (only when ENV=development or DEBUG=1)
 app.include_router(dev_router, prefix="/api/dev", tags=["dev"])
 

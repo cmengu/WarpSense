@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, use, useEffect, useState } from "react";
+import { Suspense, use, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { fetchSession, fetchScore, type SessionScore } from "@/lib/api";
 import { generateAIFeedback } from "@/lib/ai-feedback";
@@ -11,7 +11,9 @@ import { useFrameData } from "@/hooks/useFrameData";
 import { extractHeatmapData, tempToColorRange } from "@/utils/heatmapData";
 import HeatMap from "@/components/welding/HeatMap";
 import FeedbackPanel from "@/components/welding/FeedbackPanel";
+import { NarrativePanel } from "@/components/welding/NarrativePanel";
 import { LineChart } from "@/components/charts/LineChart";
+import { ReportLayout } from "@/components/layout/ReportLayout";
 import type { Session } from "@/types/session";
 
 // ---------------------------------------------------------------------------
@@ -67,6 +69,106 @@ type WelderParams = { id: string } | Promise<{ id: string }>;
 
 function isPromise(p: WelderParams): p is Promise<{ id: string }> {
   return p != null && typeof (p as Promise<unknown>).then === "function";
+}
+
+// ---------------------------------------------------------------------------
+// Local subcomponents (page-specific; not extracted to separate files)
+// ---------------------------------------------------------------------------
+
+function SideBySideHeatmaps({
+  heatmapData,
+  expertHeatmapData,
+  colorFn,
+  sessionId,
+  displayName,
+  expertSession,
+}: {
+  heatmapData: ReturnType<typeof extractHeatmapData>;
+  expertHeatmapData: ReturnType<typeof extractHeatmapData>;
+  colorFn: (temp: number) => string;
+  sessionId: string;
+  displayName: string;
+  expertSession: Session | null;
+}) {
+  return (
+    <div className="bg-white dark:bg-zinc-900 rounded-lg shadow p-6 mb-8">
+      <h2 className="text-xl font-bold mb-4">Thermal Comparison</h2>
+      {expertSession ? (
+        <div className="grid grid-cols-2 gap-8">
+          <div>
+            <h3 className="text-sm font-semibold text-zinc-600 dark:text-zinc-400 mb-2">
+              Expert Benchmark
+            </h3>
+            <HeatMap
+              sessionId="expert"
+              data={expertHeatmapData}
+              colorFn={colorFn}
+              label="Expert"
+            />
+          </div>
+          <div>
+            <h3 className="text-sm font-semibold text-zinc-600 dark:text-zinc-400 mb-2">
+              Your Weld
+            </h3>
+            <HeatMap
+              sessionId={sessionId}
+              data={heatmapData}
+              colorFn={colorFn}
+              label={displayName}
+            />
+          </div>
+        </div>
+      ) : (
+        <div>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
+            Expert comparison unavailable — run seed to add sess_expert-benchmark_005.
+          </p>
+          <HeatMap
+            sessionId={sessionId}
+            data={heatmapData}
+            colorFn={colorFn}
+            label={displayName}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ActionsBar({
+  onDownloadPDF,
+  loading,
+  pdfLoading,
+  pdfError,
+}: {
+  onDownloadPDF: () => void;
+  loading: boolean;
+  pdfLoading: boolean;
+  pdfError: string | null;
+}) {
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex gap-4">
+        <button
+          className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed"
+          disabled
+          title="Email report — coming soon"
+        >
+          📧 Email Report (coming soon)
+        </button>
+        <button
+          className="bg-zinc-200 text-zinc-800 px-6 py-3 rounded-lg font-semibold hover:bg-zinc-300 dark:bg-zinc-700 dark:text-zinc-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          onClick={onDownloadPDF}
+          disabled={loading || pdfLoading}
+        >
+          {pdfLoading ? "⏳ Generating..." : "📄 Download PDF"}
+        </button>
+      </div>
+      {pdfError && (
+        <p className="text-red-600 dark:text-red-400 text-sm">{pdfError}</p>
+      )}
+    </div>
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -161,7 +263,16 @@ function WelderReportInner({ welderId }: { welderId: string }) {
           : null;
 
       if (s === null || sc === null) {
-        logError("WelderReport", primaryResult.status === "rejected" ? primaryResult.reason : scoreResult.status === "rejected" ? scoreResult.reason : new Error("Primary session or score failed"));
+        const err =
+          primaryResult.status === "rejected"
+            ? primaryResult.reason
+            : scoreResult.status === "rejected"
+              ? scoreResult.reason
+              : new Error("Primary session or score failed");
+        logError(
+          "WelderReport",
+          err instanceof Error ? err : new Error(String(err))
+        );
         const message =
           process.env.NODE_ENV === "development"
             ? primaryResult.status === "rejected"
@@ -207,43 +318,13 @@ function WelderReportInner({ welderId }: { welderId: string }) {
     return () => {
       mounted = false;
     };
-  }, [sessionId]);
+  }, [welderId, sessionId]);
 
   // Hooks must run unconditionally — call before any early returns
   const frameData = useFrameData(session?.frames ?? [], null, null);
   const expertFrameData = useFrameData(expertSession?.frames ?? [], null, null);
 
-  if (error) {
-    return (
-      <div className="min-h-screen bg-zinc-50 dark:bg-black p-8">
-        <div className="bg-violet-50 dark:bg-violet-950/30 border border-violet-200 dark:bg-violet-800 rounded-lg p-6 max-w-md">
-          <h2 className="text-lg font-bold text-violet-900 dark:text-violet-200">
-            ⚠️ Error
-          </h2>
-          <p className="text-violet-800 dark:text-violet-300 mt-2 text-sm">{error}</p>
-          <Link
-            href="/seagull"
-            className="text-blue-600 dark:text-blue-400 underline mt-4 block"
-          >
-            ← Back to Team Dashboard
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  if (loading || !report || !session) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        Loading AI analysis...
-      </div>
-    );
-  }
-
-  const heatmapData = extractHeatmapData(frameData.thermal_frames);
-  const expertHeatmapData = extractHeatmapData(expertFrameData.thermal_frames);
-
-  async function handleDownloadPDF() {
+  const handleDownloadPDF = useCallback(async () => {
     if (!report || !score) return;
     setPdfError(null);
     setPdfLoading(true);
@@ -289,7 +370,37 @@ function WelderReportInner({ welderId }: { welderId: string }) {
     } finally {
       setPdfLoading(false);
     }
+  }, [report, score, displayName]);
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-zinc-50 dark:bg-black p-8">
+        <div className="bg-violet-50 dark:bg-violet-950/30 border border-violet-200 dark:bg-violet-800 rounded-lg p-6 max-w-md">
+          <h2 className="text-lg font-bold text-violet-900 dark:text-violet-200">
+            ⚠️ Error
+          </h2>
+          <p className="text-violet-800 dark:text-violet-300 mt-2 text-sm">{error}</p>
+          <Link
+            href="/seagull"
+            className="text-blue-600 dark:text-blue-400 underline mt-4 block"
+          >
+            ← Back to Team Dashboard
+          </Link>
+        </div>
+      </div>
+    );
   }
+
+  if (loading || !report || !session) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        Loading AI analysis...
+      </div>
+    );
+  }
+
+  const heatmapData = extractHeatmapData(frameData.thermal_frames);
+  const expertHeatmapData = extractHeatmapData(expertFrameData.thermal_frames);
 
   const allTemps = [
     ...heatmapData.points.map((p) => p.temp_celsius),
@@ -300,128 +411,74 @@ function WelderReportInner({ welderId }: { welderId: string }) {
   const colorFn = tempToColorRange(minT, maxT);
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-black p-8">
-      <div className="mb-4">
+    <ReportLayout
+      welderName={displayName}
+      sessionId={session.session_id}
+      scoreTotal={report.score}
+      weldType={session.weld_type}
+      skillLevel={report.skill_level}
+      trend={report.trend}
+      thresholdSpec={
+        score?.active_threshold_spec ? (
+          <>
+            Evaluated against{" "}
+            {score.active_threshold_spec.weld_type.toUpperCase()} spec —
+            Target {score.active_threshold_spec.angle_target}° ±
+            {score.active_threshold_spec.angle_warning}°
+          </>
+        ) : undefined
+      }
+      backLink={
         <Link
           href="/seagull"
           className="text-blue-600 dark:text-blue-400 hover:underline text-sm"
         >
           ← Back to Team Dashboard
         </Link>
-      </div>
-
-      <div className="bg-white dark:bg-zinc-900 rounded-lg shadow p-6 mb-8">
-        <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold">
-            {displayName} — Weekly Report
-          </h1>
-          <div className="text-right">
-            <div className="text-5xl font-bold text-blue-600">
-              {report.score}/100
-            </div>
-            <div className="text-sm text-zinc-600 dark:text-zinc-400">
-              {report.skill_level} • {report.trend}
-            </div>
-            {score?.active_threshold_spec && (
-              <div className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
-                Evaluated against{' '}
-                {score.active_threshold_spec.weld_type.toUpperCase()} spec —
-                Target {score.active_threshold_spec.angle_target}° ±
-                {score.active_threshold_spec.angle_warning}°
-              </div>
-            )}
-          </div>
+      }
+      narrative={
+        <NarrativePanel sessionId={session.session_id} />
+      }
+      heatmaps={
+        <SideBySideHeatmaps
+          heatmapData={heatmapData}
+          expertHeatmapData={expertHeatmapData}
+          colorFn={colorFn}
+          sessionId={sessionId}
+          displayName={displayName}
+          expertSession={expertSession}
+        />
+      }
+      feedback={
+        <div className="bg-white dark:bg-zinc-900 rounded-lg shadow p-6 mb-8">
+          <h2 className="text-xl font-bold mb-4">Detailed Feedback</h2>
+          <FeedbackPanel items={report.feedback_items} />
         </div>
-        <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-950/30 border-l-4 border-blue-500 rounded">
-          <p className="text-sm font-medium">
-            🤖 AI Analysis: {report.summary}
-          </p>
-        </div>
-      </div>
-
-      <div className="bg-white dark:bg-zinc-900 rounded-lg shadow p-6 mb-8">
-        <h2 className="text-xl font-bold mb-4">Thermal Comparison</h2>
-        {expertSession ? (
-          <div className="grid grid-cols-2 gap-8">
-            <div>
-              <h3 className="text-sm font-semibold text-zinc-600 dark:text-zinc-400 mb-2">
-                Expert Benchmark
-              </h3>
-              <HeatMap
-                sessionId="expert"
-                data={expertHeatmapData}
-                colorFn={colorFn}
-                label="Expert"
-              />
-            </div>
-            <div>
-              <h3 className="text-sm font-semibold text-zinc-600 dark:text-zinc-400 mb-2">
-                Your Weld
-              </h3>
-              <HeatMap
-                sessionId={sessionId}
-                data={heatmapData}
-                colorFn={colorFn}
-                label={displayName}
-              />
-            </div>
-          </div>
-        ) : (
-          <div>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
-              Expert comparison unavailable — run seed to add sess_expert-benchmark_005.
-            </p>
-            <HeatMap
-              sessionId={sessionId}
-              data={heatmapData}
-              colorFn={colorFn}
-              label={displayName}
+      }
+      progress={
+        <div className="bg-white dark:bg-zinc-900 rounded-lg shadow p-6 mb-8">
+          <h2 className="text-xl font-bold mb-4">Progress Over Time</h2>
+          <div
+            id="trend-chart"
+            style={{ width: 600, height: 200 }}
+            data-testid="trend-chart"
+          >
+            <LineChart
+              data={chartData ?? []}
+              color="#3b82f6"
+              height={200}
             />
           </div>
-        )}
-      </div>
-
-      <div className="bg-white dark:bg-zinc-900 rounded-lg shadow p-6 mb-8">
-        <h2 className="text-xl font-bold mb-4">Detailed Feedback</h2>
-        <FeedbackPanel items={report.feedback_items} />
-      </div>
-
-      <div className="bg-white dark:bg-zinc-900 rounded-lg shadow p-6 mb-8">
-        <h2 className="text-xl font-bold mb-4">Progress Over Time</h2>
-        <div
-          id="trend-chart"
-          style={{ width: 600, height: 200 }}
-          data-testid="trend-chart"
-        >
-          <LineChart
-            data={chartData ?? []}
-            color="#3b82f6"
-            height={200}
-          />
         </div>
-      </div>
-
-      <div className="flex flex-col gap-4">
-        <div className="flex gap-4">
-          <button
-            className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed"
-            disabled
-            title="Email report — coming soon"
-          >
-            📧 Email Report (coming soon)
-          </button>
-          <button
-            className="bg-zinc-200 text-zinc-800 px-6 py-3 rounded-lg font-semibold hover:bg-zinc-300 dark:bg-zinc-700 dark:text-zinc-200 disabled:opacity-50 disabled:cursor-not-allowed"
-            onClick={handleDownloadPDF}
-            disabled={loading || pdfLoading}
-          >
-            {pdfLoading ? "⏳ Generating..." : "📄 Download PDF"}
-          </button>
-        </div>
-        {pdfError && (
-          <p className="text-red-600 dark:text-red-400 text-sm">{pdfError}</p>
-        )}
-      </div>
-    </div>
+      }
+      actions={
+        <ActionsBar
+          onDownloadPDF={handleDownloadPDF}
+          loading={loading}
+          pdfLoading={pdfLoading}
+          pdfError={pdfError}
+        />
+      }
+    />
   );
 }

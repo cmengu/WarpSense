@@ -16,6 +16,8 @@ import type { AggregateKPIResponse } from "@/types/aggregate";
 import type { DashboardData } from "@/types/dashboard";
 import type { Frame } from "@/types/frame";
 import type { Session } from "@/types/session";
+import type { NarrativeResponse } from "@/types/narrative";
+import type { WarpRiskResponse } from "@/types/prediction";
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -387,6 +389,58 @@ export async function addFrames(
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(frames),
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Warp risk prediction
+// ---------------------------------------------------------------------------
+
+/**
+ * Fetch warp risk for a session.
+ * @throws Error if not found (404) or request fails.
+ */
+export async function fetchWarpRisk(
+  sessionId: string
+): Promise<WarpRiskResponse> {
+  const url = buildUrl(
+    `/api/sessions/${encodeURIComponent(sessionId)}/warp-risk`
+  );
+  return apiFetch<WarpRiskResponse>(url);
+}
+
+// ---------------------------------------------------------------------------
+// Narratives
+// ---------------------------------------------------------------------------
+
+/**
+ * Fetch cached narrative for a session.
+ * Returns 404 if narrative not yet generated — use generateNarrative to create.
+ */
+export async function fetchNarrative(
+  sessionId: string
+): Promise<NarrativeResponse> {
+  const url = buildUrl(
+    `/api/sessions/${encodeURIComponent(sessionId)}/narrative`
+  );
+  return apiFetch<NarrativeResponse>(url);
+}
+
+/**
+ * Generate (or regenerate) AI narrative for a session.
+ * Caches result; subsequent calls return cached unless forceRegenerate=true.
+ */
+export async function generateNarrative(
+  sessionId: string,
+  forceRegenerate = false
+): Promise<NarrativeResponse> {
+  const url = buildUrl(
+    `/api/sessions/${encodeURIComponent(sessionId)}/narrative`
+  );
+  return apiFetch<NarrativeResponse>(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ force_regenerate: forceRegenerate }),
   });
 }
 
