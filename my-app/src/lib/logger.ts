@@ -48,7 +48,7 @@ export function alertOnReplayFailure(
   additionalInfo?: Record<string, unknown>
 ): void {
   const errMessage =
-    error instanceof Error ? error.message : String(error);
+    error instanceof Error ? error.message : (error != null ? String(error) : "Unknown error");
   const payload = {
     event: "replay_load_failed",
     sessionId,
@@ -57,10 +57,8 @@ export function alertOnReplayFailure(
     ...additionalInfo,
   };
 
-  // Always log in dev
-  if (isDev) {
-    console.error("[ReplayLoadFailed]", payload);
-  }
+  // Use centralized logger (no raw console.error)
+  logError("ReplayLoadFailed", error, payload);
 
   // Send alert webhook if configured
   if (ALERT_WEBHOOK_URL) {
@@ -70,9 +68,7 @@ export function alertOnReplayFailure(
       body: JSON.stringify(payload),
       keepalive: true,
     }).catch((fetchErr) => {
-      if (isDev) {
-        console.error("[Logger] Alert webhook failed:", fetchErr);
-      }
+      logError("Logger", fetchErr, { context: "Alert webhook failed" });
     });
   }
 }

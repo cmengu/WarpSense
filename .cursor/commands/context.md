@@ -1,7 +1,7 @@
 # Project Context
 
 > **Purpose:** High-level project state for AI tools. What exists, what patterns to follow, what constraints to respect.  
-> **For AI:** Reference with `@CONTEXT.md` to avoid reimplementing features or violating patterns.  
+> **For AI:** Reference with `@.cursor/context/project-context.md` to avoid reimplementing features or violating patterns.  
 > **Last Updated:** [DATE]
 
 ---
@@ -233,7 +233,7 @@ public/               # Static assets
 
 ### Adding Feature
 ```
-@CONTEXT.md — Check if exists
+@.cursor/context/project-context.md — Check if exists
 @LEARNING_LOG.md — Check past issues
 
 Implement [feature] following:
@@ -244,7 +244,7 @@ Implement [feature] following:
 
 ### Debugging
 ```
-@CONTEXT.md — [relevant section]
+@.cursor/context/project-context.md — [relevant section]
 @LEARNING_LOG.md — Similar issues
 
 Expected: [based on CONTEXT]
@@ -256,7 +256,7 @@ Actual: [what's happening]
 ## Quick Checklist
 
 Before prompting AI:
-- [ ] Checked CONTEXT.md for existing implementation
+- [ ] Checked .cursor/context/project-context.md for existing implementation
 - [ ] Reviewed patterns to follow
 - [ ] Noted integration points
 - [ ] Identified constraints

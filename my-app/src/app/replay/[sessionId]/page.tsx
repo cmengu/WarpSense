@@ -407,6 +407,7 @@ function ReplayPageInner({ sessionId }: { sessionId: string }) {
 
   // Error state
   if (error) {
+    const isNetworkError = /failed to fetch|network error|load failed/i.test(error);
     return (
       <div className="min-h-screen bg-zinc-50 dark:bg-black flex items-center justify-center p-6">
         <div className="max-w-md w-full bg-white dark:bg-zinc-900 rounded-lg border border-violet-200 dark:border-violet-800 p-6">
@@ -416,6 +417,11 @@ function ReplayPageInner({ sessionId }: { sessionId: string }) {
           <p className="text-sm text-violet-600 dark:text-violet-500 mb-4">
             {error}
           </p>
+          {isNetworkError && (
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              Ensure the backend is running (e.g. <code className="bg-zinc-100 dark:bg-zinc-800 px-1 rounded">./start-all.sh</code>) and mock data is seeded.
+            </p>
+          )}
         </div>
       </div>
     );

@@ -13,6 +13,10 @@ import { logError } from "@/lib/logger";
 import { WelderReportPDF } from "@/components/pdf/WelderReportPDF";
 import type { SessionScore } from "@/lib/api";
 
+/** WelderReportPDF returns <Document>; renderToBuffer expects Document root. Type assertion for TS. */
+const toPdfDoc = (el: React.ReactElement) =>
+  el as Parameters<typeof renderToBuffer>[0];
+
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
@@ -174,10 +178,10 @@ export async function POST(request: Request) {
       chartDataUrl,
     });
 
-    const buffer = await renderToBuffer(pdfReact);
+    const buffer = await renderToBuffer(toPdfDoc(pdfReact));
     const filename = `${sanitizeFilename(welderName)}-warp-report.pdf`;
 
-    return new Response(buffer, {
+    return new Response(new Uint8Array(buffer), {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",

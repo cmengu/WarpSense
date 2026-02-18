@@ -26,11 +26,16 @@ export function aggregateToDashboardData(res: unknown): DashboardData {
   const trend = Array.isArray(r.trend) ? r.trend : [];
   const calendar = Array.isArray(r.calendar) ? r.calendar : [];
 
+  const toMetricValue = (v: unknown): string | number => {
+    if (typeof v === 'number' && Number.isFinite(v)) return v;
+    if (typeof v === 'string') return v;
+    return v != null ? String(v) : '—';
+  };
   const metrics = [
-    { id: 'avg-score', title: 'Avg Score', value: kpis.avg_score ?? '—' },
+    { id: 'avg-score', title: 'Avg Score', value: toMetricValue(kpis.avg_score) },
     { id: 'session-count', title: 'Sessions', value: String(kpis.session_count) },
-    { id: 'top-performer', title: 'Top Performer', value: kpis.top_performer ?? '—' },
-    { id: 'rework-count', title: 'Rework', value: String(kpis.rework_count ?? 0) },
+    { id: 'top-performer', title: 'Top Performer', value: toMetricValue(kpis.top_performer) },
+    { id: 'rework-count', title: 'Rework', value: toMetricValue(kpis.rework_count) },
   ];
 
   const chartData = trend.map((t: { date?: string; value?: number }) => ({

@@ -82,6 +82,6 @@ Upgrade TorchViz3D from a basic proof-of-concept (cylinder + sphere) to an indus
 
 ## Reference
 
-- Implementation guide: context/3d-frontend-implementation.md (or equivalent)
+- Implementation guide: .cursor/context/torchviz3d-five-steps-context.md (or equivalent)
 - Current TorchViz3D: `my-app/src/components/welding/TorchViz3D.tsx` (137 lines)
 - Dev demo: `my-app/src/app/dev/torch-viz/page.tsx`

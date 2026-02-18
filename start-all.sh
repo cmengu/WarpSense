@@ -5,6 +5,16 @@
 echo "🚀 Starting WarpSense development servers..."
 echo ""
 
+# Clean up: kill existing processes on 8000/3000, remove Next.js locks
+echo "🧹 Cleaning up existing processes..."
+lsof -ti:8000 | xargs kill -9 2>/dev/null || true
+lsof -ti:3000 | xargs kill -9 2>/dev/null || true
+lsof -ti:3001 | xargs kill -9 2>/dev/null || true
+lsof -ti:3002 | xargs kill -9 2>/dev/null || true
+rm -f my-app/.next/lock my-app/.next/dev/lock 2>/dev/null || true
+sleep 1
+echo ""
+
 # Check if backend venv exists
 if [ ! -d "backend/venv" ]; then
     echo "❌ Backend virtual environment not found!"
@@ -12,11 +22,11 @@ if [ ! -d "backend/venv" ]; then
     exit 1
 fi
 
-# Start backend in background
+# Start backend in background (ENV=development enables seed/wipe routes)
 echo "📦 Starting backend on http://localhost:8000..."
 cd backend
 source venv/bin/activate
-python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000 &
+ENV=development python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000 &
 BACKEND_PID=$!
 cd ..
 

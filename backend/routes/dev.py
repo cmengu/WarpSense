@@ -5,6 +5,7 @@ Enabled only when ENV=development or DEBUG=1.
 
 import os
 import random
+import traceback
 
 from fastapi import APIRouter, Depends, HTTPException
 
@@ -31,6 +32,16 @@ def get_db():
         db.close()
 
 
+def _handle_seed_error(exc: BaseException) -> HTTPException:
+    """Return 500 with traceback in dev for easier debugging."""
+    if _is_dev_mode():
+        return HTTPException(
+            status_code=500,
+            detail={"error": str(exc), "traceback": traceback.format_exc()},
+        )
+    return HTTPException(status_code=500, detail="Seed failed")
+
+
 @router.post("/seed-mock-sessions")
 async def seed_mock_sessions(db: OrmSession = Depends(get_db)):
     """
@@ -46,38 +57,65 @@ async def seed_mock_sessions(db: OrmSession = Depends(get_db)):
             detail="Seed route is only available in development (ENV=development or DEBUG=1)",
         )
 
-    from data.mock_welders import WELDER_ARCHETYPES
-    from data.mock_sessions import generate_session_for_welder
+    try:
+        from data.mock_welders import WELDER_ARCHETYPES
+        from data.mock_sessions import (
+            generate_session_for_welder,
+            generate_expert_session,
+            generate_novice_session,
+        )
 
-    session_ids = []
-    for arch in WELDER_ARCHETYPES:
-        welder_id = arch["welder_id"]
-        n = arch["sessions"]
-        for i in range(1, n + 1):
-            session_ids.append(f"sess_{welder_id}_{i:03d}")
+        session_ids = []
+        for arch in WELDER_ARCHETYPES:
+            welder_id = arch["welder_id"]
+            n = arch["sessions"]
+            for i in range(1, n + 1):
+                session_ids.append(f"sess_{welder_id}_{i:03d}")
 
-    if len(session_ids) == 0:
-        raise HTTPException(status_code=500, detail="WELDER_ARCHETYPES is empty")
+        if len(session_ids) == 0:
+            raise HTTPException(status_code=500, detail="WELDER_ARCHETYPES is empty")
 
-    for existing in db.query(SessionModel).filter(
-        SessionModel.session_id.in_(session_ids)
-    ).all():
-        db.delete(existing)
-    db.flush()
+        for existing in db.query(SessionModel).filter(
+            SessionModel.session_id.in_(session_ids)
+        ).all():
+            db.delete(existing)
+        db.flush()
 
-    random.seed(42)
-    for arch in WELDER_ARCHETYPES:
-        welder_id = arch["welder_id"]
-        arc_type = arch["arc"]
-        n = arch["sessions"]
-        for i in range(1, n + 1):
-            sid = f"sess_{welder_id}_{i:03d}"
-            session = generate_session_for_welder(welder_id, arc_type, i - 1, sid)
+        # Also seed sess_expert_001 and sess_novice_001 (used by replay/STARTME)
+        demo_ids = ["sess_expert_001", "sess_novice_001"]
+        for existing in db.query(SessionModel).filter(
+            SessionModel.session_id.in_(demo_ids)
+        ).all():
+            db.delete(existing)
+        db.flush()
+
+        random.seed(42)
+        for arch in WELDER_ARCHETYPES:
+            welder_id = arch["welder_id"]
+            arc_type = arch["arc"]
+            n = arch["sessions"]
+            for i in range(1, n + 1):
+                sid = f"sess_{welder_id}_{i:03d}"
+                session = generate_session_for_welder(welder_id, arc_type, i - 1, sid)
+                model = SessionModel.from_pydantic(session)
+                db.add(model)
+
+        for sid in demo_ids:
+            session = (
+                generate_expert_session(sid)
+                if "expert" in sid
+                else generate_novice_session(sid)
+            )
             model = SessionModel.from_pydantic(session)
             db.add(model)
+            session_ids.append(sid)
 
-    db.commit()
-    return {"seeded": session_ids}
+        db.commit()
+        return {"seeded": session_ids}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise _handle_seed_error(e)
 
 
 @router.post("/wipe-mock-sessions")
@@ -103,6 +141,7 @@ async def wipe_mock_sessions(db: OrmSession = Depends(get_db)):
         n = arch["sessions"]
         for i in range(1, n + 1):
             session_ids.append(f"sess_{welder_id}_{i:03d}")
+    session_ids.extend(["sess_expert_001", "sess_novice_001"])
 
     deleted = db.query(SessionModel).filter(
         SessionModel.session_id.in_(session_ids)

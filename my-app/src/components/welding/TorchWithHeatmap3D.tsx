@@ -201,14 +201,14 @@ function SceneContent({
         {hasThermal ? (
           <ThermalPlate
             frame={activeFrame}
-            maxTemp={maxTemp}
-            minTemp={minTemp}
-            plateSize={plateSize}
-            colorSensitivity={colorSensitivity}
+            maxTemp={maxTemp ?? 500}
+            minTemp={minTemp ?? 0}
+            plateSize={plateSize ?? 3}
+            colorSensitivity={colorSensitivity ?? 10}
           />
         ) : (
           <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]}>
-            <planeGeometry args={[plateSize, plateSize]} />
+            <planeGeometry args={[plateSize ?? 3, plateSize ?? 3]} />
             <meshStandardMaterial
               color="#1a1a1a"
               metalness={0.7}

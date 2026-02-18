@@ -39,8 +39,11 @@ app = FastAPI(
 )
 
 # Configure CORS middleware
-# CORS_ORIGINS: comma-separated list (default: http://localhost:3000)
-_origins = os.getenv("CORS_ORIGINS", "http://localhost:3000").strip().split(",")
+# CORS_ORIGINS: comma-separated list. Default includes common local dev ports (3000, 3001).
+_origins = os.getenv(
+    "CORS_ORIGINS",
+    "http://localhost:3000,http://localhost:3001,http://localhost:3002,http://127.0.0.1:3000,http://127.0.0.1:3001,http://127.0.0.1:3002",
+).strip().split(",")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[o.strip() for o in _origins if o.strip()],
