@@ -11,3 +11,4 @@ skl2onnx==1.16.0
 onnxruntime==1.17.0
 numpy>=1.24,<2
 anthropic>=0.18.0
+google-generativeai>=0.8.0

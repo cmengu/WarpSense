@@ -1,6 +1,7 @@
 'use client';
 
-import { Suspense, use, useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, use, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -9,9 +10,17 @@ import TorchAngleGraph from '@/components/welding/TorchAngleGraph';
 import ScorePanel from '@/components/welding/ScorePanel';
 import FeedbackPanel from '@/components/welding/FeedbackPanel';
 import TimelineMarkers from '@/components/welding/TimelineMarkers';
+import AnnotationMarker from '@/components/welding/AnnotationMarker';
+import AddAnnotationPanel from '@/components/welding/AddAnnotationPanel';
 import { generateMicroFeedback } from '@/lib/micro-feedback';
 import type { WeldTypeThresholds } from '@/types/thresholds';
-import { fetchSession, fetchScore, fetchWarpRisk, type SessionScore } from '@/lib/api';
+import {
+  fetchSession,
+  fetchScore,
+  fetchWarpRisk,
+  fetchAnnotations,
+  type SessionScore,
+} from '@/lib/api';
 import type { WarpRiskResponse } from '@/types/prediction';
 import { alertOnReplayFailure, logWarn } from '@/lib/logger';
 import { FRAME_INTERVAL_MS } from '@/constants/validation';
@@ -26,6 +35,7 @@ import { useSessionMetadata } from '@/hooks/useSessionMetadata';
 import { useFrameData } from '@/hooks/useFrameData';
 import { getFrameAtTimestamp, extractCenterTemperatureWithCarryForward } from '@/utils/frameUtils';
 import type { Session } from '@/types/session';
+import type { Annotation } from '@/types/annotation';
 
 // Dynamic import for TorchWithHeatmap3D — unified torch + thermal metal (replaces TorchViz3D + HeatmapPlate3D)
 // Per WEBGL_CONTEXT_LOSS.md: max 2 instances (see constants/webgl.ts)
@@ -114,13 +124,35 @@ function ReplayPageWithAsyncParams({
   params: Promise<{ sessionId: string }>;
 }) {
   const { sessionId } = use(params);
-  return <ReplayPageInner sessionId={sessionId} />;
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-zinc-50 dark:bg-black flex items-center justify-center">
+          <div className="text-sm text-zinc-500">Loading...</div>
+        </div>
+      }
+    >
+      <ReplayPageInner sessionId={sessionId} />
+    </Suspense>
+  );
 }
 
 function ReplayPageInner({ sessionId }: { sessionId: string }) {
+  const searchParams = useSearchParams();
   const [sessionData, setSessionData] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Annotations (Batch 2 Agent 2)
+  const [annotations, setAnnotations] = useState<Annotation[]>([]);
+  const [annotateMode, setAnnotateMode] = useState(false);
+  const [selectedTimestampForAnnotation, setSelectedTimestampForAnnotation] =
+    useState<number | null>(null);
+  const [annotationRefreshFailed, setAnnotationRefreshFailed] =
+    useState<string | null>(null);
+  const refreshFailedTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  );
 
   // Comparison session state (for side-by-side 3D visualization)
   const [comparisonSession, setComparisonSession] = useState<Session | null>(null);
@@ -150,6 +182,21 @@ function ReplayPageInner({ sessionId }: { sessionId: string }) {
       }
     };
   }, []);
+
+  // Clear annotation refresh-failed timeout on unmount.
+  useEffect(() => {
+    return () => {
+      if (refreshFailedTimeoutRef.current != null) {
+        clearTimeout(refreshFailedTimeoutRef.current);
+        refreshFailedTimeoutRef.current = null;
+      }
+    };
+  }, []);
+
+  // ?t= deep-link: set currentTimestamp from URL when session is loaded.
+  const tParam = searchParams.get('t');
+  const initialTimestampMs =
+    tParam != null ? parseInt(tParam, 10) : undefined;
 
   const metadata = useSessionMetadata(sessionData);
   const frameData = useFrameData(
@@ -210,18 +257,26 @@ function ReplayPageInner({ sessionId }: { sessionId: string }) {
   const firstTimestamp = frameData.first_timestamp_ms;
   const lastTimestamp = frameData.last_timestamp_ms;
 
+  // Sync currentTimestamp with valid range; prefer ?t= deep-link when in range.
   useEffect(() => {
     if (firstTimestamp != null && lastTimestamp != null) {
       setCurrentTimestamp((prev) => {
-        if (prev == null || prev < firstTimestamp || prev > lastTimestamp) {
-          return firstTimestamp;
-        }
-        return prev;
+        const tFromUrl =
+          initialTimestampMs != null &&
+          Number.isFinite(initialTimestampMs) &&
+          initialTimestampMs >= firstTimestamp &&
+          initialTimestampMs <= lastTimestamp;
+        const target = tFromUrl
+          ? initialTimestampMs
+          : prev != null && prev >= firstTimestamp && prev <= lastTimestamp
+            ? prev
+            : firstTimestamp;
+        return target;
       });
     } else {
       setCurrentTimestamp(null);
     }
-  }, [firstTimestamp, lastTimestamp]);
+  }, [firstTimestamp, lastTimestamp, initialTimestampMs]);
 
   // Playback loop: advance currentTimestamp every FRAME_INTERVAL_MS at 1× speed.
   // Uses setInterval (not RAF) for 100 updates/sec to match 100Hz frame rate.
@@ -428,6 +483,46 @@ function ReplayPageInner({ sessionId }: { sessionId: string }) {
     };
   }, [sessionId]);
 
+  // Fetch annotations for this session (Batch 2 Agent 2).
+  const handleAnnotationSaved = useCallback(() => {
+    setAnnotationRefreshFailed(null);
+    fetchAnnotations(sessionId)
+      .then((data) => setAnnotations(data))
+      .catch((err) => {
+        logWarn('ReplayPage', 'Failed to refresh annotations after save', {
+          sessionId,
+          error: err instanceof Error ? err.message : String(err),
+        });
+        setAnnotationRefreshFailed('Annotation saved but list failed to refresh.');
+        if (refreshFailedTimeoutRef.current != null) {
+          clearTimeout(refreshFailedTimeoutRef.current);
+        }
+        refreshFailedTimeoutRef.current = setTimeout(() => {
+          setAnnotationRefreshFailed(null);
+          refreshFailedTimeoutRef.current = null;
+        }, 6000);
+      });
+  }, [sessionId]);
+
+  useEffect(() => {
+    let mounted = true;
+    fetchAnnotations(sessionId)
+      .then((data) => {
+        if (mounted) setAnnotations(data);
+      })
+      .catch((err) => {
+        if (mounted) {
+          logWarn('ReplayPage', 'Failed to fetch annotations', {
+            sessionId,
+            error: err instanceof Error ? err.message : String(err),
+          });
+        }
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [sessionId]);
+
   // Loading state
   if (loading) {
     return (
@@ -523,12 +618,29 @@ function ReplayPageInner({ sessionId }: { sessionId: string }) {
             >
               {copyFeedback ? 'Copied!' : 'Copy Session ID'}
             </button>
+            <button
+              type="button"
+              onClick={() => setAnnotateMode((prev) => !prev)}
+              className={`px-3 py-1 text-xs rounded-md ${
+                annotateMode
+                  ? 'bg-cyan-500 text-black'
+                  : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-700'
+              }`}
+            >
+              {annotateMode ? 'Annotate Mode ON' : 'Annotate Mode'}
+            </button>
+            <Link
+              href="/defects"
+              className="text-blue-600 dark:text-blue-400 hover:underline text-xs"
+            >
+              Defect Library
+            </Link>
           </div>
         )}
 
         {firstTimestamp != null && lastTimestamp != null && lastTimestamp > firstTimestamp && (
-          <div className="mb-4 space-y-2">
-            <div className="flex items-center gap-3">
+          <div className="mb-4 space-y-2 relative">
+            <div className="flex items-center gap-3 flex-wrap">
               <button
                 type="button"
                 onClick={() => setIsPlaying((p) => !p)}
@@ -540,7 +652,25 @@ function ReplayPageInner({ sessionId }: { sessionId: string }) {
               <label htmlFor="replay-slider" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
                 Timeline
               </label>
+              {annotateMode && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setSelectedTimestampForAnnotation(
+                      currentTimestamp ?? firstTimestamp ?? 0
+                    )
+                  }
+                  className="px-3 py-1 text-xs rounded-md bg-cyan-600 text-white hover:bg-cyan-500"
+                >
+                  Add annotation at current position
+                </button>
+            )}
             </div>
+            {annotationRefreshFailed && (
+              <p className="text-amber-600 dark:text-amber-400 text-xs">
+                {annotationRefreshFailed}
+              </p>
+            )}
             <div className="relative max-w-2xl">
               {sessionData?.frames && (
                 <TimelineMarkers
@@ -549,6 +679,14 @@ function ReplayPageInner({ sessionId }: { sessionId: string }) {
                   firstTimestamp={firstTimestamp}
                   lastTimestamp={lastTimestamp}
                   onFrameSelect={handleFrameSelect}
+                />
+              )}
+              {annotations.length > 0 && (
+                <AnnotationMarker
+                  annotations={annotations}
+                  firstTimestamp={firstTimestamp}
+                  lastTimestamp={lastTimestamp}
+                  onAnnotationClick={handleFrameSelect}
                 />
               )}
               <input
@@ -577,6 +715,16 @@ function ReplayPageInner({ sessionId }: { sessionId: string }) {
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
               {(currentTimestamp ?? firstTimestamp) / 1000} s
             </p>
+            {annotateMode && selectedTimestampForAnnotation != null && (
+              <div className="absolute left-0 top-0 mt-2 z-10">
+                <AddAnnotationPanel
+                  sessionId={sessionId}
+                  selectedTimestampMs={selectedTimestampForAnnotation}
+                  onAnnotationSaved={handleAnnotationSaved}
+                  onClose={() => setSelectedTimestampForAnnotation(null)}
+                />
+              </div>
+            )}
           </div>
         )}
 

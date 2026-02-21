@@ -18,6 +18,12 @@ import type { Frame } from "@/types/frame";
 import type { Session } from "@/types/session";
 import type { NarrativeResponse } from "@/types/narrative";
 import type { WarpRiskResponse } from "@/types/prediction";
+import type {
+  Annotation,
+  AnnotationCreate,
+  DefectLibraryItem,
+} from "@/types/annotation";
+import type { AnnotationType } from "@/types/shared";
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -416,15 +422,72 @@ export async function fetchWarpRisk(
 /**
  * Fetch cached narrative for a session.
  * Returns 404 if narrative not yet generated — use generateNarrative to create.
+ * @param signal - Optional AbortSignal for request cancellation (e.g. timeout).
  */
 export async function fetchNarrative(
-  sessionId: string
+  sessionId: string,
+  signal?: AbortSignal
 ): Promise<NarrativeResponse> {
   const url = buildUrl(
     `/api/sessions/${encodeURIComponent(sessionId)}/narrative`
   );
-  return apiFetch<NarrativeResponse>(url);
+  return apiFetch<NarrativeResponse>(url, { signal });
 }
+
+// ---------------------------------------------------------------------------
+// Annotations
+// ---------------------------------------------------------------------------
+
+/**
+ * Fetch annotations for a session.
+ * @throws Error if not found (404) or request fails.
+ */
+export async function fetchAnnotations(
+  sessionId: string
+): Promise<Annotation[]> {
+  const url = buildUrl(
+    `/api/sessions/${encodeURIComponent(sessionId)}/annotations`
+  );
+  return apiFetch<Annotation[]>(url);
+}
+
+/**
+ * Create an annotation on a session.
+ * @throws Error if session not found (404) or request fails.
+ */
+export async function createAnnotation(
+  sessionId: string,
+  body: AnnotationCreate
+): Promise<Annotation> {
+  const url = buildUrl(
+    `/api/sessions/${encodeURIComponent(sessionId)}/annotations`
+  );
+  return apiFetch<Annotation>(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+/**
+ * Fetch cross-session defect library with optional filters.
+ * TODO: weld_type filter is supported by API but not yet exposed in defects page UI.
+ * @throws Error if request fails.
+ */
+export async function fetchDefectLibrary(params?: {
+  annotation_type?: AnnotationType;
+  weld_type?: string;
+}): Promise<DefectLibraryItem[]> {
+  const url = buildUrl("/api/defects", {
+    annotation_type: params?.annotation_type,
+    weld_type: params?.weld_type,
+  });
+  return apiFetch<DefectLibraryItem[]>(url);
+}
+
+// ---------------------------------------------------------------------------
+// Narratives
+// ---------------------------------------------------------------------------
 
 /**
  * Generate (or regenerate) AI narrative for a session.

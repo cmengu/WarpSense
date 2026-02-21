@@ -27,3 +27,11 @@ def test_sessions_routes_exist():
     # Check for /api/sessions/{session_id} route
     assert any("/api/sessions/" in r for r in routes), \
         f"Sessions detail route not found. Available routes: {routes}"
+
+
+def test_welders_routes_exist():
+    """Verify welders router is registered — catches omitted include_router(welders_router)."""
+    routes = [route.path for route in app.routes]
+    assert any("/api/welders" in r for r in routes), (
+        f"Welders routes not found. Add app.include_router(welders_router). Available routes: {routes}"
+    )

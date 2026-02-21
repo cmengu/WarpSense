@@ -25,6 +25,8 @@ interface PDFRequestBody {
   score?: SessionScore | { total: number; rules?: unknown[] };
   feedback?: { summary?: string; feedback_items?: unknown[] };
   chartDataUrl?: unknown;
+  /** Optional AI Coach narrative; max 2000 chars. PDF renders without if absent. */
+  narrative?: string | null;
 }
 
 const MAX_FILENAME_LENGTH = 64;
@@ -163,6 +165,21 @@ export async function POST(request: Request) {
     }
   }
 
+  /** Optional AI Coach narrative; validated max 2000 chars. Omit if invalid. */
+  let narrative: string | null = null;
+  if (
+    body.narrative != null &&
+    typeof body.narrative === "string" &&
+    body.narrative.length <= 2000
+  ) {
+    narrative = body.narrative;
+  } else if (body.narrative != null && typeof body.narrative === "string") {
+    return NextResponse.json(
+      { error: "narrative exceeds max length (2000 chars)" },
+      { status: 400 }
+    );
+  }
+
   const welder = { name: welderName };
   const score = { total, rules: body.score.rules ?? [] };
   const feedback = {
@@ -176,6 +193,7 @@ export async function POST(request: Request) {
       score,
       feedback,
       chartDataUrl,
+      narrative,
     });
 
     const buffer = await renderToBuffer(toPdfDoc(pdfReact));

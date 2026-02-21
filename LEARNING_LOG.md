@@ -4,8 +4,8 @@
 **For AI Tools:** Reference this file with `@LEARNING_LOG.md` when implementing 3D/WebGL features.  
 **For `.cursorrules`:** Check LEARNING_LOG.md for anti-patterns, required patterns, and past incidents before generating code.
 
-**Last Updated:** 2025-02-17  
-**Total Entries:** 5 incidents + Lessons & Reflections
+**Last Updated:** 2025-02-18  
+**Total Entries:** 6 incidents + Lessons & Reflections
 
 **Metal plane clipping (2025-02-16):** Y-coordinates were scattered across TorchWithHeatmap3D; metal could clip through torch. Fix: centralize all workpiece/ring/grid/shadows Y in `welding3d.ts` with explicit constraint `metal_surface_max_Y < weld_pool_center_Y`. See `my-app/src/constants/welding3d.ts`.
 
@@ -17,12 +17,15 @@
 
 **WWAD macro-analytics (2025-02-17):** Supervisor dashboard built orthogonally to micro-feedback — aggregate session data only, no frame/3D coupling. Migration `score_total` nullable + backfill; export with truncation logging.
 
+**Warp Prediction ML (2025-02-18):** Shared `warp_features.py` for train + inference; ONNX model degrades gracefully when missing. `get_session_frames_raw` in sessions.py; WarpRiskGauge on replay page. See `_merge/agent2_main.py`, `_merge/agent2_api.ts`.
+
 ---
 
 ## Quick Reference
 
 | Date | Title | Category | Severity |
 |------|-------|----------|----------|
+| 2025-02-18 | Warp Prediction ML (Batch 1) | Backend / ML | 🟢 Medium |
 | 2025-02-17 | WWAD Macro-Analytics (Supervisor Dashboard) | Backend / Architecture | 🟢 Medium |
 | 2025-02-16 | Metal Plane Clipping Through Torch | Frontend / 3D | 🟢 Medium |
 | 2025-02-16 | Unified Torch + Thermal Metal (Replay) | Frontend | 🟢 Medium |
@@ -291,6 +294,68 @@ When adding macro/aggregate features:
 - `backend/services/aggregate_service.py`, `backend/routes/aggregate.py`
 - `my-app/src/app/(app)/supervisor/page.tsx`
 - `backend/scripts/backfill_score_total.py`, `backend/alembic/versions/003_add_score_total.py`
+
+---
+
+### 📅 2025-02-18 — Warp Prediction ML (Batch 1)
+
+**Category:** Backend / ML  
+**Severity:** 🟢 Medium
+
+**What Was Done:**
+Implemented warp risk prediction for welding sessions: training pipeline (generate_training_data, train_warp_model), ONNX inference in `prediction_service`, `GET /api/sessions/{session_id}/warp-risk` endpoint, WarpRiskGauge on replay page.
+
+**Impact:**
+- Predicts thermal asymmetry breach from rolling 50-frame window
+- Degrades gracefully when `warp_model.onnx` missing — returns `model_available: false`
+- Replay page shows semicircle gauge (ok / warning / critical)
+
+**Patterns:**
+
+```python
+# ✅ DO: Single shared feature module for train + inference (no drift)
+# backend/features/warp_features.py: extract_asymmetry, extract_features, features_to_array
+# Used by: generate_training_data.py, train_warp_model.py, prediction_service.py
+
+# ✅ DO: Degraded mode when model absent
+sess = _get_session()
+if sess is None:
+    return {"probability": 0.0, "risk_level": RiskLevel.OK, "model_available": False}
+```
+
+**Prevention:**
+- ✅ DO: Use `backend/features/warp_features.py` for both training and inference — FEATURE_COLS order must match ONNX input
+- ✅ DO: Return `model_available: false` when ONNX file absent; never crash
+- ✅ DO: Add `get_session_frames_raw` to sessions.py for prediction route reuse
+- ❌ DON'T: Duplicate feature extraction logic in training vs service
+- ❌ DON'T: Touch main.py or api.ts directly when using _merge/ files for multi-agent coordination
+
+**AI Guidance:**
+```
+When implementing warp/ML prediction features:
+"Use warp_features.py for feature extraction in both training and inference. Degrade gracefully when ONNX missing. See backend/services/prediction_service.py, backend/routes/predictions.py. Training: backend/scripts/generate_training_data, train_warp_model."
+```
+
+**Verification:**
+```bash
+# 1. Training pipeline (from project root)
+python -m backend.scripts.generate_training_data --output data/training_data.csv
+python -m backend.scripts.train_warp_model --input data/training_data.csv --output backend/models/warp_model.onnx
+
+# 2. Backend (seed first if empty)
+curl -s http://localhost:8000/api/sessions/sess_novice_001/warp-risk | jq .
+# Degraded: rm backend/models/warp_model.onnx and restart → model_available: false
+
+# 3. Frontend
+cd my-app && npm run build
+npm test -- --testPathPattern="WarpRiskGauge|replay" --watchAll=false
+```
+
+**References:**
+- `backend/features/warp_features.py`, `backend/services/prediction_service.py`
+- `backend/routes/predictions.py`, `backend/routes/sessions.py` (get_session_frames_raw)
+- `my-app/src/components/welding/WarpRiskGauge.tsx`, `my-app/src/app/replay/[sessionId]/page.tsx`
+- `_merge/agent2_main.py`, `_merge/agent2_api.ts`
 
 ---
 
