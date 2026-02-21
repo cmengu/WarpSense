@@ -68,6 +68,8 @@ export interface WelderReportPDFProps {
     }>;
   };
   chartDataUrl?: string | null;
+  /** Optional AI Coach narrative; renders section between score and feedback if present. */
+  narrative?: string | null;
 }
 
 function isPngDataUrl(v: unknown): v is string {
@@ -86,6 +88,7 @@ export function WelderReportPDF({
   score,
   feedback,
   chartDataUrl,
+  narrative,
 }: WelderReportPDFProps) {
   const rawItems = feedback?.feedback_items ?? [];
   const validItems = rawItems.filter(
@@ -124,6 +127,34 @@ export function WelderReportPDF({
           </View>
         </View>
 
+        {narrative && (
+          <View
+            style={{
+              marginTop: 16,
+              padding: 12,
+              backgroundColor: "#1a1a2e",
+              borderRadius: 6,
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 8,
+                color: "#737373",
+                textTransform: "uppercase",
+                letterSpacing: 1,
+                marginBottom: 6,
+              }}
+            >
+              AI Coach Report
+            </Text>
+            <Text
+              style={{ fontSize: 9, color: "#d4d4d4", lineHeight: 1.6 }}
+            >
+              {sanitizeText(narrative)}
+            </Text>
+          </View>
+        )}
+
         <Text style={styles.sectionTitle}>Coach Feedback</Text>
         <Text
           style={{
@@ -147,7 +178,7 @@ export function WelderReportPDF({
 
         <Text style={styles.sectionTitle}>Key Areas</Text>
         {top3.map((item, i) => (
-          <View key={i} style={styles.feedbackItem}>
+          <View key={`fb-${i}`} style={styles.feedbackItem}>
             <Text style={styles.bullet}>
               {item.severity === "warning" || item.severity === "critical"
                 ? "⚠"

@@ -23,7 +23,7 @@ jest.mock('@/components/welding/TorchWithHeatmap3D', () => ({
   default: () => <div data-testid="torch-with-heatmap-3d" />,
 }));
 
-// Mock api to avoid real API calls (fetchSession for replay, fetchScore for ScorePanel)
+// Mock api to avoid real API calls (fetchSession for replay, fetchScore for ScorePanel, fetchWarpRisk for WarpRiskGauge)
 jest.mock('@/lib/api', () => ({
   fetchSession: jest.fn(),
   fetchScore: jest.fn().mockResolvedValue({
@@ -35,6 +35,13 @@ jest.mock('@/lib/api', () => ({
       { rule_id: 'heat_diss_consistency', threshold: 40, passed: true, actual_value: 3.6 },
       { rule_id: 'volts_stability', threshold: 1, passed: true, actual_value: 0.35 },
     ],
+  }),
+  fetchWarpRisk: jest.fn().mockResolvedValue({
+    session_id: 'test-session-123',
+    probability: 0.35,
+    risk_level: 'ok',
+    model_available: true,
+    window_frames_used: 50,
   }),
 }));
 
@@ -355,6 +362,29 @@ describe('ReplayPage', () => {
     });
 
     expect(screen.getByText(/heat map visualization/i)).toBeInTheDocument();
+  });
+
+  it('renders WarpRiskGauge when fetchWarpRisk resolves', async () => {
+    const api = await import('@/lib/api');
+    const fetchWarpRisk = api.fetchWarpRisk as jest.Mock;
+    fetchWarpRisk.mockResolvedValue({
+      session_id: 'test-session-123',
+      probability: 0.35,
+      risk_level: 'ok',
+      model_available: true,
+      window_frames_used: 50,
+    });
+
+    render(<ReplayPage params={{ sessionId: 'test-session-123' }} />);
+    await waitFor(() => {
+      expect(screen.getByText(/session replay: test-session-123/i)).toBeInTheDocument();
+    });
+    await waitFor(() => {
+      const gauge = screen.getByTestId('warp-risk-gauge');
+      expect(gauge).toBeInTheDocument();
+      expect(gauge).toHaveTextContent('35%');
+    });
+    expect(fetchWarpRisk).toHaveBeenCalledWith('test-session-123');
   });
 
   /**

@@ -417,8 +417,11 @@ EOF
                     "Task Description" "$task_tmp" \
                     "Issue Details" "$issue_file" \
                     "Exploration Findings (compressed)" "$exploration_handoff" \
-                    "Previous Plan Critique (MUST FIX THESE)" "$standard_critique" \
-                    "Adversarial Findings (MUST FIX THESE)" "$adv_critique"
+                    "Previous Plan Critique (MUST FIX THESE)" "$standard_critique"
+                if [[ "$SKIP_ADVERSARIAL" != "true" && -n "${adv_critique:-}" && -f "$adv_critique" ]]; then
+                    echo -e "\n\n---\n# Adversarial Findings (MUST FIX THESE):\n" >> "$plan_prompt"
+                    cat "$adv_critique" >> "$plan_prompt"
+                fi
                 rm -f "$task_tmp"
 
                 if [[ -n "$GATE_EXTRA_CONTEXT" ]]; then

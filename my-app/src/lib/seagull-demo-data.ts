@@ -18,14 +18,10 @@ import { generateAIFeedback } from "@/lib/ai-feedback";
 import type { Session } from "@/types/session";
 import type { AIFeedbackResult } from "@/types/ai-feedback";
 
+import { WELD_METRICS } from "@/types/shared";
+
 /** Must match RULE_TEMPLATES keys in ai-feedback.ts. Do not add unknown rule_ids. */
-const RULE_IDS = [
-  "amps_stability",
-  "angle_consistency",
-  "thermal_symmetry",
-  "heat_diss_consistency",
-  "volts_stability",
-] as const;
+const RULE_IDS = WELD_METRICS;
 
 const RULE_THRESHOLDS: Record<string, number> = {
   amps_stability: 3,

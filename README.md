@@ -1,21 +1,34 @@
-# WarpSense - Welding MVP
+# WarpSense — Shipyard Welding Platform
 
-Monorepo: ESP32 firmware, iPad app, Next.js frontend, FastAPI backend.
+Vertical AI for shipyard welding: real-time feedback, post-session replay, and AI-generated coach reports. Built to replace floor QC inspection and post-shift reporting with always-on, data-driven analysis.
+
+## What This Does
+
+- **Real-time feedback** — Alerts when torch angle, heat, or electrical parameters drift out of spec
+- **Post-session analysis** — Exact replay with thermal heatmaps, torch angle graphs, expert vs novice comparison
+- **AI coach reports** — Session narratives and warp-risk prediction, ready to forward or PDF
+
+See [.cursor/product/vision.md](.cursor/product/vision.md) for the full product vision, build order, and dual-audience filter.
 
 ## Quick Start
 
-→ **STARTME.md** — run backend, frontend, seed/wipe
+| Step | Action |
+|------|--------|
+| 1 | **STARTME.md** — run backend, frontend, seed/wipe |
+| 2 | **QUICK_START.md** — first-time setup (database, .env, troubleshooting) |
 
-→ **QUICK_START.md** — first-time setup (database, .env, troubleshooting)
+```bash
+./start-all.sh   # Backend + frontend (or see STARTME.md for manual)
+```
 
 ## Project Structure
 
 ```
-├── esp32_firmware/    # ESP32 Arduino firmware
+├── esp32_firmware/    # ESP32 Arduino firmware (sensor capture)
 ├── ipad_app/          # React Native/Expo iPad app
 ├── my-app/            # Next.js frontend dashboard
 ├── backend/           # FastAPI backend API
-├── ai_models/         # AI/ML models
+├── ai_models/         # AI/ML models (warp prediction ONNX, etc.)
 └── data/              # Mock data and fixtures
 ```
 
@@ -40,7 +53,8 @@ npm run type-check     # TypeScript check
 
 | Script | What it does |
 |--------|--------------|
-| `npm run dev` | Backend + frontend (concurrent) |
+| `./start-all.sh` | Backend + frontend (concurrent) |
+| `npm run dev` | Same via npm |
 | `npm run dev:backend` | Backend only (port 8000) |
 | `npm run dev:frontend` | Frontend only (port 3000) |
 

@@ -12,7 +12,7 @@ import type { Session } from "@/types/session";
 import type { SessionScore } from "@/lib/api";
 import type { AIFeedbackResult, FeedbackItem } from "@/types/ai-feedback";
 
-const RULE_TEMPLATES: Record<
+export const RULE_TEMPLATES: Record<
   string,
   (r: { actual_value: number | null; threshold: number }) => string
 > = {

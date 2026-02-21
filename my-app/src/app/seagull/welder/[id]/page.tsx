@@ -2,7 +2,13 @@
 
 import { Suspense, use, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { fetchSession, fetchScore, type SessionScore } from "@/lib/api";
+import { fetchSession, fetchScore, fetchNarrative, type SessionScore } from "@/lib/api";
+import { fetchTrajectory } from "@/lib/api.merge_agent1";
+import {
+  computeHistoricalScores,
+  getTrajectoryFromResults,
+  assertTrajectoryAtIdx,
+} from "@/lib/welder-report-utils";
 import { generateAIFeedback } from "@/lib/ai-feedback";
 import { logError } from "@/lib/logger";
 import { captureChartToBase64 } from "@/lib/pdf-chart-capture";
@@ -14,7 +20,9 @@ import FeedbackPanel from "@/components/welding/FeedbackPanel";
 import { NarrativePanel } from "@/components/welding/NarrativePanel";
 import { LineChart } from "@/components/charts/LineChart";
 import { ReportLayout } from "@/components/layout/ReportLayout";
+import { TrajectoryChart } from "@/components/welding/TrajectoryChart";
 import type { Session } from "@/types/session";
+import type { WelderTrajectory } from "@/types/trajectory";
 
 // ---------------------------------------------------------------------------
 // Constants — Must match WELDER_ARCHETYPES (backend/data/mock_welders.py)
@@ -47,6 +55,15 @@ const WELDER_DISPLAY_NAMES: Record<string, string> = {
 };
 
 const EXPERT_SESSION_ID = "sess_expert-benchmark_005";
+
+/** Encodes allPromises order. Update when adding fetches. Used by welder-report-utils contract test. */
+export const __FETCH_ORDER_FOR_TEST = [
+  "primary",
+  "expert",
+  "score",
+  "hist",
+  "trajectory",
+] as const;
 
 /** Coerce welder name to string; always returns string. Matches API route. */
 function toWelderName(v: unknown): string {
@@ -224,6 +241,7 @@ function WelderReportInner({ welderId }: { welderId: string }) {
   const [chartData, setChartData] = useState<
     { date: string; value: number }[] | null
   >(null);
+  const [trajectory, setTrajectory] = useState<WelderTrajectory | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pdfLoading, setPdfLoading] = useState(false);
@@ -238,27 +256,36 @@ function WelderReportInner({ welderId }: { welderId: string }) {
     const fetchExpert = fetchSession(EXPERT_SESSION_ID, { limit: 2000 });
     const fetchScorePrimary = fetchScore(sessionId);
     const histPromises = historicalSessionIds.map((sid) => fetchScore(sid));
+    const trajectoryPromise = fetchTrajectory(welderId);
 
-    Promise.allSettled([
+    const allPromises = [
       fetchPrimary,
       fetchExpert,
       fetchScorePrimary,
       ...histPromises,
-    ]).then((results) => {
+      trajectoryPromise,
+    ];
+    const trajectoryIdx = allPromises.length - 1;
+
+    Promise.allSettled(allPromises).then((results) => {
       if (!mounted) return;
 
-      const [primaryResult, expertResult, scoreResult, ...histResults] = results;
+      assertTrajectoryAtIdx(results, trajectoryIdx);
+
+      const primaryResult = results[0];
+      const expertResult = results[1];
+      const scoreResult = results[2];
 
       const s =
-        primaryResult.status === "fulfilled"
-          ? primaryResult.value as Session
+        primaryResult?.status === "fulfilled"
+          ? (primaryResult.value as Session)
           : null;
       const e =
-        expertResult.status === "fulfilled"
+        expertResult?.status === "fulfilled"
           ? (expertResult.value as Session)
           : null;
       const sc =
-        scoreResult.status === "fulfilled"
+        scoreResult?.status === "fulfilled"
           ? (scoreResult.value as SessionScore)
           : null;
 
@@ -287,31 +314,24 @@ function WelderReportInner({ welderId }: { welderId: string }) {
         setScore(null);
         setReport(null);
         setChartData(null);
+        setTrajectory(null);
         setLoading(false);
         return;
       }
 
-      const lastIdx = histResults.length - 1;
-      const historicalScores = histResults.map((r, i) => {
-        if (r.status === "fulfilled") return (r.value as SessionScore).total;
-        if (i === lastIdx && sc != null) return sc.total;
-        return 0;
-      });
-
-      const chartDataResult = historicalSessionIds.map((sid, i) => {
-        const r = histResults[i];
-        let val = r?.status === "fulfilled"
-          ? (r.value as SessionScore).total
-          : 0;
-        if (i === lastIdx && sc != null && val === 0) val = sc.total;
-        return { date: `Session ${i + 1}`, value: val };
-      });
+      const historicalScores = computeHistoricalScores(results, trajectoryIdx);
+      const chartDataResult = historicalSessionIds.map((sid, i) => ({
+        date: `Session ${i + 1}`,
+        value: historicalScores[i] ?? 0,
+      }));
+      const traj = getTrajectoryFromResults<WelderTrajectory>(results, trajectoryIdx);
 
       setSession(s);
       setExpertSession(e);
       setScore(sc);
       setReport(generateAIFeedback(s, sc, historicalScores));
       setChartData(chartDataResult);
+      setTrajectory(traj);
       setLoading(false);
     });
 
@@ -329,6 +349,19 @@ function WelderReportInner({ welderId }: { welderId: string }) {
     setPdfError(null);
     setPdfLoading(true);
     try {
+      let narrativeText: string | null = null;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10_000);
+      try {
+        const n = await fetchNarrative(sessionId, controller.signal);
+        narrativeText = n.narrative_text;
+      } catch {
+        // Non-blocking — PDF still generates without narrative (404, timeout, network error)
+        narrativeText = null;
+      } finally {
+        clearTimeout(timeoutId);
+      }
+
       const chartDataUrl = await captureChartToBase64("trend-chart");
 
       const welderName = toWelderName(displayName);
@@ -340,6 +373,7 @@ function WelderReportInner({ welderId }: { welderId: string }) {
           feedback_items: report.feedback_items,
         },
         chartDataUrl,
+        narrative: narrativeText,
       };
 
       const apiUrl = `${getApiBase()}/api/welder-report-pdf`;
@@ -370,7 +404,7 @@ function WelderReportInner({ welderId }: { welderId: string }) {
     } finally {
       setPdfLoading(false);
     }
-  }, [report, score, displayName]);
+  }, [report, score, displayName, sessionId]);
 
   if (error) {
     return (
@@ -470,6 +504,9 @@ function WelderReportInner({ welderId }: { welderId: string }) {
             />
           </div>
         </div>
+      }
+      trajectory={
+        trajectory ? <TrajectoryChart trajectory={trajectory} /> : undefined
       }
       actions={
         <ActionsBar

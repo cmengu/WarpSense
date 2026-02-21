@@ -23,6 +23,15 @@ jest.mock("@/lib/api", () => ({
   fetchScore: (...args: unknown[]) => mockFetchScore(...args),
 }));
 
+jest.mock("@/lib/api.merge_agent1", () => ({
+  fetchTrajectory: jest.fn().mockResolvedValue({
+    welder_id: "mike-chen",
+    points: [],
+    trend_slope: null,
+    projected_next_score: null,
+  }),
+}));
+
 const mockSession = {
   session_id: "sess_mike-chen_005",
   operator_id: "mike-chen",
@@ -73,6 +82,17 @@ const mockScore = {
       actual_value: 3.1,
     },
   ],
+  active_threshold_spec: {
+    weld_type: "mig",
+    angle_target: 45,
+    angle_warning: 5,
+    angle_critical: 10,
+    thermal_symmetry_warning_celsius: 10,
+    thermal_symmetry_critical_celsius: 20,
+    amps_stability_warning: 3,
+    volts_stability_warning: 2,
+    heat_diss_consistency: 5,
+  },
 };
 
 describe("WelderReportPage", () => {
@@ -93,6 +113,20 @@ describe("WelderReportPage", () => {
     expect(screen.getByText(/Thermal Comparison/)).toBeInTheDocument();
     expect(screen.getByText(/Detailed Feedback/)).toBeInTheDocument();
     expect(screen.getByText(/Progress Over Time/)).toBeInTheDocument();
+
+    expect(screen.getByTestId("header-threshold")).toBeInTheDocument();
+    expect(screen.getByTestId("header-threshold")).toHaveTextContent(
+      /Evaluated against.*MIG spec/
+    );
+    expect(screen.getByTestId("header-threshold")).toHaveTextContent(
+      /Target 45° ±5°/
+    );
+
+    const progressSection = screen.getByRole("region", {
+      name: /Progress Over Time/,
+    });
+    const trendChart = screen.getByTestId("trend-chart");
+    expect(progressSection).toContainElement(trendChart);
   });
 
   it("shows error state with back link when fetch fails", async () => {
@@ -130,6 +164,71 @@ describe("WelderReportPage", () => {
     expect(mockFetchScore).toHaveBeenCalledWith("sess_mike-chen_002");
   });
 
+  it("shows improving trend in report header when historical scores increase and trajectory excluded", async () => {
+    // Precondition: WELDER_SESSION_COUNT["mike-chen"] >= 2.
+    // Session ID format: sess_{welder_id}_{NNN} (e.g. sess_mike-chen_001). mockFetchScore uses /_(\d+)$/.
+    mockFetchScore.mockImplementation((sessionId: string) => {
+      const match = sessionId.match(/_(\d+)$/);
+      const idx = match ? parseInt(match[1], 10) : 0;
+      const total = 70 + idx * 2;
+      return Promise.resolve({ ...mockScore, total });
+    });
+
+    const { fetchTrajectory } = require("@/lib/api.merge_agent1");
+    (fetchTrajectory as jest.Mock).mockResolvedValue({
+      welder_id: "mike-chen",
+      points: [
+        {
+          session_id: "sess_mike-chen_001",
+          session_date: "2025-01-01T00:00:00Z",
+          score_total: 72,
+          metrics: [],
+          session_index: 1,
+        },
+        {
+          session_id: "sess_mike-chen_005",
+          session_date: "2025-01-05T00:00:00Z",
+          score_total: 80,
+          metrics: [],
+          session_index: 2,
+        },
+      ],
+      trend_slope: 2.0,
+      projected_next_score: 82,
+    });
+
+    render(<WelderReportPage params={{ id: "mike-chen" }} />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/80\/100/)).toBeInTheDocument();
+    });
+
+    const reportHeaderTrend = screen.getByTestId("report-header-trend");
+    expect(reportHeaderTrend).toHaveTextContent(/improving/i);
+  });
+
+  it("calls assertTrajectoryAtIdx when fetch completes (trajectory-last invariant)", async () => {
+    const utils = require("@/lib/welder-report-utils");
+    const spy = jest.spyOn(utils, "assertTrajectoryAtIdx");
+
+    const { fetchTrajectory } = require("@/lib/api.merge_agent1");
+    (fetchTrajectory as jest.Mock).mockResolvedValue({
+      welder_id: "mike-chen",
+      points: [],
+      trend_slope: null,
+      projected_next_score: null,
+    });
+
+    render(<WelderReportPage params={{ id: "mike-chen" }} />);
+
+    await waitFor(() => {
+      expect(screen.queryByText(/Session not found/)).not.toBeInTheDocument();
+    });
+
+    expect(spy).toHaveBeenCalled();
+    spy.mockRestore();
+  });
+
   it("maps expert-benchmark id to sess_expert-benchmark_005", async () => {
     render(<WelderReportPage params={{ id: "expert-benchmark" }} />);
 
@@ -159,18 +258,15 @@ describe("WelderReportPage", () => {
   });
 
   describe("Export stubs", () => {
-    it("Email Report button shows alert when clicked", async () => {
-      const alertSpy = jest.spyOn(window, "alert").mockImplementation(() => {});
-
+    it("Email Report button is disabled with coming-soon indicator", async () => {
       render(<WelderReportPage params={{ id: "mike-chen" }} />);
       await waitFor(() => {
         expect(screen.getByText(/75\/100/)).toBeInTheDocument();
       });
 
-      fireEvent.click(screen.getByRole("button", { name: /Email Report/i }));
-      expect(alertSpy).toHaveBeenCalledWith("Email report — coming soon");
-
-      alertSpy.mockRestore();
+      const emailBtn = screen.getByRole("button", { name: /Email Report/i });
+      expect(emailBtn).toBeDisabled();
+      expect(emailBtn).toHaveAttribute("title", "Email report — coming soon");
     });
   });
 

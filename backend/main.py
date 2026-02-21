@@ -11,7 +11,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 
 from database.connection import check_db_connectivity
+from routes.ai import router as ai_router
 from routes.aggregate import router as aggregate_router
+from routes.annotations import router as annotations_router
 from routes.dashboard import router as dashboard_router
 from routes.dev import router as dev_router
 from routes import narratives
@@ -63,13 +65,17 @@ app.include_router(dashboard_router)
 # Aggregate BEFORE sessions so /api/sessions/aggregate matches aggregate route
 app.include_router(aggregate_router, prefix="/api")
 # Narratives BEFORE sessions so /api/sessions/{id}/narrative matches
+# Annotations BEFORE sessions so /api/sessions/{id}/annotations matches
 app.include_router(narratives.router)
+app.include_router(annotations_router)
 app.include_router(sessions_router, prefix="/api")
 app.include_router(thresholds_router, prefix="/api")
 app.include_router(welders_router)
 app.include_router(sites_router)
 # Warp risk: GET /api/sessions/{session_id}/warp-risk
 app.include_router(predictions_router)
+# AI: POST /api/ai/analyze
+app.include_router(ai_router)
 # Dev seed route: POST /api/dev/seed-mock-sessions (only when ENV=development or DEBUG=1)
 app.include_router(dev_router, prefix="/api/dev", tags=["dev"])
 

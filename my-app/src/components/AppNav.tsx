@@ -20,6 +20,9 @@ export function AppNav() {
   const isTeam = pathname.startsWith('/seagull');
   const isSupervisor =
     pathname === '/supervisor' || pathname.startsWith('/supervisor');
+  const isDefects =
+    pathname === '/defects' || pathname.startsWith('/defects');
+  const isAI = pathname === '/ai' || pathname.startsWith('/ai');
 
   return (
     <nav
@@ -61,6 +64,20 @@ export function AppNav() {
           aria-current={isSupervisor ? 'page' : undefined}
         >
           Supervisor
+        </Link>
+        <Link
+          href="/defects"
+          className="text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100"
+          aria-current={isDefects ? 'page' : undefined}
+        >
+          Defects
+        </Link>
+        <Link
+          href="/ai"
+          className="text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100"
+          aria-current={isAI ? 'page' : undefined}
+        >
+          AI
         </Link>
       </div>
     </nav>
