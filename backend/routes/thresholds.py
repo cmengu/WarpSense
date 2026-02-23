@@ -39,7 +39,7 @@ async def update_threshold(
 ):
     """Update thresholds for one process type. Invalidates cache."""
     weld_type = weld_type.lower()
-    if weld_type not in ("mig", "tig", "stick", "flux_core"):
+    if weld_type not in ("mig", "tig", "stick", "flux_core", "aluminum"):
         raise HTTPException(status_code=422, detail=f"Unknown weld_type: {weld_type}")
     if body.angle_target_degrees == 0:
         raise HTTPException(

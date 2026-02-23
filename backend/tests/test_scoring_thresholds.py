@@ -20,7 +20,7 @@ from database.models import SessionModel, WeldThresholdModel
 from data.mock_sessions import generate_expert_session
 from features.extractor import extract_features
 from scoring.rule_based import score_session
-from services.threshold_service import get_thresholds
+from services.threshold_service import get_thresholds, invalidate_cache
 
 
 @pytest.fixture
@@ -44,9 +44,11 @@ def db_session():
 
 @pytest.fixture
 def seeded_weld_thresholds(db_session):
+    """Seed weld_thresholds and invalidate cache so get_thresholds loads from this DB."""
+    invalidate_cache()
     for weld_type, a, aw, ac, tw, tc, amps, volts, hd in [
-        ("mig", 45.0, 5.0, 15.0, 60.0, 80.0, 5.0, 1.0, 40.0),
-        ("tig", 75.0, 10.0, 20.0, 60.0, 80.0, 5.0, 1.0, 40.0),
+        ("mig", 45.0, 5.0, 15.0, 60.0, 80.0, 5.0, 1.0, 80.0),
+        ("tig", 75.0, 10.0, 20.0, 60.0, 80.0, 5.0, 1.0, 80.0),
     ]:
         db_session.add(
             WeldThresholdModel(

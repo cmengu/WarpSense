@@ -39,8 +39,9 @@ WHAT THIS MEANS FOR COMPARISON
 """
 
 import math
+import random
 from datetime import datetime, timezone
-from typing import Callable, List, Optional, Tuple
+from typing import Callable, Dict, List, Optional, Tuple
 
 from models.frame import Frame
 from models.session import Session, SessionStatus
@@ -61,6 +62,269 @@ THERMAL_DISTANCES_MM = [10.0, 20.0, 30.0, 40.0, 50.0]
 # ---------------------------------------------------------------------------
 # Physical constants (tuned to mild steel MIG welding)
 # ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# Aluminum 6061 constants (used by stitch_expert / continuous_novice generators)
+# ---------------------------------------------------------------------------
+
+AL_VOLTS = 21.0
+AL_AMPS = 145.0
+AL_AMBIENT_TEMP = 25.0
+AL_DISSIPATION_COEFF = 0.09
+AL_MAX_TEMP = 480.0
+AL_CONDUCTIVITY_AXIAL = 0.035    # heat flow 10→20→30→40→50mm per frame
+AL_CONDUCTIVITY_LATERAL = 0.045  # heat flow center→N/S/E/W per frame
+AL_CONDUCTIVITY_EW_RATIO = 0.6   # east/west conduct less (not on arc axis)
+AL_ARC_INPUT_DISTANCE_MM = 10    # arc energy enters at closest node only
+
+# ---------------------------------------------------------------------------
+# Aluminum thermal grid physics (NEW; used only by aluminum generators)
+# ---------------------------------------------------------------------------
+
+ThermalState = Dict[float, Dict[str, float]]
+
+
+def _init_thermal_state(ambient: float) -> ThermalState:
+    return {
+        dist: {d: ambient for d in ("center", "north", "south", "east", "west")}
+        for dist in THERMAL_DISTANCES_MM
+    }
+
+
+def _step_thermal_state(
+    state: ThermalState,
+    arc_active: bool,
+    angle_degrees: float,
+) -> ThermalState:
+    new = {dist: dict(dirs) for dist, dirs in state.items()}
+
+    # 1) Arc input at 10mm only (closest node)
+    if arc_active:
+        # In the 5×5 thermal grid, dissipation is applied per-node. To keep aluminum
+        # temperatures in a realistic range (hundreds of °C) we scale arc input.
+        heat = ((AL_VOLTS * AL_AMPS) / 1000.0) * 20.0
+        raw_bias = (angle_degrees - 45.0) / 45.0
+        bias = math.copysign(min(0.4, abs(raw_bias)), raw_bias)
+
+        d0 = float(AL_ARC_INPUT_DISTANCE_MM)
+        new[d0]["center"] += heat * 0.5
+        new[d0]["north"] += heat * (0.25 + bias * 0.2)
+        new[d0]["south"] += heat * (0.25 - bias * 0.2)
+
+    # 2) Axial conduction (along seam axis: 10→20→30→40→50)
+    distances = sorted(THERMAL_DISTANCES_MM)
+    for direction in ("center", "north", "south", "east", "west"):
+        for i in range(1, len(distances)):
+            near, far = distances[i - 1], distances[i]
+            delta = (state[near][direction] - state[far][direction]) * AL_CONDUCTIVITY_AXIAL
+            new[near][direction] -= delta
+            new[far][direction] += delta
+
+    # 3) Lateral conduction (center→N/S/E/W) — reads from new (post arc-input)
+    for dist in THERMAL_DISTANCES_MM:
+        center_temp = new[dist]["center"]
+        for direction in ("north", "south"):
+            delta = (center_temp - new[dist][direction]) * AL_CONDUCTIVITY_LATERAL
+            new[dist]["center"] -= delta
+            new[dist][direction] += delta
+        for direction in ("east", "west"):
+            delta = (
+                (center_temp - new[dist][direction])
+                * AL_CONDUCTIVITY_LATERAL
+                * AL_CONDUCTIVITY_EW_RATIO
+            )
+            new[dist]["center"] -= delta
+            new[dist][direction] += delta
+
+    # 4) Dissipation (per node)
+    for dist in THERMAL_DISTANCES_MM:
+        for direction in new[dist]:
+            excess = new[dist][direction] - AL_AMBIENT_TEMP
+            new[dist][direction] -= AL_DISSIPATION_COEFF * excess
+            new[dist][direction] = max(
+                AL_AMBIENT_TEMP, min(AL_MAX_TEMP, new[dist][direction])
+            )
+
+    return new
+
+
+def _aluminum_state_to_snapshots(state: ThermalState) -> List[ThermalSnapshot]:
+    snapshots: List[ThermalSnapshot] = []
+    for dist in THERMAL_DISTANCES_MM:
+        d = state[dist]
+        readings = [
+            TemperaturePoint(direction="center", temp_celsius=d["center"]),
+            TemperaturePoint(direction="north", temp_celsius=d["north"]),
+            TemperaturePoint(direction="south", temp_celsius=d["south"]),
+            TemperaturePoint(direction="east", temp_celsius=d["east"]),
+            TemperaturePoint(direction="west", temp_celsius=d["west"]),
+        ]
+        snapshots.append(ThermalSnapshot(distance_mm=dist, readings=readings))
+    return snapshots
+
+# ---------------------------------------------------------------------------
+# Aluminum frame generators (NEW; routed in generate_frames_for_arc later)
+# ---------------------------------------------------------------------------
+
+
+def _generate_stitch_expert_frames(
+    session_index: int,
+    num_frames: int = 1500,
+) -> List[Frame]:
+    """
+    Aluminum stitch expert:
+    - Stitch pattern: 150 frames arc-on, 100 frames arc-off (repeats)
+    - Thermal override: if 10mm center > 220°C, force arc off
+    - Thermal grid state advances every frame; thermal snapshots emitted every 20 frames (200ms)
+    - heat_dissipation_rate set only on thermal frames (cooling-only metric: clamp at 0)
+
+    Uses isolated random.Random(seed) so global random state is never touched — sessions
+    remain deterministic even when seeded in parallel or interleaved with other RNG callers.
+    """
+    rng = random.Random(session_index * 42)
+
+    frames: List[Frame] = []
+    thermal_state = _init_thermal_state(AL_AMBIENT_TEMP)
+    angle = 45.0
+
+    last_thermal_center_10mm: Optional[float] = None
+    thermal_interval_sec = 0.2  # 20 frames × 10ms
+
+    for i in range(num_frames):
+        arc_active = (i % 250) < 150
+
+        # Thermal override after stitch logic — thermal wins
+        center_10mm = thermal_state[10.0]["center"]
+        if center_10mm > 220.0:
+            arc_active = False
+
+        # Angle reacts to thermal state (expert behavior)
+        north_10mm = thermal_state[10.0]["north"]
+        south_10mm = thermal_state[10.0]["south"]
+        if center_10mm > 180.0 and (north_10mm - south_10mm) > 10.0:
+            angle_target = 35.0
+        elif center_10mm > 220.0:
+            angle_target = 90.0
+        else:
+            angle_target = 45.0
+
+        angle += (angle_target - angle) * 0.03 + rng.gauss(0.0, 1.2)
+        angle = max(20.0, min(85.0, angle))
+
+        thermal_state = _step_thermal_state(thermal_state, arc_active, angle)
+        new_center_10mm = thermal_state[10.0]["center"]
+
+        volts = AL_VOLTS + rng.gauss(0.0, 0.2) if arc_active else 0.0
+        amps = AL_AMPS + rng.gauss(0.0, 3.0) if arc_active else 0.0
+
+        is_thermal_frame = (i % 20 == 0)
+        snapshots = _aluminum_state_to_snapshots(thermal_state) if is_thermal_frame else []
+
+        heat_dissipation: Optional[float] = None
+        if is_thermal_frame:
+            if last_thermal_center_10mm is not None:
+                heat_dissipation = max(
+                    0.0,
+                    (last_thermal_center_10mm - new_center_10mm) / thermal_interval_sec,
+                )
+            last_thermal_center_10mm = new_center_10mm
+
+        frames.append(
+            Frame(
+                timestamp_ms=i * 10,
+                volts=volts,
+                amps=amps,
+                angle_degrees=angle,
+                thermal_snapshots=snapshots,
+                heat_dissipation_rate_celsius_per_sec=heat_dissipation,
+            )
+        )
+
+    return frames
+
+
+def _generate_continuous_novice_frames(
+    session_index: int,
+    num_frames: int = 1500,
+) -> List[Frame]:
+    """
+    Aluminum continuous novice:
+    - Continuous arc with brief accidental breaks: off for 12 frames every 380 frames
+    - Angle drifts upward with periodic overcorrection and a one-time wrong correction
+    - Thermal grid state advances every frame; thermal snapshots emitted every 20 frames (200ms)
+    - heat_dissipation_rate set only on thermal frames (cooling-only metric: clamp at 0)
+
+    Ordering constraints (do not reorder):
+      (1) Wrong correction (one-time) when 10mm center first exceeds 200°C
+      (2) Periodic overcorrection every 300 frames
+      (3) Continuous drift
+      (4) Clamp angle to [20, 85]
+
+    Uses isolated random.Random(seed) so global random state is never touched — sessions
+    remain deterministic even when seeded in parallel or interleaved with other RNG callers.
+    """
+    rng = random.Random(session_index * 99)
+
+    frames: List[Frame] = []
+    thermal_state = _init_thermal_state(AL_AMBIENT_TEMP)
+    drift = 0.0
+    wrong_correction_fired = False
+
+    last_thermal_center_10mm: Optional[float] = None
+    thermal_interval_sec = 0.2  # 20 frames × 10ms
+
+    for i in range(num_frames):
+        arc_active = not ((i % 380) < 12)
+
+        center_10mm = thermal_state[10.0]["center"]
+
+        # (1) Wrong correction (fires once, before drift reset)
+        if (not wrong_correction_fired) and center_10mm > 200.0:
+            drift += 15.0
+            wrong_correction_fired = True
+
+        # (2) Periodic overcorrection snap
+        if i % 300 == 0 and i > 0:
+            drift -= 22.0
+
+        # (3) Continuous drift
+        # Needs to be strong enough to recover between periodic -22° snaps (300-frame cadence).
+        drift += 0.08
+
+        # (4) Clamp
+        angle = 45.0 + drift + rng.gauss(0.0, 2.5)
+        angle = max(20.0, min(85.0, angle))
+
+        thermal_state = _step_thermal_state(thermal_state, arc_active, angle)
+        new_center_10mm = thermal_state[10.0]["center"]
+
+        volts = AL_VOLTS + rng.gauss(0.0, 0.3) if arc_active else 0.0
+        amps = AL_AMPS + rng.gauss(0.0, 5.0) if arc_active else 0.0
+
+        is_thermal_frame = (i % 20 == 0)
+        snapshots = _aluminum_state_to_snapshots(thermal_state) if is_thermal_frame else []
+
+        heat_dissipation: Optional[float] = None
+        if is_thermal_frame:
+            if last_thermal_center_10mm is not None:
+                heat_dissipation = max(
+                    0.0,
+                    (last_thermal_center_10mm - new_center_10mm) / thermal_interval_sec,
+                )
+            last_thermal_center_10mm = new_center_10mm
+
+        frames.append(
+            Frame(
+                timestamp_ms=i * 10,
+                volts=volts,
+                amps=amps,
+                angle_degrees=angle,
+                thermal_snapshots=snapshots,
+                heat_dissipation_rate_celsius_per_sec=heat_dissipation,
+            )
+        )
+
+    return frames
 
 # Nominal operating point
 NOMINAL_AMPS = 150.0          # A  — typical MIG welding current for mild steel
@@ -240,6 +504,13 @@ def generate_frames_for_arc(
       - If fast_learner scores low → tighten _arc_angle_tight stddev (reduce looseness).
       - If declining scores high → increase _arc_angle_drift drift_factor.
     """
+    if arc_type == "stitch_expert":
+        num_frames = duration_ms // 10
+        return _generate_stitch_expert_frames(session_index, num_frames), True
+    if arc_type == "continuous_novice":
+        num_frames = duration_ms // 10
+        return _generate_continuous_novice_frames(session_index, num_frames), True
+
     if arc_type == "fast_learner":
         get_angle = lambda t: _arc_angle_tight(t, session_index)
         get_amps = _arc_amps_stable
@@ -295,12 +566,15 @@ def generate_session_for_welder(
     """
     frames, disable = generate_frames_for_arc(arc_type, session_index, duration_ms)
 
+    is_aluminum_arc = arc_type in ("stitch_expert", "continuous_novice")
+
     return Session(
         session_id=session_id,
         operator_id=welder_id,
         start_time=datetime.now(timezone.utc),
-        weld_type="mild_steel",
-        thermal_sample_interval_ms=THERMAL_SAMPLE_INTERVAL_MS,
+        weld_type="aluminum" if is_aluminum_arc else "mild_steel",
+        process_type="aluminum" if is_aluminum_arc else "mig",
+        thermal_sample_interval_ms=200 if is_aluminum_arc else THERMAL_SAMPLE_INTERVAL_MS,
         thermal_directions=THERMAL_DIRECTIONS,
         thermal_distance_interval_mm=THERMAL_DISTANCE_INTERVAL_MM,
         sensor_sample_rate_hz=SENSOR_SAMPLE_RATE_HZ,
@@ -311,7 +585,7 @@ def generate_session_for_welder(
         last_successful_frame_index=len(frames) - 1,
         validation_errors=[],
         completed_at=datetime.now(timezone.utc),
-        disable_sensor_continuity_checks=disable,
+        disable_sensor_continuity_checks=True if is_aluminum_arc else disable,
     )
 
 

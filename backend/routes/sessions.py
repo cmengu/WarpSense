@@ -28,7 +28,7 @@ from features.extractor import extract_features
 from models.frame import Frame
 from models.session import Session, SessionStatus
 from scoring.rule_based import score_session
-from services.thermal_service import calculate_heat_dissipation, get_previous_frame
+from services.thermal_service import calculate_heat_dissipation
 from services.threshold_service import get_thresholds
 
 router = APIRouter()
@@ -39,7 +39,7 @@ router = APIRouter()
 # ---------------------------------------------------------------------------
 
 
-VALID_PROCESS_TYPES = frozenset({"mig", "tig", "stick", "flux_core"})
+VALID_PROCESS_TYPES = frozenset({"mig", "tig", "stick", "flux_core", "aluminum"})
 
 
 class CreateSessionRequest(BaseModel):
@@ -53,7 +53,7 @@ class CreateSessionRequest(BaseModel):
     )
     process_type: Optional[str] = Field(
         None,
-        description="Process type: mig|tig|stick|flux_core. Default mig.",
+        description="Process type: mig|tig|stick|flux_core|aluminum. Default mig.",
     )
 
 
@@ -110,7 +110,7 @@ async def create_session(
     if process_type not in VALID_PROCESS_TYPES:
         raise HTTPException(
             status_code=422,
-            detail=f"process_type must be one of: mig, tig, stick, flux_core (got: {body.process_type!r})",
+            detail=f"process_type must be one of: mig, tig, stick, flux_core, aluminum (got: {body.process_type!r})",
         )
 
     model = SessionModel(

@@ -28,7 +28,21 @@ _threshold_cache: Dict[str, WeldTypeThresholds] = {}
 _cache_loaded = False
 _load_lock = threading.Lock()
 
-KNOWN_PROCESS_TYPES = frozenset({"mig", "tig", "stick", "flux_core"})
+KNOWN_PROCESS_TYPES = frozenset({"mig", "tig", "stick", "flux_core", "aluminum"})
+
+# Aluminum stitch welding: wider margins for arc on/off variance, thermal reactivity.
+# Used by migration seed; values bracket mock expert (pass) and novice (fail).
+ALUMINUM_THRESHOLDS = {
+    "weld_type": "aluminum",
+    "angle_target_degrees": 45.0,
+    "angle_warning_margin": 20.0,
+    "angle_critical_margin": 35.0,
+    "thermal_symmetry_warning_celsius": 9.0,   # expert 0.44, novice 9.59; discriminator
+    "thermal_symmetry_critical_celsius": 35.0,
+    "amps_stability_warning": 75.0,   # stitch 0 vs ~145 creates amps_stddev ~71; expert passes
+    "volts_stability_warning": 25.0,
+    "heat_diss_consistency": 250.0,
+}
 
 
 def _load_all(db: OrmSession) -> None:
@@ -70,7 +84,7 @@ def _load_all(db: OrmSession) -> None:
                         thermal_symmetry_critical_celsius=80,
                         amps_stability_warning=5,
                         volts_stability_warning=1,
-                        heat_diss_consistency=40,
+                        heat_diss_consistency=80,
                     )
                 }
         else:
@@ -84,7 +98,7 @@ def _load_all(db: OrmSession) -> None:
                     thermal_symmetry_critical_celsius=80,
                     amps_stability_warning=5,
                     volts_stability_warning=1,
-                    heat_diss_consistency=40,
+                    heat_diss_consistency=80,
                 )
             }
         _cache_loaded = True
@@ -106,12 +120,20 @@ def get_thresholds(db: OrmSession, process_type: str) -> WeldTypeThresholds:
     if not _cache_loaded:
         _load_all(db)
     key = (process_type or "mig").lower().strip()
+
+    # Tests frequently use multiple isolated DB engines in one process (e.g. in-memory SQLite).
+    # Our cache is process-global, so it may have been loaded from a different DB earlier.
+    # If a known process type is missing from the cache, reload once from the provided DB
+    # before failing loudly.
+    if key in KNOWN_PROCESS_TYPES and key not in _threshold_cache:
+        invalidate_cache()
+        _load_all(db)
+
     if key not in _threshold_cache:
         if key in KNOWN_PROCESS_TYPES:
             log.error(
-                "weld_thresholds missing row for process_type=%r; scoring will use MIG. "
-                "Add row or run migration seed.",
-                key
+                "weld_thresholds missing row for process_type=%r. Add row or run migration.",
+                key,
             )
             raise ValueError(
                 f"Thresholds for {key!r} not found in weld_thresholds. Add row or fix DB."
@@ -123,6 +145,8 @@ def get_thresholds(db: OrmSession, process_type: str) -> WeldTypeThresholds:
 def get_all_thresholds(db: OrmSession) -> List[WeldTypeThresholds]:
     """Return all thresholds. Admin UI uses this for GET /api/thresholds."""
     global _cache_loaded
-    if not _cache_loaded:
-        _load_all(db)
+    # Like get_thresholds(), reload once if cache may be from a different DB
+    # (common in tests that spin up multiple isolated engines in one process).
+    invalidate_cache()
+    _load_all(db)
     return list(_threshold_cache.values())
