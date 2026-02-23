@@ -64,10 +64,10 @@ def client(db_session):
 def seeded_weld_thresholds(db_session):
     """Seed weld_thresholds so GET/PUT tests work."""
     for weld_type, a, aw, ac, tw, tc, amps, volts, hd in [
-        ("mig", 45.0, 5.0, 15.0, 60.0, 80.0, 5.0, 1.0, 40.0),
-        ("tig", 75.0, 10.0, 20.0, 60.0, 80.0, 5.0, 1.0, 40.0),
-        ("stick", 20.0, 8.0, 20.0, 60.0, 80.0, 5.0, 1.0, 40.0),
-        ("flux_core", 45.0, 7.0, 18.0, 60.0, 80.0, 5.0, 1.0, 40.0),
+        ("mig", 45.0, 5.0, 15.0, 60.0, 80.0, 5.0, 1.0, 80.0),
+        ("tig", 75.0, 10.0, 20.0, 60.0, 80.0, 5.0, 1.0, 80.0),
+        ("stick", 20.0, 8.0, 20.0, 60.0, 80.0, 5.0, 1.0, 80.0),
+        ("flux_core", 45.0, 7.0, 18.0, 60.0, 80.0, 5.0, 1.0, 80.0),
     ]:
         db_session.add(
             WeldThresholdModel(
@@ -124,7 +124,7 @@ def test_put_threshold_succeeds(client, seeded_weld_thresholds):
             "thermal_symmetry_critical_celsius": 80,
             "amps_stability_warning": 5,
             "volts_stability_warning": 1,
-            "heat_diss_consistency": 40,
+            "heat_diss_consistency": 80,
         },
     )
     assert r.status_code == 200
@@ -145,7 +145,7 @@ def test_put_threshold_angle_zero_returns_422(client, seeded_weld_thresholds):
             "thermal_symmetry_critical_celsius": 80,
             "amps_stability_warning": 5,
             "volts_stability_warning": 1,
-            "heat_diss_consistency": 40,
+            "heat_diss_consistency": 80,
         },
     )
     assert r.status_code == 422
@@ -165,7 +165,7 @@ def test_put_threshold_warning_gt_critical_returns_422(
             "thermal_symmetry_critical_celsius": 80,
             "amps_stability_warning": 5,
             "volts_stability_warning": 1,
-            "heat_diss_consistency": 40,
+            "heat_diss_consistency": 80,
         },
     )
     assert r.status_code == 422
@@ -193,7 +193,7 @@ def test_put_threshold_invalidates_cache(
             "thermal_symmetry_critical_celsius": 80,
             "amps_stability_warning": 5,
             "volts_stability_warning": 1,
-            "heat_diss_consistency": 40,
+            "heat_diss_consistency": 80,
         },
     )
     assert r1.status_code == 200

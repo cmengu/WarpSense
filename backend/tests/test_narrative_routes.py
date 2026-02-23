@@ -49,8 +49,14 @@ def db_session():
         db.close()
 
 
-def test_get_narrative_404_when_not_generated(client):
+def test_get_narrative_404_when_not_generated(client, db_session):
     """GET /api/sessions/{id}/narrative returns 404 when no narrative cached."""
+    from sqlalchemy import inspect
+
+    # Integration guard: these routes require session_narratives table (migrations applied).
+    if not inspect(db_session.get_bind()).has_table("session_narratives"):
+        pytest.skip("session_narratives table missing; apply migrations before running narrative route tests")
+
     res = client.get("/api/sessions/sess_nonexistent_999/narrative")
     assert res.status_code == 404
     assert "not yet generated" in res.json().get("detail", "")
@@ -77,6 +83,11 @@ def test_post_narrative_503_when_api_key_missing(client, db_session):
     if not session:
         pytest.skip("sess_novice_001 not seeded; run POST /api/dev/seed-mock-sessions")
 
+    from sqlalchemy import inspect
+
+    if not inspect(db_session.get_bind()).has_table("session_narratives"):
+        pytest.skip("session_narratives table missing; apply migrations before running narrative route tests")
+
     with patch.dict(os.environ, {"ANTHROPIC_API_KEY": ""}, clear=False):
         res = client.post(
             "/api/sessions/sess_novice_001/narrative",
@@ -100,6 +111,11 @@ def test_post_narrative_200_with_mock(db_session):
     session = db_session.query(SessionModel).filter_by(session_id="sess_novice_001").first()
     if not session:
         pytest.skip("sess_novice_001 not seeded")
+
+    from sqlalchemy import inspect
+
+    if not inspect(db_session.get_bind()).has_table("session_narratives"):
+        pytest.skip("session_narratives table missing; apply migrations before running narrative route tests")
 
     def override():
         yield db_session

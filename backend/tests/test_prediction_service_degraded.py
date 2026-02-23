@@ -18,7 +18,9 @@ def test_degraded_mode_when_onnx_missing():
     # Clear cached session so _get_session re-evaluates
     ps._session = None
 
-    with patch.object(ps.MODEL_PATH, "exists", return_value=False):
+    # On Python 3.12, patching Path.exists on a PosixPath instance is not supported.
+    # Patch Path.exists at the class level instead.
+    with patch("pathlib.Path.exists", return_value=False):
         frames = [
             {
                 "angle_degrees": 45,

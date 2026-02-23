@@ -104,7 +104,8 @@ def _derived_session_ids():
 def _expected_session_count():
     from data.mock_welders import WELDER_ARCHETYPES
 
-    return sum(arch["sessions"] for arch in WELDER_ARCHETYPES)
+    # wipe-mock-sessions also includes the two demo replay sessions
+    return sum(arch["sessions"] for arch in WELDER_ARCHETYPES) + 2
 
 
 def test_wipe_deletes_mock_sessions_when_dev_mode(client, db_session, monkeypatch):

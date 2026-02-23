@@ -10,8 +10,6 @@ import logging
 from pathlib import Path
 from typing import Optional
 
-import numpy as np
-
 from models.shared_enums import RiskLevel
 from features.warp_features import extract_features, features_to_array, FEATURE_COLS
 
@@ -59,6 +57,16 @@ def predict_warp_risk(frame_window: list[dict]) -> dict:
         return {"probability": 0.0, "risk_level": RiskLevel.OK, "model_available": True}
 
     try:
+        try:
+            import numpy as np  # Lazy import: avoids hard import-time failures in non-ML codepaths
+        except Exception as e:
+            logger.error("NumPy unavailable for warp prediction: %s", e)
+            return {
+                "probability": 0.0,
+                "risk_level": RiskLevel.OK,
+                "model_available": False,
+            }
+
         X = np.array([features_to_array(features)], dtype=np.float32)
         input_name = sess.get_inputs()[0].name
         result = sess.run(None, {input_name: X})

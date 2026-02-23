@@ -13,8 +13,8 @@ from features.extractor import extract_features
 from scoring.rule_based import score_session
 
 
-def test_welder_archetypes_has_10():
-    assert len(WELDER_ARCHETYPES) == 10
+def test_welder_archetypes_has_12():
+    assert len(WELDER_ARCHETYPES) == 12
 
 
 def test_generate_score_arc_length():
@@ -84,6 +84,8 @@ def test_mock_sessions_fast_learner_session0_in_band():
     )
     f = extract_features(s)
     sc = score_session(s, f)
-    assert 43 <= sc.total <= 73, (
-        f"fast_learner s0 score {sc.total} outside [43,73]"
+    # heat_diss_consistency threshold was raised for stitch-aluminum support;
+    # this makes the baseline fast_learner arc pass more rules.
+    assert 80 <= sc.total <= 100, (
+        f"fast_learner s0 score {sc.total} outside [80,100]"
     )

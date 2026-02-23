@@ -29,7 +29,7 @@ class Session(BaseModel):
     weld_type: str = Field(..., description="Weld type identifier.")
     process_type: str = Field(
         default="mig",
-        description="Process type: mig|tig|stick|flux_core",
+        description="Process type: mig|tig|stick|flux_core|aluminum",
     )
 
     thermal_sample_interval_ms: int = Field(
