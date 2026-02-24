@@ -3,6 +3,7 @@ Dev-only routes for seeding mock data.
 Enabled only when ENV=development or DEBUG=1.
 """
 
+import logging
 import os
 import random
 import traceback
@@ -14,6 +15,7 @@ from database.models import SessionModel
 from sqlalchemy.orm import Session as OrmSession
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 def _is_dev_mode() -> bool:
@@ -111,6 +113,18 @@ async def seed_mock_sessions(db: OrmSession = Depends(get_db)):
             session_ids.append(sid)
 
         db.commit()
+
+        # Seed drills and cert_standards for coaching-plan and certification-status smoke tests
+        try:
+            from scripts.seed_demo_data import _seed_drills, _seed_cert_standards
+            _seed_drills(db)
+            _seed_cert_standards(db)
+        except Exception as drill_cert_err:
+            logger.warning(
+                "Drills/cert seed failed (non-fatal): %s. Coaching/cert endpoints may fail until manual seed.",
+                drill_cert_err,
+            )
+
         return {"seeded": session_ids}
     except HTTPException:
         raise
