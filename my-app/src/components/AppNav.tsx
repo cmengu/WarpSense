@@ -23,6 +23,7 @@ export function AppNav() {
   const isDefects =
     pathname === '/defects' || pathname.startsWith('/defects');
   const isAI = pathname === '/ai' || pathname.startsWith('/ai');
+  const isRealtime = pathname === '/realtime' || pathname.startsWith('/realtime');
 
   return (
     <nav
@@ -71,6 +72,13 @@ export function AppNav() {
           aria-current={isDefects ? 'page' : undefined}
         >
           Defects
+        </Link>
+        <Link
+          href="/realtime"
+          className="text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100"
+          aria-current={isRealtime ? 'page' : undefined}
+        >
+          Realtime
         </Link>
         <Link
           href="/ai"

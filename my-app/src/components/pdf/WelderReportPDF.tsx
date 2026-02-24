@@ -70,6 +70,13 @@ export interface WelderReportPDFProps {
   chartDataUrl?: string | null;
   /** Optional AI Coach narrative; renders section between score and feedback if present. */
   narrative?: string | null;
+  /** Optional certification readiness; renders table after feedback if present. */
+  certifications?: Array<{
+    name: string;
+    status: string;
+    qualifying_sessions: number;
+    sessions_required: number;
+  }> | null;
 }
 
 function isPngDataUrl(v: unknown): v is string {
@@ -89,6 +96,7 @@ export function WelderReportPDF({
   feedback,
   chartDataUrl,
   narrative,
+  certifications,
 }: WelderReportPDFProps) {
   const rawItems = feedback?.feedback_items ?? [];
   const validItems = rawItems.filter(
@@ -196,6 +204,42 @@ export function WelderReportPDF({
             </View>
           </View>
         ))}
+
+        {certifications && certifications.length > 0 && (
+          <View style={{ marginTop: 16 }}>
+            <Text
+              style={{
+                fontSize: 8,
+                color: "#737373",
+                textTransform: "uppercase",
+                letterSpacing: 1,
+                marginBottom: 6,
+              }}
+            >
+              Certification Readiness
+            </Text>
+            {certifications.map((c, i) => (
+              <View
+                key={i}
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  paddingVertical: 3,
+                  borderBottomWidth: 0.5,
+                  borderBottomColor: "#262626",
+                }}
+              >
+                <Text style={{ fontSize: 9, color: "#d4d4d4" }}>
+                  {sanitizeText(c.name)}
+                </Text>
+                <Text style={{ fontSize: 9, color: "#737373" }}>
+                  {c.qualifying_sessions}/{c.sessions_required} ·{" "}
+                  {sanitizeText(c.status)}
+                </Text>
+              </View>
+            ))}
+          </View>
+        )}
 
         <View
           style={{

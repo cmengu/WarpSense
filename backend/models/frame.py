@@ -79,6 +79,12 @@ class Frame(BaseModel):
             "90° = perpendicular. Expert ~12° push. Novice drifts toward 90° under load."
         ),
     )
+    ctwd_mm: Optional[float] = Field(
+        None,
+        ge=8.0,
+        le=30.0,
+        description="Contact tip-to-work distance in mm. Expert nominal 15mm. Future Rule 4.",
+    )
 
     @computed_field  # type: ignore[misc]
     @property

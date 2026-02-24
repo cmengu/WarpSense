@@ -11,7 +11,7 @@
 Adds aluminum 6061 GMAW mock session support: travel speed, porosity, cyclogram features, and scoring. Target: 3–6mm medium plate, real-time alert + post-session scoring.
 
 **Key decisions:**
-- Novice **decelerates** when hot (panic), not accelerates
+- Novice **decelerates** when hot (panic), not accelerates, accelerates 6x lesser than decelerates. 
 - Porosity is **cause-gated** (angle, speed, CTWD), not flat random
 - Two migrations: schema-only (A), then data population (B)
 - 30-session calibration before threshold values

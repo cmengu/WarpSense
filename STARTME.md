@@ -37,6 +37,17 @@ curl -X POST http://localhost:8000/api/dev/seed-mock-sessions
 curl -X POST http://localhost:8000/api/dev/wipe-mock-sessions
 ```
 
+**Fresh re-seed after mock generator changes** (e.g. duration_ms, aluminum arc types):
+
+```bash
+# Option A: API (always wipes then seeds)
+curl -X POST http://localhost:8000/api/dev/wipe-mock-sessions
+curl -X POST http://localhost:8000/api/dev/seed-mock-sessions
+
+# Option B: Script with --force (used by deploy.sh)
+cd backend && source venv/bin/activate && python -m scripts.seed_demo_data --force
+```
+
 Open: http://localhost:3000 | http://localhost:3000/replay/sess_expert_001 | http://localhost:3000/replay/sess_novice_001
 
 ## Verify implementation (Steps 1–13)

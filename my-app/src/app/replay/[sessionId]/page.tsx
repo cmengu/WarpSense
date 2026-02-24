@@ -194,9 +194,21 @@ function ReplayPageInner({ sessionId }: { sessionId: string }) {
   }, []);
 
   // ?t= deep-link: set currentTimestamp from URL when session is loaded.
-  const tParam = searchParams.get('t');
+  // searchParams may be null in tests or edge cases (no router context).
+  const tParam = searchParams?.get('t');
   const initialTimestampMs =
     tParam != null ? parseInt(tParam, 10) : undefined;
+
+  // ?compare=sess_id — overrides env for comparison session. Shareable links for expert vs novice.
+  // Future Option C (dropdown): A selector can call router.replace(`?compare=${selectedId}`)
+  // or router.push with updated searchParams. effectiveComparisonId will update from
+  // searchParams; the existing fetch/label/score logic requires no changes.
+  const compareParam = searchParams?.get('compare');
+  const effectiveComparisonId =
+    compareParam?.trim() || COMPARISON_SESSION_ID || undefined;
+
+  const isComparingWithSelf =
+    effectiveComparisonId != null && effectiveComparisonId === sessionId;
 
   const metadata = useSessionMetadata(sessionData);
   const frameData = useFrameData(
@@ -343,7 +355,7 @@ function ReplayPageInner({ sessionId }: { sessionId: string }) {
     const load = async () => {
       try {
         // CRITICAL: Pass limit to get full session (expert has ~1500 frames; default 1000 truncates)
-        const data = await fetchSession(sessionId, { limit: 2000 });
+        const data = await fetchSession(sessionId, { limit: 2000, include_thermal: true });
         if (!cancelled) setSessionData(data);
       } catch (err) {
         if (!cancelled) {
@@ -363,10 +375,10 @@ function ReplayPageInner({ sessionId }: { sessionId: string }) {
   }, [sessionId]);
 
   // Fetch comparison session (for side-by-side 3D visualization)
+  // Uses effectiveComparisonId: URL ?compare= overrides env. Shareable links.
   // Handles 404 gracefully: comparison is optional; page still works if missing.
-  // Explicit: COMPARISON_SESSION_ID is undefined when env is empty (disables comparison).
   useEffect(() => {
-    if (!showComparison || COMPARISON_SESSION_ID === '' || COMPARISON_SESSION_ID == null) {
+    if (!showComparison || !effectiveComparisonId) {
       setComparisonSession(null);
       return;
     }
@@ -374,17 +386,17 @@ function ReplayPageInner({ sessionId }: { sessionId: string }) {
     let cancelled = false;
 
     const loadComparison = async () => {
-      const sid = COMPARISON_SESSION_ID;
-      if (sid === '' || sid == null) return;
       try {
-        const data = await fetchSession(sid, { limit: 2000 });
+        const data = await fetchSession(effectiveComparisonId, {
+          limit: 2000,
+          include_thermal: true,
+        });
         if (!cancelled) setComparisonSession(data);
       } catch (err) {
-        // 404 or other error: comparison is optional, don't break the page
         if (!cancelled) {
           logWarn(
             "ReplayPage",
-            `Comparison session ${COMPARISON_SESSION_ID} not found or failed to load`,
+            `Comparison session ${effectiveComparisonId} not found or failed to load`,
             { error: err instanceof Error ? err.message : String(err) }
           );
           setComparisonSession(null);
@@ -397,7 +409,16 @@ function ReplayPageInner({ sessionId }: { sessionId: string }) {
     return () => {
       cancelled = true;
     };
-  }, [showComparison, COMPARISON_SESSION_ID]);
+  }, [showComparison, effectiveComparisonId]);
+
+  // Same-session warning: log when ?compare= equals current session (developer edge case)
+  useEffect(() => {
+    if (isComparingWithSelf && typeof console?.warn === 'function') {
+      console.warn(
+        `ReplayPage: Comparing session with itself (${sessionId}). Consider using a different ?compare= value.`
+      );
+    }
+  }, [isComparingWithSelf, sessionId]);
 
   // Fetch scores for both sessions (for 3D block score comparison)
   useEffect(() => {
@@ -424,13 +445,8 @@ function ReplayPageInner({ sessionId }: { sessionId: string }) {
       });
 
     // Fetch comparison session score (if comparison is enabled and loaded)
-    if (
-      showComparison &&
-      COMPARISON_SESSION_ID !== '' &&
-      COMPARISON_SESSION_ID != null &&
-      comparisonSession
-    ) {
-      fetchScore(COMPARISON_SESSION_ID)
+    if (showComparison && effectiveComparisonId && comparisonSession) {
+      fetchScore(effectiveComparisonId)
         .then((data) => {
           if (!cancelled) setComparisonScore(data);
         })
@@ -438,7 +454,7 @@ function ReplayPageInner({ sessionId }: { sessionId: string }) {
           if (!cancelled) {
             logWarn(
               "ReplayPage",
-              `Failed to fetch score for ${COMPARISON_SESSION_ID}`,
+              `Failed to fetch score for ${effectiveComparisonId}`,
               { error: err instanceof Error ? err.message : String(err) }
             );
             setComparisonScore(null);
@@ -451,7 +467,7 @@ function ReplayPageInner({ sessionId }: { sessionId: string }) {
     return () => {
       cancelled = true;
     };
-  }, [sessionId, showComparison, comparisonSession, COMPARISON_SESSION_ID]);
+  }, [sessionId, showComparison, comparisonSession, effectiveComparisonId]);
 
   const FETCH_TIMEOUT_MS = 10_000;
   useEffect(() => {
@@ -576,7 +592,11 @@ function ReplayPageInner({ sessionId }: { sessionId: string }) {
               {metadata.frame_count} frames
             </span>
             <Link
-              href={`/compare?sessionA=${encodeURIComponent(sessionId)}`}
+              href={`/compare?sessionA=${encodeURIComponent(sessionId)}${
+                effectiveComparisonId
+                  ? `&sessionB=${encodeURIComponent(effectiveComparisonId)}`
+                  : ''
+              }`}
               className="text-blue-600 dark:text-blue-400 hover:underline"
             >
               Compare with another session
@@ -789,6 +809,11 @@ function ReplayPageInner({ sessionId }: { sessionId: string }) {
                 {/* Right: Comparison Session (Novice) */}
                 {showComparison && comparisonSession?.frames ? (
                   <div>
+                    {isComparingWithSelf && (
+                      <div className="mb-2 px-3 py-1.5 rounded bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 text-xs">
+                        Comparing with itself
+                      </div>
+                    )}
                     {(() => {
                       const frame = getFrameAtTimestamp(
                         comparisonSession.frames,
@@ -804,7 +829,7 @@ function ReplayPageInner({ sessionId }: { sessionId: string }) {
                           <TorchWithHeatmap3D
                             angle={angle}
                             temp={temp}
-                            label={`Comparison (${COMPARISON_SESSION_ID ?? 'unknown'})`}
+                            label={`Comparison (${effectiveComparisonId ?? 'unknown'})`}
                             frames={comparisonFrameData.thermal_frames}
                             activeTimestamp={currentTimestamp}
                             maxTemp={THERMAL_MAX_TEMP}

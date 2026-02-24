@@ -199,8 +199,8 @@ function ComparePageInner({
     setError(null);
     const load = async () => {
       const [dataA, dataB] = await Promise.all([
-        fetchSession(sessionIdA, { limit: 2000 }),
-        fetchSession(sessionIdB, { limit: 2000 }),
+        fetchSession(sessionIdA, { limit: 2000, include_thermal: true }),
+        fetchSession(sessionIdB, { limit: 2000, include_thermal: true }),
       ]);
       if (!cancelled) {
         setSessionA(dataA);

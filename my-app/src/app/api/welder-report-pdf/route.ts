@@ -27,6 +27,13 @@ interface PDFRequestBody {
   chartDataUrl?: unknown;
   /** Optional AI Coach narrative; max 2000 chars. PDF renders without if absent. */
   narrative?: string | null;
+  /** Optional certification readiness; PDF renders table section if present. */
+  certifications?: Array<{
+    name: string;
+    status: string;
+    qualifying_sessions: number;
+    sessions_required: number;
+  }> | null;
 }
 
 const MAX_FILENAME_LENGTH = 64;
@@ -180,6 +187,45 @@ export async function POST(request: Request) {
     );
   }
 
+  /** Optional certifications; validate structure if provided. */
+  let certifications: PDFRequestBody["certifications"] = null;
+  if (body.certifications != null) {
+    if (!Array.isArray(body.certifications)) {
+      return NextResponse.json(
+        { error: "certifications must be an array" },
+        { status: 400 }
+      );
+    }
+    const valid: Array<{
+      name: string;
+      status: string;
+      qualifying_sessions: number;
+      sessions_required: number;
+    }> = [];
+    for (const c of body.certifications) {
+      if (
+        c &&
+        typeof c === "object" &&
+        typeof (c as { name?: unknown }).name === "string" &&
+        typeof (c as { status?: unknown }).status === "string" &&
+        typeof (c as { qualifying_sessions?: unknown }).qualifying_sessions ===
+          "number" &&
+        typeof (c as { sessions_required?: unknown }).sessions_required ===
+          "number"
+      ) {
+        valid.push({
+          name: (c as { name: string }).name,
+          status: (c as { status: string }).status,
+          qualifying_sessions: (c as { qualifying_sessions: number })
+            .qualifying_sessions,
+          sessions_required: (c as { sessions_required: number })
+            .sessions_required,
+        });
+      }
+    }
+    certifications = valid.length > 0 ? valid : null;
+  }
+
   const welder = { name: welderName };
   const score = { total, rules: body.score.rules ?? [] };
   const feedback = {
@@ -194,6 +240,7 @@ export async function POST(request: Request) {
       feedback,
       chartDataUrl,
       narrative,
+      certifications,
     });
 
     const buffer = await renderToBuffer(toPdfDoc(pdfReact));

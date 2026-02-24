@@ -11,8 +11,12 @@ import { Suspense, useState } from 'react';
 function CompareForm() {
   const searchParams = useSearchParams();
   const sessionAFromQuery = searchParams.get('sessionA') ?? '';
+  const sessionBFromQuery = searchParams.get('sessionB') ?? '';
+  // Note: useState initializes from URL on mount only.
+  // In-place URL edits (e.g. back/forward navigation) will not sync inputs.
+  // Acceptable for MVP; fix by adding useEffect to sync if sessionBFromQuery changes.
   const [sessionIdA, setSessionIdA] = useState(sessionAFromQuery);
-  const [sessionIdB, setSessionIdB] = useState('');
+  const [sessionIdB, setSessionIdB] = useState(sessionBFromQuery);
 
   const canCompare =
     sessionIdA.trim().length > 0 && sessionIdB.trim().length > 0;
