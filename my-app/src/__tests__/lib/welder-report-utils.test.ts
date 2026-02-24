@@ -3,13 +3,14 @@ import {
   getTrajectoryFromResults,
   assertTrajectoryAtIdx,
   HIST_FIRST_IDX,
+  BENCHMARKS_OFFSET,
 } from "@/lib/welder-report-utils";
 import { __FETCH_ORDER_FOR_TEST } from "@/app/seagull/welder/[id]/page";
 
 describe("welder-report-utils", () => {
   it("computeHistoricalScores returns number[] and excludes trajectory", () => {
     const histCount = 3;
-    const trajectoryIdx = HIST_FIRST_IDX + histCount;
+    const trajectoryIdx = HIST_FIRST_IDX + histCount + BENCHMARKS_OFFSET;
     const mockResults = [
       { status: "fulfilled" as const, value: {} },
       { status: "fulfilled" as const, value: {} },
@@ -17,6 +18,7 @@ describe("welder-report-utils", () => {
       { status: "fulfilled" as const, value: { total: 70, rules: [] } },
       { status: "fulfilled" as const, value: { total: 72, rules: [] } },
       { status: "fulfilled" as const, value: { total: 74, rules: [] } },
+      { status: "fulfilled" as const, value: { welder_id: "b", metrics: [] } },
       { status: "fulfilled" as const, value: { welder_id: "x", points: [] } },
     ];
     const historicalScores = computeHistoricalScores(mockResults, trajectoryIdx);
@@ -24,12 +26,13 @@ describe("welder-report-utils", () => {
   });
 
   it("computeHistoricalScores throws when value is NaN", () => {
-    const trajectoryIdx = HIST_FIRST_IDX + 1;
+    const trajectoryIdx = HIST_FIRST_IDX + 1 + BENCHMARKS_OFFSET;
     const mockResults = [
       { status: "fulfilled" as const, value: {} },
       { status: "fulfilled" as const, value: {} },
       { status: "fulfilled" as const, value: { total: 75, rules: [] } },
       { status: "fulfilled" as const, value: { total: NaN, rules: [] } },
+      { status: "fulfilled" as const, value: { welder_id: "b", metrics: [] } },
       { status: "fulfilled" as const, value: { welder_id: "x", points: [] } },
     ];
     expect(() =>
@@ -38,12 +41,13 @@ describe("welder-report-utils", () => {
   });
 
   it("computeHistoricalScores throws when trajectory leaks into histResults", () => {
-    const trajectoryIdx = HIST_FIRST_IDX + 1;
+    const trajectoryIdx = HIST_FIRST_IDX + 1 + BENCHMARKS_OFFSET;
     const mockResults = [
       { status: "fulfilled" as const, value: {} },
       { status: "fulfilled" as const, value: {} },
       { status: "fulfilled" as const, value: { total: 75, rules: [] } },
       { status: "fulfilled" as const, value: { welder_id: "leak", points: [] } },
+      { status: "fulfilled" as const, value: { welder_id: "b", metrics: [] } },
       { status: "fulfilled" as const, value: { welder_id: "x", points: [] } },
     ];
     expect(() =>
@@ -59,7 +63,7 @@ describe("welder-report-utils", () => {
 
   it("contract: trajectoryIdx derived from HIST_FIRST_IDX yields correct historicalScores length", () => {
     const histCount = 5;
-    const trajectoryIdx = HIST_FIRST_IDX + histCount;
+    const trajectoryIdx = HIST_FIRST_IDX + histCount + BENCHMARKS_OFFSET;
     const mockResults = [
       { status: "fulfilled" as const, value: {} },
       { status: "fulfilled" as const, value: {} },
@@ -68,6 +72,7 @@ describe("welder-report-utils", () => {
         status: "fulfilled" as const,
         value: { total: 70 + i * 2, rules: [] },
       })),
+      { status: "fulfilled" as const, value: { welder_id: "b", metrics: [] } },
       { status: "fulfilled" as const, value: { welder_id: "x", points: [] } },
     ];
     const historicalScores = computeHistoricalScores(mockResults, trajectoryIdx);
@@ -75,12 +80,13 @@ describe("welder-report-utils", () => {
   });
 
   it("assertTrajectoryAtIdx throws when result at trajectoryIdx is SessionScore not WelderTrajectory", () => {
-    const trajectoryIdx = 4;
+    const trajectoryIdx = 5;
     const mockResults = [
       { status: "fulfilled" as const, value: {} },
       { status: "fulfilled" as const, value: {} },
       { status: "fulfilled" as const, value: { total: 75, rules: [] } },
       { status: "fulfilled" as const, value: { total: 70, rules: [] } },
+      { status: "fulfilled" as const, value: { welder_id: "b", metrics: [] } },
       { status: "fulfilled" as const, value: { total: 72, rules: [] } },
     ];
     expect(() => assertTrajectoryAtIdx(mockResults, trajectoryIdx)).toThrow(
@@ -89,37 +95,40 @@ describe("welder-report-utils", () => {
   });
 
   it("assertTrajectoryAtIdx does not throw when last result has welder_id", () => {
-    const trajectoryIdx = 4;
+    const trajectoryIdx = 5;
     const mockResults = [
       { status: "fulfilled" as const, value: {} },
       { status: "fulfilled" as const, value: {} },
       { status: "fulfilled" as const, value: { total: 75, rules: [] } },
       { status: "fulfilled" as const, value: { total: 70, rules: [] } },
+      { status: "fulfilled" as const, value: { welder_id: "b", metrics: [] } },
       { status: "fulfilled" as const, value: { welder_id: "mike-chen", points: [] } },
     ];
     expect(() => assertTrajectoryAtIdx(mockResults, trajectoryIdx)).not.toThrow();
   });
 
   it("getTrajectoryFromResults returns trajectory when fulfilled", () => {
-    const trajectoryIdx = 4;
+    const trajectoryIdx = 5;
     const traj = { welder_id: "mike-chen", points: [], trend_slope: 2, projected_next_score: 82 };
     const mockResults = [
       { status: "fulfilled" as const, value: {} },
       { status: "fulfilled" as const, value: {} },
       { status: "fulfilled" as const, value: { total: 75, rules: [] } },
       { status: "fulfilled" as const, value: { total: 70, rules: [] } },
+      { status: "fulfilled" as const, value: { welder_id: "b", metrics: [] } },
       { status: "fulfilled" as const, value: traj },
     ];
     expect(getTrajectoryFromResults(mockResults, trajectoryIdx)).toEqual(traj);
   });
 
   it("getTrajectoryFromResults returns null when rejected", () => {
-    const trajectoryIdx = 4;
+    const trajectoryIdx = 5;
     const mockResults = [
       { status: "fulfilled" as const, value: {} },
       { status: "fulfilled" as const, value: {} },
       { status: "fulfilled" as const, value: { total: 75, rules: [] } },
       { status: "fulfilled" as const, value: { total: 70, rules: [] } },
+      { status: "fulfilled" as const, value: { welder_id: "b", metrics: [] } },
       { status: "rejected" as const, reason: new Error("Network error") },
     ];
     expect(getTrajectoryFromResults(mockResults, trajectoryIdx)).toBeNull();

@@ -4,9 +4,9 @@
  *
  * HIST_FIRST_IDX: Must match page allPromises layout:
  *   indices 0,1,2 = primary, expert, score
- *   indices HIST_FIRST_IDX..trajectoryIdx-1 = hist (SessionScore)
+ *   indices HIST_FIRST_IDX..(trajectoryIdx - BENCHMARKS_OFFSET - 1) = hist (SessionScore)
+ *   trajectoryIdx - BENCHMARKS_OFFSET = benchmarks (WelderBenchmarks)
  *   trajectoryIdx = trajectory (WelderTrajectory, MUST be last)
- * When adding a fetch before histPromises, update HIST_FIRST_IDX.
  * See Step 4.1 contract test that binds to page layout.
  */
 import type { SessionScore } from "@/lib/api";
@@ -14,7 +14,9 @@ import type { SessionScore } from "@/lib/api";
 export const PRIMARY_RESULT_IDX = 0;
 export const EXPERT_RESULT_IDX = 1;
 export const SCORE_RESULT_IDX = 2;
-export const HIST_FIRST_IDX = 3; // Must match allPromises: [primary, expert, score, ...hist, trajectory]
+export const HIST_FIRST_IDX = 3; // Must match allPromises: [primary, expert, score, ...hist, benchmarks, trajectory]
+/** Number of fetches between hist and trajectory (e.g. benchmarks). */
+export const BENCHMARKS_OFFSET = 1;
 
 /**
  * Extract historical scores (number[]) from results, excluding trajectory.
@@ -27,7 +29,8 @@ export function computeHistoricalScores(
   results: PromiseSettledResult<unknown>[],
   trajectoryIdx: number
 ): number[] {
-  const histResults = results.slice(HIST_FIRST_IDX, trajectoryIdx);
+  const histEndIdx = trajectoryIdx - BENCHMARKS_OFFSET;
+  const histResults = results.slice(HIST_FIRST_IDX, histEndIdx);
   const lastIdx = histResults.length - 1;
   const scoreResult = results[SCORE_RESULT_IDX];
   const sc =
