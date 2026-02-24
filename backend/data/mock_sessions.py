@@ -266,7 +266,7 @@ def _generate_stitch_expert_frames(
     ctwd_mm = 15.0  # nominal CTWD for aluminum GMAW (ESAB: 12–19mm)
 
     last_thermal_center_10mm: Optional[float] = None
-    thermal_interval_sec = 0.2  # 20 frames × 10ms
+    thermal_interval_sec = 0.01  # 10ms per frame — thermal emitted every frame for real-time alert Rule 1
     prev_arc_active = False
     last_arc_end_temp = AL_AMBIENT_TEMP
     stitch_count = 0
@@ -336,7 +336,7 @@ def _generate_stitch_expert_frames(
         volts = AL_VOLTS + rng.gauss(0, volts_sigma) if arc_active else 0.0
         amps = AL_AMPS + rng.gauss(0, AL_AMPS_NOISE_EXPERT) if arc_active else 0.0
 
-        is_thermal_frame = (i % 20 == 0)
+        is_thermal_frame = True  # Emit thermal every frame for real-time alert Rule 1
         snapshots = _aluminum_state_to_snapshots(thermal_state) if is_thermal_frame else []
 
         heat_dissipation: Optional[float] = None
@@ -360,6 +360,7 @@ def _generate_stitch_expert_frames(
                 heat_dissipation_rate_celsius_per_sec=heat_dissipation,
                 travel_speed_mm_per_min=travel_speed,
                 travel_angle_degrees=travel_angle,
+                ctwd_mm=ctwd_mm,
             )
         )
 
@@ -400,7 +401,7 @@ def _generate_continuous_novice_frames(
     ctwd_drift_rate = rng.gauss(0, 0.01)
 
     last_thermal_center_10mm: Optional[float] = None
-    thermal_interval_sec = 0.2  # 20 frames × 10ms
+    thermal_interval_sec = 0.01  # 10ms per frame — thermal emitted every frame for real-time alert Rule 1
 
     for i in range(num_frames):
         arc_active = not ((i % 380) < 12)
@@ -465,7 +466,7 @@ def _generate_continuous_novice_frames(
         if arc_active and rng.random() < 0.003:
             amps += rng.uniform(15, 25)
 
-        is_thermal_frame = (i % 20 == 0)
+        is_thermal_frame = True  # Emit thermal every frame for real-time alert Rule 1
         snapshots = _aluminum_state_to_snapshots(thermal_state) if is_thermal_frame else []
 
         heat_dissipation: Optional[float] = None
@@ -487,6 +488,7 @@ def _generate_continuous_novice_frames(
                 heat_dissipation_rate_celsius_per_sec=heat_dissipation,
                 travel_speed_mm_per_min=travel_speed,
                 travel_angle_degrees=travel_angle,
+                ctwd_mm=ctwd_mm,
             )
         )
 

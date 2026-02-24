@@ -12,6 +12,7 @@ Streaming threshold: Total frames > 1000 triggers streaming; otherwise uses pagi
 
 from datetime import datetime, timedelta, timezone
 import json
+import logging
 import uuid
 from typing import List, Optional
 
@@ -31,6 +32,7 @@ from scoring.rule_based import score_session
 from services.thermal_service import calculate_heat_dissipation
 from services.threshold_service import get_thresholds
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
@@ -341,6 +343,19 @@ async def get_session_score(
     ):
         session_model.score_total = score.total
         db.commit()
+        # Non-critical: evaluate coaching progress for welder's active drills
+        if session_model.operator_id:
+            try:
+                from services.coaching_service import evaluate_progress
+
+                evaluate_progress(session_model.operator_id, db)
+            except Exception as e:
+                logger.warning(
+                    "evaluate_progress failed for %s: %s",
+                    session_model.operator_id,
+                    e,
+                )
+                # Non-critical — do not re-raise
 
     result = score.model_dump()
     result["active_threshold_spec"] = {

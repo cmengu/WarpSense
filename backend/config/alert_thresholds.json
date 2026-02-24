@@ -1,0 +1,10 @@
+{
+  "thermal_ns_warning": 25.0,
+  "thermal_ns_critical": 40.0,
+  "angle_deviation_warning": 6.5,
+  "angle_deviation_critical": 8.0,
+  "speed_drop_warning_pct": 13.0,
+  "speed_drop_critical_pct": 18.0,
+  "nominal_travel_angle": 12.0,
+  "suppression_ms": 1000
+}

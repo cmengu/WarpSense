@@ -14,6 +14,7 @@ import { useMemo } from "react";
 
 import type { Frame } from "@/types/frame";
 import type { Session } from "@/types/session";
+import { hasThermalData } from "@/utils/frameUtils";
 import type {
   FrameDelta,
   ThermalDelta,
@@ -73,7 +74,9 @@ export function computeThermalDeltas(
   frameA: Frame,
   frameB: Frame
 ): ThermalDelta[] {
-  if (!frameA.has_thermal_data || !frameB.has_thermal_data) {
+  // Use hasThermalData (same fallback as filterThermalFrames) so thermal_deltas
+  // is populated when has_thermal_data is undefined but thermal_snapshots exist.
+  if (!hasThermalData(frameA) || !hasThermalData(frameB)) {
     return [];
   }
   if (!frameA.thermal_snapshots || !frameB.thermal_snapshots) {

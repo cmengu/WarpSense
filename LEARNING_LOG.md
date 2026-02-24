@@ -4,8 +4,8 @@
 **For AI Tools:** Reference this file with `@LEARNING_LOG.md` when implementing 3D/WebGL features.  
 **For `.cursorrules`:** Check LEARNING_LOG.md for anti-patterns, required patterns, and past incidents before generating code.
 
-**Last Updated:** 2025-02-18  
-**Total Entries:** 6 incidents + Lessons & Reflections
+**Last Updated:** 2026-02-23  
+**Total Entries:** 9 incidents + Lessons & Reflections
 
 **Metal plane clipping (2025-02-16):** Y-coordinates were scattered across TorchWithHeatmap3D; metal could clip through torch. Fix: centralize all workpiece/ring/grid/shadows Y in `welding3d.ts` with explicit constraint `metal_surface_max_Y < weld_pool_center_Y`. See `my-app/src/constants/welding3d.ts`.
 
@@ -19,12 +19,19 @@
 
 **Warp Prediction ML (2025-02-18):** Shared `warp_features.py` for train + inference; ONNX model degrades gracefully when missing. `get_session_frames_raw` in sessions.py; WarpRiskGauge on replay page. See `_merge/agent2_main.py`, `_merge/agent2_api.ts`.
 
+**random.seed() vs random.Random(seed) (2026-02-23):** For deterministic mock data generators, use `rng = random.Random(seed)` + `rng.gauss()` instead of global `random.seed()` + `random.gauss()`. Global seed mutates process-wide state; any other caller of `random` breaks reproducibility. See `backend/data/mock_sessions.py` aluminum generators.
+
+**Stale seed data when mock generators change (2026-02-23):** `seed_demo_data.py` skips re-seeding when existing count matches expected. If you change mock_sessions.py (e.g. duration_ms, arc types), run `python -m scripts.seed_demo_data --force` or `curl -X POST .../wipe-mock-sessions` then `.../seed-mock-sessions`. See STARTME.md.
+
 ---
 
 ## Quick Reference
 
 | Date | Title | Category | Severity |
 |------|-------|----------|----------|
+| 2026-02-23 | Stale Validation Error Message (process_type) | API / Backend | 🟡 High |
+| 2026-02-23 | API Docs, Logs, Imports Drift | Backend | 🟢 Medium |
+| 2026-02-23 | random.Random(seed) for Deterministic Mock Data | Backend / Data | 🟢 Medium |
 | 2025-02-18 | Warp Prediction ML (Batch 1) | Backend / ML | 🟢 Medium |
 | 2025-02-17 | WWAD Macro-Analytics (Supervisor Dashboard) | Backend / Architecture | 🟢 Medium |
 | 2025-02-16 | Metal Plane Clipping Through Torch | Frontend / 3D | 🟢 Medium |
@@ -239,7 +246,187 @@ When modifying 3D welding scene Y-positions:
 
 ---
 
+## 🌐 API / Validation
+
+### 📅 2026-02-23 — Stale Validation Error Message (process_type)
+
+**Category:** API / Backend  
+**Severity:** 🟡 High
+
+**What Happened:**
+`POST /sessions` validates `process_type` against `VALID_PROCESS_TYPES` (which includes `aluminum`), but the HTTP 422 error message listed only `mig, tig, stick, flux_core`. A client sending `process_type=aluminum` received a confusing rejection message implying aluminum was invalid.
+
+**Impact:**
+- Clients adding aluminum support would get "must be one of: mig, tig, stick, flux_core" when passing `aluminum`
+- Misleading error → wasted debugging, incorrect assumption that aluminum is unsupported
+
+**Root Cause:**
+- **Technical:** Error message string was not updated when aluminum was added to `VALID_PROCESS_TYPES`
+- **Process:** No check that validation messages stay in sync with allowlists during feature expansion
+
+**The Fix:**
+
+```python
+# ❌ BEFORE — omits aluminum from message
+if process_type not in VALID_PROCESS_TYPES:
+    raise HTTPException(
+        status_code=422,
+        detail=f"process_type must be one of: mig, tig, stick, flux_core (got: {body.process_type!r})",
+    )
+
+# ✅ AFTER — message matches allowlist
+if process_type not in VALID_PROCESS_TYPES:
+    raise HTTPException(
+        status_code=422,
+        detail=f"process_type must be one of: mig, tig, stick, flux_core, aluminum (got: {body.process_type!r})",
+    )
+```
+
+**Prevention:**
+- ✅ DO: When adding to allowlists/frozensets, update all related error messages and docstrings in the same commit
+- ✅ DO: Derive error message from the allowlist when possible: `", ".join(sorted(VALID_PROCESS_TYPES))`
+- ❌ DON'T: Add new valid values without grepping for hardcoded lists in error messages and docs
+- [ ] Code review check: "Does this validation have an error message? Is it up to date with the allowlist?"
+
+**AI Guidance:**
+```
+When adding new valid values to API enums/allowlists (e.g. process_type, weld_type):
+"Update the HTTP 422 error message to include the new value. Update Pydantic Field descriptions. Search for hardcoded 'must be one of' strings. See LEARNING_LOG.md stale validation message entry."
+```
+
+**Warning Signs:**
+- Allowlist (frozenset/set) has more values than the error message lists
+- Docstring lists fewer options than the schema allows
+
+**References:**
+- `backend/routes/sessions.py` — `CreateSessionRequest`, `create_session`
+- `VALID_PROCESS_TYPES`, `CreateSessionRequest.process_type`
+
+---
+
 ## 📊 Backend / Architecture
+
+### 📅 2026-02-23 — API Docs, Logs, and Imports Drift
+
+**Category:** Backend  
+**Severity:** 🟢 Medium
+
+**What Happened:**
+During aluminum threshold code review, three drift issues were found:
+1. **Unused import:** `get_previous_frame` imported in `sessions.py` but never used
+2. **Outdated docstring:** `CreateSessionRequest.process_type` said "mig|tig|stick|flux_core" but `aluminum` is valid
+3. **Misleading log:** `threshold_service` logged "scoring will use MIG" when missing aluminum row, but the code raises `ValueError` — scoring never runs
+
+**Impact:**
+- Unused imports add noise, can mask missing usage or dead code
+- Wrong docstrings mislead API consumers and AI tools
+- Logs that describe non-existent behavior frustrate debugging
+
+**Root Cause:**
+- **Process:** Adding `aluminum` touched multiple files; docstrings and logs were not updated in lockstep
+- **Technical:** Log message was copy-pasted from a prior design (fallback-to-MIG) before the fail-fast behavior was implemented
+
+**The Fix:**
+
+```python
+# ❌ BEFORE — unused import
+from services.thermal_service import calculate_heat_dissipation, get_previous_frame
+
+# ✅ AFTER
+from services.thermal_service import calculate_heat_dissipation
+```
+
+```python
+# ❌ BEFORE — docstring omits aluminum
+description="Process type: mig|tig|stick|flux_core. Default mig."
+
+# ✅ AFTER
+description="Process type: mig|tig|stick|flux_core|aluminum. Default mig."
+```
+
+```python
+# ❌ BEFORE — log implies fallback; we actually raise
+log.error(
+    "weld_thresholds missing row for process_type=%r; scoring will use MIG. "
+    "Add row or run migration seed.", key
+)
+
+# ✅ AFTER — matches behavior
+log.error(
+    "weld_thresholds missing row for process_type=%r. Add row or run migration.",
+    key,
+)
+```
+
+**Prevention:**
+- ✅ DO: When changing behavior (fail-fast vs fallback), update logs to match
+- ✅ DO: When extending enums/allowlists, grep for docstrings and error messages
+- ✅ DO: Run "unused import" linters (ruff F401, pyflakes) in CI
+- ❌ DON'T: Leave log messages that describe old or alternative code paths
+- [ ] Code review check: "Do docstrings and logs reflect the actual behavior?"
+
+**AI Guidance:**
+```
+When extending APIs or changing control flow:
+"Update docstrings, error messages, and log messages in the same change. Remove unused imports. Logs must describe what the code actually does, not a prior design. See LEARNING_LOG.md API docs drift entry."
+```
+
+**References:**
+- `backend/routes/sessions.py` — imports, CreateSessionRequest
+- `backend/services/threshold_service.py` — get_thresholds log
+
+---
+
+### 📅 2026-02-23 — random.Random(seed) for Deterministic Mock Data
+
+**Category:** Backend / Data  
+**Severity:** 🟢 Medium
+
+**What Happened:**
+Aluminum stitch mock generators used `random.seed(session_index * 42)` and `random.gauss()` to produce deterministic frames. Sessions were supposed to be reproducible (same seed → same frames) for verification, seeding, and comparison.
+
+**Impact:**
+- Python's `random` module has one global RNG shared across the whole process
+- `random.seed()` resets that global generator — it affects everyone, not just your function
+- If Thread B (or any other code) calls `random.seed()` or `random.random()` between your seed and your draws, your sequence is disrupted
+- Result: sessions drift, verification assertions become flaky, DB seed vs browser comparison may disagree
+
+**Root Cause:**
+- Assumed `random.seed()` was scoped to the generator function; it is not
+- Single-threaded tests passed locally; parallel or interleaved usage would fail
+
+**The Fix:**
+
+```
+# ❌ BEFORE — poisons global state; breaks when other code uses random
+def _generate_stitch_expert_frames(session_index, num_frames=1500):
+    random.seed(session_index * 42)
+    ...
+    angle += random.gauss(0, 1.2)
+
+# ✅ AFTER — isolated instance; never touches global state
+def _generate_stitch_expert_frames(session_index, num_frames=1500):
+    rng = random.Random(session_index * 42)
+    ...
+    angle += rng.gauss(0, 1.2)
+```
+
+**Prevention:**
+- ✅ DO: Use `rng = random.Random(seed)` for any deterministic mock/fixture generator
+- ✅ DO: Call `rng.gauss()`, `rng.uniform()`, etc. — never the global `random.*` after seeding
+- ❌ DON'T: Use `random.seed()` when you need reproducibility that survives parallel or interleaved calls
+- ❌ DON'T: Assume single-threaded dev is sufficient — tests or production may run generators concurrently
+
+**AI Guidance:**
+```
+When implementing deterministic mock data generators (welding sessions, frames, thermal state):
+"Use random.Random(seed) and call rng.gauss(), rng.uniform(), etc. on that instance. Never use random.seed() — it mutates global state and breaks reproducibility. See LEARNING_LOG.md random.Random entry."
+```
+
+**References:**
+- `backend/data/mock_sessions.py` — `_generate_stitch_expert_frames`, `_generate_continuous_novice_frames`
+
+---
 
 ### 📅 2025-02-17 — WWAD Macro-Analytics (Supervisor Dashboard)
 
@@ -434,6 +621,8 @@ npm test -- --testPathPattern="WarpRiskGauge|replay" --watchAll=false
 | Env fallback without trim | Use `.trim()` so empty string triggers fallback. |
 | Healthcheck with missing deps | Use runtime-available tools (python urllib, node http) not curl/wget. |
 | Seed in entrypoint vs script | Prefer deploy.sh exec for clarity; add verification step if demo data is critical. |
+| Stale validation error message | When adding to allowlists, grep for "must be one of" and update message. |
+| Logs/docstrings describe old behavior | Update logs and docstrings in same commit as behavior change. |
 
 ### Additional Insights (WebGL / Demo / Tooling)
 
