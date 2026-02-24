@@ -42,6 +42,9 @@ ALUMINUM_THRESHOLDS = {
     "amps_stability_warning": 75.0,   # stitch 0 vs ~145 creates amps_stddev ~71; expert passes
     "volts_stability_warning": 25.0,
     "heat_diss_consistency": 250.0,
+    "travel_speed_consistency": 67.68,  # Step 8 calibration (30 sessions)
+    "cyclogram_area_max": 16.21,       # Step 8 calibration
+    "porosity_event_max": 7.5,        # Step 8 calibration
 }
 
 
@@ -65,6 +68,9 @@ def _load_all(db: OrmSession) -> None:
                         amps_stability_warning=r.amps_stability_warning,
                         volts_stability_warning=r.volts_stability_warning,
                         heat_diss_consistency=r.heat_diss_consistency,
+                        travel_speed_consistency=getattr(r, "travel_speed_consistency", None),
+                        cyclogram_area_max=getattr(r, "cyclogram_area_max", None),
+                        porosity_event_max=getattr(r, "porosity_event_max", None),
                     )
                     _threshold_cache[r.weld_type] = t
                 except Exception as e:

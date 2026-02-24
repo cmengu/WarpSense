@@ -3,6 +3,8 @@ Pydantic models for weld quality thresholds.
 One row per process type (mig, tig, stick, flux_core).
 """
 
+from typing import Optional
+
 from pydantic import BaseModel, Field
 
 
@@ -23,6 +25,9 @@ class WeldTypeThresholds(BaseModel):
     amps_stability_warning: float = Field(..., ge=0)
     volts_stability_warning: float = Field(..., ge=0)
     heat_diss_consistency: float = Field(..., ge=0)
+    travel_speed_consistency: Optional[float] = Field(None, ge=0)
+    cyclogram_area_max: Optional[float] = Field(None, ge=0)
+    porosity_event_max: Optional[float] = Field(None, ge=0)
 
 
 class WeldThresholdUpdate(BaseModel):
@@ -36,3 +41,7 @@ class WeldThresholdUpdate(BaseModel):
     amps_stability_warning: float = Field(..., ge=0)
     volts_stability_warning: float = Field(..., ge=0)
     heat_diss_consistency: float = Field(..., ge=0)
+    # Aluminum calibration thresholds — set via Step 8 calibration, not manual entry.
+    travel_speed_consistency: Optional[float] = Field(None, ge=0)
+    cyclogram_area_max: Optional[float] = Field(None, ge=0)
+    porosity_event_max: Optional[float] = Field(None, ge=0)

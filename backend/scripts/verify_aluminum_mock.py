@@ -12,6 +12,7 @@ This script asserts behavioral differences between:
 from __future__ import annotations
 
 import json
+import statistics
 from datetime import datetime, timezone
 from typing import Any, Dict
 
@@ -22,6 +23,7 @@ from data.mock_sessions import (
     _init_thermal_state,
     _step_thermal_state,
 )
+from features.extractor import extract_features
 from models.frame import Frame
 from models.session import Session
 from models.session import SessionStatus
@@ -156,6 +158,32 @@ def main() -> None:
 
     Session.model_validate(expert_session.model_dump())
     Session.model_validate(novice_session.model_dump())
+
+    # --- Travel speed assertions (expert p2≥360, p98≤580) ---
+    expert_speeds = [f.travel_speed_mm_per_min for f in expert_frames if f.travel_speed_mm_per_min is not None]
+    assert len(expert_speeds) == 1500, f"FAIL: expert travel_speed missing on some frames: {len(expert_speeds)}"
+    expert_p2 = _percentile(expert_speeds, 2.0)
+    expert_p98 = _percentile(expert_speeds, 98.0)
+    assert expert_p2 >= 360, f"FAIL: expert travel speed p2 {expert_p2:.0f} < 360"
+    assert expert_p98 <= 580, f"FAIL: expert travel speed p98 {expert_p98:.0f} > 580"
+
+    # --- Voltage variance (novice σ / expert σ > 1.5) ---
+    e_volts = [f.volts for f in expert_frames if f.volts and f.volts > 1.0]
+    n_volts = [f.volts for f in novice_frames if f.volts and f.volts > 1.0]
+    assert len(e_volts) > 1 and len(n_volts) > 1, "FAIL: insufficient arc-on frames for voltage variance"
+    volts_ratio = statistics.stdev(n_volts) / statistics.stdev(e_volts)
+    assert volts_ratio > 1.5, f"FAIL: voltage variance ratio {volts_ratio:.2f} ≤ 1.5"
+
+    # --- Cyclogram area and porosity via extract_features ---
+    ef = extract_features(expert_session)
+    nf = extract_features(novice_session)
+    assert "cyclogram_area" in ef and "cyclogram_area" in nf, "FAIL: cyclogram_area missing from extract_features"
+    assert "porosity_event_count" in ef and "porosity_event_count" in nf, "FAIL: porosity_event_count missing"
+    assert nf["cyclogram_area"] > ef["cyclogram_area"], (
+        f"FAIL: cyclogram not separated (expert={ef['cyclogram_area']}, novice={nf['cyclogram_area']})"
+    )
+    assert nf["porosity_event_count"] >= 3, f"FAIL: novice porosity_event_count {nf['porosity_event_count']} < 3"
+    assert ef["porosity_event_count"] <= 1, f"FAIL: expert porosity_event_count {ef['porosity_event_count']} > 1"
 
     # Print brief JSON for inspection
     payload = {

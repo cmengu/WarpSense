@@ -1,8 +1,8 @@
 """
 Rule-based scoring logic for welding sessions.
 
-5 rules map to 5 features from extract_features. Each rule passes if
-actual_value <= threshold. Total = (passed_count) * 20 → max 100.
+5 base rules (all weld types) plus up to 3 aluminum-specific rules when
+aluminum thresholds are loaded. Total = round(100 * passed / len(rules)).
 
 DRAFT thresholds: tuned for mock expert/novice sessions; may need adjustment
 for real sensor data. Use WeldTypeThresholds when provided; fallback to constants.
@@ -47,8 +47,15 @@ def score_session(
         _check_heat_diss_consistency(features, t),
         _check_volts_stability(features, t),
     ]
+    if t and t.travel_speed_consistency is not None:
+        rules.append(_check_travel_speed_consistency(features, t))
+    if t and t.cyclogram_area_max is not None:
+        rules.append(_check_cyclogram_area(features, t))
+    if t and t.porosity_event_max is not None:
+        rules.append(_check_porosity_events(features, t))
+
     passed_count = sum(1 for r in rules if r.passed)
-    total = passed_count * 20
+    total = int(round(100 * passed_count / len(rules))) if rules else 0
     return SessionScore(total=total, rules=rules)
 
 
@@ -116,6 +123,48 @@ def _check_volts_stability(
     th = t.volts_stability_warning if t else VOLTS_STABILITY_THRESHOLD
     return ScoreRule(
         rule_id="volts_stability",
+        threshold=th,
+        passed=actual <= th,
+        actual_value=actual,
+    )
+
+
+def _check_travel_speed_consistency(
+    features: Dict[str, Any], t: WeldTypeThresholds
+) -> ScoreRule:
+    """Travel speed consistency: lower stddev = smoother travel (aluminum only)."""
+    actual = features.get("travel_speed_stddev", 0.0)
+    th = t.travel_speed_consistency
+    return ScoreRule(
+        rule_id="travel_speed_consistency",
+        threshold=th,
+        passed=actual <= th,
+        actual_value=actual,
+    )
+
+
+def _check_cyclogram_area(
+    features: Dict[str, Any], t: WeldTypeThresholds
+) -> ScoreRule:
+    """Cyclogram area: smaller V-I scatter = more stable arc (aluminum only)."""
+    actual = features.get("cyclogram_area", 0.0)
+    th = t.cyclogram_area_max
+    return ScoreRule(
+        rule_id="cyclogram_area",
+        threshold=th,
+        passed=actual <= th,
+        actual_value=actual,
+    )
+
+
+def _check_porosity_events(
+    features: Dict[str, Any], t: WeldTypeThresholds
+) -> ScoreRule:
+    """Porosity events: fewer rolling-window detections = better (aluminum only)."""
+    actual = features.get("porosity_event_count", 0.0)
+    th = t.porosity_event_max
+    return ScoreRule(
+        rule_id="porosity_events",
         threshold=th,
         passed=actual <= th,
         actual_value=actual,

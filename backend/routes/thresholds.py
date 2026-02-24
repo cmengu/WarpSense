@@ -70,6 +70,12 @@ async def update_threshold(
     row.amps_stability_warning = body.amps_stability_warning
     row.volts_stability_warning = body.volts_stability_warning
     row.heat_diss_consistency = body.heat_diss_consistency
+    if body.travel_speed_consistency is not None:
+        row.travel_speed_consistency = body.travel_speed_consistency
+    if body.cyclogram_area_max is not None:
+        row.cyclogram_area_max = body.cyclogram_area_max
+    if body.porosity_event_max is not None:
+        row.porosity_event_max = body.porosity_event_max
     try:
         db.commit()
     finally:
@@ -84,5 +90,8 @@ async def update_threshold(
         amps_stability_warning=row.amps_stability_warning,
         volts_stability_warning=row.volts_stability_warning,
         heat_diss_consistency=row.heat_diss_consistency,
+        travel_speed_consistency=getattr(row, "travel_speed_consistency", None),
+        cyclogram_area_max=getattr(row, "cyclogram_area_max", None),
+        porosity_event_max=getattr(row, "porosity_event_max", None),
     )
     return updated.model_dump()
