@@ -4,14 +4,37 @@ Feature extraction from raw sensor data.
 Computes 5 features for scoring: amps_stddev, angle_max_deviation,
 north_south_delta_avg, heat_diss_stddev, volts_range.
 
+Plus aluminum features: travel_speed_stddev, cyclogram_area, porosity_event_count.
+
 Uses correct field names from Frame: angle_degrees, amps, has_thermal_data.
 NOT torch_angle_degrees or frame_type (deprecated).
 """
 
+import math
 import statistics
 from typing import List, Dict, Any
 
+import numpy as np
+
 from models.session import Session
+
+# Porosity window voltage σ threshold — calibrated via Step 8 (30-session calibration).
+# Source: Step 8 output confirmed 0.8 separates expert/novice voltage variance windows.
+# To recalibrate: re-run Step 8 and update this value before running Migration B.
+POROSITY_SIGMA_THRESHOLD = 0.8
+
+
+def _compute_cyclogram_area(volts: list, amps: list) -> float:
+    """Ellipse area of V-I scatter. Expert: small. Novice: large. π×σ_v×σ_a×sqrt(1-r²)"""
+    if len(volts) < 10 or len(amps) < 10:
+        return 0.0
+    v_std = float(np.std(volts))
+    a_std = float(np.std(amps))
+    if v_std == 0.0 or a_std == 0.0:
+        return 0.0
+    r_val = float(np.corrcoef(volts, amps)[0, 1])
+    r = 0.0 if (math.isnan(r_val) or abs(r_val) > 1.0) else r_val
+    return round(math.pi * v_std * a_std * math.sqrt(max(0.0, 1.0 - r ** 2)), 4)
 
 
 def extract_features(
@@ -64,12 +87,38 @@ def extract_features(
     heat_diss_stddev = statistics.stdev(heat_diss) if len(heat_diss) > 1 else 0.0
     volts_range = max(volts) - min(volts) if volts else 0.0
 
+    # Travel speed stddev
+    travel_speeds = [
+        f.travel_speed_mm_per_min for f in session.frames
+        if f.travel_speed_mm_per_min is not None
+    ]
+    travel_speed_stddev = float(np.std(travel_speeds)) if len(travel_speeds) > 1 else 0.0
+
+    # Cyclogram area — arc-on frames only
+    arc_frames = [f for f in session.frames if f.volts and f.volts > 1.0 and f.amps]
+    cyclogram_area = _compute_cyclogram_area(
+        [f.volts for f in arc_frames],
+        [f.amps for f in arc_frames],
+    )
+
+    # Porosity event count — rolling 30-frame windows; threshold from Step 8 calibration
+    porosity_event_count = 0
+    window_size = 30
+    if len(arc_frames) >= window_size:
+        for idx in range(0, len(arc_frames) - window_size, window_size):
+            w = [f.volts for f in arc_frames[idx : idx + window_size] if f.volts]
+            if len(w) >= window_size // 2 and float(np.std(w)) > POROSITY_SIGMA_THRESHOLD:
+                porosity_event_count += 1
+
     return {
         "amps_stddev": amps_stddev,
         "angle_max_deviation": angle_max_deviation,
         "north_south_delta_avg": north_south_delta_avg,
         "heat_diss_stddev": heat_diss_stddev,
         "volts_range": volts_range,
+        "travel_speed_stddev": travel_speed_stddev,
+        "cyclogram_area": cyclogram_area,
+        "porosity_event_count": porosity_event_count,
     }
 
 

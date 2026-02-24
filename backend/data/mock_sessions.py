@@ -67,9 +67,33 @@ THERMAL_DISTANCES_MM = [10.0, 20.0, 30.0, 40.0, 50.0]
 # Aluminum 6061 constants (used by stitch_expert / continuous_novice generators)
 # ---------------------------------------------------------------------------
 
-AL_VOLTS = 21.0
-AL_AMPS = 145.0
-AL_AMBIENT_TEMP = 25.0
+# Electrical — from PubMed Central / ScienceDirect research on 6061-T6
+AL_AMPS                      = 155.0   # A — center of 130–180A range for 3–6mm
+AL_VOLTS                     = 22.0    # V — center of 21–24V range for spray transfer
+AL_AMPS_NOISE_EXPERT         =   4.0   # σ A — expert tremor
+AL_AMPS_NOISE_NOVICE         =  10.0   # σ A — novice instability (2.5× expert)
+AL_VOLTS_NOISE_NORMAL        =   0.3   # σ V — stable arc
+AL_VOLTS_NOISE_POROSITY      =   1.8   # σ V — elevated during porosity event
+
+# Travel speed — AWS D1.2 table for 3–6mm aluminum GMAW spray transfer
+AL_TRAVEL_SPEED_NOMINAL      = 470.0   # mm/min — expert center target
+AL_TRAVEL_SPEED_EXPERT_MIN   = 380.0   # mm/min — expert lower bound
+AL_TRAVEL_SPEED_EXPERT_MAX   = 560.0   # mm/min — expert upper bound
+AL_TRAVEL_SPEED_NOISE_EXPERT =   8.0   # σ mm/min — expert micro-variation
+AL_TRAVEL_SPEED_NOISE_NOVICE =  20.0   # σ mm/min — novice baseline noise
+AL_TRAVEL_SPEED_FLOOR        = 200.0   # mm/min — absolute minimum (novice dwell)
+AL_TRAVEL_SPEED_CEILING      = 700.0   # mm/min — absolute maximum
+
+# Porosity — Welding Journal: porosity shows as elevated voltage σ, not elevated mean
+AL_POROSITY_PROB_NOVICE      = 0.0030  # per arc-on frame, cause-gated (see Step 4)
+AL_POROSITY_PROB_EXPERT      = 0.00030 # 10× less than novice
+AL_POROSITY_MIN_FRAMES       =    20   # minimum event duration frames
+AL_POROSITY_MAX_FRAMES       =    40   # maximum event duration frames
+
+# Thermal — aluminum specific heat 0.896 J/g·°C, density 2.70 g/cm³
+AL_AMBIENT_TEMP              =  25.0   # °C
+AL_MELT_POINT                = 660.0   # °C — 6061 solidus ~582°C, liquidus ~652°C
+
 AL_DISSIPATION_COEFF = 0.09
 AL_MAX_TEMP = 480.0
 AL_CONDUCTIVITY_AXIAL = 0.035    # heat flow 10→20→30→40→50mm per frame
@@ -95,6 +119,7 @@ def _step_thermal_state(
     state: ThermalState,
     arc_active: bool,
     angle_degrees: float,
+    travel_speed_mm_per_min: float = AL_TRAVEL_SPEED_NOMINAL,
 ) -> ThermalState:
     new = {dist: dict(dirs) for dist, dirs in state.items()}
 
@@ -102,7 +127,8 @@ def _step_thermal_state(
     if arc_active:
         # In the 5×5 thermal grid, dissipation is applied per-node. To keep aluminum
         # temperatures in a realistic range (hundreds of °C) we scale arc input.
-        heat = ((AL_VOLTS * AL_AMPS) / 1000.0) * 20.0
+        speed_scale = AL_TRAVEL_SPEED_NOMINAL / travel_speed_mm_per_min
+        heat = ((AL_VOLTS * AL_AMPS) / 1000.0) * 20.0 * speed_scale
         raw_bias = (angle_degrees - 45.0) / 45.0
         bias = math.copysign(min(0.4, abs(raw_bias)), raw_bias)
 
@@ -162,6 +188,54 @@ def _aluminum_state_to_snapshots(state: ThermalState) -> List[ThermalSnapshot]:
         snapshots.append(ThermalSnapshot(distance_mm=dist, readings=readings))
     return snapshots
 
+
+def _porosity_probability(
+    angle_degrees: float,
+    travel_speed_mm_per_min: float,
+    ctwd_mm: float,
+    base_prob: float,
+) -> float:
+    """
+    Returns per-frame porosity probability gated on physical causes.
+    Causes: angle deviation, excessive travel speed, excessive CTWD.
+    Physical basis: AWS D1.2 ±10° angle; Lincoln GMAW speed; ESAB CTWD 12–19mm.
+    """
+    prob = base_prob
+
+    angle_deviation = abs(angle_degrees - 90.0)
+    if angle_deviation > 20.0:
+        prob *= 4.0
+    elif angle_deviation > 10.0:
+        prob *= 2.0
+
+    if travel_speed_mm_per_min > 560.0:
+        prob *= 3.0
+    elif travel_speed_mm_per_min > 500.0:
+        prob *= 1.5
+
+    if ctwd_mm > 19.0:
+        prob *= 2.5
+
+    return min(prob, 0.10)
+
+
+def _compute_interpass_bias(stitch_index: int, end_temp_celsius: float) -> float:
+    """
+    Returns ambient temperature offset for the next stitch based on
+    end temperature of previous stitch and fixed cooling time.
+    AWS D1.2 specifies max interpass temp 150°C for aluminum.
+    Models 30-second interpass pause; aluminum cooling τ ≈ 45s for 3–6mm plate.
+    """
+    if stitch_index == 0:
+        return 0.0
+    cooling_tau = 45.0           # seconds — empirical for 3–6mm plate
+    interpass_pause = 30.0       # seconds — operator pause between stitches
+    cooled_temp = AL_AMBIENT_TEMP + (end_temp_celsius - AL_AMBIENT_TEMP) * (
+        math.exp(-interpass_pause / cooling_tau)
+    )
+    return max(0.0, cooled_temp - AL_AMBIENT_TEMP)
+
+
 # ---------------------------------------------------------------------------
 # Aluminum frame generators (NEW; routed in generate_frames_for_arc later)
 # ---------------------------------------------------------------------------
@@ -186,9 +260,16 @@ def _generate_stitch_expert_frames(
     frames: List[Frame] = []
     thermal_state = _init_thermal_state(AL_AMBIENT_TEMP)
     angle = 45.0
+    travel_speed = AL_TRAVEL_SPEED_NOMINAL
+    travel_angle = 12.0  # expert push angle, stable
+    porosity_frames_remaining = 0
+    ctwd_mm = 15.0  # nominal CTWD for aluminum GMAW (ESAB: 12–19mm)
 
     last_thermal_center_10mm: Optional[float] = None
     thermal_interval_sec = 0.2  # 20 frames × 10ms
+    prev_arc_active = False
+    last_arc_end_temp = AL_AMBIENT_TEMP
+    stitch_count = 0
 
     for i in range(num_frames):
         arc_active = (i % 250) < 150
@@ -197,6 +278,15 @@ def _generate_stitch_expert_frames(
         center_10mm = thermal_state[10.0]["center"]
         if center_10mm > 220.0:
             arc_active = False
+
+        # Interpass bias: when arc turns on after stitch, apply residual heat from previous stitch
+        if prev_arc_active and not arc_active:
+            last_arc_end_temp = thermal_state[10.0]["center"]
+        if not prev_arc_active and arc_active:
+            stitch_count += 1
+            if stitch_count > 1:
+                bias = _compute_interpass_bias(stitch_count - 1, last_arc_end_temp)
+                thermal_state = _init_thermal_state(AL_AMBIENT_TEMP + bias)
 
         # Angle reacts to thermal state (expert behavior)
         north_10mm = thermal_state[10.0]["north"]
@@ -211,11 +301,40 @@ def _generate_stitch_expert_frames(
         angle += (angle_target - angle) * 0.03 + rng.gauss(0.0, 1.2)
         angle = max(20.0, min(85.0, angle))
 
-        thermal_state = _step_thermal_state(thermal_state, arc_active, angle)
+        # Expert: adaptive speed — AWS "weld hot and fast" for aluminum
+        temp_at_arc = thermal_state[10.0]["center"]
+        if temp_at_arc > 200:
+            speed_target = 530.0
+        elif temp_at_arc < 80:
+            speed_target = 410.0
+        else:
+            speed_target = AL_TRAVEL_SPEED_NOMINAL
+        travel_speed += (speed_target - travel_speed) * 0.02
+        travel_speed += rng.gauss(0, AL_TRAVEL_SPEED_NOISE_EXPERT)
+        travel_speed = max(AL_TRAVEL_SPEED_EXPERT_MIN, min(AL_TRAVEL_SPEED_EXPERT_MAX, travel_speed))
+
+        ctwd_mm += rng.gauss(0, 0.05)
+        ctwd_mm = max(12.0, min(17.0, ctwd_mm))
+
+        travel_angle += rng.gauss(0, 0.5)
+        travel_angle = max(8.0, min(18.0, travel_angle))
+
+        thermal_state = _step_thermal_state(thermal_state, arc_active, angle, travel_speed)
         new_center_10mm = thermal_state[10.0]["center"]
 
-        volts = AL_VOLTS + rng.gauss(0.0, 0.2) if arc_active else 0.0
-        amps = AL_AMPS + rng.gauss(0.0, 3.0) if arc_active else 0.0
+        porosity_prob = _porosity_probability(
+            angle_degrees=angle,
+            travel_speed_mm_per_min=travel_speed,
+            ctwd_mm=ctwd_mm,
+            base_prob=AL_POROSITY_PROB_EXPERT,
+        )
+        if arc_active and rng.random() < porosity_prob:
+            porosity_frames_remaining = rng.randint(AL_POROSITY_MIN_FRAMES, AL_POROSITY_MAX_FRAMES)
+        volts_sigma = AL_VOLTS_NOISE_POROSITY if porosity_frames_remaining > 0 else AL_VOLTS_NOISE_NORMAL
+        if porosity_frames_remaining > 0:
+            porosity_frames_remaining -= 1
+        volts = AL_VOLTS + rng.gauss(0, volts_sigma) if arc_active else 0.0
+        amps = AL_AMPS + rng.gauss(0, AL_AMPS_NOISE_EXPERT) if arc_active else 0.0
 
         is_thermal_frame = (i % 20 == 0)
         snapshots = _aluminum_state_to_snapshots(thermal_state) if is_thermal_frame else []
@@ -229,6 +348,8 @@ def _generate_stitch_expert_frames(
                 )
             last_thermal_center_10mm = new_center_10mm
 
+        prev_arc_active = arc_active
+
         frames.append(
             Frame(
                 timestamp_ms=i * 10,
@@ -237,6 +358,8 @@ def _generate_stitch_expert_frames(
                 angle_degrees=angle,
                 thermal_snapshots=snapshots,
                 heat_dissipation_rate_celsius_per_sec=heat_dissipation,
+                travel_speed_mm_per_min=travel_speed,
+                travel_angle_degrees=travel_angle,
             )
         )
 
@@ -270,6 +393,12 @@ def _generate_continuous_novice_frames(
     drift = 0.0
     wrong_correction_fired = False
 
+    travel_speed = AL_TRAVEL_SPEED_NOMINAL
+    travel_angle = 12.0  # novice starts at push, drifts toward perpendicular under load
+    porosity_frames_remaining = 0
+    ctwd_mm = 15.0
+    ctwd_drift_rate = rng.gauss(0, 0.01)
+
     last_thermal_center_10mm: Optional[float] = None
     thermal_interval_sec = 0.2  # 20 frames × 10ms
 
@@ -295,11 +424,46 @@ def _generate_continuous_novice_frames(
         angle = 45.0 + drift + rng.gauss(0.0, 2.5)
         angle = max(20.0, min(85.0, angle))
 
-        thermal_state = _step_thermal_state(thermal_state, arc_active, angle)
+        # Novice: panic deceleration — sees bright puddle and slows down
+        temp_at_arc = thermal_state[10.0]["center"]
+        if temp_at_arc > 200 and rng.random() < 0.06:
+            travel_speed -= rng.uniform(40, 100)
+        elif temp_at_arc > 200 and rng.random() < 0.01:
+            travel_speed += rng.uniform(80, 180)
+        travel_speed += rng.gauss(0, AL_TRAVEL_SPEED_NOISE_NOVICE)
+        travel_speed = max(AL_TRAVEL_SPEED_FLOOR, min(AL_TRAVEL_SPEED_CEILING, travel_speed))
+
+        ctwd_mm += ctwd_drift_rate
+        ctwd_mm = max(10.0, min(25.0, ctwd_mm))
+        if ctwd_mm >= 24.0:
+            ctwd_drift_rate = -abs(ctwd_drift_rate)
+        elif ctwd_mm <= 11.0:
+            ctwd_drift_rate = abs(ctwd_drift_rate)
+
+        # Novice travel angle: drifts from 10–15° push toward perpendicular under thermal load
+        if temp_at_arc > 180 and rng.random() < 0.02:
+            travel_angle += rng.uniform(2, 8)
+        travel_angle += rng.gauss(0, 1.5)
+        travel_angle = max(5.0, min(90.0, travel_angle))
+
+        thermal_state = _step_thermal_state(thermal_state, arc_active, angle, travel_speed)
         new_center_10mm = thermal_state[10.0]["center"]
 
-        volts = AL_VOLTS + rng.gauss(0.0, 0.3) if arc_active else 0.0
-        amps = AL_AMPS + rng.gauss(0.0, 5.0) if arc_active else 0.0
+        porosity_prob = _porosity_probability(
+            angle_degrees=angle,
+            travel_speed_mm_per_min=travel_speed,
+            ctwd_mm=ctwd_mm,
+            base_prob=AL_POROSITY_PROB_NOVICE,
+        )
+        if arc_active and rng.random() < porosity_prob:
+            porosity_frames_remaining = rng.randint(AL_POROSITY_MIN_FRAMES, AL_POROSITY_MAX_FRAMES)
+        volts_sigma = AL_VOLTS_NOISE_POROSITY if porosity_frames_remaining > 0 else AL_VOLTS_NOISE_NORMAL
+        if porosity_frames_remaining > 0:
+            porosity_frames_remaining -= 1
+        volts = AL_VOLTS + rng.gauss(0, volts_sigma) if arc_active else 0.0
+        amps = AL_AMPS + rng.gauss(0, AL_AMPS_NOISE_NOVICE) if arc_active else 0.0
+        if arc_active and rng.random() < 0.003:
+            amps += rng.uniform(15, 25)
 
         is_thermal_frame = (i % 20 == 0)
         snapshots = _aluminum_state_to_snapshots(thermal_state) if is_thermal_frame else []
@@ -321,6 +485,8 @@ def _generate_continuous_novice_frames(
                 angle_degrees=angle,
                 thermal_snapshots=snapshots,
                 heat_dissipation_rate_celsius_per_sec=heat_dissipation,
+                travel_speed_mm_per_min=travel_speed,
+                travel_angle_degrees=travel_angle,
             )
         )
 

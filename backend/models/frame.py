@@ -60,6 +60,25 @@ class Frame(BaseModel):
         None,
         description="Heat dissipation rate in °C/sec, if available.",
     )
+    travel_speed_mm_per_min: Optional[float] = Field(
+        None,
+        ge=0.0,
+        le=2000.0,
+        description=(
+            "Torch travel speed along weld seam in mm/min. "
+            "Expert 3-6mm aluminum GMAW: 380–560 mm/min (AWS D1.2). "
+            "Novice: erratic 200–700 mm/min with dwell events."
+        ),
+    )
+    travel_angle_degrees: Optional[float] = Field(
+        None,
+        ge=0.0,
+        le=360.0,
+        description=(
+            "Travel angle (push/drag tilt, forward-back). "
+            "90° = perpendicular. Expert ~12° push. Novice drifts toward 90° under load."
+        ),
+    )
 
     @computed_field  # type: ignore[misc]
     @property

@@ -156,6 +156,9 @@ class WeldThresholdModel(Base):
     amps_stability_warning = Column(Float, nullable=False)
     volts_stability_warning = Column(Float, nullable=False)
     heat_diss_consistency = Column(Float, nullable=False)
+    travel_speed_consistency = Column(Float, nullable=True)
+    cyclogram_area_max = Column(Float, nullable=True)
+    porosity_event_max = Column(Float, nullable=True)
 
 
 from models.site import Site, Team  # noqa: E402, F401
