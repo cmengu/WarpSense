@@ -4,18 +4,23 @@ Computes team-level KPIs from session metadata + score_total (no frame loading).
 """
 
 from collections import defaultdict
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from typing import Optional
 
 from sqlalchemy.orm import Session as OrmSession
+from sqlalchemy.sql.expression import false
 
 from database.models import SessionModel
+from models.session import SessionStatus
+from models.site import Team
 
 
 def get_aggregate_kpis(
     db: OrmSession,
-    date_start: Optional[str] = None,
-    date_end: Optional[str] = None,
+    date_start: Optional[date] = None,
+    date_end: Optional[date] = None,
+    site_id: Optional[str] = None,
+    team_id: Optional[str] = None,
     include_sessions: bool = False,
 ) -> dict:
     """
@@ -24,10 +29,27 @@ def get_aggregate_kpis(
 
     Uses metadata + score_total only; never loads frames.
     """
-    q = db.query(SessionModel).filter(SessionModel.status == "complete")
+    q = db.query(SessionModel).filter(SessionModel.status == SessionStatus.COMPLETE.value)
+
+    if team_id:
+        q = q.filter(SessionModel.team_id == team_id)
+    elif site_id:
+        team_ids = [t.id for t in db.query(Team).filter_by(site_id=site_id).all()]
+        if team_ids:
+            q = q.filter(SessionModel.team_id.in_(team_ids))
+        else:
+            q = q.filter(false())
 
     if date_start:
-        q = q.filter(SessionModel.start_time >= date_start)
+        ds = (
+            datetime.fromisoformat(date_start).date()
+            if isinstance(date_start, str)
+            else date_start
+        )
+        start_utc = datetime.combine(ds, datetime.min.time()).replace(
+            tzinfo=timezone.utc
+        )
+        q = q.filter(SessionModel.start_time >= start_utc)
     if date_end:
         de = (
             datetime.fromisoformat(date_end).date()
