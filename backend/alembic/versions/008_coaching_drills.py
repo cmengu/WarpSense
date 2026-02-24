@@ -15,10 +15,39 @@ depends_on = None
 
 
 def upgrade() -> None:
-    # FILL IN: Batch 3 Agent 2
-    pass
+    op.create_table(
+        "drills",
+        sa.Column("id", sa.Integer, primary_key=True, autoincrement=True),
+        sa.Column("target_metric", sa.String(64), nullable=False),
+        sa.Column("title", sa.String(256), nullable=False),
+        sa.Column("description", sa.Text, nullable=False),
+        sa.Column("sessions_required", sa.Integer, nullable=False,
+                  server_default="3"),
+        sa.Column("success_threshold", sa.Float, nullable=False,
+                  server_default="70.0"),
+    )
+    op.create_table(
+        "coaching_assignments",
+        sa.Column("id", sa.Integer, primary_key=True, autoincrement=True),
+        sa.Column("welder_id", sa.String(128), nullable=False),
+        sa.Column("drill_id", sa.Integer, sa.ForeignKey("drills.id"),
+                  nullable=False),
+        sa.Column("assigned_at", sa.DateTime(timezone=True),
+                  server_default=sa.text("now()"), nullable=False),
+        sa.Column("status", sa.String(32), nullable=False,
+                  server_default="active"),
+        sa.Column("sessions_completed", sa.Integer, nullable=False,
+                  server_default="0"),
+        sa.Column("completed_at", sa.DateTime(timezone=True), nullable=True),
+    )
+    op.create_index("ix_coaching_assignments_welder_id",
+                    "coaching_assignments", ["welder_id"])
+    op.create_index("ix_coaching_assignments_status",
+                    "coaching_assignments", ["status"])
 
 
 def downgrade() -> None:
-    # FILL IN: Batch 3 Agent 2
-    pass
+    op.drop_index("ix_coaching_assignments_status", "coaching_assignments")
+    op.drop_index("ix_coaching_assignments_welder_id", "coaching_assignments")
+    op.drop_table("coaching_assignments")
+    op.drop_table("drills")

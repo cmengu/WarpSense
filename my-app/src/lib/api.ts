@@ -23,7 +23,10 @@ import type {
   AnnotationCreate,
   DefectLibraryItem,
 } from "@/types/annotation";
-import type { AnnotationType } from "@/types/shared";
+import type { CoachingPlan } from "@/types/coaching";
+import type { AnnotationType, WelderID } from "@/types/shared";
+import type { WelderBenchmarks } from "@/types/benchmark";
+import type { WelderCertificationSummary } from "@/types/certification";
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -189,6 +192,8 @@ export interface CreateSessionRequest {
   weld_type: string;
   /** Optional session ID. If omitted, backend generates one. */
   session_id?: string;
+  /** Optional process type (mig|tig|stick|flux_core|aluminum). Default mig. */
+  process_type?: string;
 }
 
 /**
@@ -505,6 +510,59 @@ export async function generateNarrative(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ force_regenerate: forceRegenerate }),
   });
+}
+
+// ---------------------------------------------------------------------------
+// Benchmarks
+// ---------------------------------------------------------------------------
+
+/**
+ * Fetch per-metric benchmark for a welder vs all other welders.
+ * @throws Error if welder not found or request fails.
+ */
+export async function fetchBenchmarks(
+  welderId: WelderID
+): Promise<WelderBenchmarks> {
+  const url = buildUrl(`/api/welders/${encodeURIComponent(welderId)}/benchmarks`);
+  return apiFetch<WelderBenchmarks>(url);
+}
+
+/**
+ * Fetch coaching plan (active and completed drills) for a welder.
+ * @throws Error if request fails.
+ */
+export async function fetchCoachingPlan(
+  welderId: WelderID
+): Promise<CoachingPlan> {
+  const url = buildUrl(`/api/welders/${encodeURIComponent(welderId)}/coaching-plan`);
+  return apiFetch<CoachingPlan>(url);
+}
+
+/**
+ * Trigger auto-assignment of drills based on welder benchmarks.
+ * Returns updated coaching plan with auto_assigned=true if new drills were assigned.
+ * @throws Error if request fails.
+ */
+export async function triggerCoachingAssignment(
+  welderId: WelderID
+): Promise<CoachingPlan> {
+  const url = buildUrl(`/api/welders/${encodeURIComponent(welderId)}/coaching-plan`);
+  return apiFetch<CoachingPlan>(url, {
+    method: "POST",
+  });
+}
+
+/**
+ * Fetch certification readiness status for a welder across all standards.
+ * @throws Error if request fails.
+ */
+export async function fetchCertificationStatus(
+  welderId: WelderID
+): Promise<WelderCertificationSummary> {
+  const url = buildUrl(
+    `/api/welders/${encodeURIComponent(welderId)}/certification-status`
+  );
+  return apiFetch<WelderCertificationSummary>(url);
 }
 
 // ---------------------------------------------------------------------------

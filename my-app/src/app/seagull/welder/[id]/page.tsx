@@ -2,7 +2,13 @@
 
 import { Suspense, use, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { fetchSession, fetchScore, fetchNarrative, type SessionScore } from "@/lib/api";
+import {
+  fetchSession,
+  fetchScore,
+  fetchNarrative,
+  fetchBenchmarks,
+  type SessionScore,
+} from "@/lib/api";
 import { fetchTrajectory } from "@/lib/api.merge_agent1";
 import {
   computeHistoricalScores,
@@ -21,8 +27,12 @@ import { NarrativePanel } from "@/components/welding/NarrativePanel";
 import { LineChart } from "@/components/charts/LineChart";
 import { ReportLayout } from "@/components/layout/ReportLayout";
 import { TrajectoryChart } from "@/components/welding/TrajectoryChart";
+import { BenchmarkPanel } from "@/components/welding/BenchmarkPanel";
+import { CoachingPlanPanel } from "@/components/welding/CoachingPlanPanel";
+import { CertificationCard } from "@/components/welding/CertificationCard";
 import type { Session } from "@/types/session";
 import type { WelderTrajectory } from "@/types/trajectory";
+import type { WelderBenchmarks } from "@/types/benchmark";
 
 // ---------------------------------------------------------------------------
 // Constants — Must match WELDER_ARCHETYPES (backend/data/mock_welders.py)
@@ -62,6 +72,7 @@ export const __FETCH_ORDER_FOR_TEST = [
   "expert",
   "score",
   "hist",
+  "benchmarks",
   "trajectory",
 ] as const;
 
@@ -242,6 +253,7 @@ function WelderReportInner({ welderId }: { welderId: string }) {
     { date: string; value: number }[] | null
   >(null);
   const [trajectory, setTrajectory] = useState<WelderTrajectory | null>(null);
+  const [benchmarks, setBenchmarks] = useState<WelderBenchmarks | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pdfLoading, setPdfLoading] = useState(false);
@@ -256,6 +268,7 @@ function WelderReportInner({ welderId }: { welderId: string }) {
     const fetchExpert = fetchSession(EXPERT_SESSION_ID, { limit: 2000 });
     const fetchScorePrimary = fetchScore(sessionId);
     const histPromises = historicalSessionIds.map((sid) => fetchScore(sid));
+    const benchmarksPromise = fetchBenchmarks(welderId).catch(() => null);
     const trajectoryPromise = fetchTrajectory(welderId);
 
     const allPromises = [
@@ -263,6 +276,7 @@ function WelderReportInner({ welderId }: { welderId: string }) {
       fetchExpert,
       fetchScorePrimary,
       ...histPromises,
+      benchmarksPromise,
       trajectoryPromise,
     ];
     const trajectoryIdx = allPromises.length - 1;
@@ -315,6 +329,7 @@ function WelderReportInner({ welderId }: { welderId: string }) {
         setReport(null);
         setChartData(null);
         setTrajectory(null);
+        setBenchmarks(null);
         setLoading(false);
         return;
       }
@@ -325,6 +340,11 @@ function WelderReportInner({ welderId }: { welderId: string }) {
         value: historicalScores[i] ?? 0,
       }));
       const traj = getTrajectoryFromResults<WelderTrajectory>(results, trajectoryIdx);
+      const benchRes = results[trajectoryIdx - 1];
+      const bench =
+        benchRes?.status === "fulfilled"
+          ? (benchRes.value as WelderBenchmarks | null)
+          : null;
 
       setSession(s);
       setExpertSession(e);
@@ -332,6 +352,7 @@ function WelderReportInner({ welderId }: { welderId: string }) {
       setReport(generateAIFeedback(s, sc, historicalScores));
       setChartData(chartDataResult);
       setTrajectory(traj);
+      setBenchmarks(bench);
       setLoading(false);
     });
 
@@ -508,6 +529,13 @@ function WelderReportInner({ welderId }: { welderId: string }) {
       trajectory={
         trajectory ? <TrajectoryChart trajectory={trajectory} /> : undefined
       }
+      benchmarks={
+        benchmarks ? (
+          <BenchmarkPanel benchmarks={benchmarks} />
+        ) : undefined
+      }
+      coaching={<CoachingPlanPanel welderId={welderId} />}
+      certification={<CertificationCard welderId={welderId} />}
       actions={
         <ActionsBar
           onDownloadPDF={handleDownloadPDF}

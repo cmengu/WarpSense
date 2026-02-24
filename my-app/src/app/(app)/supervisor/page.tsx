@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { CalendarHeatmap } from '@/components/dashboard/CalendarHeatmap';
+import { RankingsTable } from '@/components/dashboard/RankingsTable';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { fetchAggregateKPIs } from '@/lib/api';
 import { logError, logWarn } from '@/lib/logger';
@@ -39,6 +40,7 @@ export default function SupervisorPage() {
   const [error, setError] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'overview' | 'rankings'>('overview');
 
   // Debounce date changes (0ms on mount, 300ms thereafter)
   useEffect(() => {
@@ -153,9 +155,34 @@ export default function SupervisorPage() {
     ?.value as string | undefined;
   const isEmpty = sessionCount === '0' || !sessionCount;
 
+  const tabList = [
+    { id: 'overview' as const, label: 'Overview' },
+    { id: 'rankings' as const, label: 'Rankings' },
+  ];
+
   return (
     <ErrorBoundary>
       <div className="min-h-screen bg-zinc-50 dark:bg-black p-6">
+        {/* Tab navigation */}
+        <div className="max-w-7xl mx-auto mb-6">
+          <div className="flex gap-2 border-b border-zinc-200 dark:border-zinc-800">
+            {tabList.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                className={`px-4 py-2 text-sm font-medium -mb-px border-b-2 transition-colors ${
+                  activeTab === tab.id
+                    ? 'border-blue-600 text-blue-600 dark:text-blue-400'
+                    : 'border-transparent text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Date filter and Export */}
         <div className="max-w-7xl mx-auto mb-6 flex flex-wrap items-center gap-4">
           <div className="flex gap-2" role="group" aria-label="Date range presets">
@@ -203,11 +230,19 @@ export default function SupervisorPage() {
           </div>
         )}
 
-        {isEmpty ? (
+        {activeTab === 'rankings' && (
+          <div className="max-w-7xl mx-auto">
+            <RankingsTable />
+          </div>
+        )}
+
+        {activeTab === 'overview' && isEmpty && (
           <div className="max-w-7xl mx-auto p-8 text-center text-zinc-500 dark:text-zinc-400 bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800">
             No sessions in date range. Try a wider range (e.g. Last 30 days).
           </div>
-        ) : (
+        )}
+
+        {activeTab === 'overview' && !isEmpty && (
           <>
             <DashboardLayout data={data!} title="Supervisor Dashboard" />
             <div className="mt-8 max-w-7xl mx-auto">

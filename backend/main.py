@@ -20,6 +20,7 @@ from routes import narratives
 from routes.predictions import router as predictions_router
 from routes.sessions import router as sessions_router
 from routes.sites import router as sites_router
+from routes.realtime import router as realtime_router
 from routes.thresholds import router as thresholds_router
 from routes.welders import router as welders_router
 
@@ -78,6 +79,9 @@ app.include_router(predictions_router)
 app.include_router(ai_router)
 # Dev seed route: POST /api/dev/seed-mock-sessions (only when ENV=development or DEBUG=1)
 app.include_router(dev_router, prefix="/api/dev", tags=["dev"])
+# Realtime: WebSocket + internal POST (development only)
+if os.getenv("ENV") == "development" or os.getenv("DEBUG") == "1":
+    app.include_router(realtime_router, tags=["realtime"])
 
 
 @app.get("/health")
