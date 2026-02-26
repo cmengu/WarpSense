@@ -23,6 +23,14 @@ class FrameInput(BaseModel):
         None,
         description="Torch travel speed in mm/min. Rule 3.",
     )
+    volts: Optional[float] = Field(
+        None,
+        description="Arc voltage in V. Required for arc_instability, undercut, lack_of_fusion, burn_through.",
+    )
+    amps: Optional[float] = Field(
+        None,
+        description="Arc current in A. Required for crater_crack, undercut, lack_of_fusion, burn_through.",
+    )
     ns_asymmetry: float = Field(
         0.0,
         description="North minus south temperature at 10mm. Rule 1.",
