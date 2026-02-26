@@ -28,6 +28,7 @@ export interface ReportLayoutProps {
 
   backLink?: React.ReactNode;
   narrative?: React.ReactNode;
+  compliance?: React.ReactNode;
   heatmaps?: React.ReactNode;
   feedback?: React.ReactNode;
   progress?: React.ReactNode;
@@ -49,6 +50,7 @@ export function ReportLayout({
   thresholdSpec,
   backLink,
   narrative,
+  compliance,
   heatmaps,
   feedback,
   progress,
@@ -111,6 +113,9 @@ export function ReportLayout({
       </div>
 
       <div className="space-y-8">
+        {compliance && (
+          <section aria-label="Compliance">{compliance}</section>
+        )}
         {heatmaps && (
           <section aria-label="Thermal Heatmaps">{heatmaps}</section>
         )}

@@ -20,6 +20,7 @@ import { logError } from "@/lib/logger";
 import { captureChartToBase64 } from "@/lib/pdf-chart-capture";
 import { getApiBase } from "@/lib/api-base";
 import { useFrameData } from "@/hooks/useFrameData";
+import { useReportSummary } from "@/hooks/useReportSummary";
 import { extractHeatmapData, tempToColorRange } from "@/utils/heatmapData";
 import HeatMap from "@/components/welding/HeatMap";
 import FeedbackPanel from "@/components/welding/FeedbackPanel";
@@ -30,6 +31,8 @@ import { TrajectoryChart } from "@/components/welding/TrajectoryChart";
 import { BenchmarkPanel } from "@/components/welding/BenchmarkPanel";
 import { CoachingPlanPanel } from "@/components/welding/CoachingPlanPanel";
 import { CertificationCard } from "@/components/welding/CertificationCard";
+import { ComplianceSummaryPanel } from "@/components/welding/ComplianceSummaryPanel";
+import { ExcursionLogTable } from "@/components/welding/ExcursionLogTable";
 import type { Session } from "@/types/session";
 import type { WelderTrajectory } from "@/types/trajectory";
 import type { WelderBenchmarks } from "@/types/benchmark";
@@ -66,16 +69,6 @@ const WELDER_DISPLAY_NAMES: Record<string, string> = {
 
 const EXPERT_SESSION_ID = "sess_expert-benchmark_005";
 
-/** Encodes allPromises order. Update when adding fetches. Used by welder-report-utils contract test. */
-export const __FETCH_ORDER_FOR_TEST = [
-  "primary",
-  "expert",
-  "score",
-  "hist",
-  "benchmarks",
-  "trajectory",
-] as const;
-
 /** Coerce welder name to string; always returns string. Matches API route. */
 function toWelderName(v: unknown): string {
   if (typeof v === "string" && v.trim().length > 0) return v.trim();
@@ -93,11 +86,6 @@ function getLatestSessionId(welderId: string): string {
   return `sess_${welderId}_${String(n).padStart(3, "0")}`;
 }
 
-type WelderParams = { id: string } | Promise<{ id: string }>;
-
-function isPromise(p: WelderParams): p is Promise<{ id: string }> {
-  return p != null && typeof (p as Promise<unknown>).then === "function";
-}
 
 // ---------------------------------------------------------------------------
 // Local subcomponents (page-specific; not extracted to separate files)
@@ -203,25 +191,26 @@ function ActionsBar({
 // Page
 // ---------------------------------------------------------------------------
 
+/**
+ * Welder Report Page
+ * Next.js 16: params is always a Promise. Tests pass Promise.resolve({ id }).
+ */
 export default function WelderReportPage({
   params,
 }: {
-  params: WelderParams;
+  params: Promise<{ id: string }>;
 }) {
-  if (isPromise(params)) {
-    return (
-      <Suspense
-        fallback={
-          <div className="min-h-screen bg-zinc-50 dark:bg-black flex items-center justify-center">
-            <div className="text-sm text-zinc-500">Loading...</div>
-          </div>
-        }
-      >
-        <WelderReportWithAsyncParams params={params} />
-      </Suspense>
-    );
-  }
-  return <WelderReportInner welderId={params.id} />;
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-zinc-50 dark:bg-black flex items-center justify-center">
+          <div className="text-sm text-zinc-500">Loading...</div>
+        </div>
+      }
+    >
+      <WelderReportWithAsyncParams params={params} />
+    </Suspense>
+  );
 }
 
 function WelderReportWithAsyncParams({
@@ -364,6 +353,11 @@ function WelderReportInner({ welderId }: { welderId: string }) {
   // Hooks must run unconditionally — call before any early returns
   const frameData = useFrameData(session?.frames ?? [], null, null);
   const expertFrameData = useFrameData(expertSession?.frames ?? [], null, null);
+  const {
+    data: reportSummary,
+    loading: reportSummaryLoading,
+    error: reportSummaryError,
+  } = useReportSummary(sessionId);
 
   const handleDownloadPDF = useCallback(async () => {
     if (!report || !score) return;
@@ -471,6 +465,11 @@ function WelderReportInner({ welderId }: { welderId: string }) {
       sessionId={session.session_id}
       scoreTotal={report.score}
       weldType={session.weld_type}
+      sessionDate={
+        session?.start_time
+          ? new Date(session.start_time).toLocaleDateString()
+          : undefined
+      }
       skillLevel={report.skill_level}
       trend={report.trend}
       thresholdSpec={
@@ -490,6 +489,20 @@ function WelderReportInner({ welderId }: { welderId: string }) {
         >
           ← Back to Team Dashboard
         </Link>
+      }
+      compliance={
+        <>
+          <ComplianceSummaryPanel
+            data={reportSummary ?? null}
+            error={reportSummaryError ?? undefined}
+            isEmpty={
+              !reportSummaryLoading && !reportSummary && !reportSummaryError
+            }
+          />
+          <ExcursionLogTable
+            excursions={reportSummary?.excursions ?? []}
+          />
+        </>
       }
       narrative={
         <NarrativePanel sessionId={session.session_id} />
