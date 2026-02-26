@@ -20,7 +20,7 @@ from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
-from fastapi.responses import StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session as OrmSession, joinedload
@@ -37,6 +37,8 @@ from services.thermal_service import calculate_heat_dissipation
 from services.threshold_service import get_thresholds
 from realtime.alert_engine import AlertEngine
 from realtime.alert_models import AlertPayload, FrameInput
+from scoring.report_summary import compute_report_summary
+from services.alert_service import run_session_alerts
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -459,47 +461,13 @@ async def get_session_alerts(
         raise HTTPException(status_code=404, detail="Session not found")
 
     try:
-        frames_query = (
-            db.query(FrameModel)
-            .filter_by(session_id=session_id)
-            .order_by(FrameModel.timestamp_ms.asc())
-            .limit(2000)
-        )
-        frame_models = frames_query.all()
-
-        config_path = (
-            Path(__file__).resolve().parent.parent
-            / "config"
-            / "alert_thresholds.json"
-        )
-        engine = AlertEngine(str(config_path))
-        alerts: list[dict] = []
-
-        for i, fm in enumerate(frame_models):
-            fd = dict(fm.frame_data)
-            ns = _ns_asymmetry_from_frame_data(fd)
-            ts_ms = fd.get("timestamp_ms")
-            if ts_ms is None:
-                ts_ms = fm.timestamp_ms
-            fin = FrameInput(
-                frame_index=i,
-                timestamp_ms=float(ts_ms),
-                travel_angle_degrees=fd.get("travel_angle_degrees"),
-                travel_speed_mm_per_min=fd.get("travel_speed_mm_per_min"),
-                ns_asymmetry=ns,
-                volts=fd.get("volts"),
-                amps=fd.get("amps"),
-            )
-            alert = engine.push_frame(fin)
-            if alert:
-                alerts.append(alert.model_dump())
-
+        alerts = await run_session_alerts(session_id, db)
         logger.info(
             "get_session_alerts OK session_id=%s alerts=%d",
             session_id,
             len(alerts),
         )
-        return {"alerts": alerts}
+        return {"alerts": [a.model_dump() for a in alerts]}
     except FileNotFoundError as e:
         logger.warning("get_session_alerts config missing: %s", e)
         raise HTTPException(
@@ -511,6 +479,48 @@ async def get_session_alerts(
         raise HTTPException(
             status_code=500,
             detail="Failed to compute alerts",
+        ) from e
+
+
+@router.get("/sessions/{session_id}/report-summary")
+async def get_report_summary(
+    session_id: str,
+    db: OrmSession = Depends(get_db),
+):
+    """
+    Return session compliance summary for report UI and PDF.
+    Aggregates heat input, travel angle excursions, arc termination, defect counts.
+    """
+    session_model = db.query(SessionModel).filter_by(session_id=session_id).first()
+    if not session_model:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    try:
+        frames_query = (
+            db.query(FrameModel)
+            .filter_by(session_id=session_id)
+            .order_by(FrameModel.timestamp_ms.asc())
+            .limit(2000)
+        )
+        frame_models = frames_query.all()
+        frames = [fm.to_pydantic() for fm in frame_models]
+
+        alerts = await run_session_alerts(session_id, db)
+
+        process_type = getattr(session_model, "process_type", None) or "mig"
+        summary = compute_report_summary(session_id, frames, alerts, process_type)
+
+        return JSONResponse(
+            content=summary.model_dump(mode="json"),
+            headers={"Cache-Control": "max-age=60"},
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e
+    except Exception as e:
+        logger.warning("get_report_summary failed session_id=%s: %s", session_id, e)
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to compute report summary",
         ) from e
 
 
