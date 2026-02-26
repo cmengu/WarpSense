@@ -1,0 +1,8 @@
+{
+  "aluminum_spray": {
+    "heat_input_min": 0.5,
+    "heat_input_max": 0.9,
+    "travel_angle_threshold": 25.0,
+    "travel_angle_nominal": 12.0
+  }
+}
