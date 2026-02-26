@@ -15,6 +15,16 @@ export const PRIMARY_RESULT_IDX = 0;
 export const EXPERT_RESULT_IDX = 1;
 export const SCORE_RESULT_IDX = 2;
 export const HIST_FIRST_IDX = 3; // Must match allPromises: [primary, expert, score, ...hist, benchmarks, trajectory]
+
+/** Encodes allPromises order in welder report page. Used by contract test. */
+export const __FETCH_ORDER_FOR_TEST = [
+  "primary",
+  "expert",
+  "score",
+  "hist",
+  "benchmarks",
+  "trajectory",
+] as const;
 /** Number of fetches between hist and trajectory (e.g. benchmarks). */
 export const BENCHMARKS_OFFSET = 1;
 

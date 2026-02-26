@@ -5,11 +5,8 @@
  * every rule_id produces valid output, getDemoTeamData returns correct scores.
  */
 
-import {
-  createMockScore,
-  getDemoTeamData,
-  MOCK_NOVICE_FAILED_RULES,
-} from "@/lib/seagull-demo-data";
+import { createMockScore, getDemoTeamData } from "@/lib/seagull-demo-data";
+import { MOCK_NOVICE_FAILED_RULES } from "@/lib/demo-config";
 import { generateAIFeedback } from "@/lib/ai-feedback";
 import { generateExpertSession } from "@/lib/demo-data";
 import {

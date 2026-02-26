@@ -86,36 +86,29 @@ function getComparisonSessionId(): string | undefined {
 
 const COMPARISON_SESSION_ID = getComparisonSessionId();
 
-type ReplayParams = { sessionId: string } | Promise<{ sessionId: string }>;
-
-function isPromise(
-  p: ReplayParams
-): p is Promise<{ sessionId: string }> {
-  return p != null && typeof (p as Promise<unknown>).then === "function";
-}
-
 /**
  * Replay Page
  * Displays replay visualization for a specific welding session.
  * Fetches session from API, extracts heatmap/angle data via hooks and utils.
  *
- * @param params - Route parameters (Promise in Next.js 15+, plain object in tests)
+ * Next.js 16: params is always a Promise. Tests pass Promise.resolve({ sessionId }).
  */
-export default function ReplayPage({ params }: { params: ReplayParams }) {
-  if (isPromise(params)) {
-    return (
-      <Suspense
-        fallback={
-          <div className="min-h-screen bg-zinc-50 dark:bg-black flex items-center justify-center">
-            <div className="text-sm text-zinc-500">Loading...</div>
-          </div>
-        }
-      >
-        <ReplayPageWithAsyncParams params={params} />
-      </Suspense>
-    );
-  }
-  return <ReplayPageInner sessionId={params.sessionId} />;
+export default function ReplayPage({
+  params,
+}: {
+  params: Promise<{ sessionId: string }>;
+}) {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-zinc-50 dark:bg-black flex items-center justify-center">
+          <div className="text-sm text-zinc-500">Loading...</div>
+        </div>
+      }
+    >
+      <ReplayPageWithAsyncParams params={params} />
+    </Suspense>
+  );
 }
 
 function ReplayPageWithAsyncParams({

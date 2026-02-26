@@ -4,8 +4,24 @@
 **For AI Tools:** Reference this file with `@LEARNING_LOG.md` when implementing 3D/WebGL features.  
 **For `.cursorrules`:** Check LEARNING_LOG.md for anti-patterns, required patterns, and past incidents before generating code.
 
-**Last Updated:** 2026-02-23  
-**Total Entries:** 9 incidents + Lessons & Reflections
+**Last Updated:** 2026-02-26  
+**Total Entries:** 23 incidents + Lessons & Reflections
+
+**Session report data layer (2026-02-26):** `GET /api/sessions/{id}/report-summary` returns ReportSummary (heat input, travel angle excursions, arc termination, defect counts). `run_session_alerts()` in alert_service.py — single source for alerts + report-summary. Process_type mapping owned by `compute_report_summary`. Report_thresholds.json cached per process. See project-context.md "Session Report Data Layer".
+
+**Scoring decomposition (2026-02-26):** Defect score penalty must use valid AlertPayload count, not `len(alerts)` — non-AlertPayload items are dropped but would be wrongly penalized. Config weights must sum to 1.0; validate on load. Use `_build_alerts_from_frames` from scorer.py; do not duplicate. See project-context.md AWS D1.2 Decomposed Scoring.
+
+**Mock data Pydantic compatibility (2026-02-26):** Use `hasattr(obj, "model_copy")` instead of `try/except AttributeError` when copying Pydantic models. The broad except swallows unrelated attribute errors and makes debugging hard.
+
+**Mock data division guard (2026-02-26):** Add `param = max(param, 1.0)` at function top for numeric params that may cause division by zero — defensive guards belong at the boundary, not at call sites.
+
+**Mock data magic numbers (2026-02-26):** Extract inline values (e.g. 400.0, 12.0) to constants (AL_TRAVEL_SPEED_BASE_MEAN, AL_TRAVEL_SPEED_BASE_SIGMA). Inline numbers create multiple sources of truth for the next agent.
+
+**Mock data docstring drift (2026-02-26):** A docstring that contradicts the implementation is worse than no docstring — it will cause the next agent to "fix" the code to match the wrong docstring. Update immediately.
+
+**Defect alert hardcoded values (2026-02-26):** Alert messages said "19.5V" or "140A" instead of config values. When voltage_lo_V changes for a different material, the message would mislead. Fix: interpolate `self._cfg["voltage_lo_V"]` etc. into f-strings.
+
+**Crater buffer false positive on sensor dropout (2026-02-26):** When amps=None (sensor dropout) then amps=0 at bead end, crater_crack could fire using stale arc history. Fix: call `_crater_buffer.reset()` when amps is None.
 
 **Metal plane clipping (2025-02-16):** Y-coordinates were scattered across TorchWithHeatmap3D; metal could clip through torch. Fix: centralize all workpiece/ring/grid/shadows Y in `welding3d.ts` with explicit constraint `metal_surface_max_Y < weld_pool_center_Y`. See `my-app/src/constants/welding3d.ts`.
 
@@ -29,6 +45,22 @@
 
 | Date | Title | Category | Severity |
 |------|-------|----------|----------|
+| 2026-02-26 | Defect Score Penalty Uses Wrong Alert Count | Backend / Scoring | 🟢 Medium |
+| 2026-02-26 | Scoring Config Weight Validation | Backend / Config | 🟢 Medium |
+| 2026-02-26 | Backfill Script Per-Item Error Handling | Backend / Scripts | ⚪ Low |
+| 2026-02-26 | Pydantic hasattr vs try/except (Mock Data) | Backend / Pydantic | 🟢 Medium |
+| 2026-02-26 | Division-by-Zero Defensive Guard (Mock Data) | Backend | ⚪ Low |
+| 2026-02-26 | Magic Numbers to Constants (Mock Data) | Backend / Code Quality | ⚪ Low |
+| 2026-02-26 | Docstring Contradicts Implementation (Mock Data) | Backend / Code Quality | ⚪ Low |
+| 2026-02-26 | Spacing/Style Fix Immediately (Mock Data) | Code Quality | ⚪ Low |
+| 2026-02-26 | Defect Alert Hardcoded Config in Messages | Backend / Alerts | 🟢 Medium |
+| 2026-02-26 | Crater Buffer Not Reset on amps=None | Backend / Alerts | 🟢 Medium |
+| 2026-02-26 | Python 3.8 deque Type Annotation | Backend | ⚪ Low |
+| 2026-02-26 | caplog.messages for Log Assertions | Testing | ⚪ Low |
+| 2026-02-26 | Thermal Data Dict KeyError — Use .get() | Backend / Data | 🟢 Medium |
+| 2026-02-26 | Array Mutation in Render (.sort) | Frontend | ⚪ Low |
+| 2026-02-26 | React List Keys — Duplicate Excursions | Frontend | ⚪ Low |
+| 2026-02-26 | Config File Repeated Reads — Cache | Backend / Performance | ⚪ Low |
 | 2026-02-23 | Stale Validation Error Message (process_type) | API / Backend | 🟡 High |
 | 2026-02-23 | API Docs, Logs, Imports Drift | Backend | 🟢 Medium |
 | 2026-02-23 | random.Random(seed) for Deterministic Mock Data | Backend / Data | 🟢 Medium |
@@ -304,6 +336,465 @@ When adding new valid values to API enums/allowlists (e.g. process_type, weld_ty
 
 ---
 
+## ⚙️ Backend / Scoring (2026-02-26)
+
+### 📅 2026-02-26 — Defect Score Penalty Uses Wrong Alert Count
+
+**Category:** Backend / Scoring  
+**Severity:** 🟢 Medium
+
+**What Happened:**
+`calculate_defect_alert_component` used `len(alerts)` for the score penalty (`1.0 - min(1.0, len(alerts) * 0.1)`), but drops non-`AlertPayload` items. Invalid items were still counted in the penalty, inflating the score reduction for alerts that never made it into excursions.
+
+**Impact:**
+- Over-penalization when alert list contains non-AlertPayload objects
+- Inconsistent behavior between `passed` (based on valid alerts) and `score` (based on raw count)
+
+**The Fix:**
+
+```python
+# ❌ BEFORE — counts dropped items in penalty
+score_val = 0.0 if has_critical else (1.0 - min(1.0, len(alerts) * 0.1))
+
+# ✅ AFTER — use valid alert count
+valid_count = sum(by_rule.values())  # or len([a for a in alerts if isinstance(a, AlertPayload)])
+score_val = 0.0 if has_critical else (1.0 - min(1.0, valid_count * 0.1))
+```
+
+**Prevention:**
+- ✅ DO: When filtering input (e.g. dropping non-AlertPayload), use the filtered count for downstream calculations
+- ❌ DON'T: Use raw `len(input_list)` for penalties when some items are excluded
+- [ ] Code review: "Does this score/penalty use the same population as the pass/fail logic?"
+
+**AI Guidance:**
+```
+When implementing component score calculations that filter input:
+"Use the count of items that actually contributed to the result (e.g. sum(by_rule.values())) for score/penalty logic. Never use len(raw_input) when some items are dropped. See LEARNING_LOG.md defect score penalty."
+```
+
+---
+
+### 📅 2026-02-26 — Scoring Config Weight Validation
+
+**Category:** Backend / Config  
+**Severity:** 🟢 Medium
+
+**What Happened:**
+`load_scoring_config` validated that required keys exist but did not validate that component weights sum to 1.0. A misconfigured JSON (e.g. typo changing 0.35 to 0.035) would produce incorrect `overall_score` without failing fast.
+
+**Impact:**
+- Silent wrong scores when weights don't sum to 1.0
+- Debugging requires manual config audit
+
+**The Fix:**
+
+```python
+# ✅ Add after key validation
+total = sum(data[k] for k in (
+    "arc_termination_weight", "heat_input_weight", "torch_angle_weight",
+    "defect_alert_weight", "interpass_weight"))
+if abs(total - 1.0) > 1e-6:
+    raise ValueError(f"Component weights must sum to 1.0, got {total}")
+```
+
+**Prevention:**
+- ✅ DO: Validate invariants (e.g. weights sum to 1.0) when loading configs that drive numeric aggregation
+- ❌ DON'T: Assume config is correct; fail fast on load
+- [ ] Code review: "Does this config have invariants? Are they validated?"
+
+**AI Guidance:**
+```
+When loading configs that define weights used for weighted averages:
+"Validate that weights sum to 1.0 (or expected total) with a small epsilon. Raise ValueError on load if invalid. See LEARNING_LOG.md scoring config weights."
+```
+
+---
+
+### 📅 2026-02-26 — Backfill Script: Per-Item Error Handling
+
+**Category:** Backend / Scripts  
+**Severity:** ⚪ Low
+
+**What Happened:**
+`rescore_all_sessions.py` iterates over sessions and updates `score_total` in a single transaction. One failing session (e.g. corrupt frame data) would abort the whole run and leave partial updates; no per-session try/except.
+
+**Prevention:**
+- ✅ DO: Wrap per-item logic in try/except in backfill scripts; log failures and continue
+- ✅ DO: Consider single commit at end vs per-item — trade-off between atomicity and partial progress
+- ❌ DON'T: Let one bad record kill the entire backfill
+
+**AI Guidance:**
+```
+When implementing backfill scripts that process many records:
+"Wrap per-record logic in try/except; log and continue on failure. Decide: single commit (all-or-nothing) vs per-item commit (partial progress on error). See LEARNING_LOG.md backfill script."
+```
+
+---
+
+## 🔧 Mock Data / Code Quality (2026-02-26)
+
+### 📅 2026-02-26 — Pydantic v1/v2: hasattr vs try/except AttributeError
+
+**Category:** Backend / Pydantic  
+**Severity:** 🟢 Medium
+
+**What Happened:**
+`_with_termination(f, label)` used `try: f.model_copy(update={...}) except AttributeError: f.copy(...)` for Pydantic v1/v2 compatibility. The broad `except AttributeError` catches any attribute error on the frame object — including unrelated ones from future changes — and makes debugging hell. Silent failures become possible.
+
+**Impact:**
+- Unrelated AttributeError (e.g. typo, missing field) gets swallowed and wrong code path runs
+- Debugging requires knowing the exact exception source
+
+**The Fix:**
+
+```python
+# ❌ BEFORE — broad except swallows unrelated errors
+try:
+    return f.model_copy(update={"arc_termination_type": label})
+except AttributeError:
+    return f.copy(update={"arc_termination_type": label})
+
+# ✅ AFTER — explicit check; no swallowed errors
+if hasattr(f, "model_copy"):
+    return f.model_copy(update={"arc_termination_type": label})
+return f.copy(update={"arc_termination_type": label})
+```
+
+**Prevention:**
+- ✅ DO: Use `hasattr(obj, "model_copy")` for Pydantic v1/v2 branching
+- ❌ DON'T: Use `except AttributeError` for optional APIs — it hides bugs
+
+**AI Guidance:** When implementing Pydantic model copy/update that must work on v1 and v2, use `hasattr` check. See `@.cursor/context/project-context.md` pattern "Pydantic v1/v2 Compatibility".
+
+---
+
+### 📅 2026-02-26 — Division-by-Zero: Defensive Guard at Function Boundary
+
+**Category:** Backend  
+**Severity:** ⚪ Low
+
+**What Happened:**
+`_step_thermal_state(..., travel_speed_mm_per_min)` could receive 0, causing division by zero in `speed_scale = AL_TRAVEL_SPEED_NOMINAL / travel_speed_mm_per_min`. Callers currently ensure positive values, but that may change.
+
+**The Fix:**
+
+```python
+# ✅ Add at function top — one line, zero risk
+def _step_thermal_state(..., travel_speed_mm_per_min: float = ...) -> ...:
+    travel_speed_mm_per_min = max(travel_speed_mm_per_min, 1.0)
+    ...
+```
+
+**Prevention:** Defensive guards belong at the function boundary, not at call sites. Callers may change; a one-line guard is zero risk.
+
+---
+
+### 📅 2026-02-26 — Magic Numbers: Extract to Constants Now
+
+**Category:** Backend / Code Quality  
+**Severity:** ⚪ Low
+
+**What Happened:**
+Expert travel speed used inline `400.0 + rng.gauss(0, 12.0)` and `380.0`, `420.0`. The next agent touching travel speed would use the inline number and create a third source of truth.
+
+**The Fix:**
+
+```python
+# ❌ BEFORE — inline magic numbers
+travel_speed_base = 400.0 + rng.gauss(0, 12.0)
+
+# ✅ AFTER — constants block
+AL_TRAVEL_SPEED_BASE_MEAN = 400.0
+AL_TRAVEL_SPEED_BASE_SIGMA = 12.0
+travel_speed_base = AL_TRAVEL_SPEED_BASE_MEAN + rng.gauss(0, AL_TRAVEL_SPEED_BASE_SIGMA)
+```
+
+**Prevention:** Extract to constants now, not later. Reason: next agent session touching the same logic will use inline numbers and create divergence.
+
+---
+
+### 📅 2026-02-26 — Docstring Contradicts Implementation
+
+**Category:** Backend / Code Quality  
+**Severity:** ⚪ Low
+
+**What Happened:**
+Expert mock docstring said "thermal snapshots emitted every 20 frames (200ms)" but implementation had `is_thermal_frame = True` (every frame). A docstring that contradicts the implementation is worse than no docstring — it will cause the next agent to "fix" the code to match the wrong docstring.
+
+**Prevention:** Update docstrings immediately when behavior changes. Wrong doc causes "fix" that breaks code.
+
+---
+
+### 📅 2026-02-26 — Spacing/Style: Fix Immediately
+
+**Category:** Code Quality  
+**Severity:** ⚪ Low
+
+**What Happened:**
+Missing blank line before `def _percentile` in verify_aluminum_mock.py. Cosmetic issues left in signal to the next agent that style rules are optional, which compounds across sessions.
+
+**Prevention:** Fix cosmetic issues (spacing, style) before closing the session, not as a follow-up ticket.
+
+---
+
+## 🔧 Backend / Data Parsing
+
+### 📅 2026-02-26 — Thermal Data Dict KeyError — Use .get() for Optional Keys
+
+**Category:** Backend / Data  
+**Severity:** 🟢 Medium
+
+**What Happened:**
+`_ns_asymmetry_from_frame_data()` in alert_service.py used `r["temp_celsius"]` inside a generator for thermal readings. When a reading had `direction: "north"` but no `temp_celsius` key (malformed or partial frame data), the code raised `KeyError`.
+
+**Impact:**
+- Session alerts or report-summary could crash on bad thermal data
+- Sensor dropout or schema drift could produce unexpected shapes
+
+**The Fix:**
+
+```python
+# ❌ BEFORE — KeyError when temp_celsius missing
+north = next(
+    (r["temp_celsius"] for r in readings if r.get("direction") == "north"),
+    None,
+)
+
+# ✅ AFTER — .get() returns None; existing None check handles it
+north = next(
+    (r.get("temp_celsius") for r in readings if r.get("direction") == "north"),
+    None,
+)
+```
+
+**Prevention:**
+- ✅ DO: Use `.get("key")` when parsing dicts from JSON/ORM that may have optional or missing keys
+- ❌ DON'T: Use `dict["key"]` for sensor/frame data without validation that the key exists
+- [ ] Code review: "Does this parse external/ORM dict data? Use .get() for optional keys."
+
+**AI Guidance:**
+```
+When parsing frame_data, thermal_snapshots, or other dict structures from DB/JSON:
+"Use .get('key') for optional fields. Existing None checks (e.g. if north is None) handle missing keys. See LEARNING_LOG.md thermal dict KeyError."
+```
+
+---
+
+## 📐 Frontend / React Rendering
+
+### 📅 2026-02-26 — Array Mutation in Render — .sort() Mutates
+
+**Category:** Frontend  
+**Severity:** ⚪ Low
+
+**What Happened:**
+WelderReportPDF rendered `reportSummary.excursions.slice(0, 10).sort(...)`. `.sort()` mutates the array in place. `.slice()` returns a new array, so the mutation affected only the slice — but the pattern is fragile and non-obvious.
+
+**The Fix:**
+
+```tsx
+// ❌ BEFORE — .sort() mutates the sliced array
+{reportSummary.excursions.slice(0, 10).sort((a, b) => ...).map(...)}
+
+// ✅ AFTER — explicit copy, sort, then slice
+{[...reportSummary.excursions].sort((a, b) => ...).slice(0, 10).map(...)}
+```
+
+**Prevention:**
+- ✅ DO: Use `[...arr].sort()` or `arr.slice().sort()` when you need sorted output without mutating the source
+- ❌ DON'T: Call `.sort()` on arrays that may be shared or passed as props
+- [ ] Code review: "Does this .sort()? Is the array copied first?"
+
+**AI Guidance:**
+```
+When sorting arrays for display: "Use [...arr].sort() or arr.slice().sort() — never mutate props or shared arrays. See LEARNING_LOG.md array mutation."
+```
+
+---
+
+### 📅 2026-02-26 — React List Keys — Duplicate Excursions
+
+**Category:** Frontend  
+**Severity:** ⚪ Low
+
+**What Happened:**
+ExcursionLogTable used `key={timestamp_ms}-${defect_type}-${i}`. Multiple excursions can share the same timestamp and defect_type (e.g. two alerts at same frame); index `i` keeps keys unique but is not stable if list order changes.
+
+**The Fix:**
+Include additional unique fields: `key={\`${timestamp_ms}-${defect_type}-${parameter_value ?? ""}-${notes ?? ""}-${i}\`}` so duplicates with different values are distinguishable.
+
+**Prevention:**
+- ✅ DO: When list items can have duplicate primary fields, include secondary fields or a stable id in the key
+- ❌ DON'T: Rely on index alone when items can be reordered or filtered
+- [ ] Code review: "Can two items have the same (timestamp, type)? Is the key sufficiently unique?"
+
+---
+
+## ⚡ Backend / Performance
+
+### 📅 2026-02-26 — Config File Repeated Reads — Cache Per Process
+
+**Category:** Backend / Performance  
+**Severity:** ⚪ Low
+
+**What Happened:**
+`_load_report_thresholds()` in report_summary.py read `report_thresholds.json` on every `compute_report_summary()` call. Under load, repeated file I/O adds overhead.
+
+**The Fix:**
+
+```python
+# ❌ BEFORE — read file every call
+def _load_report_thresholds() -> dict:
+    path = backend / "config" / "report_thresholds.json"
+    return json.loads(path.read_text())
+
+# ✅ AFTER — module-level cache
+_REPORT_THRESHOLDS_CACHE: dict | None = None
+
+def _load_report_thresholds() -> dict:
+    global _REPORT_THRESHOLDS_CACHE
+    if _REPORT_THRESHOLDS_CACHE is not None:
+        return _REPORT_THRESHOLDS_CACHE
+    path = backend / "config" / "report_thresholds.json"
+    _REPORT_THRESHOLDS_CACHE = json.loads(path.read_text())
+    return _REPORT_THRESHOLDS_CACHE
+```
+
+**Prevention:**
+- ✅ DO: Cache loaded JSON config at module level when it's read on every request
+- ❌ DON'T: Read static config files in hot paths without caching
+- [ ] Code review: "Is this config read per-request? Add cache if so."
+
+**AI Guidance:**
+```
+When loading static config (JSON, YAML) that is called frequently (e.g. per API request):
+"Cache at module level. Config changes require process restart — acceptable for deploy-time config. See LEARNING_LOG.md config cache."
+```
+
+---
+
+## ⚡ Backend / Alerts
+
+### 📅 2026-02-26 — Defect Alert Hardcoded Config in Messages
+
+**Category:** Backend / Alerts  
+**Severity:** 🟢 Medium
+
+**What Happened:**
+Alert messages for arc instability ("voltage < 19.5V sustained") and lack of fusion ("Increase current to 140+ A", "Reduce speed below 520 mm/min") used hardcoded values. Config threshold keys (`voltage_lo_V`, `lack_of_fusion_amps_max`, etc.) were validated and used for rule logic, but messages displayed static numbers.
+
+**Impact:**
+- When someone changes `voltage_lo_V` in config for a different material or WPS, the alert fires at the new threshold but tells the welder or QA report the wrong number
+- Diagnostic trust problem: auditor reads "voltage < 19.5V" while actual threshold is 18V
+
+**Root Cause:**
+- Copy-paste of nominal values into message strings
+- No pattern enforcing "config drives both logic and display"
+
+**The Fix:**
+
+```python
+# ❌ BEFORE — hardcoded; wrong when config changes
+message="Arc instability: voltage < 19.5V sustained",
+correction="Increase current to 140+ A",
+
+# ✅ AFTER — interpolate from config
+message=f"Arc instability: voltage < {self._cfg['voltage_lo_V']}V sustained",
+correction=f"Increase current to {self._cfg['lack_of_fusion_amps_max']}+ A",
+```
+
+**Prevention:**
+- ✅ DO: Interpolate config values into any user-facing or logged message that mentions thresholds
+- ✅ DO: Grep for numeric literals in alert messages when adding new rules
+- ❌ DON'T: Hardcode threshold values in messages, corrections, or logs when config defines them
+- [ ] Code review check: "Does this alert message mention a threshold? Is it from config?"
+
+**AI Guidance:**
+```
+When implementing alert rules with threshold-based messages:
+"Use f-strings with self._cfg['threshold_key'] for any message or correction that displays a threshold value. Never hardcode 19.5, 140, 520, etc. when those come from config. See LEARNING_LOG.md defect alert hardcoded values."
+```
+
+---
+
+### 📅 2026-02-26 — Crater Buffer Not Reset on amps=None
+
+**Category:** Backend / Alerts  
+**Severity:** 🟢 Medium
+
+**What Happened:**
+When `frame.amps` is `None` (sensor dropout), the crater crack rule skipped evaluation but did not reset `CurrentRampDownBuffer`. The buffer retained arc-on history from before the dropout. If amps later returned as 0 (e.g. at bead end), the rule could fire "crater crack" using stale history — a false positive.
+
+**Impact:**
+- False crater_crack alerts when sensor briefly drops then returns 0
+- QA auditor sees incorrect defect in alert log
+
+**Root Cause:**
+- Design assumed "skip when None" was sufficient
+- Buffer state was not invalidated on data gap
+
+**The Fix:**
+
+```python
+# ❌ BEFORE — buffer keeps stale history; false positive on dropout → 0
+if frame.amps is None:
+    if not self._warned_amps_missing_crater:
+        logger.warning(...)
+    ...
+else:
+    abrupt = self._crater_buffer.push(...)
+
+# ✅ AFTER — reset clears history; no false positive after gap
+if frame.amps is None:
+    self._crater_buffer.reset()
+    if not self._warned_amps_missing_crater:
+        logger.warning(...)
+    ...
+else:
+    abrupt = self._crater_buffer.push(...)
+```
+
+**Prevention:**
+- ✅ DO: Reset stateful buffers when required sensor data is None
+- ✅ DO: Add unit test: arc-on → amps=None for N frames → amps=0 should NOT fire crater_crack
+- ❌ DON'T: Assume "skip" is enough — stale state can still produce wrong result on next valid frame
+- [ ] Code review check: "If this rule needs X and X is None, does the buffer reset?"
+
+**AI Guidance:**
+```
+When implementing rules with time-based buffers (voltage sustain, current ramp-down):
+"If the rule requires volts/amps and the frame has None, call buffer.reset() before skipping. Documented wrong behavior is still wrong when a QA auditor reads the alert log. See LEARNING_LOG.md crater buffer reset."
+```
+
+---
+
+### 📅 2026-02-26 — Python 3.8 deque Type Annotation
+
+**Category:** Backend  
+**Severity:** ⚪ Low
+
+**What Happened:**
+`deque[tuple[float, float]]` as a runtime type annotation fails on Python 3.8. The `deque[...]` generic syntax requires Python 3.9+. The plan explicitly targets Python 3.8 compatibility.
+
+**The Fix:**
+
+```python
+# ❌ BEFORE — breaks on 3.8
+from collections import deque
+self._samples: deque[tuple[float, float]] = deque()
+
+# ✅ AFTER — typing module for 3.8
+from typing import Deque, Tuple
+self._samples: Deque[Tuple[float, float]] = deque()
+```
+
+**Prevention:**
+- ✅ DO: Use `Deque`, `Tuple`, `List` from `typing` when targeting Python 3.8
+- ❌ DON'T: Use `deque[...]`, `tuple[...]` as runtime annotations on 3.8
+- [ ] Check `python_requires` or plan constraints before using 3.9+ generic syntax
+
+---
+
 ## 📊 Backend / Architecture
 
 ### 📅 2026-02-23 — API Docs, Logs, and Imports Drift
@@ -546,6 +1037,32 @@ npm test -- --testPathPattern="WarpRiskGauge|replay" --watchAll=false
 
 ---
 
+## 🧪 Testing
+
+### 📅 2026-02-26 — caplog.messages for Log Assertions
+
+**Category:** Testing  
+**Severity:** ⚪ Low
+
+**What Happened:**
+Test used `r.message` on `caplog.records` to assert exactly one warning. `LogRecord.message` is not always populated (depends on formatting/handler). Can be fragile across pytest versions or log config.
+
+**The Fix:**
+
+```python
+# ❌ BEFORE — LogRecord.message may be unset
+warns = [r for r in caplog.records if "arc_instability" in r.message and "volts" in r.message]
+
+# ✅ AFTER — caplog.messages gives formatted strings directly
+warns = [m for m in caplog.messages if "arc_instability" in m and "volts" in m]
+```
+
+**Prevention:**
+- ✅ DO: Use `caplog.messages` when asserting on log content — sidesteps LogRecord internals
+- ❌ DON'T: Rely on `r.message` for log assertions unless pytest/caplog guarantees it
+
+---
+
 ## 📋 Lessons & Reflections
 
 > **Scope:** WebGL context loss hardening, Docker one-click deploy, premium landing page, demo page refactor, WWAD macro-analytics.  
@@ -622,7 +1139,14 @@ npm test -- --testPathPattern="WarpRiskGauge|replay" --watchAll=false
 | Healthcheck with missing deps | Use runtime-available tools (python urllib, node http) not curl/wget. |
 | Seed in entrypoint vs script | Prefer deploy.sh exec for clarity; add verification step if demo data is critical. |
 | Stale validation error message | When adding to allowlists, grep for "must be one of" and update message. |
+| Defect score penalty on raw list | Use filtered/valid count for penalties when input is filtered. |
+| Config weights not validated | Validate weight sum on load when used for weighted averages. |
 | Logs/docstrings describe old behavior | Update logs and docstrings in same commit as behavior change. |
+| Hardcoding thresholds in alert messages | Use `self._cfg['key']` in f-strings; config drives both logic and display. |
+| Not resetting buffer on sensor dropout | Call `buffer.reset()` when required field is None to avoid false positives. |
+| Thermal dict KeyError on temp_celsius | Use `.get("temp_celsius")` when parsing readings from frame_data. |
+| Array .sort() in render | Use `[...arr].sort()` to avoid mutating source. |
+| Config read every request | Cache at module level for static config. |
 
 ### Additional Insights (WebGL / Demo / Tooling)
 

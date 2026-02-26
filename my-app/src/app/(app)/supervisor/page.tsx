@@ -1,7 +1,9 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { Suspense, useEffect, useState, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
+import { SiteSelector } from '@/components/dashboard/SiteSelector';
 import { CalendarHeatmap } from '@/components/dashboard/CalendarHeatmap';
 import { RankingsTable } from '@/components/dashboard/RankingsTable';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -24,6 +26,22 @@ function getDateRange(days: number): { start: string; end: string } {
 }
 
 export default function SupervisorPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-zinc-50 dark:bg-black flex items-center justify-center">
+          <div className="text-lg text-zinc-600 dark:text-zinc-400">
+            Loading...
+          </div>
+        </div>
+      }
+    >
+      <SupervisorPageContent />
+    </Suspense>
+  );
+}
+
+function SupervisorPageContent() {
   const initialRange = getDateRange(7);
   const [dateStart, setDateStart] = useState(initialRange.start);
   const [dateEnd, setDateEnd] = useState(initialRange.end);
@@ -41,6 +59,9 @@ export default function SupervisorPage() {
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'rankings'>('overview');
+  const searchParams = useSearchParams();
+  const siteId = searchParams.get('site') ?? undefined;
+  const teamId = searchParams.get('team') ?? undefined;
 
   // Debounce date changes (0ms on mount, 300ms thereafter)
   useEffect(() => {
@@ -59,7 +80,12 @@ export default function SupervisorPage() {
     setLoading(true);
     setError(null);
     fetchAggregateKPIs(
-      { date_start: fetchDateStart, date_end: fetchDateEnd },
+      {
+        date_start: fetchDateStart,
+        date_end: fetchDateEnd,
+        site_id: siteId,
+        team_id: teamId,
+      },
       ac.signal
     )
       .then((res: AggregateKPIResponse) => {
@@ -82,7 +108,7 @@ export default function SupervisorPage() {
       cancelled = true;
       ac.abort();
     };
-  }, [fetchDateStart, fetchDateEnd]);
+  }, [fetchDateStart, fetchDateEnd, siteId, teamId]);
 
   const applyPreset = (days: number) => {
     const { start, end } = getDateRange(days);
@@ -97,6 +123,8 @@ export default function SupervisorPage() {
       const res = await fetchAggregateKPIs({
         date_start: dateStart,
         date_end: dateEnd,
+        site_id: siteId,
+        team_id: teamId,
         include_sessions: true,
       });
       const sessions = res.sessions ?? [];
@@ -185,6 +213,7 @@ export default function SupervisorPage() {
 
         {/* Date filter and Export */}
         <div className="max-w-7xl mx-auto mb-6 flex flex-wrap items-center gap-4">
+          <SiteSelector />
           <div className="flex gap-2" role="group" aria-label="Date range presets">
             <button
               type="button"

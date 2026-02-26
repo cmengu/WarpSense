@@ -30,6 +30,8 @@ async def get_sessions_aggregate(
     include_sessions: bool = Query(
         False, description="Include session list for export"
     ),
+    site_id: Optional[str] = Query(None, description="Filter by site ID"),
+    team_id: Optional[str] = Query(None, description="Filter by team ID"),
     db=Depends(get_db),
 ):
     """
@@ -58,8 +60,10 @@ async def get_sessions_aggregate(
 
     data = get_aggregate_kpis(
         db,
-        date_start=ds.isoformat(),
-        date_end=de.isoformat(),
+        date_start=ds,
+        date_end=de,
+        site_id=site_id,
+        team_id=team_id,
         include_sessions=include_sessions,
     )
     elapsed_ms = int((time.perf_counter() - start) * 1000)

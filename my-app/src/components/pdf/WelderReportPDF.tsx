@@ -201,9 +201,9 @@ export function WelderReportPDF({
                 >
                   Excursion Log
                 </Text>
-                {reportSummary.excursions
-                  .slice(0, 10)
+                {[...reportSummary.excursions]
                   .sort((a, b) => a.timestamp_ms - b.timestamp_ms)
+                  .slice(0, 10)
                   .map((e, i) => (
                     <View
                       key={i}

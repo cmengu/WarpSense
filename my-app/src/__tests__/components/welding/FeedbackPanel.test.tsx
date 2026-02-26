@@ -13,6 +13,7 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import FeedbackPanel from "@/components/welding/FeedbackPanel";
 import type { FeedbackItem } from "@/types/ai-feedback";
+import type { Frame } from "@/types/frame";
 
 const mockInfoItem: FeedbackItem = {
   severity: "info",
@@ -44,15 +45,16 @@ const mockMicroItem: FeedbackItem = {
   type: "angle",
 };
 
-const mockFrames = [
-  { timestamp_ms: 0 },
-  { timestamp_ms: 10 },
-  { timestamp_ms: 20 },
-  { timestamp_ms: 30 },
-  { timestamp_ms: 40 },
-  { timestamp_ms: 50 },
-  { timestamp_ms: 60 },
-] as { timestamp_ms: number }[];
+/** Minimal frames for jump-to-frame tests; FeedbackPanel only needs timestamp_ms. */
+const mockFrames: Frame[] = [
+  { timestamp_ms: 0, volts: 0, amps: 0, angle_degrees: 0, thermal_snapshots: [], has_thermal_data: false, optional_sensors: null, heat_dissipation_rate_celsius_per_sec: null },
+  { timestamp_ms: 10, volts: 0, amps: 0, angle_degrees: 0, thermal_snapshots: [], has_thermal_data: false, optional_sensors: null, heat_dissipation_rate_celsius_per_sec: null },
+  { timestamp_ms: 20, volts: 0, amps: 0, angle_degrees: 0, thermal_snapshots: [], has_thermal_data: false, optional_sensors: null, heat_dissipation_rate_celsius_per_sec: null },
+  { timestamp_ms: 30, volts: 0, amps: 0, angle_degrees: 0, thermal_snapshots: [], has_thermal_data: false, optional_sensors: null, heat_dissipation_rate_celsius_per_sec: null },
+  { timestamp_ms: 40, volts: 0, amps: 0, angle_degrees: 0, thermal_snapshots: [], has_thermal_data: false, optional_sensors: null, heat_dissipation_rate_celsius_per_sec: null },
+  { timestamp_ms: 50, volts: 0, amps: 0, angle_degrees: 0, thermal_snapshots: [], has_thermal_data: false, optional_sensors: null, heat_dissipation_rate_celsius_per_sec: null },
+  { timestamp_ms: 60, volts: 0, amps: 0, angle_degrees: 0, thermal_snapshots: [], has_thermal_data: false, optional_sensors: null, heat_dissipation_rate_celsius_per_sec: null },
+];
 
 describe("FeedbackPanel", () => {
   it("renders info item with blue styling", () => {

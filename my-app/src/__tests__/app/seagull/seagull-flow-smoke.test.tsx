@@ -76,7 +76,7 @@ describe("Seagull flow smoke tests", () => {
   });
 
   it("welder report loads with score, AI summary, heatmaps, feedback, chart; no crash", async () => {
-    render(<WelderReportPage params={{ id: "mike-chen" }} />);
+    render(<WelderReportPage params={Promise.resolve({ id: "mike-chen" })} />);
     await waitFor(() => {
       expect(screen.getByText(/75\/100/)).toBeInTheDocument();
     });
@@ -88,7 +88,7 @@ describe("Seagull flow smoke tests", () => {
   });
 
   it("welder report has Back link to /seagull", async () => {
-    render(<WelderReportPage params={{ id: "mike-chen" }} />);
+    render(<WelderReportPage params={Promise.resolve({ id: "mike-chen" })} />);
     await waitFor(() => {
       expect(screen.getByText(/75\/100/)).toBeInTheDocument();
     });
@@ -101,7 +101,7 @@ describe("Seagull flow smoke tests", () => {
   it("welder report shows error card with back link when fetch fails", async () => {
     mockFetchSession.mockRejectedValueOnce(new Error("404"));
 
-    render(<WelderReportPage params={{ id: "mike-chen" }} />);
+    render(<WelderReportPage params={Promise.resolve({ id: "mike-chen" })} />);
     await waitFor(() => {
       expect(screen.getByText(/⚠️ Error/)).toBeInTheDocument();
     });

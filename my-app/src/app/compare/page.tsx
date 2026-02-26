@@ -39,6 +39,12 @@ function CompareForm() {
         <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-6">
           Enter two session IDs to view side-by-side heatmaps and the temperature delta (A − B).
         </p>
+        <Link
+          href="/compare/sess_expert_001/sess_novice_001"
+          className="mb-6 inline-block px-4 py-3 rounded-md bg-blue-500 text-white text-sm font-medium hover:bg-blue-600 transition-colors"
+        >
+          Expert vs Novice — Quick demo
+        </Link>
         <form
           className="space-y-4"
           onSubmit={(e) => {

@@ -19,7 +19,7 @@ Requirements for the plan:
 
 > This template is designed for **AI agent execution**, not human reading. The critical difference: humans infer context from prior knowledge. Agents hallucinate when forced to infer. Every field below exists to eliminate a specific class of agent error identified through repeated failure analysis.
 
-**The seven failure modes this template prevents:**
+**The nine failure modes this template prevents:**
 
 | Failure Mode | How It Happens | How This Template Prevents It |
 |---|---|---|
@@ -30,6 +30,8 @@ Requirements for the plan:
 | **Irreversible continuation** | Agent runs migration A then immediately writes migration B | Human Gate with exact termination language stops execution at checkpoints |
 | **Scope creep on replace** | "Replace the `total =` line" when two exist | Uniqueness-Before-Replace check confirms single target |
 | **Invented values** | "Add with placeholder values" — agent invents numbers | No-Placeholder Rule: code blocks never contain `<VALUE>` tokens |
+| **Non-idempotent re-runs** | Step partially fails, agent reruns it, breaks state | Idempotency declaration on every step |
+| **Lost state on stop** | Agent stops mid-step, no record of what it changed | State Preservation Protocol: agent dumps modified file state before stopping |
 
 ---
 
@@ -39,7 +41,9 @@ Requirements for the plan:
 
 1. A verification command fails → read the full error output.
 2. Cause is unambiguous → make ONE targeted fix → re-run the same verification command.
-3. If still failing after one fix → **STOP**. Report: (a) command run, (b) full error verbatim, (c) fix attempted, (d) why you cannot proceed.
+3. If still failing after one fix → **STOP**. Before stopping:
+   - Output the full current contents of every file modified in this step.
+   - Report: (a) command run, (b) full error verbatim, (c) fix attempted, (d) exact state of each modified file, (e) why you cannot proceed.
 4. Never attempt a second fix without human instruction.
 5. Never modify files not named in the current step.
 
@@ -63,23 +67,51 @@ Human gates are **mandatory** before:
 
 ---
 
-## PRE-FLIGHT (Run Before Any Code Changes)
+## CLARIFICATION GATE — Fill Before Writing Any Steps
 
-> Every plan must begin with a pre-flight section. The agent reads the codebase and confirms it matches plan assumptions BEFORE touching anything.
+> Surface every unknown upfront. Most plan iteration cycles are caused by unknowns discovered reactively mid-execution. Complete this section before touching Pre-Flight or Steps.
 
 ```
-Read [primary file(s) this plan touches] in full. List:
+Unknown: [what is unclear]
+Required: [exact value or decision needed to resolve it]
+Source: [who/what provides it — codebase read, human input, previous step output]
+Blocking: [which steps cannot start without this resolved]
+```
+
+**If any Unknown has Source = "human input" and has not been resolved → do not begin the plan. Output:**
+`"[CLARIFICATION NEEDED: list all unresolved unknowns]"` and stop.
+
+---
+
+## PRE-FLIGHT (Run Before Any Code Changes)
+
+> Every plan must begin with a pre-flight section. The agent reads the codebase and confirms it matches plan assumptions BEFORE touching anything. The output of this section becomes the **baseline snapshot** used to verify that only intended changes occurred.
+
+```
+Read [primary file(s) this plan touches] in full. Capture and output:
 (1) Every [constant / field / function] currently defined, in order
 (2) The exact current signature of [function this plan modifies]
 (3) The exact line(s) where [key anchor] appears
 (4) Every file that imports from [module being changed]
-Do not change anything. Show output and wait.
+(5) Current test count: run [test command] and record the number of passing tests
+(6) Line count of [primary files]: wc -l [file] — record for post-plan diff
+
+Do not change anything. Show full output and wait.
+```
+
+**Baseline Snapshot (agent fills this in during pre-flight — do not pre-fill):**
+```
+Test count before plan: ____
+Line count [file A]: ____
+Line count [file B]: ____
+Functions in [module]: ____
 ```
 
 **Required pre-flight checks (adapt per project):**
-- All existing tests pass before any edits begin. Document the test count.
-- Confirm all functions/classes named in the plan exist and have the expected signatures.
-- Confirm all anchor lines (insertion points) exist exactly once in the correct scope.
+- [ ] All existing tests pass before any edits begin. Document the test count.
+- [ ] Confirm all functions/classes named in the plan exist and have the expected signatures.
+- [ ] Confirm all anchor lines (insertion points) exist exactly once in the correct scope.
+- [ ] Confirm no in-progress migrations or uncommitted schema changes exist.
 
 ---
 
@@ -105,6 +137,8 @@ For non-critical steps: include Verification Test only.
 
 ```
 **Context:** [How this fits into the larger system. What breaks if this step is wrong.]
+
+**Idempotent:** Yes / No — [reason. If No: describe what breaks on re-run and how to detect it.]
 
 **Pre-Read Gate:** Before editing, confirm:
 - [ ] `grep -n '[target function/class]' [file]` returns exactly 1 match
@@ -146,6 +180,13 @@ any code block. If a value is not yet known, a Human Gate must precede this step
 - [risk 1] → mitigation: [specific mitigation]
 - [risk 2] → mitigation: [specific mitigation]
 
+**Git Checkpoint:**
+```bash
+git add [files modified in this step only]
+git commit -m "[step N] [imperative description of exactly what changed]"
+```
+Commit after verification passes. Do not batch multiple steps into one commit.
+
 **Human Gate:** (if applicable)
 Output `"[GATE MESSAGE]"` as the final line of your response.
 Do not write any code or call any tools after this line.
@@ -161,10 +202,12 @@ Every step — critical or not — ends with a verification test. Tests must be:
 - **Scoped** — tests one thing and fails with a clear message if wrong
 - **Non-destructive** — running the test does not change state
 - **Self-diagnosing** — failure message tells you what to check, not just that it failed
+- **Tagged by confidence level** — Unit / Integration / E2E so the reader knows what "pass" actually guarantees
 
 **Test anatomy:**
 
 ```
+Type:      [Unit / Integration / E2E]
 Action:    [Exact thing to do — command, request, user interaction]
 Expected:  [Exact output, status code, UI state, or value]
 Observe:   [Where to look — log, response body, UI element, DB query]
@@ -189,6 +232,7 @@ Fail:      [Symptom] → [Likely cause] → [Specific file/function to check]
 ```
 Step N — Phase A (safe, reversible)
   → Verification confirms Phase A succeeded
+  → State Manifest: output [specific values / structures produced by Phase A]
   → Human Gate: output "[PHASE A COMPLETE — WAITING FOR HUMAN TO CONFIRM PHASE B VALUES]"
 
 Step N — Phase B (data-dependent, uses values from calibration/previous output)
@@ -198,13 +242,40 @@ Step N — Phase B (data-dependent, uses values from calibration/previous output
 
 ---
 
+## STATE MANIFEST (use at every Human Gate)
+
+> When execution pauses at a Human Gate, the agent must output a complete State Manifest so a fresh agent session can resume without re-reading the full conversation.
+
+```
+STATE MANIFEST — [Step N] — [timestamp or session ID if available]
+
+Files modified so far:
+  [file A]: [brief description of what changed]
+  [file B]: [brief description of what changed]
+
+Values produced:
+  [variable / output name]: [actual value]
+  [variable / output name]: [actual value]
+
+Verifications passed:
+  Step 1: ✅ [what was confirmed]
+  Step 2: ✅ [what was confirmed]
+
+Next step on resume:
+  Step [N+1]: [name] — requires [specific human input or value]
+
+[WAITING: describe exactly what the human must provide]
+```
+
+---
+
 ## STEPS ANALYSIS (fill this in before writing the plan)
 
 > For each step, classify it before writing it. This prevents under-specifying critical steps and over-specifying simple ones.
 
 ```
-Step 1 ([name]) — [Critical / Non-critical] ([reason]) — [full code review / verification only]
-Step 2 ([name]) — [Critical / Non-critical] ([reason]) — [full code review / verification only]
+Step 1 ([name]) — [Critical / Non-critical] ([reason]) — [full code review / verification only] — Idempotent: [Yes/No]
+Step 2 ([name]) — [Critical / Non-critical] ([reason]) — [full code review / verification only] — Idempotent: [Yes/No]
 ...
 ```
 
@@ -237,11 +308,22 @@ Key architectural choices (NO CODE — decisions only):
 
 ---
 
+## Clarification Gate
+
+> Complete before Pre-Flight. If any item is unresolved and Source = "human input", stop and request clarification.
+
+| Unknown | Required | Source | Blocking | Resolved |
+|---------|----------|--------|----------|----------|
+| [what is unclear] | [exact value or decision] | [codebase / human / step output] | [step N] | ⬜ |
+| [what is unclear] | [exact value or decision] | [codebase / human / step output] | [step N] | ⬜ |
+
+---
+
 ## Agent Failure Protocol
 
 1. A verification command fails → read the full error output.
 2. Cause is unambiguous → make ONE targeted fix → re-run the same verification command.
-3. If still failing after one fix → **STOP**. Report: (a) command run, (b) full error verbatim, (c) fix attempted, (d) why you cannot proceed.
+3. If still failing after one fix → **STOP**. Before stopping, output the full current contents of every file modified in this step. Report: (a) command run, (b) full error verbatim, (c) fix attempted, (d) current state of each modified file, (e) why you cannot proceed.
 4. Never attempt a second fix without human instruction.
 5. Never modify files not named in the current step.
 
@@ -250,12 +332,22 @@ Key architectural choices (NO CODE — decisions only):
 ## Pre-Flight — Run Before Any Code Changes
 
 ```
-Read [file] in full. List:
+Read [file] in full. Capture and output:
 (1) Every [constant / method / field] defined at [module/class] level, in order
 (2) Exact current signature of [function this plan modifies]
 (3) Exact line where [key anchor] appears
 (4) Every file that imports from [module]
-Do not change anything. Show output and wait.
+(5) Run [test command] — record passing test count
+(6) Run wc -l [primary files] — record line counts
+
+Do not change anything. Show full output and wait.
+```
+
+**Baseline Snapshot (agent fills during pre-flight):**
+```
+Test count before plan: ____
+Line count [file A]:    ____
+Line count [file B]:    ____
 ```
 
 **Automated checks (all must pass before Step 1):**
@@ -264,6 +356,19 @@ Do not change anything. Show output and wait.
 - [ ] `[function_name]` exists and accepts `[expected signature]`
 - [ ] `[anchor_line]` appears exactly once in `[file]` inside `[scope]`
 - [ ] `[variable_name]` does not exist yet (for new additions) OR does exist (for modifications)
+- [ ] No in-progress migrations or uncommitted schema changes
+
+---
+
+## Environment Matrix
+
+> Identify which steps apply per environment and what changes between them.
+
+| Step | Dev | Staging | Prod | Notes |
+|------|-----|---------|------|-------|
+| Step 1 | ✅ | ✅ | ✅ | No environment-specific changes |
+| Step 2 | ✅ | ✅ | ⚠️ Manual gate | Requires prod DB credentials |
+| Step 3 | ✅ | ❌ Skip | ❌ Skip | Dev-only seed data |
 
 ---
 
@@ -276,6 +381,8 @@ Do not change anything. Show output and wait.
 ---
 
 - [ ] 🟥 **Step 1: [Name]** — *[Critical / Non-critical]: [one-line reason]*
+
+  **Idempotent:** Yes / No — [reason. If No: what breaks on re-run and how to detect it.]
 
   **Context:** [How this fits into the system. What is currently wrong and why this fixes it.]
 
@@ -306,11 +413,19 @@ Do not change anything. Show output and wait.
   - [Risk 1] → mitigation: [specific action]
   - [Risk 2] → mitigation: [specific action]
 
+  **Git Checkpoint:**
+  ```bash
+  git add [files modified in this step only]
+  git commit -m "step 1: [imperative description]"
+  ```
+
   **Subtasks:**
   - [ ] 🟥 [Subtask 1 — specific enough that done/not-done is unambiguous]
   - [ ] 🟥 [Subtask 2]
 
   **✓ Verification Test:**
+
+  **Type:** [Unit / Integration / E2E]
 
   **Action:** [Exact command or interaction — no placeholders]
 
@@ -332,6 +447,8 @@ Do not change anything. Show output and wait.
 
   > ⚠️ **Split Operation** — This step has two phases. Phase A must complete and verify before Phase B begins. A Human Gate separates them.
 
+  **Idempotent:** Phase A: Yes / No — [reason]. Phase B: Yes / No — [reason]
+
   **Context:** [Why splitting is necessary. What silent failure would occur if combined.]
 
   ---
@@ -349,6 +466,20 @@ Do not change anything. Show output and wait.
   - [Specific check that Phase A succeeded and only Phase A]
   - [Confirm new structure exists]
   - [Confirm no data was changed]
+
+  **Git Checkpoint (Phase A):**
+  ```bash
+  git add [Phase A files only]
+  git commit -m "step 2a: [imperative description of Phase A only]"
+  ```
+
+  **State Manifest — Phase A:**
+  ```
+  Files modified: [list]
+  Values produced: [list any outputs Phase B needs]
+  Verifications passed: Step 1 ✅, Step 2A ✅
+  Next: Step 2B requires [specific human input]
+  ```
 
   **Human Gate — Phase A complete:**
   Output `"[PHASE A COMPLETE — WAITING FOR [specific input needed for Phase B]]"` as the final line of your response.
@@ -371,6 +502,12 @@ Do not change anything. Show output and wait.
   - [Confirm non-null / non-empty / expected count]
   - [Confirm zero rows updated = visible failure, not silent success]
 
+  **Git Checkpoint (Phase B):**
+  ```bash
+  git add [Phase B files only]
+  git commit -m "step 2b: [imperative description of Phase B only]"
+  ```
+
   **Subtasks:**
   - [ ] 🟥 Phase A complete and verified
   - [ ] 🟥 Human gate passed — values received
@@ -378,13 +515,15 @@ Do not change anything. Show output and wait.
 
   **✓ Verification Test (Phase B):**
 
+  **Type:** [Unit / Integration / E2E]
+
   **Action:** [Query or check that confirms data exists with expected values]
 
   **Expected:** [Non-null values in specific fields]
 
   **Observe:** [Database query result / API response / log output]
 
-  **Pass:** [All three fields non-null, values match Step 8 calibration output]
+  **Pass:** [All three fields non-null, values match Step 2A calibration output]
 
   **Fail:**
   - If zero rows updated → `WHERE` clause matched nothing — confirm `[field] = '[value]'` exists in table
@@ -394,11 +533,21 @@ Do not change anything. Show output and wait.
 
 - [ ] 🟥 **Step 3: [Name]** — *Non-critical*
 
+  **Idempotent:** Yes — [reason]
+
+  **Git Checkpoint:**
+  ```bash
+  git add [files]
+  git commit -m "step 3: [imperative description]"
+  ```
+
   **Subtasks:**
   - [ ] 🟥 [Subtask 1]
   - [ ] 🟥 [Subtask 2]
 
   **✓ Verification Test:**
+
+  **Type:** [Unit / Integration / E2E]
 
   **Action:** [Exact interaction]
 
@@ -436,17 +585,28 @@ Do not change anything. Show output and wait.
 | [System 1] | [What it did before] | [Exact check that confirms it still does] |
 | [System 2] | [What it did before] | [Exact check that confirms it still does] |
 
+**Test count regression check:**
+- Tests before plan (from Pre-Flight baseline): `____`
+- Tests after plan: run `[test command]` — must be `≥` baseline count
+- If count decreased → a test was deleted or renamed — STOP and report
+
 ---
 
 ## Rollback Procedure
 
-> Must be documented and tested before any irreversible step executes.
+> Must be documented before any irreversible step executes. Each rollback must be a single command or a numbered sequence of unambiguous commands.
 
 ```bash
-# Step-by-step rollback in reverse order
-# [Step N rollback]
-# [Step N-1 rollback]
-# Confirm system is back to pre-plan state: [specific check]
+# Rollback Step N (reverse order)
+git revert [commit hash from Step N git checkpoint]
+# or if schema change:
+[specific migration rollback command]
+
+# Rollback Step N-1
+git revert [commit hash from Step N-1 git checkpoint]
+
+# Confirm system is back to pre-plan state:
+[test command] — must return same count as Pre-Flight baseline
 ```
 
 ---
@@ -455,6 +615,8 @@ Do not change anything. Show output and wait.
 
 | Phase | Check | How to Confirm | Status |
 |-------|-------|----------------|--------|
+| **Pre-flight** | Clarification Gate complete | All unknowns resolved | ⬜ |
+| | Baseline snapshot captured | Test count + line counts recorded | ⬜ |
 | **Phase 1** | [Dependency] installed/available | [Import or version check] | ⬜ |
 | | [Service] running | [Health check or import] | ⬜ |
 | | [Anchor line] exists once in correct scope | grep returns exactly 1 match | ⬜ |
@@ -466,12 +628,12 @@ Do not change anything. Show output and wait.
 
 ## Risk Heatmap
 
-| Step | Risk Level | What Could Go Wrong | Early Detection |
-|------|-----------|---------------------|-----------------|
-| Step 1 | 🟢 **Low** | [Risk] | [How you'd know early] |
-| Step 2 Phase A | 🟡 **Medium** | [Risk] | [How you'd know early] |
-| Step 2 Phase B | 🔴 **High** | Silent failure if Phase A verified but Phase B skipped | Check non-null fields immediately after Migration B |
-| Step N | 🔴 **High** | [Risk] | [How you'd know early] |
+| Step | Risk Level | What Could Go Wrong | Early Detection | Idempotent |
+|------|-----------|---------------------|-----------------|------------|
+| Step 1 | 🟢 **Low** | [Risk] | [How you'd know early] | Yes |
+| Step 2 Phase A | 🟡 **Medium** | [Risk] | [How you'd know early] | Yes |
+| Step 2 Phase B | 🔴 **High** | Silent failure if Phase A verified but Phase B skipped | Check non-null fields immediately after | No — re-run duplicates rows |
+| Step N | 🔴 **High** | [Risk] | [How you'd know early] | No — [reason] |
 
 ---
 
@@ -482,9 +644,12 @@ Do not change anything. Show output and wait.
 | [Feature 1] | [Specific measurable behavior] | **Do:** [action] → **Expect:** [output] → **Look:** [location] |
 | [Feature 2] | [Specific measurable behavior] | **Do:** [action] → **Expect:** [output] → **Look:** [location] |
 | [Regression: Feature X] | Unchanged from pre-plan | **Do:** [existing test] → **Expect:** [same result as before] |
+| Test count | ≥ pre-plan baseline | Run [test command] → count must not decrease |
 
 ---
 
 ⚠️ **Do not mark a step 🟩 Done until its verification test passes.**
 ⚠️ **Do not proceed past a Human Gate without explicit human input.**
-⚠️ **If blocked, mark 🟨 In Progress and document: (a) what failed, (b) what was tried, (c) why you cannot continue.**
+⚠️ **If blocked, mark 🟨 In Progress and output the State Manifest before stopping.**
+⚠️ **Do not batch multiple steps into one git commit.**
+⚠️ **If idempotent = No, confirm the step has not already run before executing.**

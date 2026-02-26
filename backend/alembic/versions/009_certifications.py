@@ -42,7 +42,10 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.drop_index("ix_welder_certifications_welder_id",
-                  "welder_certifications")
-    op.drop_table("welder_certifications")
-    op.drop_table("cert_standards")
+    op.drop_index(
+        "ix_welder_certifications_welder_id",
+        "welder_certifications",
+        if_exists=True,
+    )
+    op.drop_table("welder_certifications", if_exists=True)
+    op.drop_table("cert_standards", if_exists=True)

@@ -88,7 +88,7 @@ export function ExcursionLogTable({ excursions }: ExcursionLogTableProps) {
           <tbody>
             {sorted.map((e, i) => (
               <tr
-                key={`${e.timestamp_ms}-${e.defect_type}-${i}`}
+                key={`${e.timestamp_ms}-${e.defect_type}-${e.parameter_value ?? ""}-${e.notes ?? ""}-${i}`}
                 className="border-b border-zinc-100 dark:border-zinc-800 last:border-0"
               >
                 <td className="py-2 px-2">{formatTime(e.timestamp_ms)}</td>
