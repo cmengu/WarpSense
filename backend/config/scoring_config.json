@@ -1,0 +1,13 @@
+{
+  "wps_heat_input_min_kj_per_mm": 0.9,
+  "wps_heat_input_max_kj_per_mm": 1.5,
+  "torch_angle_max_degrees": 20.0,
+  "interpass_min_ms": 45000,
+  "interpass_max_temp_c": 60,
+  "arc_termination_weight": 0.25,
+  "heat_input_weight": 0.35,
+  "torch_angle_weight": 0.25,
+  "defect_alert_weight": 0.10,
+  "interpass_weight": 0.05,
+  "component_weights_note": "Must sum to 1.0. heat_input weighted highest per AWS D1.2."
+}
