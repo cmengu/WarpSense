@@ -79,7 +79,8 @@ AL_AMPS_NOISE_NOVICE = 12.0  # σ A — novice instability
 AL_CTWD_NOMINAL = 15.0
 AL_VOLTS_CTWD_SENSITIVITY = 0.8  # V per mm CTWD deviation
 AL_VOLTS_NOMINAL = 22.0
-AL_VOLTS_NOISE_NORMAL = 0.3   # σ V — stable arc
+AL_VOLTS_NOISE_NORMAL = 0.3   # σ V — stable arc (expert)
+AL_VOLTS_NOISE_NOVICE = 0.5   # σ V — novice arc instability
 AL_VOLTS_NOISE_POROSITY = 1.8  # σ V — elevated during porosity event
 
 # Travel speed — AWS D1.2 table for 3–6mm aluminum GMAW spray transfer
@@ -502,7 +503,11 @@ def _generate_continuous_novice_frames(
         )
         if arc_active and rng.random() < porosity_prob:
             porosity_frames_remaining = rng.randint(AL_POROSITY_MIN_FRAMES, AL_POROSITY_MAX_FRAMES)
-        volts_sigma = AL_VOLTS_NOISE_POROSITY if porosity_frames_remaining > 0 else AL_VOLTS_NOISE_NORMAL
+        volts_sigma = (
+            AL_VOLTS_NOISE_POROSITY
+            if porosity_frames_remaining > 0
+            else AL_VOLTS_NOISE_NOVICE
+        )
         if porosity_frames_remaining > 0:
             porosity_frames_remaining -= 1
 
