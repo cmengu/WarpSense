@@ -19,10 +19,13 @@ jest.mock("html-to-image", () => ({
   toPng: jest.fn().mockResolvedValue("data:image/png;base64,fake"),
 }));
 
+const mockFetchReportSummary = jest.fn();
+
 jest.mock("@/lib/api", () => ({
   fetchSession: (...args: unknown[]) => mockFetchSession(...args),
   fetchScore: (...args: unknown[]) => mockFetchScore(...args),
   fetchBenchmarks: (...args: unknown[]) => mockFetchBenchmarks(...args),
+  fetchReportSummary: (...args: unknown[]) => mockFetchReportSummary(...args),
   fetchNarrative: jest.fn().mockRejectedValue(new Error("narrative not found")),
   fetchCoachingPlan: jest.fn().mockResolvedValue({
     welder_id: "mike-chen",
@@ -114,15 +117,33 @@ const mockScore = {
   },
 };
 
+const mockReportSummary = {
+  session_id: "sess_mike-chen_005",
+  generated_at: "2026-02-07T10:00:00Z",
+  heat_input_mean_kj_per_mm: 0.7,
+  heat_input_wps_min: 0.5,
+  heat_input_wps_max: 0.9,
+  heat_input_compliant: true,
+  travel_angle_excursion_count: 0,
+  travel_angle_threshold_deg: 25,
+  total_arc_terminations: 0,
+  no_crater_fill_count: 0,
+  crater_fill_rate_pct: 0,
+  defect_counts_by_type: {},
+  total_defect_alerts: 0,
+  excursions: [],
+};
+
 describe("WelderReportPage", () => {
   beforeEach(() => {
     mockFetchSession.mockResolvedValue(mockSession);
     mockFetchScore.mockResolvedValue(mockScore);
     mockFetchBenchmarks.mockResolvedValue(null);
+    mockFetchReportSummary.mockResolvedValue(mockReportSummary);
   });
 
   it("renders report with score, AI summary, heatmaps, feedback when data loads", async () => {
-    render(<WelderReportPage params={{ id: "mike-chen" }} />);
+    render(<WelderReportPage params={Promise.resolve({ id: "mike-chen" })} />);
 
     await waitFor(() => {
       expect(screen.getByText(/75\/100/)).toBeInTheDocument();
@@ -152,7 +173,7 @@ describe("WelderReportPage", () => {
   it("shows error state with back link when fetch fails", async () => {
     mockFetchSession.mockRejectedValueOnce(new Error("Network error"));
 
-    render(<WelderReportPage params={{ id: "mike-chen" }} />);
+    render(<WelderReportPage params={Promise.resolve({ id: "mike-chen" })} />);
 
     await waitFor(() => {
       expect(screen.getByText(/⚠️ Error/)).toBeInTheDocument();
@@ -166,7 +187,7 @@ describe("WelderReportPage", () => {
   });
 
   it("fetches primary session, expert (sess_expert-benchmark_005), score, and historical scores", async () => {
-    render(<WelderReportPage params={{ id: "mike-chen" }} />);
+    render(<WelderReportPage params={Promise.resolve({ id: "mike-chen" })} />);
 
     await waitFor(() => {
       expect(screen.getByText(/75\/100/)).toBeInTheDocument();
@@ -217,7 +238,7 @@ describe("WelderReportPage", () => {
       projected_next_score: 82,
     });
 
-    render(<WelderReportPage params={{ id: "mike-chen" }} />);
+    render(<WelderReportPage params={Promise.resolve({ id: "mike-chen" })} />);
 
     await waitFor(() => {
       expect(screen.getByText(/80\/100/)).toBeInTheDocument();
@@ -236,7 +257,7 @@ describe("WelderReportPage", () => {
       projected_next_score: null,
     });
 
-    render(<WelderReportPage params={{ id: "mike-chen" }} />);
+    render(<WelderReportPage params={Promise.resolve({ id: "mike-chen" })} />);
 
     await waitFor(() => {
       expect(screen.queryByText(/Session not found/)).not.toBeInTheDocument();
@@ -248,7 +269,7 @@ describe("WelderReportPage", () => {
   });
 
   it("maps expert-benchmark id to sess_expert-benchmark_005", async () => {
-    render(<WelderReportPage params={{ id: "expert-benchmark" }} />);
+    render(<WelderReportPage params={Promise.resolve({ id: "expert-benchmark" })} />);
 
     await waitFor(() => {
       expect(
@@ -263,7 +284,7 @@ describe("WelderReportPage", () => {
   });
 
   it("shows Back to Team Dashboard link when report loads", async () => {
-    render(<WelderReportPage params={{ id: "mike-chen" }} />);
+    render(<WelderReportPage params={Promise.resolve({ id: "mike-chen" })} />);
 
     await waitFor(() => {
       expect(screen.getByText(/75\/100/)).toBeInTheDocument();
@@ -277,7 +298,7 @@ describe("WelderReportPage", () => {
 
   describe("Export stubs", () => {
     it("Email Report button is disabled with coming-soon indicator", async () => {
-      render(<WelderReportPage params={{ id: "mike-chen" }} />);
+      render(<WelderReportPage params={Promise.resolve({ id: "mike-chen" })} />);
       await waitFor(() => {
         expect(screen.getByText(/75\/100/)).toBeInTheDocument();
       });
@@ -307,7 +328,7 @@ describe("WelderReportPage", () => {
       });
       global.fetch = mockFetch as typeof fetch;
 
-      render(<WelderReportPage params={{ id: "mike-chen" }} />);
+      render(<WelderReportPage params={Promise.resolve({ id: "mike-chen" })} />);
       await waitFor(() =>
         expect(screen.getByText(/75\/100/)).toBeInTheDocument()
       );
@@ -345,7 +366,7 @@ describe("WelderReportPage", () => {
       global.fetch = mockFetch as typeof fetch;
 
       try {
-        render(<WelderReportPage params={{ id: "mike-chen" }} />);
+        render(<WelderReportPage params={Promise.resolve({ id: "mike-chen" })} />);
         await waitFor(() =>
           expect(screen.getByText(/75\/100/)).toBeInTheDocument()
         );
@@ -370,7 +391,7 @@ describe("WelderReportPage", () => {
       global.fetch = mockFetch as typeof fetch;
 
       try {
-        render(<WelderReportPage params={{ id: "mike-chen" }} />);
+        render(<WelderReportPage params={Promise.resolve({ id: "mike-chen" })} />);
         await waitFor(() =>
           expect(screen.getByText(/75\/100/)).toBeInTheDocument()
         );
@@ -386,7 +407,7 @@ describe("WelderReportPage", () => {
     });
 
     it("renders trend-chart wrapper with 600×200 for PDF capture", async () => {
-      render(<WelderReportPage params={{ id: "mike-chen" }} />);
+      render(<WelderReportPage params={Promise.resolve({ id: "mike-chen" })} />);
       await waitFor(() =>
         expect(screen.getByText(/75\/100/)).toBeInTheDocument()
       );
