@@ -30,12 +30,18 @@ PROCESS_TYPE_TO_CONFIG_KEY: dict[str, str] = {
 }
 DEFAULT_CONFIG_KEY = "aluminum_spray"
 
+_REPORT_THRESHOLDS_CACHE: dict | None = None
+
 
 def _load_report_thresholds() -> dict:
-    """Load report_thresholds.json. Raises FileNotFoundError if missing."""
+    """Load report_thresholds.json. Cached per process. Raises FileNotFoundError if missing."""
+    global _REPORT_THRESHOLDS_CACHE
+    if _REPORT_THRESHOLDS_CACHE is not None:
+        return _REPORT_THRESHOLDS_CACHE
     backend = Path(__file__).resolve().parent.parent
     path = backend / "config" / "report_thresholds.json"
-    return json.loads(path.read_text())
+    _REPORT_THRESHOLDS_CACHE = json.loads(path.read_text())
+    return _REPORT_THRESHOLDS_CACHE
 
 
 def _get_config_key(process_type: Optional[str]) -> str:

@@ -137,7 +137,7 @@ def test_arc_instability_skips_when_volts_none(caplog: pytest.LogCaptureFixture)
             timestamp_ms=float(i * 10),
         )
         engine.push_frame(frame)
-    warns = [r for r in caplog.records if "arc_instability" in r.message and "volts" in r.message]
+    warns = [m for m in caplog.messages if "arc_instability" in m and "volts" in m]
     assert len(warns) == 1, f"Expected exactly one volts-missing warning, got {len(warns)}"
 
 
@@ -167,6 +167,45 @@ def test_crater_crack_fires_on_abrupt_drop() -> None:
     )
     assert alert is not None
     assert alert.rule_triggered == "crater_crack"
+
+
+def test_crater_crack_does_not_fire_after_amps_dropout() -> None:
+    """Crater crack does not fire when amps=None resets buffer between arc-on and amps=0."""
+    engine = AlertEngine(DEFAULT_CONFIG)
+    for i in range(60):
+        engine.push_frame(
+            FrameInput(
+                frame_index=i,
+                amps=150.0,
+                ns_asymmetry=0.0,
+                travel_angle_degrees=12.0,
+                travel_speed_mm_per_min=450.0,
+                timestamp_ms=float(i * 10),
+            )
+        )
+    # Dropout: amps=None resets crater buffer, clearing arc history
+    for i in range(5):
+        engine.push_frame(
+            FrameInput(
+                frame_index=60 + i,
+                amps=None,
+                ns_asymmetry=0.0,
+                travel_angle_degrees=12.0,
+                travel_speed_mm_per_min=450.0,
+                timestamp_ms=600.0 + i * 10,
+            )
+        )
+    alert = engine.push_frame(
+        FrameInput(
+            frame_index=65,
+            amps=0.0,
+            ns_asymmetry=0.0,
+            travel_angle_degrees=12.0,
+            travel_speed_mm_per_min=450.0,
+            timestamp_ms=650.0,
+        )
+    )
+    assert alert is None or alert.rule_triggered != "crater_crack"
 
 
 def test_crater_crack_does_not_fire_when_not_armed() -> None:

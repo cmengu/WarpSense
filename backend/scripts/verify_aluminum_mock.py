@@ -42,6 +42,7 @@ def _north_south_delta(snapshot: ThermalSnapshot) -> float:
     )
     return abs(north - south)
 
+
 def _percentile(values: list[float], p: float) -> float:
     """
     Pure-Python percentile (linear interpolation, like NumPy default).

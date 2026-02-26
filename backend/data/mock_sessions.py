@@ -85,6 +85,8 @@ AL_VOLTS_NOISE_POROSITY = 1.8  # σ V — elevated during porosity event
 
 # Travel speed — AWS D1.2 table for 3–6mm aluminum GMAW spray transfer
 AL_TRAVEL_SPEED_NOMINAL = 400.0
+AL_TRAVEL_SPEED_BASE_MEAN = 400.0
+AL_TRAVEL_SPEED_BASE_SIGMA = 12.0
 AL_TRAVEL_SPEED_EXPERT_MIN = 350.0
 AL_TRAVEL_SPEED_EXPERT_MAX = 450.0
 AL_TRAVEL_SPEED_NOISE_EXPERT = 8.0
@@ -129,6 +131,7 @@ def _step_thermal_state(
     angle_degrees: float,
     travel_speed_mm_per_min: float = AL_TRAVEL_SPEED_NOMINAL,
 ) -> ThermalState:
+    travel_speed_mm_per_min = max(travel_speed_mm_per_min, 1.0)
     new = {dist: dict(dirs) for dist, dirs in state.items()}
 
     # 1) Arc input at 10mm only (closest node)
@@ -232,10 +235,9 @@ def _compute_interpass_bias(stitch_index: int, end_temp_celsius: float) -> float
 
 def _with_termination(f: Frame, label: str) -> Frame:
     """Pydantic v1/v2 compatible: v1 uses .copy(update=...), v2 uses .model_copy(update=...)."""
-    try:
+    if hasattr(f, "model_copy"):
         return f.model_copy(update={"arc_termination_type": label})
-    except AttributeError:
-        return f.copy(update={"arc_termination_type": label})  # type: ignore[attr-defined]
+    return f.copy(update={"arc_termination_type": label})  # type: ignore[attr-defined]
 
 
 def _generate_stitch_expert_frames(
@@ -246,8 +248,8 @@ def _generate_stitch_expert_frames(
     Aluminum stitch expert:
     - Stitch pattern: 150 frames arc-on, 100 frames arc-off (repeats)
     - Thermal override: if 10mm center > 220°C, force arc off
-    - Thermal grid state advances every frame; thermal snapshots emitted every 20 frames (200ms)
-    - heat_dissipation_rate set only on thermal frames (cooling-only metric: clamp at 0)
+    - Thermal grid state advances every frame; thermal snapshots emitted every frame (for real-time alert Rule 1)
+    - heat_dissipation_rate set on thermal frames (cooling-only metric: clamp at 0)
 
     Uses isolated random.Random(seed) so global random state is never touched — sessions
     remain deterministic even when seeded in parallel or interleaved with other RNG callers.
@@ -320,7 +322,7 @@ def _generate_stitch_expert_frames(
         angle = max(20.0, min(85.0, angle))
 
         # Expert travel speed: base 380–420 mm/min, 15% decel at bead start/end and corners
-        travel_speed_base = 400.0 + rng.gauss(0, 12.0)
+        travel_speed_base = AL_TRAVEL_SPEED_BASE_MEAN + rng.gauss(0, AL_TRAVEL_SPEED_BASE_SIGMA)
         travel_speed_base = max(380.0, min(420.0, travel_speed_base))
         travel_speed = travel_speed_base * decel_mult
         travel_speed = max(AL_TRAVEL_SPEED_EXPERT_MIN, min(AL_TRAVEL_SPEED_EXPERT_MAX, travel_speed))

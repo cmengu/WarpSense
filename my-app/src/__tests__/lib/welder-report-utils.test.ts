@@ -5,7 +5,7 @@ import {
   HIST_FIRST_IDX,
   BENCHMARKS_OFFSET,
 } from "@/lib/welder-report-utils";
-import { __FETCH_ORDER_FOR_TEST } from "@/app/seagull/welder/[id]/page";
+import { __FETCH_ORDER_FOR_TEST } from "@/lib/welder-report-utils";
 
 describe("welder-report-utils", () => {
   it("computeHistoricalScores returns number[] and excludes trajectory", () => {

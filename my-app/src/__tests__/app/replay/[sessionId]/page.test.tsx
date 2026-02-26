@@ -8,7 +8,7 @@ jest.mock('next/dynamic', () => ({
   __esModule: true,
   default: (loader: () => Promise<{ default: React.ComponentType<unknown> }>) => {
     const Loaded = React.lazy(loader);
-    return function DynamicWrapper(props: React.ComponentProps<typeof Loaded>) {
+    return function DynamicWrapper(props: Record<string, unknown>) {
       return (
         <React.Suspense fallback={<div data-testid="dynamic-loading" />}>
           <Loaded {...props} />
@@ -74,21 +74,21 @@ describe('ReplayPage', () => {
   });
 
   it('renders with sessionId from params after load', async () => {
-    render(<ReplayPage params={{ sessionId: 'test-session-123' }} />);
+    render(<ReplayPage params={Promise.resolve({ sessionId: 'test-session-123' })} />);
     await waitFor(() => {
       expect(screen.getByText(/session replay: test-session-123/i)).toBeInTheDocument();
     });
   });
 
   it('renders all welding components after fetch', async () => {
-    render(<ReplayPage params={{ sessionId: 'test-session-123' }} />);
+    render(<ReplayPage params={Promise.resolve({ sessionId: 'test-session-123' })} />);
     await waitFor(() => {
       expect(screen.getAllByText(/test-session-123/i).length).toBeGreaterThan(0);
     });
   });
 
   it('calls fetchSession with limit 2000 for full session load', async () => {
-    render(<ReplayPage params={{ sessionId: 'test-session-123' }} />);
+    render(<ReplayPage params={Promise.resolve({ sessionId: 'test-session-123' })} />);
     await waitFor(() => {
       expect(mockFetchSession).toHaveBeenCalledWith('test-session-123', {
         limit: 2000,
@@ -102,7 +102,7 @@ describe('ReplayPage', () => {
    * Compare page does NOT use TorchViz3D (HeatMap only) — N/A.
    */
   it('TorchViz3D Step 4: replay with comparison shows dual 3D layout and toggle', async () => {
-    render(<ReplayPage params={{ sessionId: 'test-session-123' }} />);
+    render(<ReplayPage params={Promise.resolve({ sessionId: 'test-session-123' })} />);
     await waitFor(() => {
       expect(screen.getByText(/session replay: test-session-123/i)).toBeInTheDocument();
     });
@@ -129,7 +129,7 @@ describe('ReplayPage', () => {
    * If FAIL: Assertion error shows which check failed (slider missing, wrong range, or time not updating).
    */
   it('Step 4 verification: slider renders, moves, updates currentTimestamp', async () => {
-    const { container } = render(<ReplayPage params={{ sessionId: 'test-session-123' }} />);
+    const { container } = render(<ReplayPage params={Promise.resolve({ sessionId: 'test-session-123' })} />);
 
     await waitFor(() => {
       expect(screen.getByText(/session replay: test-session-123/i)).toBeInTheDocument();
@@ -197,7 +197,7 @@ describe('ReplayPage', () => {
 
     jest.useFakeTimers();
 
-    const { unmount } = render(<ReplayPage params={{ sessionId: 'step5-session' }} />);
+    const { unmount } = render(<ReplayPage params={Promise.resolve({ sessionId: 'step5-session' })} />);
     await waitFor(() => {
       expect(screen.getByText(/session replay: step5-session/i)).toBeInTheDocument();
     });
@@ -249,7 +249,7 @@ describe('ReplayPage', () => {
    * If FAIL: Assertion error shows which check failed.
    */
   it('Step 6 verification: Space toggles play; L/R step ±10ms; cleanup on unmount', async () => {
-    const { unmount } = render(<ReplayPage params={{ sessionId: 'test-session-123' }} />);
+    const { unmount } = render(<ReplayPage params={Promise.resolve({ sessionId: 'test-session-123' })} />);
     await waitFor(() => {
       expect(screen.getByText(/session replay: test-session-123/i)).toBeInTheDocument();
     });
@@ -288,7 +288,7 @@ describe('ReplayPage', () => {
    * Per .cursor/issues/webgl-context-lost-consistent-project-wide.md.
    */
   it('uses at most 2 TorchWithHeatmap3D instances', async () => {
-    render(<ReplayPage params={{ sessionId: 'test-session-123' }} />);
+    render(<ReplayPage params={Promise.resolve({ sessionId: 'test-session-123' })} />);
     await waitFor(() => {
       expect(screen.getByText(/session replay: test-session-123/i)).toBeInTheDocument();
     });
@@ -310,11 +310,11 @@ describe('ReplayPage', () => {
         {
           distance_mm: 10,
           readings: [
-            { direction: 'center', temp_celsius: 400 },
-            { direction: 'north', temp_celsius: 380 },
-            { direction: 'south', temp_celsius: 390 },
-            { direction: 'east', temp_celsius: 370 },
-            { direction: 'west', temp_celsius: 375 },
+            { direction: 'center' as const, temp_celsius: 400 },
+            { direction: 'north' as const, temp_celsius: 380 },
+            { direction: 'south' as const, temp_celsius: 390 },
+            { direction: 'east' as const, temp_celsius: 370 },
+            { direction: 'west' as const, temp_celsius: 375 },
           ],
         },
       ],
@@ -343,7 +343,7 @@ describe('ReplayPage', () => {
       completed_at: '2026-02-07T10:00:01Z',
     });
 
-    render(<ReplayPage params={{ sessionId: 'thermal-session' }} />);
+    render(<ReplayPage params={Promise.resolve({ sessionId: 'thermal-session' })} />);
     await waitFor(() => {
       expect(screen.getByText(/session replay: thermal-session/i)).toBeInTheDocument();
     });
@@ -356,7 +356,7 @@ describe('ReplayPage', () => {
    * Step 1.11: When session has no thermal_frames, HeatMap is shown (thermal in 3D is empty).
    */
   it('shows HeatMap when session has no thermal data', async () => {
-    render(<ReplayPage params={{ sessionId: 'test-session-123' }} />);
+    render(<ReplayPage params={Promise.resolve({ sessionId: 'test-session-123' })} />);
     await waitFor(() => {
       expect(screen.getByText(/session replay: test-session-123/i)).toBeInTheDocument();
     });
@@ -375,7 +375,7 @@ describe('ReplayPage', () => {
       window_frames_used: 50,
     });
 
-    render(<ReplayPage params={{ sessionId: 'test-session-123' }} />);
+    render(<ReplayPage params={Promise.resolve({ sessionId: 'test-session-123' })} />);
     await waitFor(() => {
       expect(screen.getByText(/session replay: test-session-123/i)).toBeInTheDocument();
     });
@@ -400,7 +400,7 @@ describe('ReplayPage', () => {
       clipboard: { writeText },
     });
 
-    render(<ReplayPage params={{ sessionId: 'test-session-123' }} />);
+    render(<ReplayPage params={Promise.resolve({ sessionId: 'test-session-123' })} />);
     await waitFor(() => {
       expect(screen.getByText(/session replay: test-session-123/i)).toBeInTheDocument();
     });

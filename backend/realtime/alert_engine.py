@@ -1,5 +1,5 @@
 """
-Real-time alert engine. Three rules, time-based suppression, zero I/O in push_frame.
+Real-time alert engine. Eleven rules (3 proxy + 7 defect), time-based suppression, zero I/O in push_frame.
 """
 
 from __future__ import annotations
@@ -59,7 +59,7 @@ def load_thresholds(config_path: str) -> dict:
 
 
 class AlertEngine:
-    """Evaluates three rules per frame. Time-based suppression per rule."""
+    """Evaluates eleven rules per frame (3 proxy + 7 defect). Time-based suppression per rule."""
 
     def __init__(
         self,
@@ -218,7 +218,7 @@ class AlertEngine:
                 frame_index=frame.frame_index,
                 rule_triggered="arc_instability",
                 severity="critical",
-                message="Arc instability: voltage < 19.5V sustained",
+                message=f"Arc instability: voltage < {self._cfg['voltage_lo_V']}V sustained",
                 correction="Check shielding gas and wire feed",
                 timestamp_ms=now_ms,
             )))
@@ -226,6 +226,7 @@ class AlertEngine:
 
         # Rule 6: Crater crack (spike) — push every frame to maintain buffer history
         if frame.amps is None:
+            self._crater_buffer.reset()
             if not self._warned_amps_missing_crater:
                 logger.warning("crater_crack requires amps; skipping (frame_index=%d)", frame.frame_index)
                 self._warned_amps_missing_crater = True
@@ -280,7 +281,7 @@ class AlertEngine:
                     rule_triggered="lack_of_fusion_amps",
                     severity="critical",
                     message="Lack of fusion risk: low current",
-                    correction="Increase current to 140+ A",
+                    correction=f"Increase current to {self._cfg['lack_of_fusion_amps_max']}+ A",
                     timestamp_ms=now_ms,
                 )))
                 self._suppress_lof_amps_until = now_ms + self._cfg["sustained_repeat_ms"]
@@ -292,7 +293,7 @@ class AlertEngine:
                     rule_triggered="lack_of_fusion_speed",
                     severity="critical",
                     message="Lack of fusion risk: travel speed too high",
-                    correction="Reduce speed below 520 mm/min",
+                    correction=f"Reduce speed below {self._cfg['lack_of_fusion_speed_max_mm_per_min']} mm/min",
                     timestamp_ms=now_ms,
                 )))
                 self._suppress_lof_speed_until = now_ms + self._suppression_ms

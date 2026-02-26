@@ -23,11 +23,11 @@ def _ns_asymmetry_from_frame_data(frame_data: dict) -> float:
     snap = snapshots[0]
     readings = snap.get("readings") or []
     north = next(
-        (r["temp_celsius"] for r in readings if r.get("direction") == "north"),
+        (r.get("temp_celsius") for r in readings if r.get("direction") == "north"),
         None,
     )
     south = next(
-        (r["temp_celsius"] for r in readings if r.get("direction") == "south"),
+        (r.get("temp_celsius") for r in readings if r.get("direction") == "south"),
         None,
     )
     if north is None or south is None:

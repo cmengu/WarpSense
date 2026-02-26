@@ -6,7 +6,7 @@ when speed_10_frames_ago > 0; else 0. Negative = deceleration.
 """
 
 from collections import deque
-from typing import Optional
+from typing import Deque, Optional, Tuple
 
 
 class SpeedFrameBuffer:
@@ -70,7 +70,7 @@ class CurrentRampDownBuffer:
         self._ramp_min_ms = ramp_min_ms
         self._arc_on_min_ms = arc_on_min_ms
         self._max_history_ms = max_history_ms
-        self._samples: deque = deque()
+        self._samples: Deque[Tuple[float, float]] = deque()
         self._arc_on_since_ms: Optional[float] = None
 
     def push(self, timestamp_ms: float, amps: Optional[float]) -> Optional[bool]:
