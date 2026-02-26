@@ -159,13 +159,31 @@ def main() -> None:
     Session.model_validate(expert_session.model_dump())
     Session.model_validate(novice_session.model_dump())
 
-    # --- Travel speed assertions (expert p2≥360, p98≤580) ---
+    # --- Travel speed assertions (expert p2≥320, p98≤480) ---
     expert_speeds = [f.travel_speed_mm_per_min for f in expert_frames if f.travel_speed_mm_per_min is not None]
     assert len(expert_speeds) == 1500, f"FAIL: expert travel_speed missing on some frames: {len(expert_speeds)}"
     expert_p2 = _percentile(expert_speeds, 2.0)
     expert_p98 = _percentile(expert_speeds, 98.0)
-    assert expert_p2 >= 360, f"FAIL: expert travel speed p2 {expert_p2:.0f} < 360"
-    assert expert_p98 <= 580, f"FAIL: expert travel speed p98 {expert_p98:.0f} > 580"
+    assert expert_p2 >= 320, f"FAIL: expert travel speed p2 {expert_p2:.0f} < 320"
+    assert expert_p98 <= 480, f"FAIL: expert travel speed p98 {expert_p98:.0f} > 480"
+
+    # --- Heat input (expert 0.5–0.9 kJ/mm) ---
+    expert_heat = [
+        f.heat_input_kj_per_mm
+        for f in expert_frames
+        if f.heat_input_kj_per_mm is not None and f.volts and f.volts > 1
+    ]
+    assert len(expert_heat) > 100, "FAIL: expert heat_input too few"
+    for h in expert_heat:
+        assert 0.5 <= h <= 0.9, f"FAIL: expert heat_input {h:.3f} outside 0.5-0.9 kJ/mm"
+
+    # --- Novice negative travel angle (drag) ---
+    novice_neg_angle = [
+        f
+        for f in novice_frames
+        if f.travel_angle_degrees is not None and f.travel_angle_degrees < 0
+    ]
+    assert len(novice_neg_angle) > 0, "FAIL: novice never has negative travel angle (drag)"
 
     # --- Voltage variance (novice σ / expert σ > 1.5) ---
     e_volts = [f.volts for f in expert_frames if f.volts and f.volts > 1.0]
