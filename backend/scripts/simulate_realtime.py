@@ -72,6 +72,8 @@ def run_session(
                 travel_angle_degrees=travel_angle,
                 travel_speed_mm_per_min=travel_speed,
                 ns_asymmetry=ns,
+                volts=frame.volts,
+                amps=frame.amps,
             )
             alert = engine.push_frame(fin)
             if alert:

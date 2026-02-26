@@ -14,6 +14,7 @@ from datetime import datetime, timedelta, timezone
 import json
 import logging
 import uuid
+from pathlib import Path
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -29,8 +30,12 @@ from features.extractor import extract_features
 from models.frame import Frame
 from models.session import Session, SessionStatus
 from scoring.rule_based import score_session
+from services.benchmark_service import get_welder_benchmarks
+from services.coaching_service import assign_coaching_plan, evaluate_progress
 from services.thermal_service import calculate_heat_dissipation
 from services.threshold_service import get_thresholds
+from realtime.alert_engine import AlertEngine
+from realtime.alert_models import AlertPayload, FrameInput
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -65,6 +70,26 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+def _ns_asymmetry_from_frame_data(frame_data: dict) -> float:
+    """North minus south at 10mm. 0 if no thermal. Mirrors simulate_realtime._ns_asymmetry_from_frame."""
+    snapshots = frame_data.get("thermal_snapshots") or []
+    if not snapshots:
+        return 0.0
+    snap = snapshots[0]
+    readings = snap.get("readings") or []
+    north = next(
+        (r["temp_celsius"] for r in readings if r.get("direction") == "north"),
+        None,
+    )
+    south = next(
+        (r["temp_celsius"] for r in readings if r.get("direction") == "south"),
+        None,
+    )
+    if north is None or south is None:
+        return 0.0
+    return float(north) - float(south)
 
 
 def get_session_frames_raw(
@@ -343,19 +368,24 @@ async def get_session_score(
     ):
         session_model.score_total = score.total
         db.commit()
-        # Non-critical: evaluate coaching progress for welder's active drills
+        # Non-critical: evaluate coaching progress; auto-assign drills when score < 60
         if session_model.operator_id:
             try:
-                from services.coaching_service import evaluate_progress
-
                 evaluate_progress(session_model.operator_id, db)
+                if score.total < 60:
+                    benchmark_data = get_welder_benchmarks(
+                        session_model.operator_id, db
+                    )
+                    assign_coaching_plan(
+                        session_model.operator_id, benchmark_data, db
+                    )
             except Exception as e:
                 logger.warning(
-                    "evaluate_progress failed for %s: %s",
+                    "Post-score coaching hook failed for %s: %s",
                     session_model.operator_id,
                     e,
                 )
-                # Non-critical — do not re-raise
+                # Never fail the score request due to coaching errors
 
     result = score.model_dump()
     result["active_threshold_spec"] = {
@@ -370,6 +400,75 @@ async def get_session_score(
         "heat_diss_consistency": thresholds.heat_diss_consistency,
     }
     return result
+
+
+@router.get("/sessions/{session_id}/alerts")
+async def get_session_alerts(
+    session_id: str,
+    db: OrmSession = Depends(get_db),
+):
+    """
+    Run session frames through AlertEngine, return pre-computed alerts.
+    Caps at 2000 frames (same as compare page).
+    """
+    session_model = db.query(SessionModel).filter_by(session_id=session_id).first()
+    if not session_model:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    try:
+        frames_query = (
+            db.query(FrameModel)
+            .filter_by(session_id=session_id)
+            .order_by(FrameModel.timestamp_ms.asc())
+            .limit(2000)
+        )
+        frame_models = frames_query.all()
+
+        config_path = (
+            Path(__file__).resolve().parent.parent
+            / "config"
+            / "alert_thresholds.json"
+        )
+        engine = AlertEngine(str(config_path))
+        alerts: list[dict] = []
+
+        for i, fm in enumerate(frame_models):
+            fd = dict(fm.frame_data)
+            ns = _ns_asymmetry_from_frame_data(fd)
+            ts_ms = fd.get("timestamp_ms")
+            if ts_ms is None:
+                ts_ms = fm.timestamp_ms
+            fin = FrameInput(
+                frame_index=i,
+                timestamp_ms=float(ts_ms),
+                travel_angle_degrees=fd.get("travel_angle_degrees"),
+                travel_speed_mm_per_min=fd.get("travel_speed_mm_per_min"),
+                ns_asymmetry=ns,
+                volts=fd.get("volts"),
+                amps=fd.get("amps"),
+            )
+            alert = engine.push_frame(fin)
+            if alert:
+                alerts.append(alert.model_dump())
+
+        logger.info(
+            "get_session_alerts OK session_id=%s alerts=%d",
+            session_id,
+            len(alerts),
+        )
+        return {"alerts": alerts}
+    except FileNotFoundError as e:
+        logger.warning("get_session_alerts config missing: %s", e)
+        raise HTTPException(
+            status_code=500,
+            detail="Alert thresholds config not found",
+        ) from e
+    except Exception as e:
+        logger.warning("get_session_alerts failed session_id=%s: %s", session_id, e)
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to compute alerts",
+        ) from e
 
 
 @router.post("/sessions/{session_id}/frames")
