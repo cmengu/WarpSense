@@ -417,6 +417,34 @@ async def get_session_score(
     return result
 
 
+@router.post("/sessions/{session_id}/rescore")
+async def rescore_session(
+    session_id: str,
+    db: OrmSession = Depends(get_db),
+):
+    """Recompute decomposed score, persist score_total. For backfill after scoring changes."""
+    # TODO: add auth guard before exposing to QA environment
+    session_model = (
+        db.query(SessionModel)
+        .options(joinedload(SessionModel.frames))
+        .filter_by(session_id=session_id)
+        .first()
+    )
+    if not session_model:
+        raise HTTPException(status_code=404, detail="Session not found")
+    frames = getattr(session_model, "frames", None) or []
+    if len(frames) < 10:
+        raise HTTPException(status_code=400, detail="Insufficient frames for scoring")
+    session = session_model.to_pydantic()
+    from scoring.scorer import score_session_decomposed, _build_alerts_from_frames
+
+    alerts = _build_alerts_from_frames(list(session.frames))
+    decomposed = score_session_decomposed(list(session.frames), alerts, session_id)
+    session_model.score_total = int(round(decomposed.overall_score * 100))
+    db.commit()
+    return decomposed.model_dump()
+
+
 @router.get("/sessions/{session_id}/alerts")
 async def get_session_alerts(
     session_id: str,
