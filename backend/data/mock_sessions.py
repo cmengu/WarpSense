@@ -197,33 +197,14 @@ def _aluminum_state_to_snapshots(state: ThermalState) -> List[ThermalSnapshot]:
 
 
 def _porosity_probability(
-    angle_degrees: float,
+    travel_angle_degrees: float,
     travel_speed_mm_per_min: float,
-    ctwd_mm: float,
     base_prob: float,
 ) -> float:
-    """
-    Returns per-frame porosity probability gated on physical causes.
-    Causes: angle deviation, excessive travel speed, excessive CTWD.
-    Physical basis: AWS D1.2 ±10° angle; Lincoln GMAW speed; ESAB CTWD 12–19mm.
-    """
-    prob = base_prob
-
-    angle_deviation = abs(angle_degrees - 90.0)
-    if angle_deviation > 20.0:
-        prob *= 4.0
-    elif angle_deviation > 10.0:
-        prob *= 2.0
-
-    if travel_speed_mm_per_min > 560.0:
-        prob *= 3.0
-    elif travel_speed_mm_per_min > 500.0:
-        prob *= 1.5
-
-    if ctwd_mm > 19.0:
-        prob *= 2.5
-
-    return min(prob, 0.10)
+    """Porosity risk: travel angle into drag (negative) AND speed below 250 mm/min."""
+    if travel_angle_degrees >= 0 or travel_speed_mm_per_min >= 250.0:
+        return 0.0
+    return min(base_prob * 10.0, 0.10)
 
 
 def _compute_interpass_bias(stitch_index: int, end_temp_celsius: float) -> float:
@@ -330,9 +311,8 @@ def _generate_stitch_expert_frames(
         new_center_10mm = thermal_state[10.0]["center"]
 
         porosity_prob = _porosity_probability(
-            angle_degrees=angle,
+            travel_angle_degrees=travel_angle,
             travel_speed_mm_per_min=travel_speed,
-            ctwd_mm=ctwd_mm,
             base_prob=AL_POROSITY_PROB_EXPERT,
         )
         if arc_active and rng.random() < porosity_prob:
@@ -458,9 +438,8 @@ def _generate_continuous_novice_frames(
         new_center_10mm = thermal_state[10.0]["center"]
 
         porosity_prob = _porosity_probability(
-            angle_degrees=angle,
+            travel_angle_degrees=travel_angle,
             travel_speed_mm_per_min=travel_speed,
-            ctwd_mm=ctwd_mm,
             base_prob=AL_POROSITY_PROB_NOVICE,
         )
         if arc_active and rng.random() < porosity_prob:
