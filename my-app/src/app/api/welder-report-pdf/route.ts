@@ -9,9 +9,10 @@
 import { NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import React from "react";
-import { logError } from "@/lib/logger";
+import { logError, logWarn } from "@/lib/logger";
 import { WelderReportPDF } from "@/components/pdf/WelderReportPDF";
 import type { SessionScore } from "@/lib/api";
+import type { ReportSummary } from "@/types/report-summary";
 
 /** WelderReportPDF returns <Document>; renderToBuffer expects Document root. Type assertion for TS. */
 const toPdfDoc = (el: React.ReactElement) =>
@@ -27,6 +28,8 @@ interface PDFRequestBody {
   chartDataUrl?: unknown;
   /** Optional AI Coach narrative; max 2000 chars. PDF renders without if absent. */
   narrative?: string | null;
+  /** Optional report summary; PDF renders compliance section if present. Omit and log warning if absent. */
+  reportSummary?: unknown;
   /** Optional certification readiness; PDF renders table section if present. */
   certifications?: Array<{
     name: string;
@@ -187,6 +190,25 @@ export async function POST(request: Request) {
     );
   }
 
+  /** Optional reportSummary; validate and pass to PDF. Log warning if absent. */
+  let reportSummary: ReportSummary | null = null;
+  if (body.reportSummary != null) {
+    const rs = body.reportSummary as Record<string, unknown>;
+    if (
+      rs &&
+      typeof rs === "object" &&
+      typeof rs.session_id === "string" &&
+      Array.isArray(rs.excursions)
+    ) {
+      reportSummary = body.reportSummary as ReportSummary;
+    }
+  } else {
+    logWarn(
+      "welder-report-pdf",
+      "reportSummary absent in PDF request — fetch may have failed"
+    );
+  }
+
   /** Optional certifications; validate structure if provided. */
   let certifications: PDFRequestBody["certifications"] = null;
   if (body.certifications != null) {
@@ -241,6 +263,7 @@ export async function POST(request: Request) {
       chartDataUrl,
       narrative,
       certifications,
+      reportSummary: reportSummary ?? undefined,
     });
 
     const buffer = await renderToBuffer(toPdfDoc(pdfReact));

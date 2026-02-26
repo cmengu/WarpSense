@@ -389,6 +389,7 @@ function WelderReportInner({ welderId }: { welderId: string }) {
         },
         chartDataUrl,
         narrative: narrativeText,
+        reportSummary: reportSummary ?? undefined,
       };
 
       const apiUrl = `${getApiBase()}/api/welder-report-pdf`;
@@ -419,7 +420,7 @@ function WelderReportInner({ welderId }: { welderId: string }) {
     } finally {
       setPdfLoading(false);
     }
-  }, [report, score, displayName, sessionId]);
+  }, [report, score, displayName, sessionId, reportSummary]);
 
   if (error) {
     return (
