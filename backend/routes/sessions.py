@@ -13,6 +13,7 @@ Streaming threshold: Total frames > 1000 triggers streaming; otherwise uses pagi
 from datetime import datetime, timedelta, timezone
 import json
 import logging
+import os
 import uuid
 from pathlib import Path
 from typing import List, Optional
@@ -388,6 +389,20 @@ async def get_session_score(
                 # Never fail the score request due to coaching errors
 
     result = score.model_dump()
+    try:
+        from scoring.scorer import score_session_decomposed, _build_alerts_from_frames
+
+        alerts = _build_alerts_from_frames(list(session.frames))
+        decomposed = score_session_decomposed(list(session.frames), alerts, session_id)
+        result["session_score"] = decomposed.model_dump()
+    except Exception:
+        logger.exception("Decomposed score failed")
+        # Only suppress and return null in production; re-raise in dev/staging so failures are visible
+        if os.environ.get("ENV") != "production":
+            raise
+        result["session_score"] = None
+    # TODO Session 4: remove legacy total/rules, use session_score only.
+    # TODO Before Session 4: add mock WPS config (0.4–1.0) for test sessions or explicit annotation when expert mock (0.5–0.9) flags below WPS (0.9 floor); QA will otherwise see every expert failing heat_input.
     result["active_threshold_spec"] = {
         "weld_type": thresholds.weld_type,
         "angle_target": thresholds.angle_target_degrees,
