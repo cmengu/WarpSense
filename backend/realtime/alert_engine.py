@@ -10,7 +10,11 @@ import time
 from pathlib import Path
 
 from realtime.alert_models import AlertPayload, FrameInput
-from realtime.frame_buffer import SpeedFrameBuffer
+from realtime.frame_buffer import (
+    CurrentRampDownBuffer,
+    SpeedFrameBuffer,
+    VoltageSustainBuffer,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -73,6 +77,28 @@ class AlertEngine:
         self._suppress_rule2_until = 0.0
         self._suppress_rule3_until = 0.0
         self._buffer = SpeedFrameBuffer()
+        # Defect rules (4–11)
+        self._suppress_porosity_until = 0.0
+        self._suppress_oxide_until = 0.0
+        self._voltage_buffer = VoltageSustainBuffer(
+            float(self._cfg["voltage_lo_V"]),
+            float(self._cfg["voltage_sustain_ms"]),
+        )
+        self._suppress_arc_instability_until = 0.0
+        self._warned_volts_missing = False
+        self._crater_buffer = CurrentRampDownBuffer(
+            float(self._cfg["crater_ramp_pct"]),
+            float(self._cfg["crater_ramp_min_ms"]),
+            float(self._cfg["crater_arc_on_min_ms"]),
+        )
+        self._suppress_crater_until = 0.0
+        self._warned_amps_missing_crater = False
+        self._suppress_undercut_until = 0.0
+        self._warned_amps_missing_undercut = False
+        self._suppress_lof_amps_until = 0.0
+        self._suppress_lof_speed_until = 0.0
+        self._suppress_burn_through_until = 0.0
+        self._warned_amps_missing_burn_through = False
 
     def push_frame(self, frame: FrameInput) -> AlertPayload | None:
         """Evaluate rules, return at most one alert per frame. Highest severity wins; tiebreak: lower rule number."""
@@ -165,6 +191,129 @@ class AlertEngine:
                         timestamp_ms=now_ms,
                     )))
                     self._suppress_rule3_until = now_ms + self._suppression_ms
+
+        # Rule 4: Porosity (spike)
+        if now_ms >= self._suppress_porosity_until:
+            if frame.travel_angle_degrees is not None and frame.travel_speed_mm_per_min is not None:
+                if frame.travel_angle_degrees < 0 and frame.travel_speed_mm_per_min < self._cfg["porosity_speed_max_mm_per_min"]:
+                    candidates.append((4, "critical", AlertPayload(
+                        frame_index=frame.frame_index,
+                        rule_triggered="porosity",
+                        severity="critical",
+                        message="Porosity risk: drag angle and low speed",
+                        correction="Increase travel angle to push and speed to 250+ mm/min",
+                        timestamp_ms=now_ms,
+                    )))
+                    self._suppress_porosity_until = now_ms + self._suppression_ms
+                    self._suppress_oxide_until = now_ms + self._suppression_ms
+
+        # Rule 5: Arc instability (sustained) — push every frame (buffer handles None); warn when None
+        sustained = self._voltage_buffer.push(now_ms, frame.volts)
+        if frame.volts is None:
+            if not self._warned_volts_missing:
+                logger.warning("arc_instability requires volts; skipping (frame_index=%d)", frame.frame_index)
+                self._warned_volts_missing = True
+        elif sustained and now_ms >= self._suppress_arc_instability_until:
+            candidates.append((5, "critical", AlertPayload(
+                frame_index=frame.frame_index,
+                rule_triggered="arc_instability",
+                severity="critical",
+                message="Arc instability: voltage < 19.5V sustained",
+                correction="Check shielding gas and wire feed",
+                timestamp_ms=now_ms,
+            )))
+            self._suppress_arc_instability_until = now_ms + self._cfg["sustained_repeat_ms"]
+
+        # Rule 6: Crater crack (spike) — push every frame to maintain buffer history
+        if frame.amps is None:
+            if not self._warned_amps_missing_crater:
+                logger.warning("crater_crack requires amps; skipping (frame_index=%d)", frame.frame_index)
+                self._warned_amps_missing_crater = True
+        else:
+            abrupt = self._crater_buffer.push(now_ms, frame.amps)
+            if abrupt is True and now_ms >= self._suppress_crater_until:
+                candidates.append((6, "critical", AlertPayload(
+                    frame_index=frame.frame_index,
+                    rule_triggered="crater_crack",
+                    severity="critical",
+                    message="Crater crack risk: abrupt arc termination",
+                    correction="Use controlled ramp-down at bead end",
+                    timestamp_ms=now_ms,
+                )))
+                self._suppress_crater_until = now_ms + self._suppression_ms
+
+        # Rule 7: Oxide inclusion (spike) — standalone negative angle
+        if now_ms >= self._suppress_oxide_until:
+            if frame.travel_angle_degrees is not None and frame.travel_angle_degrees < 0:
+                candidates.append((7, "warning", AlertPayload(
+                    frame_index=frame.frame_index,
+                    rule_triggered="oxide_inclusion",
+                    severity="warning",
+                    message="Oxide inclusion risk: argon trailing (negative travel angle)",
+                    correction="Maintain push angle; avoid dragging torch",
+                    timestamp_ms=now_ms,
+                )))
+                self._suppress_oxide_until = now_ms + self._suppression_ms
+
+        # Rule 8: Undercut (spike)
+        if frame.amps is None:
+            if not self._warned_amps_missing_undercut:
+                logger.warning("undercut requires amps; skipping (frame_index=%d)", frame.frame_index)
+                self._warned_amps_missing_undercut = True
+        elif now_ms >= self._suppress_undercut_until and frame.travel_speed_mm_per_min is not None:
+            if frame.amps > self._cfg["undercut_amps_min"] and frame.travel_speed_mm_per_min > self._cfg["undercut_speed_min_mm_per_min"]:
+                candidates.append((8, "critical", AlertPayload(
+                    frame_index=frame.frame_index,
+                    rule_triggered="undercut",
+                    severity="critical",
+                    message="Undercut risk: high current and high speed",
+                    correction="Reduce travel speed or current",
+                    timestamp_ms=now_ms,
+                )))
+                self._suppress_undercut_until = now_ms + self._suppression_ms
+
+        # Rule 9: Lack of fusion — low amps (sustained). Priority 9.
+        if frame.amps is not None and frame.amps < self._cfg["lack_of_fusion_amps_max"]:
+            if now_ms >= self._suppress_lof_amps_until:
+                candidates.append((9, "critical", AlertPayload(
+                    frame_index=frame.frame_index,
+                    rule_triggered="lack_of_fusion_amps",
+                    severity="critical",
+                    message="Lack of fusion risk: low current",
+                    correction="Increase current to 140+ A",
+                    timestamp_ms=now_ms,
+                )))
+                self._suppress_lof_amps_until = now_ms + self._cfg["sustained_repeat_ms"]
+        # Rule 10: Lack of fusion — high speed (spike). Priority 10.
+        if frame.travel_speed_mm_per_min is not None and frame.travel_speed_mm_per_min > self._cfg["lack_of_fusion_speed_max_mm_per_min"]:
+            if now_ms >= self._suppress_lof_speed_until:
+                candidates.append((10, "critical", AlertPayload(
+                    frame_index=frame.frame_index,
+                    rule_triggered="lack_of_fusion_speed",
+                    severity="critical",
+                    message="Lack of fusion risk: travel speed too high",
+                    correction="Reduce speed below 520 mm/min",
+                    timestamp_ms=now_ms,
+                )))
+                self._suppress_lof_speed_until = now_ms + self._suppression_ms
+
+        # Rule 11: Burn-through (spike)
+        if frame.amps is None:
+            if not self._warned_amps_missing_burn_through:
+                logger.warning("burn_through requires amps; skipping (frame_index=%d)", frame.frame_index)
+                self._warned_amps_missing_burn_through = True
+        elif frame.travel_speed_mm_per_min is not None:
+            if now_ms >= self._suppress_burn_through_until:
+                if frame.amps > self._cfg["burn_through_amps_min"] and frame.travel_speed_mm_per_min < self._cfg["burn_through_speed_max_mm_per_min"]:
+                    candidates.append((11, "critical", AlertPayload(
+                        frame_index=frame.frame_index,
+                        rule_triggered="burn_through",
+                        severity="critical",
+                        message="Burn-through risk: high current and low speed",
+                        correction="Reduce current or increase travel speed",
+                        timestamp_ms=now_ms,
+                    )))
+                    self._suppress_burn_through_until = now_ms + self._suppression_ms
 
         if not candidates:
             return None
