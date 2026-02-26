@@ -67,22 +67,29 @@ THERMAL_DISTANCES_MM = [10.0, 20.0, 30.0, 40.0, 50.0]
 # Aluminum 6061 constants (used by stitch_expert / continuous_novice generators)
 # ---------------------------------------------------------------------------
 
-# Electrical — from PubMed Central / ScienceDirect research on 6061-T6
-AL_AMPS                      = 155.0   # A — center of 130–180A range for 3–6mm
-AL_VOLTS                     = 22.0    # V — center of 21–24V range for spray transfer
-AL_AMPS_NOISE_EXPERT         =   4.0   # σ A — expert tremor
-AL_AMPS_NOISE_NOVICE         =  10.0   # σ A — novice instability (2.5× expert)
-AL_VOLTS_NOISE_NORMAL        =   0.3   # σ V — stable arc
-AL_VOLTS_NOISE_POROSITY      =   1.8   # σ V — elevated during porosity event
+# Thermal refs — used only inside _step_thermal_state for heat input scaling
+AL_AMPS_THERMAL_REF = 180.0
+AL_VOLTS_THERMAL_REF = 22.0
+
+# Electrical — expert 160–200A, CTWD-driven voltage 20–24V
+AL_AMPS_MIN = 160.0
+AL_AMPS_MAX = 200.0
+AL_AMPS_NOISE_EXPERT = 6.0   # σ A — expert tremor
+AL_AMPS_NOISE_NOVICE = 12.0  # σ A — novice instability
+AL_CTWD_NOMINAL = 15.0
+AL_VOLTS_CTWD_SENSITIVITY = 0.8  # V per mm CTWD deviation
+AL_VOLTS_NOMINAL = 22.0
+AL_VOLTS_NOISE_NORMAL = 0.3   # σ V — stable arc
+AL_VOLTS_NOISE_POROSITY = 1.8  # σ V — elevated during porosity event
 
 # Travel speed — AWS D1.2 table for 3–6mm aluminum GMAW spray transfer
-AL_TRAVEL_SPEED_NOMINAL      = 470.0   # mm/min — expert center target
-AL_TRAVEL_SPEED_EXPERT_MIN   = 380.0   # mm/min — expert lower bound
-AL_TRAVEL_SPEED_EXPERT_MAX   = 560.0   # mm/min — expert upper bound
-AL_TRAVEL_SPEED_NOISE_EXPERT =   8.0   # σ mm/min — expert micro-variation
-AL_TRAVEL_SPEED_NOISE_NOVICE =  20.0   # σ mm/min — novice baseline noise
-AL_TRAVEL_SPEED_FLOOR        = 200.0   # mm/min — absolute minimum (novice dwell)
-AL_TRAVEL_SPEED_CEILING      = 700.0   # mm/min — absolute maximum
+AL_TRAVEL_SPEED_NOMINAL = 400.0
+AL_TRAVEL_SPEED_EXPERT_MIN = 350.0
+AL_TRAVEL_SPEED_EXPERT_MAX = 450.0
+AL_TRAVEL_SPEED_NOISE_EXPERT = 8.0
+AL_TRAVEL_SPEED_NOISE_NOVICE = 20.0
+AL_TRAVEL_SPEED_FLOOR = 200.0
+AL_TRAVEL_SPEED_CEILING = 700.0
 
 # Porosity — Welding Journal: porosity shows as elevated voltage σ, not elevated mean
 AL_POROSITY_PROB_NOVICE      = 0.0030  # per arc-on frame, cause-gated (see Step 4)
@@ -128,7 +135,7 @@ def _step_thermal_state(
         # In the 5×5 thermal grid, dissipation is applied per-node. To keep aluminum
         # temperatures in a realistic range (hundreds of °C) we scale arc input.
         speed_scale = AL_TRAVEL_SPEED_NOMINAL / travel_speed_mm_per_min
-        heat = ((AL_VOLTS * AL_AMPS) / 1000.0) * 20.0 * speed_scale
+        heat = ((AL_VOLTS_THERMAL_REF * AL_AMPS_THERMAL_REF) / 1000.0) * 20.0 * speed_scale
         raw_bias = (angle_degrees - 45.0) / 45.0
         bias = math.copysign(min(0.4, abs(raw_bias)), raw_bias)
 
@@ -333,8 +340,8 @@ def _generate_stitch_expert_frames(
         volts_sigma = AL_VOLTS_NOISE_POROSITY if porosity_frames_remaining > 0 else AL_VOLTS_NOISE_NORMAL
         if porosity_frames_remaining > 0:
             porosity_frames_remaining -= 1
-        volts = AL_VOLTS + rng.gauss(0, volts_sigma) if arc_active else 0.0
-        amps = AL_AMPS + rng.gauss(0, AL_AMPS_NOISE_EXPERT) if arc_active else 0.0
+        volts = AL_VOLTS_NOMINAL + rng.gauss(0, volts_sigma) if arc_active else 0.0
+        amps = AL_AMPS_THERMAL_REF + rng.gauss(0, AL_AMPS_NOISE_EXPERT) if arc_active else 0.0
 
         is_thermal_frame = True  # Emit thermal every frame for real-time alert Rule 1
         snapshots = _aluminum_state_to_snapshots(thermal_state) if is_thermal_frame else []
@@ -461,8 +468,8 @@ def _generate_continuous_novice_frames(
         volts_sigma = AL_VOLTS_NOISE_POROSITY if porosity_frames_remaining > 0 else AL_VOLTS_NOISE_NORMAL
         if porosity_frames_remaining > 0:
             porosity_frames_remaining -= 1
-        volts = AL_VOLTS + rng.gauss(0, volts_sigma) if arc_active else 0.0
-        amps = AL_AMPS + rng.gauss(0, AL_AMPS_NOISE_NOVICE) if arc_active else 0.0
+        volts = AL_VOLTS_NOMINAL + rng.gauss(0, volts_sigma) if arc_active else 0.0
+        amps = AL_AMPS_THERMAL_REF + rng.gauss(0, AL_AMPS_NOISE_NOVICE) if arc_active else 0.0
         if arc_active and rng.random() < 0.003:
             amps += rng.uniform(15, 25)
 
