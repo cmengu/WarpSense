@@ -433,13 +433,18 @@ def _generate_continuous_novice_frames(
     wrong_correction_fired = False
 
     travel_speed = AL_TRAVEL_SPEED_NOMINAL
-    travel_angle = 12.0  # novice starts at push, drifts toward perpendicular under load
+    travel_angle = 8.0  # novice starts near push, can drift into drag (negative) under load
     porosity_frames_remaining = 0
     ctwd_mm = 15.0
     ctwd_drift_rate = rng.gauss(0, 0.01)
 
     last_thermal_center_10mm: Optional[float] = None
     thermal_interval_sec = 0.01  # 10ms per frame — thermal emitted every frame for real-time alert Rule 1
+    prev_arc_active = False
+
+    hot_end_frame = int(num_frames * 0.07)
+    cold_start_frame = int(num_frames * 0.13)
+    cold_end_frame = int(num_frames * 0.53)
 
     for i in range(num_frames):
         arc_active = not ((i % 380) < 12)
@@ -479,11 +484,13 @@ def _generate_continuous_novice_frames(
         elif ctwd_mm <= 11.0:
             ctwd_drift_rate = abs(ctwd_drift_rate)
 
-        # Novice travel angle: drifts from 10–15° push toward perpendicular under thermal load
+        # Novice travel angle: can go negative (drag); drifts toward perpendicular, sometimes into drag
         if temp_at_arc > 180 and rng.random() < 0.02:
             travel_angle += rng.uniform(2, 8)
-        travel_angle += rng.gauss(0, 1.5)
-        travel_angle = max(5.0, min(90.0, travel_angle))
+        elif temp_at_arc > 160 and rng.random() < 0.015:
+            travel_angle -= rng.uniform(3, 12)  # occasional pull into drag
+        travel_angle += rng.gauss(0, 2.0)
+        travel_angle = max(-30.0, min(90.0, travel_angle))
 
         thermal_state = _step_thermal_state(thermal_state, arc_active, angle, travel_speed)
         new_center_10mm = thermal_state[10.0]["center"]
@@ -498,10 +505,30 @@ def _generate_continuous_novice_frames(
         volts_sigma = AL_VOLTS_NOISE_POROSITY if porosity_frames_remaining > 0 else AL_VOLTS_NOISE_NORMAL
         if porosity_frames_remaining > 0:
             porosity_frames_remaining -= 1
-        volts = AL_VOLTS_NOMINAL + rng.gauss(0, volts_sigma) if arc_active else 0.0
-        amps = AL_AMPS_THERMAL_REF + rng.gauss(0, AL_AMPS_NOISE_NOVICE) if arc_active else 0.0
-        if arc_active and rng.random() < 0.003:
-            amps += rng.uniform(15, 25)
+
+        # Voltage: short-circuit (17-18.5V) when arc_active gated, mid-session windows 200-209, 700-709, 1200-1209
+        short_circuit_trigger = (
+            arc_active and i >= 200 and (i - 200) % 500 < 10
+        )
+        if short_circuit_trigger:
+            volts = rng.uniform(17.0, 18.5)
+        elif arc_active:
+            volts = AL_VOLTS_NOMINAL + rng.gauss(0, volts_sigma)
+        else:
+            volts = 0.0
+
+        # Current: ratio-based pattern; do not clamp novice amps to AL_AMPS_MIN (cold mid is defect signature)
+        if arc_active:
+            if i < hot_end_frame:
+                amps_base = rng.uniform(185.0, 200.0)
+                amps_base += rng.uniform(0, 15) * (1.0 if rng.random() < 0.1 else 0.0)  # spikes
+                amps = min(AL_AMPS_MAX, amps_base)
+            elif cold_start_frame <= i < cold_end_frame:
+                amps = rng.uniform(145.0, 155.0)
+            else:
+                amps = rng.uniform(165.0, 180.0)
+        else:
+            amps = 0.0
 
         is_thermal_frame = True  # Emit thermal every frame for real-time alert Rule 1
         snapshots = _aluminum_state_to_snapshots(thermal_state) if is_thermal_frame else []
@@ -514,6 +541,10 @@ def _generate_continuous_novice_frames(
                     (last_thermal_center_10mm - new_center_10mm) / thermal_interval_sec,
                 )
             last_thermal_center_10mm = new_center_10mm
+
+        if prev_arc_active and not arc_active:
+            frames[-1] = _with_termination(frames[-1], "no_crater_fill")
+        prev_arc_active = arc_active
 
         frames.append(
             Frame(
