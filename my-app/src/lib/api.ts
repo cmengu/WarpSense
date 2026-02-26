@@ -27,6 +27,8 @@ import type { CoachingPlan } from "@/types/coaching";
 import type { AnnotationType, WelderID } from "@/types/shared";
 import type { WelderBenchmarks } from "@/types/benchmark";
 import type { WelderCertificationSummary } from "@/types/certification";
+import type { Site } from "@/types/site";
+import type { ReportSummary } from "@/types/report-summary";
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -270,6 +272,57 @@ export async function fetchSession(
 }
 
 /**
+ * Pre-computed alert payload from AlertEngine.
+ */
+export interface AlertPayload {
+  frame_index: number;
+  rule_triggered: string;
+  severity: string;
+  message: string;
+  correction: string;
+  timestamp_ms: number;
+}
+
+/**
+ * Response from GET /api/sessions/{session_id}/alerts.
+ */
+export interface SessionAlertsResponse {
+  alerts: AlertPayload[];
+}
+
+/**
+ * Fetch pre-computed alerts for a session.
+ * Backend runs frames through AlertEngine; returns alerts for timeline display.
+ */
+export async function fetchSessionAlerts(
+  sessionId: string
+): Promise<SessionAlertsResponse> {
+  const url = buildUrl(`/api/sessions/${encodeURIComponent(sessionId)}/alerts`);
+  return apiFetch<SessionAlertsResponse>(url);
+}
+
+/**
+ * Fetch report summary for session compliance UI and PDF.
+ *
+ * Aggregates heat input, travel angle excursions, arc termination quality,
+ * and defect counts. Uses WPS thresholds from report_thresholds.json.
+ *
+ * @param sessionId - Session to fetch report for.
+ * @param signal - Optional AbortSignal for cancellation (e.g. unmount).
+ * @returns ReportSummary with compliance metrics and excursion log.
+ * @throws Error if session not found (404) or request fails.
+ */
+export async function fetchReportSummary(
+  sessionId: string,
+  signal?: AbortSignal
+): Promise<ReportSummary> {
+  const url = buildUrl(
+    `/api/sessions/${encodeURIComponent(sessionId)}/report-summary`
+  );
+  return apiFetch<ReportSummary>(url, { signal });
+}
+
+/**
  * Score for a single rule (actual vs threshold).
  */
 export interface ScoreRule {
@@ -342,6 +395,8 @@ export interface FetchAggregateParams {
   date_start?: string;
   date_end?: string;
   include_sessions?: boolean;
+  site_id?: string;
+  team_id?: string;
 }
 
 /**
@@ -358,6 +413,8 @@ export async function fetchAggregateKPIs(
     date_start: params.date_start,
     date_end: params.date_end,
     include_sessions: params.include_sessions,
+    site_id: params.site_id,
+    team_id: params.team_id,
   } as Record<string, string | boolean | undefined>);
   return apiFetch<AggregateKPIResponse>(url, { signal });
 }
@@ -563,6 +620,19 @@ export async function fetchCertificationStatus(
     `/api/welders/${encodeURIComponent(welderId)}/certification-status`
   );
   return apiFetch<WelderCertificationSummary>(url);
+}
+
+// ---------------------------------------------------------------------------
+// Sites (multi-site supervisor scoping)
+// ---------------------------------------------------------------------------
+
+/**
+ * Fetch all sites with their teams for supervisor dashboard scoping.
+ * @throws Error if request fails.
+ */
+export async function fetchSites(): Promise<Site[]> {
+  const url = buildUrl("/api/sites");
+  return apiFetch<Site[]>(url);
 }
 
 // ---------------------------------------------------------------------------
