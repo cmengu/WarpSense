@@ -262,6 +262,7 @@ def _generate_stitch_expert_frames(
     amps_target = rng.uniform(AL_AMPS_MIN, AL_AMPS_MAX)
     spike_frames_remaining = 0
     spike_magnitude = 0.0
+    frame_in_stitch = -1
 
     for i in range(num_frames):
         arc_active = (i % 250) < 150
@@ -276,11 +277,25 @@ def _generate_stitch_expert_frames(
             last_arc_end_temp = thermal_state[10.0]["center"]
         if not prev_arc_active and arc_active:
             stitch_count += 1
+            frame_in_stitch = 0
             spike_frames_remaining = 20
             spike_magnitude = min(25.0, AL_AMPS_MAX - amps_target)
             if stitch_count > 1:
                 bias = _compute_interpass_bias(stitch_count - 1, last_arc_end_temp)
                 thermal_state = _init_thermal_state(AL_AMBIENT_TEMP + bias)
+        elif prev_arc_active and arc_active:
+            frame_in_stitch += 1
+
+        # Corner and decel windows: stitch 3,6,9 first 15 frames = corner; any stitch first 20 = bead start, last 20 = bead end
+        corner_window = (
+            stitch_count % 3 == 0
+            and stitch_count > 0
+            and arc_active
+            and 0 <= frame_in_stitch < 15
+        )
+        bead_start = arc_active and 0 <= frame_in_stitch < 20
+        bead_end = arc_active and frame_in_stitch >= 130
+        decel_mult = 0.85 if (corner_window or bead_start or bead_end) else 1.0
 
         # Angle reacts to thermal state (expert behavior)
         north_10mm = thermal_state[10.0]["north"]
@@ -295,16 +310,10 @@ def _generate_stitch_expert_frames(
         angle += (angle_target - angle) * 0.03 + rng.gauss(0.0, 1.2)
         angle = max(20.0, min(85.0, angle))
 
-        # Expert: adaptive speed — AWS "weld hot and fast" for aluminum
-        temp_at_arc = thermal_state[10.0]["center"]
-        if temp_at_arc > 200:
-            speed_target = 530.0
-        elif temp_at_arc < 80:
-            speed_target = 410.0
-        else:
-            speed_target = AL_TRAVEL_SPEED_NOMINAL
-        travel_speed += (speed_target - travel_speed) * 0.02
-        travel_speed += rng.gauss(0, AL_TRAVEL_SPEED_NOISE_EXPERT)
+        # Expert travel speed: base 380–420 mm/min, 15% decel at bead start/end and corners
+        travel_speed_base = 400.0 + rng.gauss(0, 12.0)
+        travel_speed_base = max(380.0, min(420.0, travel_speed_base))
+        travel_speed = travel_speed_base * decel_mult
         travel_speed = max(AL_TRAVEL_SPEED_EXPERT_MIN, min(AL_TRAVEL_SPEED_EXPERT_MAX, travel_speed))
 
         ctwd_mm += rng.gauss(0, 0.05)
@@ -338,8 +347,10 @@ def _generate_stitch_expert_frames(
         else:
             volts = 0.0
 
-        # Current: amps_target + noise, arc-start spike, clamp [AL_AMPS_MIN, AL_AMPS_MAX]
+        # Current: amps_base + corner drop (before spike) + spike, clamp [AL_AMPS_MIN, AL_AMPS_MAX]
         amps_base = amps_target + rng.gauss(0, AL_AMPS_NOISE_EXPERT) if arc_active else 0.0
+        if arc_active and corner_window:
+            amps_base *= 0.85
         if arc_active and spike_frames_remaining > 0:
             amps_base += spike_magnitude * (spike_frames_remaining / 20.0)
             spike_frames_remaining -= 1
@@ -347,6 +358,10 @@ def _generate_stitch_expert_frames(
             amps = max(AL_AMPS_MIN, min(AL_AMPS_MAX, amps_base))
         else:
             amps = 0.0
+
+        heat_input_kj_per_mm: Optional[float] = None
+        if arc_active and travel_speed > 0 and amps and volts:
+            heat_input_kj_per_mm = (amps * volts * 60.0) / (travel_speed * 1000.0)
 
         is_thermal_frame = True  # Emit thermal every frame for real-time alert Rule 1
         snapshots = _aluminum_state_to_snapshots(thermal_state) if is_thermal_frame else []
@@ -373,6 +388,7 @@ def _generate_stitch_expert_frames(
                 travel_speed_mm_per_min=travel_speed,
                 travel_angle_degrees=travel_angle,
                 ctwd_mm=ctwd_mm,
+                heat_input_kj_per_mm=heat_input_kj_per_mm,
             )
         )
 
