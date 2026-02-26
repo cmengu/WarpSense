@@ -229,6 +229,14 @@ def _compute_interpass_bias(stitch_index: int, end_temp_celsius: float) -> float
 # ---------------------------------------------------------------------------
 
 
+def _with_termination(f: Frame, label: str) -> Frame:
+    """Pydantic v1/v2 compatible: v1 uses .copy(update=...), v2 uses .model_copy(update=...)."""
+    try:
+        return f.model_copy(update={"arc_termination_type": label})
+    except AttributeError:
+        return f.copy(update={"arc_termination_type": label})  # type: ignore[attr-defined]
+
+
 def _generate_stitch_expert_frames(
     session_index: int,
     num_frames: int = 1500,
@@ -375,6 +383,8 @@ def _generate_stitch_expert_frames(
                 )
             last_thermal_center_10mm = new_center_10mm
 
+        if prev_arc_active and not arc_active:
+            frames[-1] = _with_termination(frames[-1], "crater_fill_present")
         prev_arc_active = arc_active
 
         frames.append(
