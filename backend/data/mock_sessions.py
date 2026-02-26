@@ -259,6 +259,10 @@ def _generate_stitch_expert_frames(
     last_arc_end_temp = AL_AMBIENT_TEMP
     stitch_count = 0
 
+    amps_target = rng.uniform(AL_AMPS_MIN, AL_AMPS_MAX)
+    spike_frames_remaining = 0
+    spike_magnitude = 0.0
+
     for i in range(num_frames):
         arc_active = (i % 250) < 150
 
@@ -272,6 +276,8 @@ def _generate_stitch_expert_frames(
             last_arc_end_temp = thermal_state[10.0]["center"]
         if not prev_arc_active and arc_active:
             stitch_count += 1
+            spike_frames_remaining = 20
+            spike_magnitude = min(25.0, AL_AMPS_MAX - amps_target)
             if stitch_count > 1:
                 bias = _compute_interpass_bias(stitch_count - 1, last_arc_end_temp)
                 thermal_state = _init_thermal_state(AL_AMBIENT_TEMP + bias)
@@ -320,8 +326,27 @@ def _generate_stitch_expert_frames(
         volts_sigma = AL_VOLTS_NOISE_POROSITY if porosity_frames_remaining > 0 else AL_VOLTS_NOISE_NORMAL
         if porosity_frames_remaining > 0:
             porosity_frames_remaining -= 1
-        volts = AL_VOLTS_NOMINAL + rng.gauss(0, volts_sigma) if arc_active else 0.0
-        amps = AL_AMPS_THERMAL_REF + rng.gauss(0, AL_AMPS_NOISE_EXPERT) if arc_active else 0.0
+
+        # Voltage: CTWD-driven (arc length dominates), clamp 20–24V
+        if arc_active:
+            volts = (
+                AL_VOLTS_NOMINAL
+                + (ctwd_mm - AL_CTWD_NOMINAL) * AL_VOLTS_CTWD_SENSITIVITY
+                + rng.gauss(0, volts_sigma)
+            )
+            volts = max(20.0, min(24.0, volts))
+        else:
+            volts = 0.0
+
+        # Current: amps_target + noise, arc-start spike, clamp [AL_AMPS_MIN, AL_AMPS_MAX]
+        amps_base = amps_target + rng.gauss(0, AL_AMPS_NOISE_EXPERT) if arc_active else 0.0
+        if arc_active and spike_frames_remaining > 0:
+            amps_base += spike_magnitude * (spike_frames_remaining / 20.0)
+            spike_frames_remaining -= 1
+        if arc_active:
+            amps = max(AL_AMPS_MIN, min(AL_AMPS_MAX, amps_base))
+        else:
+            amps = 0.0
 
         is_thermal_frame = True  # Emit thermal every frame for real-time alert Rule 1
         snapshots = _aluminum_state_to_snapshots(thermal_state) if is_thermal_frame else []
