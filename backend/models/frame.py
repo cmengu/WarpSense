@@ -7,7 +7,7 @@ Welding does require back-and-forth passes, so a strictly increasing distance va
 timestamp should had strictly increasing validator
 """
 
-from typing import Dict, List, Optional
+from typing import Dict, List, Literal, Optional
 
 from pydantic import BaseModel, Field, computed_field, field_validator
 
@@ -72,7 +72,7 @@ class Frame(BaseModel):
     )
     travel_angle_degrees: Optional[float] = Field(
         None,
-        ge=0.0,
+        ge=-30.0,
         le=360.0,
         description=(
             "Travel angle (push/drag tilt, forward-back). "
@@ -84,6 +84,15 @@ class Frame(BaseModel):
         ge=8.0,
         le=30.0,
         description="Contact tip-to-work distance in mm. Expert nominal 15mm. Future Rule 4.",
+    )
+    heat_input_kj_per_mm: Optional[float] = Field(
+        None,
+        ge=0.0,
+        description="Heat input in kJ/mm. Formula: (Amps × Volts × 60) / (travel_speed_mm_per_min × 1000). Expert 0.5–0.9.",
+    )
+    arc_termination_type: Optional[Literal["crater_fill_present", "no_crater_fill"]] = Field(
+        None,
+        description="Operator termination technique. crater_fill_present = controlled stop. no_crater_fill = abrupt stop (crater defect risk).",
     )
 
     @computed_field  # type: ignore[misc]
