@@ -34,6 +34,19 @@ def load_thresholds(config_path: str) -> dict:
         "speed_drop_critical_pct",
         "nominal_travel_angle",
         "suppression_ms",
+        "voltage_lo_V",
+        "voltage_sustain_ms",
+        "crater_ramp_pct",
+        "crater_ramp_min_ms",
+        "crater_arc_on_min_ms",
+        "porosity_speed_max_mm_per_min",
+        "undercut_amps_min",
+        "undercut_speed_min_mm_per_min",
+        "lack_of_fusion_amps_max",
+        "lack_of_fusion_speed_max_mm_per_min",
+        "burn_through_amps_min",
+        "burn_through_speed_max_mm_per_min",
+        "sustained_repeat_ms",
     )
     for key in required:
         if data.get(key) is None:
@@ -81,7 +94,7 @@ class AlertEngine:
                     frame_index=frame.frame_index,
                     rule_triggered="rule1",
                     severity="critical",
-                    message="NS thermal asymmetry critical",
+                    message=f"Thermal asymmetry {frame.ns_asymmetry:+.1f}°C (critical)",
                     correction=correction,
                     timestamp_ms=now_ms,
                 )))
@@ -94,7 +107,7 @@ class AlertEngine:
                     frame_index=frame.frame_index,
                     rule_triggered="rule1",
                     severity="warning",
-                    message="NS thermal asymmetry warning",
+                    message=f"Thermal asymmetry {frame.ns_asymmetry:+.1f}°C (warning)",
                     correction=correction,
                     timestamp_ms=now_ms,
                 )))
@@ -109,7 +122,7 @@ class AlertEngine:
                     frame_index=frame.frame_index,
                     rule_triggered="rule2",
                     severity="critical",
-                    message="Travel angle deviation critical",
+                    message=f"Torch angle {frame.travel_angle_degrees:.1f}° vs {self._nominal_angle}° nominal (critical)",
                     correction=correction,
                     timestamp_ms=now_ms,
                 )))
@@ -120,7 +133,7 @@ class AlertEngine:
                     frame_index=frame.frame_index,
                     rule_triggered="rule2",
                     severity="warning",
-                    message="Travel angle deviation warning",
+                    message=f"Torch angle {frame.travel_angle_degrees:.1f}° vs {self._nominal_angle}° nominal (warning)",
                     correction=correction,
                     timestamp_ms=now_ms,
                 )))
@@ -137,7 +150,7 @@ class AlertEngine:
                         frame_index=frame.frame_index,
                         rule_triggered="rule3",
                         severity="critical",
-                        message="Speed drop critical",
+                        message=f"Speed {frame.travel_speed_mm_per_min:.0f} mm/min — {drop:.1f}% drop (critical)",
                         correction="Speed critical — increase to 420mm/min",
                         timestamp_ms=now_ms,
                     )))
@@ -147,7 +160,7 @@ class AlertEngine:
                         frame_index=frame.frame_index,
                         rule_triggered="rule3",
                         severity="warning",
-                        message="Speed drop warning",
+                        message=f"Speed {frame.travel_speed_mm_per_min:.0f} mm/min — {drop:.1f}% drop (warning)",
                         correction="Slowing down — maintain pace",
                         timestamp_ms=now_ms,
                     )))
