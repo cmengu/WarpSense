@@ -13,6 +13,7 @@ import {
   StyleSheet,
   Image,
 } from "@react-pdf/renderer";
+import type { ReportSummary } from "@/types/report-summary";
 
 /** Sanitize text for PDF rendering. Strips control chars, zero-width, RTL-override. */
 function sanitizeText(str: string): string {
@@ -77,6 +78,8 @@ export interface WelderReportPDFProps {
     qualifying_sessions: number;
     sessions_required: number;
   }> | null;
+  /** Optional compliance summary; renders section before feedback if present. */
+  reportSummary?: ReportSummary | null;
 }
 
 function isPngDataUrl(v: unknown): v is string {
@@ -90,6 +93,12 @@ export function toWelderName(v: unknown): string {
   return "Unknown";
 }
 
+function formatTime(ms: number): string {
+  const minutes = Math.floor(ms / 60000);
+  const seconds = Math.floor((ms % 60000) / 1000);
+  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+}
+
 export function WelderReportPDF({
   welder,
   score,
@@ -97,6 +106,7 @@ export function WelderReportPDF({
   chartDataUrl,
   narrative,
   certifications,
+  reportSummary,
 }: WelderReportPDFProps) {
   const rawItems = feedback?.feedback_items ?? [];
   const validItems = rawItems.filter(
@@ -134,6 +144,100 @@ export function WelderReportPDF({
             <Text style={styles.scoreText}>{totalScore}</Text>
           </View>
         </View>
+
+        {reportSummary && (
+          <View
+            style={{
+              marginTop: 16,
+              padding: 12,
+              backgroundColor: "#1a1a2e",
+              borderRadius: 6,
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 8,
+                color: "#737373",
+                textTransform: "uppercase",
+                letterSpacing: 1,
+                marginBottom: 6,
+              }}
+            >
+              Compliance
+            </Text>
+            <View style={{ gap: 4 }}>
+              <Text style={{ fontSize: 9, color: "#d4d4d4" }}>
+                Heat Input:{" "}
+                {reportSummary.heat_input_mean_kj_per_mm != null
+                  ? `${reportSummary.heat_input_mean_kj_per_mm.toFixed(2)} kJ/mm (WPS ${reportSummary.heat_input_wps_min}–${reportSummary.heat_input_wps_max})`
+                  : "—"}{" "}
+                {reportSummary.heat_input_compliant ? "✓ PASS" : "✗ FAIL"}
+              </Text>
+              <Text style={{ fontSize: 9, color: "#d4d4d4" }}>
+                Torch Angle:{" "}
+                {reportSummary.travel_angle_excursion_count === 0
+                  ? `Within ±${reportSummary.travel_angle_threshold_deg}° ✓ PASS`
+                  : `${reportSummary.travel_angle_excursion_count} excursion(s) ✗ FAIL`}
+              </Text>
+              <Text style={{ fontSize: 9, color: "#d4d4d4" }}>
+                Arc Termination:{" "}
+                {reportSummary.total_arc_terminations > 0
+                  ? `${reportSummary.crater_fill_rate_pct.toFixed(0)}% crater fill (${reportSummary.total_arc_terminations - reportSummary.no_crater_fill_count}/${reportSummary.total_arc_terminations})`
+                  : "No terminations"}{" "}
+                {reportSummary.total_arc_terminations === 0 ||
+                reportSummary.crater_fill_rate_pct >= 100
+                  ? "✓ PASS"
+                  : "✗ FAIL"}
+              </Text>
+            </View>
+            {reportSummary.excursions.length > 0 && (
+              <View style={{ marginTop: 8 }}>
+                <Text
+                  style={{
+                    fontSize: 8,
+                    color: "#737373",
+                    marginBottom: 4,
+                  }}
+                >
+                  Excursion Log
+                </Text>
+                {reportSummary.excursions
+                  .slice(0, 10)
+                  .sort((a, b) => a.timestamp_ms - b.timestamp_ms)
+                  .map((e, i) => (
+                    <View
+                      key={i}
+                      style={{
+                        flexDirection: "row",
+                        gap: 8,
+                        paddingVertical: 2,
+                        borderBottomWidth: 0.5,
+                        borderBottomColor: "#262626",
+                      }}
+                    >
+                      <Text style={{ color: "#9ca3af", minWidth: 36 }}>
+                        {formatTime(e.timestamp_ms)}
+                      </Text>
+                      <Text style={{ color: "#d4d4d4" }}>{e.defect_type}</Text>
+                      {e.parameter_value != null && (
+                        <Text style={{ color: "#9ca3af" }}>
+                          {e.parameter_value}
+                        </Text>
+                      )}
+                      {e.notes && (
+                        <Text style={{ color: "#6b7280", flex: 1 }}>
+                          {sanitizeText(
+                            String(e.notes).slice(0, 60) +
+                              (String(e.notes).length > 60 ? "…" : "")
+                          )}
+                        </Text>
+                      )}
+                    </View>
+                  ))}
+              </View>
+            )}
+          </View>
+        )}
 
         {narrative && (
           <View
