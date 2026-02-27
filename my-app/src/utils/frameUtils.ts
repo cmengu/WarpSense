@@ -44,6 +44,15 @@ export function hasThermalData(frame: Frame): boolean {
   return frame.has_thermal_data ?? (frame.thermal_snapshots?.length ?? 0) > 0;
 }
 
+/**
+ * Arc-active filter: frame has arc on (volts > 1 and amps > 1).
+ * Boundary: volts === 1 or amps === 1 returns false.
+ * Used by WeldTrail to exclude arc-off/repositioning frames.
+ */
+export function isArcActive(frame: Frame): boolean {
+  return !!(frame.volts != null && frame.volts > 1 && frame.amps != null && frame.amps > 1);
+}
+
 export function extractCenterTemperature(frame: Frame): number | null {
   if (!hasThermalData(frame)) {
     return null;
