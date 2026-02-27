@@ -104,11 +104,16 @@ AL_POROSITY_MAX_FRAMES       =    40   # maximum event duration frames
 AL_AMBIENT_TEMP              =  25.0   # °C
 AL_MELT_POINT                = 660.0   # °C — 6061 solidus ~582°C, liquidus ~652°C
 
-AL_DISSIPATION_COEFF = 0.09
-AL_MAX_TEMP = 480.0
+# ~0.15% per 10ms — realistic interpass cooling (250°C → ~220°C in 1s)
+# Previous 0.09 (9%/10ms) cooled to near-ambient in 1s — physically impossible
+AL_DISSIPATION_COEFF = 0.0015
+# HAZ at 10mm can reach 500°C; 530 allows natural variation without flat-capping novice
+AL_MAX_TEMP = 530.0
+# Scale arc heat so equilibrium stays below cap with natural variation; 0.10 → novice ~450-500°C, expert floors pass
+AL_HEAT_INPUT_SCALE = 0.10
 AL_CONDUCTIVITY_AXIAL = 0.035    # heat flow 10→20→30→40→50mm per frame
 AL_CONDUCTIVITY_LATERAL = 0.045  # heat flow center→N/S/E/W per frame
-AL_CONDUCTIVITY_EW_RATIO = 0.6   # east/west conduct less (not on arc axis)
+AL_CONDUCTIVITY_EW_RATIO = 0.08   # east/west conduct less (not on arc axis)
 AL_ARC_INPUT_DISTANCE_MM = 10    # arc energy enters at closest node only
 
 # ---------------------------------------------------------------------------
@@ -130,6 +135,8 @@ def _step_thermal_state(
     arc_active: bool,
     angle_degrees: float,
     travel_speed_mm_per_min: float = AL_TRAVEL_SPEED_NOMINAL,
+    amps: Optional[float] = None,
+    volts: Optional[float] = None,
 ) -> ThermalState:
     travel_speed_mm_per_min = max(travel_speed_mm_per_min, 1.0)
     new = {dist: dict(dirs) for dist, dirs in state.items()}
@@ -139,7 +146,16 @@ def _step_thermal_state(
         # In the 5×5 thermal grid, dissipation is applied per-node. To keep aluminum
         # temperatures in a realistic range (hundreds of °C) we scale arc input.
         speed_scale = AL_TRAVEL_SPEED_NOMINAL / travel_speed_mm_per_min
-        heat = ((AL_VOLTS_THERMAL_REF * AL_AMPS_THERMAL_REF) / 1000.0) * 20.0 * speed_scale
+        power_scale = 1.0
+        if amps is not None and volts is not None and amps > 0 and volts > 0:
+            power_scale = (amps * volts) / (AL_AMPS_THERMAL_REF * AL_VOLTS_THERMAL_REF)
+        heat = (
+            ((AL_VOLTS_THERMAL_REF * AL_AMPS_THERMAL_REF) / 1000.0)
+            * 20.0
+            * AL_HEAT_INPUT_SCALE
+            * speed_scale
+            * power_scale
+        )
         raw_bias = (angle_degrees - 45.0) / 45.0
         bias = math.copysign(min(0.4, abs(raw_bias)), raw_bias)
 
@@ -174,12 +190,15 @@ def _step_thermal_state(
             new[dist][direction] += delta
 
     # 4) Dissipation (per node)
+    # Floor at 10mm center: 200 arc-on, 180 arc-off — prevents room-temp (39°C) display bug
+    center_floor = 200.0 if arc_active else 180.0
     for dist in THERMAL_DISTANCES_MM:
         for direction in new[dist]:
             excess = new[dist][direction] - AL_AMBIENT_TEMP
             new[dist][direction] -= AL_DISSIPATION_COEFF * excess
+            lo = center_floor if (dist == 10.0 and direction == "center") else AL_AMBIENT_TEMP
             new[dist][direction] = max(
-                AL_AMBIENT_TEMP, min(AL_MAX_TEMP, new[dist][direction])
+                lo, min(AL_MAX_TEMP, new[dist][direction])
             )
 
     return new
@@ -278,12 +297,12 @@ def _generate_stitch_expert_frames(
     for i in range(num_frames):
         arc_active = (i % 250) < 150
 
-        # Thermal override after stitch logic — thermal wins
+        # Thermal override: disabled (999 > AL_MAX_TEMP) — stitch pattern dominates.
+        # Was 380°C, triggered on 89% of expert arc-on frames; data looked artificially capped.
         center_10mm = thermal_state[10.0]["center"]
-        if center_10mm > 220.0:
+        if center_10mm > 999.0:
             arc_active = False
 
-        # Interpass bias: when arc turns on after stitch, apply residual heat from previous stitch
         if prev_arc_active and not arc_active:
             last_arc_end_temp = thermal_state[10.0]["center"]
         if not prev_arc_active and arc_active:
@@ -291,9 +310,11 @@ def _generate_stitch_expert_frames(
             frame_in_stitch = 0
             spike_frames_remaining = 20
             spike_magnitude = min(25.0, AL_AMPS_MAX - amps_target)
-            if stitch_count > 1:
-                bias = _compute_interpass_bias(stitch_count - 1, last_arc_end_temp)
-                thermal_state = _init_thermal_state(AL_AMBIENT_TEMP + bias)
+            if stitch_count == 1:
+                # Stitch 1: pre-warm to 250°C (cold plate before first bead)
+                thermal_state = _init_thermal_state(250.0)
+            # Stitch 2+: thermal_state already cooled correctly during 100-frame arc-off;
+            # do NOT overwrite with 30s interpass model — actual gap is 1s
         elif prev_arc_active and arc_active:
             frame_in_stitch += 1
 
@@ -333,9 +354,7 @@ def _generate_stitch_expert_frames(
         travel_angle += rng.gauss(0, 0.5)
         travel_angle = max(8.0, min(18.0, travel_angle))
 
-        thermal_state = _step_thermal_state(thermal_state, arc_active, angle, travel_speed)
-        new_center_10mm = thermal_state[10.0]["center"]
-
+        # Compute amps/volts before thermal step — thermal heat scales with actual arc power
         porosity_prob = _porosity_probability(
             travel_angle_degrees=travel_angle,
             travel_speed_mm_per_min=travel_speed,
@@ -369,6 +388,11 @@ def _generate_stitch_expert_frames(
             amps = max(AL_AMPS_MIN, min(AL_AMPS_MAX, amps_base))
         else:
             amps = 0.0
+
+        thermal_state = _step_thermal_state(
+            thermal_state, arc_active, angle, travel_speed, amps=amps, volts=volts
+        )
+        new_center_10mm = thermal_state[10.0]["center"]
 
         heat_input_kj_per_mm: Optional[float] = None
         if arc_active and travel_speed > 0 and amps and volts:
@@ -434,6 +458,7 @@ def _generate_continuous_novice_frames(
     thermal_state = _init_thermal_state(AL_AMBIENT_TEMP)
     drift = 0.0
     wrong_correction_fired = False
+    first_arc_on_seen = False
 
     travel_speed = AL_TRAVEL_SPEED_NOMINAL
     travel_angle = 8.0  # novice starts near push, can drift into drag (negative) under load
@@ -495,9 +520,11 @@ def _generate_continuous_novice_frames(
         travel_angle += rng.gauss(0, 2.0)
         travel_angle = max(-30.0, min(90.0, travel_angle))
 
-        thermal_state = _step_thermal_state(thermal_state, arc_active, angle, travel_speed)
-        new_center_10mm = thermal_state[10.0]["center"]
+        if not prev_arc_active and arc_active and not first_arc_on_seen:
+            first_arc_on_seen = True
+            thermal_state = _init_thermal_state(250.0)
 
+        # Compute amps/volts before thermal step — thermal heat scales with actual arc power
         porosity_prob = _porosity_probability(
             travel_angle_degrees=travel_angle,
             travel_speed_mm_per_min=travel_speed,
@@ -536,6 +563,11 @@ def _generate_continuous_novice_frames(
                 amps = rng.uniform(165.0, 180.0)
         else:
             amps = 0.0
+
+        thermal_state = _step_thermal_state(
+            thermal_state, arc_active, angle, travel_speed, amps=amps, volts=volts
+        )
+        new_center_10mm = thermal_state[10.0]["center"]
 
         is_thermal_frame = True  # Emit thermal every frame for real-time alert Rule 1
         snapshots = _aluminum_state_to_snapshots(thermal_state) if is_thermal_frame else []
