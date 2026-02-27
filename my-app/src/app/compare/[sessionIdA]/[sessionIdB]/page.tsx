@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import HeatMap from '@/components/welding/HeatMap';
 import { fetchSession, fetchSessionAlerts, type AlertPayload } from '@/lib/api';
+import { getRuleLabel } from '@/lib/alert-labels';
 import { logWarn } from '@/lib/logger';
 import { FRAME_INTERVAL_MS } from '@/constants/validation';
 import { extractHeatmapData, tempToColorRange } from '@/utils/heatmapData';
@@ -579,12 +580,6 @@ export function ComparePageInner({
   );
 }
 
-const RULE_LABELS: Record<string, string> = {
-  rule1: 'Thermal asymmetry',
-  rule2: 'Torch angle',
-  rule3: 'Travel speed',
-};
-
 function AlertCard({
   alert,
   onSeek,
@@ -592,7 +587,7 @@ function AlertCard({
   alert: AlertPayload;
   onSeek: () => void;
 }) {
-  const label = RULE_LABELS[alert.rule_triggered] ?? alert.rule_triggered;
+  const label = getRuleLabel(alert.rule_triggered);
   const isCritical = alert.severity === 'critical';
   return (
     <button
@@ -610,7 +605,7 @@ function AlertCard({
         >
           {alert.severity}
         </span>
-        <span className="text-xs text-zinc-500">⚡ Haptic → gun</span>
+        <span className="text-xs text-zinc-500">⚡ Real-time alert</span>
       </div>
       <div className="font-medium text-sm text-black dark:text-zinc-100">{label}</div>
       <div className="text-xs text-zinc-600 dark:text-zinc-400">{alert.message}</div>
