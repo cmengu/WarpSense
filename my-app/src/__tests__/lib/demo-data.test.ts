@@ -8,6 +8,10 @@
  */
 
 import { generateExpertSession, generateNoviceSession } from "@/lib/demo-data";
+import {
+  AL_TRAVEL_SPEED_EXPERT_MIN,
+  AL_TRAVEL_SPEED_EXPERT_MAX,
+} from "@/constants/aluminum";
 import { extractHeatmapData } from "@/utils/heatmapData";
 import { extractAngleData } from "@/utils/angleData";
 import {
@@ -33,6 +37,13 @@ describe("demo-data", () => {
       const session = generateExpertSession();
       const angleData = extractAngleData(session.frames);
       expect(angleData.points.length).toBeGreaterThan(0);
+    });
+
+    it("expert travel_speed_mm_per_min spans 370–430", () => {
+      const expert = generateExpertSession();
+      const speeds = expert.frames.map((f) => f.travel_speed_mm_per_min!);
+      expect(Math.min(...speeds)).toBeGreaterThanOrEqual(AL_TRAVEL_SPEED_EXPERT_MIN);
+      expect(Math.max(...speeds)).toBeLessThanOrEqual(AL_TRAVEL_SPEED_EXPERT_MAX);
     });
 
     it("has correct session metadata", () => {
@@ -62,6 +73,13 @@ describe("demo-data", () => {
       expect(angleData.points.length).toBeGreaterThan(0);
     });
 
+    it("novice travel_speed_mm_per_min spans below 300 and above 500", () => {
+      const novice = generateNoviceSession();
+      const speeds = novice.frames.map((f) => f.travel_speed_mm_per_min!);
+      expect(Math.min(...speeds)).toBeLessThan(300);
+      expect(Math.max(...speeds)).toBeGreaterThan(500);
+    });
+
     it("has correct session metadata", () => {
       const session = generateNoviceSession();
       expect(session.session_id).toBe("demo_novice");
@@ -70,8 +88,12 @@ describe("demo-data", () => {
   });
 
   describe("frame structure", () => {
-    it("frames have required fields (timestamp_ms, thermal_snapshots, has_thermal_data)", () => {
+    it("frames have required fields (timestamp_ms, thermal_snapshots, has_thermal_data, travel_speed_mm_per_min)", () => {
       const session = generateExpertSession();
+      for (const f of session.frames) {
+        expect(f.travel_speed_mm_per_min).not.toBeNull();
+        expect(f.travel_speed_mm_per_min).not.toBeUndefined();
+      }
       const thermalFrame = session.frames.find((f) => f.has_thermal_data);
       expect(thermalFrame).toBeDefined();
       if (!thermalFrame) throw new Error("thermalFrame not found");

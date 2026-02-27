@@ -154,6 +154,12 @@ export interface Frame {
    * WARNING: Do not recompute — use the backend-provided value.
    */
   heat_dissipation_rate_celsius_per_sec: number | null;
+
+  /**
+   * Torch travel speed along weld seam in mm/min.
+   * Optional — backend sends it; older sessions may lack it.
+   */
+  travel_speed_mm_per_min?: number | null;
 }
 
 // ---------------------------------------------------------------------------
