@@ -31,6 +31,7 @@ import {
 } from '@/constants/welding3d';
 import { getFrameAtTimestamp } from '@/utils/frameUtils';
 import { ThermalPlate } from './ThermalPlate';
+import { WeldTrail } from './WeldTrail';
 import type { Frame } from '@/types/frame';
 
 /** Workpiece group Y — derived from welding3d for test verification. */
@@ -198,6 +199,14 @@ function SceneContent({
 
       {/* Workpiece — thermal or flat */}
       <group position={[0, WORKPIECE_GROUP_Y, 0]}>
+        {frames.length >= 2 &&
+          activeTimestamp > (frames[0]?.timestamp_ms ?? 0) && (
+            <WeldTrail
+              frames={frames}
+              activeTimestamp={activeTimestamp}
+              plateSize={plateSize ?? 3}
+            />
+          )}
         {hasThermal ? (
           <ThermalPlate
             frame={activeFrame}
