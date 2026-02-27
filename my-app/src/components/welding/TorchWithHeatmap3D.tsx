@@ -75,15 +75,15 @@ export interface TorchWithHeatmap3DProps {
 // Weld pool color (matches TorchViz3D)
 // ---------------------------------------------------------------------------
 
-/** Weld pool color: cold blue → purple → white. WarpSense theme. */
+/** Weld pool color: cold green → orange → red. IR-style thermal. */
 function getWeldPoolColor(temp: number): THREE.Color {
-  const cold = new THREE.Color(0x1e3a8a);
-  const mid = new THREE.Color(0x6366f1);
-  const hot = new THREE.Color(0xa855f7);
-  const white = new THREE.Color(0xf3e8ff);
+  const cold = new THREE.Color(0x22c55e);
+  const mid = new THREE.Color(0xf97316);
+  const hot = new THREE.Color(0xef4444);
+  const hotEnd = new THREE.Color(0xfa0505);
   if (temp < 200) return new THREE.Color().lerpColors(cold, mid, temp / 200);
   if (temp < 400) return new THREE.Color().lerpColors(mid, hot, (temp - 200) / 200);
-  return new THREE.Color().lerpColors(hot, white, Math.min((temp - 400) / 150, 1));
+  return new THREE.Color().lerpColors(hot, hotEnd, Math.min((temp - 400) / 150, 1));
 }
 
 // ---------------------------------------------------------------------------
