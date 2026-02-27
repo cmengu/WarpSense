@@ -48,11 +48,6 @@ jest.mock('@/components/ErrorBoundary', () => ({
   ErrorBoundary: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
-jest.mock('@/components/welding/HeatMap', () => ({
-  __esModule: true,
-  default: () => <div data-testid="heatmap" />,
-}));
-
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 const { fetchSession } = jest.requireMock('@/lib/api');
