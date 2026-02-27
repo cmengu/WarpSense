@@ -15,6 +15,12 @@
 import type { Session } from "@/types/session";
 import type { Frame } from "@/types/frame";
 import type { ThermalSnapshot } from "@/types/thermal";
+import {
+  AL_TRAVEL_SPEED_EXPERT_MIN,
+  AL_TRAVEL_SPEED_EXPERT_MAX,
+  AL_TRAVEL_SPEED_NOVICE_MIN,
+  AL_TRAVEL_SPEED_NOVICE_MAX,
+} from "@/constants/aluminum";
 
 // ---------------------------------------------------------------------------
 // Constants (per plan: 15s duration, 10ms frames, thermal every 100ms)
@@ -128,11 +134,15 @@ function noviceAngle(t_ms: number): number {
 
 /**
  * Build frames for a session using the given signal generators.
+ *
+ * @param travelSpeedFn - Returns travel_speed_mm_per_min for each timestamp.
+ *   Expert: 370–430 mm/min. Novice: 250–550 mm/min (spans below 300 and above 500).
  */
 function buildFrames(
   ampsFn: (t: number) => number,
   voltsFn: (t: number) => number,
-  angleFn: (t: number) => number
+  angleFn: (t: number) => number,
+  travelSpeedFn: (t: number) => number
 ): Frame[] {
   const frames: Frame[] = [];
 
@@ -153,6 +163,7 @@ function buildFrames(
       amps,
       volts,
       angle_degrees: angle,
+      travel_speed_mm_per_min: travelSpeedFn(t),
       thermal_snapshots,
       has_thermal_data: thermal_snapshots.length > 0,
       heat_dissipation_rate_celsius_per_sec: null,
@@ -173,7 +184,16 @@ function buildFrames(
  * @returns Session with 1500 frames (0–15000ms, 10ms interval).
  */
 export function generateExpertSession(): Session {
-  const frames = buildFrames(expertAmps, expertVolts, expertAngle);
+  const expertTravelSpeed = (t: number) =>
+    AL_TRAVEL_SPEED_EXPERT_MIN +
+    (AL_TRAVEL_SPEED_EXPERT_MAX - AL_TRAVEL_SPEED_EXPERT_MIN) *
+      (0.5 + 0.5 * Math.sin(t / 500));
+  const frames = buildFrames(
+    expertAmps,
+    expertVolts,
+    expertAngle,
+    expertTravelSpeed
+  );
 
   return {
     session_id: "demo_expert",
@@ -205,7 +225,20 @@ export function generateExpertSession(): Session {
  * @returns Session with 1500 frames (0–15000ms, 10ms interval).
  */
 export function generateNoviceSession(): Session {
-  const frames = buildFrames(noviceAmps, noviceVolts, noviceAngle);
+  const noviceTravelSpeed = (t: number) =>
+    Math.min(
+      AL_TRAVEL_SPEED_NOVICE_MAX,
+      Math.max(
+        AL_TRAVEL_SPEED_NOVICE_MIN,
+        400 + 120 * Math.sin(t / 2000) + 80 * Math.sin(t / 700)
+      )
+    );
+  const frames = buildFrames(
+    noviceAmps,
+    noviceVolts,
+    noviceAngle,
+    noviceTravelSpeed
+  );
 
   return {
     session_id: "demo_novice",
