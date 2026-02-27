@@ -37,7 +37,7 @@ function CompareForm() {
           Compare two sessions
         </h1>
         <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-6">
-          Enter two session IDs to view side-by-side heatmaps and the temperature delta (A − B).
+          Enter two session IDs to compare 3D torch visualizations and session alerts.
         </p>
         <Link
           href="/compare/sess_expert_001/sess_novice_001"
