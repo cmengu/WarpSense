@@ -3,13 +3,10 @@
 import { Suspense, use, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import HeatMap from '@/components/welding/HeatMap';
 import { fetchSession, fetchSessionAlerts, type AlertPayload } from '@/lib/api';
 import { getRuleLabel } from '@/lib/alert-labels';
 import { logWarn } from '@/lib/logger';
 import { FRAME_INTERVAL_MS } from '@/constants/validation';
-import { extractHeatmapData, tempToColorRange } from '@/utils/heatmapData';
-import { extractDeltaHeatmapData, deltaTempToColor } from '@/utils/deltaHeatmapData';
 import { useSessionComparison } from '@/hooks/useSessionComparison';
 import { useFrameData } from '@/hooks/useFrameData';
 import type { Session } from '@/types/session';
@@ -31,9 +28,9 @@ const TorchWithHeatmap3D = dynamic(
 
 /**
  * Compare Page
- * Side-by-side comparison of two welding sessions with delta heatmap.
- * Fetches both sessions in parallel, computes deltas via useSessionComparison,
- * single timeline slider drives all three columns.
+ * Side-by-side comparison of two welding sessions via 3D torch visualizations.
+ * Fetches both sessions in parallel, single timeline slider drives both views.
+ * Alert feed shows session-specific alerts with seek-to-timestamp.
  *
  * Next.js 16: params is always a Promise. Tests may pass a resolved Promise.
  */
@@ -95,39 +92,6 @@ export function ComparePageInner({
   const comparison = useSessionComparison(sessionA, sessionB);
   const frameDataA = useFrameData(sessionA?.frames ?? [], null, null);
   const frameDataB = useFrameData(sessionB?.frames ?? [], null, null);
-
-  const heatmapDataA =
-    sessionA?.frames && frameDataA.thermal_frames.length > 0
-      ? extractHeatmapData(frameDataA.thermal_frames)
-      : null;
-  const heatmapDataB =
-    sessionB?.frames && frameDataB.thermal_frames.length > 0
-      ? extractHeatmapData(frameDataB.thermal_frames)
-      : null;
-  const deltaHeatmapData =
-    comparison && comparison.deltas.length > 0
-      ? extractDeltaHeatmapData(comparison.deltas)
-      : null;
-
-  const compareColorFn = useMemo(() => {
-    if (!heatmapDataA?.points.length || !heatmapDataB?.points.length) return undefined;
-    let minT = Infinity;
-    let maxT = -Infinity;
-    for (const p of heatmapDataA.points) {
-      if (Number.isFinite(p.temp_celsius)) {
-        minT = Math.min(minT, p.temp_celsius);
-        maxT = Math.max(maxT, p.temp_celsius);
-      }
-    }
-    for (const p of heatmapDataB.points) {
-      if (Number.isFinite(p.temp_celsius)) {
-        minT = Math.min(minT, p.temp_celsius);
-        maxT = Math.max(maxT, p.temp_celsius);
-      }
-    }
-    if (minT > maxT) return undefined;
-    return tempToColorRange(minT, maxT);
-  }, [heatmapDataA, heatmapDataB]);
 
   const { sharedMinTemp, sharedMaxTemp } = useMemo(() => {
     const framesA = sessionA?.frames ?? [];
@@ -527,42 +491,6 @@ export function ComparePageInner({
             </div>
           </ErrorBoundary>
         )}
-
-        {heatmapDataA?.point_count && heatmapDataB?.point_count && (
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-2">
-            Session A and B use a shared temperature scale (cold→blue, hot→purple) so differences are visible. Delta column: purple = A hotter, blue = B hotter.
-          </p>
-        )}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <ErrorBoundary>
-            <HeatMap
-              sessionId={sessionIdA}
-              data={heatmapDataA}
-              activeTimestamp={currentTimestamp}
-              colorFn={compareColorFn}
-              label="Session A"
-            />
-          </ErrorBoundary>
-          <ErrorBoundary>
-            <HeatMap
-              sessionId={`${sessionIdA}-${sessionIdB}-delta`}
-              data={deltaHeatmapData}
-              activeTimestamp={currentTimestamp}
-              colorFn={deltaTempToColor}
-              label="Delta (A − B)"
-              valueLabel="delta"
-            />
-          </ErrorBoundary>
-          <ErrorBoundary>
-            <HeatMap
-              sessionId={sessionIdB}
-              data={heatmapDataB}
-              activeTimestamp={currentTimestamp}
-              colorFn={compareColorFn}
-              label="Session B"
-            />
-          </ErrorBoundary>
-        </div>
 
         <div className="mt-8">
           <h2 className="text-lg font-semibold mb-3 text-black dark:text-zinc-50">
