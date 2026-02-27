@@ -7,6 +7,7 @@
  */
 
 import { useEffect, useState } from 'react';
+import { getRuleLabel } from '@/lib/alert-labels';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 const WS_BASE = API_BASE.replace(/^http/, 'ws');
@@ -122,7 +123,7 @@ function AlertPanel({ alert, count }: { alert: AlertMsg | null; count: number })
         <>
           <div className="font-medium text-red-800 dark:text-red-200">{alert.correction}</div>
           <div className="text-sm text-red-600 dark:text-red-400">
-            {alert.rule_triggered} · {alert.severity}
+            {getRuleLabel(alert.rule_triggered)} · {alert.severity}
           </div>
         </>
       )}
