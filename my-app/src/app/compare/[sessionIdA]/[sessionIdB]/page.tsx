@@ -129,6 +129,20 @@ export function ComparePageInner({
     return tempToColorRange(minT, maxT);
   }, [heatmapDataA, heatmapDataB]);
 
+  const { sharedMinTemp, sharedMaxTemp } = useMemo(() => {
+    const framesA = sessionA?.frames ?? [];
+    const framesB = sessionB?.frames ?? [];
+    const allTemps = [...framesA, ...framesB]
+      .flatMap((f) => f.thermal_snapshots ?? [])
+      .flatMap((s) => s.readings ?? [])
+      .map((r) => r.temp_celsius)
+      .filter((t): t is number => t != null && isFinite(t));
+    if (allTemps.length === 0) return { sharedMinTemp: THERMAL_MIN_TEMP, sharedMaxTemp: THERMAL_MAX_TEMP };
+    const min = Math.max(THERMAL_MIN_TEMP, Math.min(...allTemps) - 20);
+    const max = Math.min(THERMAL_MAX_TEMP, Math.max(...allTemps) + 20);
+    return { sharedMinTemp: min, sharedMaxTemp: max };
+  }, [sessionA?.frames, sessionB?.frames]);
+
   const firstTimestamp =
     comparison && comparison.deltas.length > 0
       ? comparison.deltas[0].timestamp_ms
@@ -493,8 +507,8 @@ export function ComparePageInner({
                   label={`Session A (${sessionIdA})`}
                   frames={frameDataA.thermal_frames}
                   activeTimestamp={currentTimestamp}
-                  maxTemp={THERMAL_MAX_TEMP}
-                  minTemp={THERMAL_MIN_TEMP}
+                  maxTemp={sharedMaxTemp}
+                  minTemp={sharedMinTemp}
                   colorSensitivity={THERMAL_COLOR_SENSITIVITY}
                 />
               </div>
@@ -505,8 +519,8 @@ export function ComparePageInner({
                   label={`Session B (${sessionIdB})`}
                   frames={frameDataB.thermal_frames}
                   activeTimestamp={currentTimestamp}
-                  maxTemp={THERMAL_MAX_TEMP}
-                  minTemp={THERMAL_MIN_TEMP}
+                  maxTemp={sharedMaxTemp}
+                  minTemp={sharedMinTemp}
                   colorSensitivity={THERMAL_COLOR_SENSITIVITY}
                 />
               </div>
