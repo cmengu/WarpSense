@@ -2,7 +2,7 @@
  * Fragment shader for 3D heatmap plate.
  *
  * Maps vTemperature to color via stepped gradient (5–10°C visible steps).
- * WarpSense theme: 8 anchor colors, blue (cold) → purple (hot).
+ * 8 anchor colors, green (cold) → orange → red (hot). IR-style thermal.
  *
  * @see my-app/src/constants/theme.ts (THERMAL_ANCHOR_COLORS_0_1)
  */
@@ -27,14 +27,14 @@ vec3 temperatureToColor(float temp) {
   anchorPos[4] = 0.5;  anchorPos[5] = 0.7;  anchorPos[6] = 0.9;  anchorPos[7] = 1.0;
 
   vec3 anchorCol[8];
-  anchorCol[0] = vec3(0.12, 0.23, 0.54);
-  anchorCol[1] = vec3(0.15, 0.39, 0.92);
-  anchorCol[2] = vec3(0.31, 0.27, 0.90);
-  anchorCol[3] = vec3(0.39, 0.40, 0.95);
-  anchorCol[4] = vec3(0.49, 0.23, 0.93);
-  anchorCol[5] = vec3(0.55, 0.36, 0.96);
-  anchorCol[6] = vec3(0.66, 0.33, 0.97);
-  anchorCol[7] = vec3(0.66, 0.33, 0.97);
+  anchorCol[0] = vec3(0.55, 0.55, 0.55);  // cool gray (ambient)
+  anchorCol[1] = vec3(0.18, 0.72, 0.38);  // green (cold weld)
+  anchorCol[2] = vec3(0.40, 0.78, 0.22);  // yellow-green
+  anchorCol[3] = vec3(0.85, 0.75, 0.10);  // yellow
+  anchorCol[4] = vec3(0.95, 0.55, 0.05);  // orange
+  anchorCol[5] = vec3(0.95, 0.30, 0.05);  // orange-red
+  anchorCol[6] = vec3(0.85, 0.10, 0.05);  // red
+  anchorCol[7] = vec3(0.98, 0.05, 0.05);  // hot red
 
   int seg = 0;
   for (int i = 0; i < 7; i++) {
