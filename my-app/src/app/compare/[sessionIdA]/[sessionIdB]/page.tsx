@@ -138,6 +138,39 @@ export function ComparePageInner({
       ? comparison.deltas[comparison.deltas.length - 1].timestamp_ms
       : null;
 
+  /** Plain-English summary: alert ratio and end-of-session temp diff at lastTimestamp. */
+  const summaryText = useMemo(() => {
+    if (!alertsA.length && !alertsB.length) return null;
+    let ratioPart: string | null = null;
+    if (alertsA.length > 0 && alertsB.length === 0) {
+      ratioPart = 'Session A had all the alerts';
+    } else if (alertsA.length === 0 && alertsB.length > 0) {
+      ratioPart = 'Session B had all the alerts';
+    } else if (alertsA.length > 0 && alertsB.length > 0) {
+      const ratio = (alertsA.length / alertsB.length).toFixed(1);
+      ratioPart =
+        Number(ratio) >= 1
+          ? `Session A generated ${ratio}× more alerts`
+          : `Session B generated ${(alertsB.length / alertsA.length).toFixed(1)}× more alerts`;
+    }
+    const tempA = sessionA?.frames
+      ? extractCenterTemperatureWithCarryForward(sessionA.frames, lastTimestamp ?? 0)
+      : null;
+    const tempB = sessionB?.frames
+      ? extractCenterTemperatureWithCarryForward(sessionB.frames, lastTimestamp ?? 0)
+      : null;
+    const tempDiff =
+      tempA != null && tempB != null ? Math.abs(tempA - tempB) : null;
+    const tempPart =
+      tempDiff != null && tempDiff > 0
+        ? (tempA as number) > (tempB as number)
+          ? `Session A ran ${tempDiff.toFixed(0)}°C hotter than Session B`
+          : `Session B ran ${tempDiff.toFixed(0)}°C hotter than Session A`
+        : null;
+    const parts = [ratioPart, tempPart].filter(Boolean);
+    return parts.length > 0 ? parts.join(' and ') + '.' : null;
+  }, [alertsA, alertsB, sessionA, sessionB, lastTimestamp]);
+
   const floorTs = currentTimestamp ?? firstTimestamp ?? 0;
   const visibleAlertsA = useMemo(
     () =>
@@ -388,6 +421,11 @@ export function ComparePageInner({
         <h1 className="text-3xl font-semibold mb-2 text-black dark:text-zinc-50">
           Compare: {sessionIdA} vs {sessionIdB}
         </h1>
+        {summaryText && (
+          <p className="text-base text-zinc-400 mb-2 font-medium">
+            {summaryText}
+          </p>
+        )}
         {comparison && (
           <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-6">
             {comparison.shared_count} overlapping frames • A: {comparison.total_a} • B: {comparison.total_b}
@@ -605,7 +643,7 @@ function AlertCard({
         >
           {alert.severity}
         </span>
-        <span className="text-xs text-zinc-500">⚡ Real-time alert</span>
+        <span className="text-xs text-zinc-500">⚡ Session alert</span>
       </div>
       <div className="font-medium text-sm text-black dark:text-zinc-100">{label}</div>
       <div className="text-xs text-zinc-600 dark:text-zinc-400">{alert.message}</div>
