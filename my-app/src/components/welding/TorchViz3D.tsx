@@ -21,6 +21,7 @@ import {
   PerspectiveCamera,
 } from '@react-three/drei';
 import * as THREE from 'three';
+import { getArcColor, getTempReadoutColor } from '@/utils/torchColors';
 
 const orbitron = Orbitron({ subsets: ['latin'], weight: ['600', '700'] });
 const jetbrainsMono = JetBrains_Mono({ subsets: ['latin'] });
@@ -32,25 +33,10 @@ const jetbrainsMono = JetBrains_Mono({ subsets: ['latin'] });
 export interface TorchViz3DProps {
   /** Torch angle in degrees (e.g. 45 = ideal). Drives rotation around X. */
   angle: number;
-  /** Center temperature in °C. Drives weld pool sphere color (blue → purple → white). */
+  /** Center temperature in °C. Drives weld pool sphere color (green → orange → red). */
   temp: number;
   /** Optional label shown in HUD (e.g. "Current Session", "Comparison"). */
   label?: string;
-}
-
-// ---------------------------------------------------------------------------
-// Temperature → color (smooth gradient, industrial)
-// ---------------------------------------------------------------------------
-
-/** Weld pool color: cold green → orange → red. IR-style thermal. */
-function getWeldPoolColor(temp: number): THREE.Color {
-  const cold = new THREE.Color(0x22c55e);
-  const mid = new THREE.Color(0xf97316);
-  const hot = new THREE.Color(0xef4444);
-  const hotEnd = new THREE.Color(0xfa0505);
-  if (temp < 200) return new THREE.Color().lerpColors(cold, mid, temp / 200);
-  if (temp < 400) return new THREE.Color().lerpColors(mid, hot, (temp - 200) / 200);
-  return new THREE.Color().lerpColors(hot, hotEnd, Math.min((temp - 400) / 150, 1));
 }
 
 // ---------------------------------------------------------------------------
@@ -64,7 +50,7 @@ interface SceneContentProps {
 
 function SceneContent({ angle, temp }: SceneContentProps) {
   const torchGroupRef = useRef<THREE.Group>(null);
-  const weldPoolColor = useMemo(() => getWeldPoolColor(temp), [temp]);
+  const arcColor = useMemo(() => getArcColor(temp), [temp]);
   const glowIntensity = useMemo(() => 0.5 + (temp / 700) * 2.5, [temp]);
 
   useFrame(() => {
@@ -93,7 +79,7 @@ function SceneContent({ angle, temp }: SceneContentProps) {
       <pointLight
         position={[0, -0.4, 0]}
         intensity={glowIntensity}
-        color={weldPoolColor}
+        color={arcColor}
         distance={2}
         decay={2}
       />
@@ -133,8 +119,8 @@ function SceneContent({ angle, temp }: SceneContentProps) {
         <mesh castShadow position={[0, -0.6, 0]}>
           <sphereGeometry args={[0.12, 32, 32]} />
           <meshStandardMaterial
-            color={weldPoolColor}
-            emissive={weldPoolColor}
+            color={arcColor}
+            emissive={arcColor}
             emissiveIntensity={glowIntensity}
             metalness={0.8}
             roughness={0.1}
@@ -145,7 +131,7 @@ function SceneContent({ angle, temp }: SceneContentProps) {
         <mesh position={[0, -0.6, 0]}>
           <sphereGeometry args={[0.18, 32, 32]} />
           <meshBasicMaterial
-            color={weldPoolColor}
+            color={arcColor}
             transparent
             opacity={0.15}
             side={THREE.BackSide}
@@ -238,7 +224,7 @@ export default function TorchViz3D({ angle, temp, label = DEFAULT_LABEL }: Torch
                 <span className={`text-[10px] uppercase tracking-wider text-blue-400/80 ${orbitron.className}`}>
                   Weld pool temp
                 </span>
-                <span className={`text-xs text-blue-300 ${jetbrainsMono.className}`}>
+                <span className={`text-xs ${getTempReadoutColor(temp)} ${jetbrainsMono.className}`}>
                   {temp.toFixed(0)}°C
                 </span>
               </div>
