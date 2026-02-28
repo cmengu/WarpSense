@@ -57,6 +57,8 @@ export interface TorchWithHeatmap3DProps {
   temp: number;
   /** Optional label shown in HUD. */
   label?: string;
+  /** Where to render the HUD: 'inside' = overlay on canvas, 'outside' = above canvas in flow. Default 'inside'. */
+  labelPosition?: 'inside' | 'outside';
   /** Frames with thermal data; empty = flat metal. */
   frames?: Frame[];
   /** Current replay timestamp (ms). */
@@ -173,6 +175,7 @@ export default function TorchWithHeatmap3D({
   angle,
   temp,
   label = DEFAULT_LABEL,
+  labelPosition = 'inside',
   frames = [],
   activeTimestamp,
   maxTemp = 500,
@@ -197,46 +200,55 @@ export default function TorchWithHeatmap3D({
     };
   }, []);
 
+  const hudContent = label ? (
+    <div className="backdrop-blur-md bg-black/50 border border-blue-400/40 rounded-lg px-4 py-3 shadow-[0_0_20px_rgba(59,130,246,0.2)]">
+      <div className="flex items-center gap-2 mb-1">
+        <div className="h-2 w-2 rounded-full bg-blue-500 animate-pulse" aria-hidden />
+        <p
+          className={`text-sm font-bold tracking-widest uppercase text-blue-400 ${orbitron.className}`}
+        >
+          {label}
+        </p>
+      </div>
+      <div className="space-y-0.5">
+        <div className="flex items-center gap-2">
+          <span
+            className={`text-[10px] uppercase tracking-wider text-blue-400/80 ${orbitron.className}`}
+          >
+            Torch angle
+          </span>
+          <span className={`text-xs text-blue-300 ${jetbrainsMono.className}`}>
+            {angle.toFixed(1)}°
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span
+            className={`text-[10px] uppercase tracking-wider text-blue-400/80 ${orbitron.className}`}
+          >
+            Weld pool temp
+          </span>
+          <span className={`text-xs text-blue-300 ${jetbrainsMono.className}`}>
+            {temp.toFixed(0)}°C
+          </span>
+        </div>
+      </div>
+    </div>
+  ) : null;
+
   return (
-    <div className="relative w-full h-64 min-h-64 rounded-xl overflow-hidden border-2 border-blue-400/80 bg-neutral-950 shadow-[0_0_30px_rgba(59,130,246,0.15)]">
-      {label && (
-        <div className="absolute top-4 left-4 z-10">
-          <div className="backdrop-blur-md bg-black/50 border border-blue-400/40 rounded-lg px-4 py-3 shadow-[0_0_20px_rgba(59,130,246,0.2)]">
-            <div className="flex items-center gap-2 mb-1">
-              <div className="h-2 w-2 rounded-full bg-blue-500 animate-pulse" aria-hidden />
-              <p
-                className={`text-sm font-bold tracking-widest uppercase text-blue-400 ${orbitron.className}`}
-              >
-                {label}
-              </p>
-            </div>
-            <div className="space-y-0.5">
-              <div className="flex items-center gap-2">
-                <span
-                  className={`text-[10px] uppercase tracking-wider text-blue-400/80 ${orbitron.className}`}
-                >
-                  Torch angle
-                </span>
-                <span className={`text-xs text-blue-300 ${jetbrainsMono.className}`}>
-                  {angle.toFixed(1)}°
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span
-                  className={`text-[10px] uppercase tracking-wider text-blue-400/80 ${orbitron.className}`}
-                >
-                  Weld pool temp
-                </span>
-                <span className={`text-xs text-blue-300 ${jetbrainsMono.className}`}>
-                  {temp.toFixed(0)}°C
-                </span>
-              </div>
-            </div>
-          </div>
+    <div className="w-full">
+      {labelPosition === 'outside' && hudContent && (
+        <div data-testid="hud-outside" className="mb-2">
+          {hudContent}
         </div>
       )}
-
-      <div className="relative h-64 w-full isolate">
+      <div className="relative w-full h-64 min-h-64 rounded-xl overflow-hidden border-2 border-blue-400/80 bg-neutral-950 shadow-[0_0_30px_rgba(59,130,246,0.15)]">
+        {labelPosition === 'inside' && hudContent && (
+          <div data-testid="hud-inside" className="absolute top-4 left-4 z-10">
+            {hudContent}
+          </div>
+        )}
+        <div className="relative h-64 w-full isolate">
         {/* When context lost: unmount Canvas to release dead WebGL context. Keyed remount
             lets user try "Reload 3D" without full page reload. See Phase 2 in
             .cursor/plans/white-screen-reload-webgl-fix-plan.md */}
@@ -349,6 +361,7 @@ export default function TorchWithHeatmap3D({
             </span>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

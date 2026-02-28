@@ -147,6 +147,20 @@ describe('TorchWithHeatmap3D', () => {
     expect(screen.getByText(/100–600°C/i)).toBeInTheDocument();
   });
 
+  it('renders HUD above canvas when labelPosition=outside', () => {
+    render(
+      <TorchWithHeatmap3D
+        angle={45}
+        temp={400}
+        label="Session A"
+        labelPosition="outside"
+        frames={[]}
+      />
+    );
+    expect(screen.getByTestId('hud-outside')).toBeInTheDocument();
+    expect(screen.queryByTestId('hud-inside')).not.toBeInTheDocument();
+  });
+
   describe('TorchWithHeatmap3D constants application', () => {
     it('workpiece group uses WORKPIECE_BASE_Y from welding3d', () => {
       expect(WORKPIECE_GROUP_Y).toBe(WORKPIECE_BASE_Y);
