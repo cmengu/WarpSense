@@ -61,15 +61,15 @@ describe('TorchViz3D', () => {
     expect(screen.getByText(/0–700°C/i)).toBeInTheDocument();
   });
 
-  it('shows technical footer SENSOR_ID', () => {
+  it('shows technical footer TH_001', () => {
     render(<TorchViz3D angle={45} temp={400} label="Test" />);
-    expect(screen.getByText(/SENSOR_ID: TH_001/i)).toBeInTheDocument();
+    expect(screen.getByText(/TH_001 · 10Hz/i)).toBeInTheDocument();
   });
 
-  it('uses blue theme classes', () => {
+  it('uses slate theme classes', () => {
     const { container } = render(<TorchViz3D angle={45} temp={400} label="Test" />);
     const wrapper = container.firstChild as HTMLElement;
-    expect(wrapper.className).toMatch(/border-blue|bg-neutral-950|shadow/);
+    expect(wrapper.className).toMatch(/border-slate|bg-neutral-950|shadow/);
   });
 
   it('shows WebGL context lost overlay when context is lost', async () => {

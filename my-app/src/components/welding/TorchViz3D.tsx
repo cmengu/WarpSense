@@ -22,6 +22,7 @@ import {
 } from '@react-three/drei';
 import * as THREE from 'three';
 import { getArcColor, getTempReadoutColor } from '@/utils/torchColors';
+import { TORCH_GROUP_Y, WELD_POOL_OFFSET_Y, ANGLE_RING_Y, GRID_Y, CONTACT_SHADOWS_Y } from '@/constants/welding3d';
 
 const orbitron = Orbitron({ subsets: ['latin'], weight: ['600', '700'] });
 const jetbrainsMono = JetBrains_Mono({ subsets: ['latin'] });
@@ -51,7 +52,7 @@ interface SceneContentProps {
 function SceneContent({ angle, temp }: SceneContentProps) {
   const torchGroupRef = useRef<THREE.Group>(null);
   const arcColor = useMemo(() => getArcColor(temp), [temp]);
-  const glowIntensity = useMemo(() => 0.5 + (temp / 700) * 2.5, [temp]);
+  const glowIntensity = useMemo(() => Math.min(4, 0.5 + (temp / 700) * 2.5), [temp]);
 
   useFrame(() => {
     if (torchGroupRef.current) {
@@ -84,66 +85,106 @@ function SceneContent({ angle, temp }: SceneContentProps) {
         decay={2}
       />
 
-      {/* Torch assembly */}
-      <group ref={torchGroupRef} position={[0, 0.4, 0]}>
-        {/* Handle — PBR metal */}
-        <mesh castShadow receiveShadow position={[0, 0, 0]}>
-          <cylinderGeometry args={[0.05, 0.045, 0.9, 32]} />
-          <meshStandardMaterial
-            color="#2a2a2a"
-            metalness={0.9}
-            roughness={0.2}
-            envMapIntensity={1.5}
-          />
-        </mesh>
-        {/* Grip */}
-        <mesh castShadow receiveShadow position={[0, 0.1, 0]}>
-          <cylinderGeometry args={[0.052, 0.052, 0.3, 32]} />
-          <meshStandardMaterial
-            color="#1a1a1a"
-            metalness={0.3}
-            roughness={0.8}
-          />
-        </mesh>
-        {/* Nozzle cone */}
-        <mesh castShadow receiveShadow position={[0, -0.5, 0]}>
-          <coneGeometry args={[0.08, 0.15, 32]} />
-          <meshStandardMaterial
-            color="#3a3a3a"
-            metalness={0.95}
-            roughness={0.15}
-            envMapIntensity={2}
-          />
-        </mesh>
-        {/* Weld pool sphere */}
-        <mesh castShadow position={[0, -0.6, 0]}>
-          <sphereGeometry args={[0.12, 32, 32]} />
-          <meshStandardMaterial
-            color={arcColor}
-            emissive={arcColor}
-            emissiveIntensity={glowIntensity}
-            metalness={0.8}
-            roughness={0.1}
-            envMapIntensity={3}
-          />
-        </mesh>
-        {/* Glow halo */}
-        <mesh position={[0, -0.6, 0]}>
-          <sphereGeometry args={[0.18, 32, 32]} />
-          <meshBasicMaterial
-            color={arcColor}
-            transparent
-            opacity={0.15}
-            side={THREE.BackSide}
-          />
-        </mesh>
+      {/* Torch assembly — gooseneck: 3 nested groups for MIG bend */}
+      <group ref={torchGroupRef} position={[0, TORCH_GROUP_Y, 0]}>
+        <group rotation={[-0.45, 0, 0]}>
+          <group rotation={[-0.35, 0, 0]}>
+            <group rotation={[-0.15, 0, 0]}>
+              {/* Handle barrel — gunmetal */}
+              <mesh castShadow receiveShadow position={[0, 0, 0]}>
+                <cylinderGeometry args={[0.05, 0.045, 0.9, 32]} />
+                <meshStandardMaterial
+                  color="#2a2a2a"
+                  metalness={0.9}
+                  roughness={0.18}
+                  envMapIntensity={1.5}
+                />
+              </mesh>
+              {/* Grip bands (4) — rubber */}
+              {[0.06, 0.16, 0.25, 0.34].map((y) => (
+                <mesh key={y} castShadow receiveShadow position={[0, y, 0]}>
+                  <cylinderGeometry args={[0.052, 0.052, 0.04, 32]} />
+                  <meshStandardMaterial
+                    color="#1a1a1a"
+                    metalness={0}
+                    roughness={0.98}
+                  />
+                </mesh>
+              ))}
+              {/* Trigger housing — rubber */}
+              <mesh castShadow receiveShadow position={[0.055, 0.08, 0]}>
+                <boxGeometry args={[0.08, 0.06, 0.04]} />
+                <meshStandardMaterial color="#1a1a1a" metalness={0} roughness={0.98} />
+              </mesh>
+              <mesh castShadow receiveShadow position={[0.06, 0.04, 0]}>
+                <boxGeometry args={[0.02, 0.04, 0.03]} />
+                <meshStandardMaterial color="#1a1a1a" metalness={0} roughness={0.98} />
+              </mesh>
+              {/* Cable collar — entry + rubber shroud at handle top */}
+              <mesh castShadow receiveShadow position={[0, 0.38, 0]}>
+                <cylinderGeometry args={[0.04, 0.045, 0.06, 32]} />
+                <meshStandardMaterial color="#2a2a2a" metalness={0.9} roughness={0.18} />
+              </mesh>
+              <mesh castShadow receiveShadow position={[0, 0.42, 0]}>
+                <cylinderGeometry args={[0.048, 0.048, 0.04, 32]} />
+                <meshStandardMaterial color="#1a1a1a" metalness={0} roughness={0.98} />
+              </mesh>
+              {/* Nozzle — brass, two-part (flared body + chamfered tip) */}
+              <mesh castShadow receiveShadow position={[0, -0.5, 0]}>
+                <coneGeometry args={[0.08, 0.12, 32]} />
+                <meshStandardMaterial
+                  color="#b8860b"
+                  metalness={0.95}
+                  roughness={0.35}
+                  envMapIntensity={2}
+                />
+              </mesh>
+              <mesh castShadow receiveShadow position={[0, -0.56, 0]}>
+                <cylinderGeometry args={[0.04, 0.04, 0.04, 32]} />
+                <meshStandardMaterial
+                  color="#b8860b"
+                  metalness={0.95}
+                  roughness={0.35}
+                  envMapIntensity={2}
+                />
+              </mesh>
+              {/* Contact tip — copper */}
+              <mesh castShadow receiveShadow position={[0, -0.58, 0]}>
+                <cylinderGeometry args={[0.0065, 0.0065, 0.035, 16]} />
+                <meshStandardMaterial color="#b87333" metalness={0.9} roughness={0.18} />
+              </mesh>
+              {/* Arc point — pinpoint */}
+              <mesh castShadow position={[0, WELD_POOL_OFFSET_Y, 0]}>
+                <sphereGeometry args={[0.018, 16, 16]} />
+                <meshStandardMaterial
+                  color={arcColor}
+                  emissive={arcColor}
+                  emissiveIntensity={glowIntensity}
+                  metalness={0.8}
+                  roughness={0.1}
+                  envMapIntensity={3}
+                />
+              </mesh>
+              {/* Glow halo */}
+              <mesh position={[0, WELD_POOL_OFFSET_Y, 0]}>
+                <sphereGeometry args={[0.055, 16, 16]} />
+                <meshBasicMaterial
+                  color={arcColor}
+                  transparent
+                  opacity={0.08}
+                  side={THREE.BackSide}
+                />
+              </mesh>
+            </group>
+          </group>
+        </group>
       </group>
 
       {/* Workpiece */}
       <mesh
         receiveShadow
         rotation={[-Math.PI / 2, 0, 0]}
-        position={[0, -0.6, 0]}
+        position={[0, TORCH_GROUP_Y + WELD_POOL_OFFSET_Y, 0]}
       >
         <planeGeometry args={[3, 3]} />
         <meshStandardMaterial
@@ -154,17 +195,22 @@ function SceneContent({ angle, temp }: SceneContentProps) {
         />
       </mesh>
 
-      {/* Angle guide ring */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.59, 0]}>
+      {/* Angle guide ring — outer */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, ANGLE_RING_Y, 0]}>
         <ringGeometry args={[0.8, 0.82, 32]} />
-        <meshBasicMaterial color="#3b82f6" transparent opacity={0.3} side={THREE.DoubleSide} />
+        <meshBasicMaterial color="#64748b" transparent opacity={0.3} side={THREE.DoubleSide} />
+      </mesh>
+      {/* Inner target ring */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, ANGLE_RING_Y + 0.001, 0]}>
+        <ringGeometry args={[0.15, 0.18, 32]} />
+        <meshBasicMaterial color="#64748b" transparent opacity={0.25} side={THREE.DoubleSide} />
       </mesh>
 
       {/* Grid helper — industrial coordinate system */}
-      <gridHelper args={[5, 10, 0x3b82f6, 0x4b5563]} position={[0, -0.6, 0]} />
+      <gridHelper args={[5, 10, 0x64748b, 0x4b5563]} position={[0, GRID_Y, 0]} />
 
       <ContactShadows
-        position={[0, -0.59, 0]}
+        position={[0, CONTACT_SHADOWS_Y, 0]}
         opacity={0.5}
         scale={2}
         blur={2}
@@ -198,30 +244,30 @@ export default function TorchViz3D({ angle, temp, label = DEFAULT_LABEL }: Torch
   }, []);
 
   return (
-    <div className="relative w-full h-64 min-h-64 rounded-xl overflow-hidden border-2 border-blue-400/80 bg-neutral-950 shadow-[0_0_30px_rgba(59,130,246,0.15)]">
-      {/* HUD overlay — industrial style */}
+    <div className="relative w-full h-64 min-h-64 rounded-xl overflow-hidden border-2 border-slate-700/60 bg-neutral-950 shadow-[0_0_30px_rgba(51,65,85,0.15)]">
+      {/* HUD overlay — industrial style, slate tones */}
       {label && (
         <div className="absolute top-4 left-4 z-10">
-          <div className="backdrop-blur-md bg-black/50 border border-blue-400/40 rounded-lg px-4 py-3 shadow-[0_0_20px_rgba(59,130,246,0.2)]">
+          <div className="backdrop-blur-md bg-black/50 border border-slate-700/60 rounded-lg px-4 py-3 shadow-[0_0_20px_rgba(51,65,85,0.2)]">
             <div className="flex items-center gap-2 mb-1">
-              <div className="h-2 w-2 rounded-full bg-blue-500 animate-pulse" aria-hidden />
+              <div className="h-2 w-2 rounded-full bg-slate-500 animate-pulse" aria-hidden />
               <p
-                className={`text-sm font-bold tracking-widest uppercase text-blue-400 ${orbitron.className}`}
+                className={`text-sm font-bold tracking-widest uppercase text-slate-400 ${orbitron.className}`}
               >
                 {label}
               </p>
             </div>
             <div className="space-y-0.5">
               <div className="flex items-center gap-2">
-                <span className={`text-[10px] uppercase tracking-wider text-blue-400/80 ${orbitron.className}`}>
+                <span className={`text-[10px] uppercase tracking-wider text-slate-500 ${orbitron.className}`}>
                   Torch angle
                 </span>
-                <span className={`text-xs text-blue-300 ${jetbrainsMono.className}`}>
+                <span className={`text-xs text-slate-300 ${jetbrainsMono.className}`}>
                   {angle.toFixed(1)}°
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <span className={`text-[10px] uppercase tracking-wider text-blue-400/80 ${orbitron.className}`}>
+                <span className={`text-[10px] uppercase tracking-wider text-slate-500 ${orbitron.className}`}>
                   Weld pool temp
                 </span>
                 <span className={`text-xs ${getTempReadoutColor(temp)} ${jetbrainsMono.className}`}>
@@ -323,12 +369,12 @@ export default function TorchViz3D({ angle, temp, label = DEFAULT_LABEL }: Torch
         )}
       </div>
 
-      {/* Temp scale indicator */}
+      {/* Temp scale indicator — green → amber → red */}
       <div className="absolute bottom-4 right-4 z-10">
-        <div className="backdrop-blur-md bg-black/50 border border-blue-400/40 rounded-lg px-3 py-2">
+        <div className="backdrop-blur-md bg-black/50 border border-slate-700/60 rounded-lg px-3 py-2">
           <div className="flex items-center gap-2">
-            <div className="w-24 h-1.5 rounded-full bg-gradient-to-r from-blue-600 via-blue-400 to-violet-400" />
-            <span className={`text-[10px] text-blue-400/70 ${jetbrainsMono.className}`}>
+            <div className="w-24 h-1.5 rounded-full bg-gradient-to-r from-green-600 via-amber-500 to-red-500" />
+            <span className={`text-[10px] text-slate-500 ${jetbrainsMono.className}`}>
               0–700°C
             </span>
           </div>
@@ -337,9 +383,9 @@ export default function TorchViz3D({ angle, temp, label = DEFAULT_LABEL }: Torch
 
       {/* Technical footer */}
       <div
-        className={`absolute bottom-4 left-4 z-10 text-[9px] text-blue-500/50 ${jetbrainsMono.className}`}
+        className={`absolute bottom-4 left-4 z-10 text-[9px] text-slate-600 ${jetbrainsMono.className}`}
       >
-        SENSOR_ID: TH_001 | SAMPLE_RATE: 10Hz
+        TH_001 · 10Hz
       </div>
     </div>
   );
