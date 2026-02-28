@@ -3,7 +3,7 @@
 /**
  * TorchWithHeatmap3D — Unified torch + thermally-colored metal workpiece.
  *
- * Single R3F Canvas: torch assembly (from TorchViz3D) above thermal metal (from
+ * Single R3F Canvas: torch assembly (from TorchSceneContent) above thermal metal (from
  * ThermalPlate). Replaces separate TorchViz3D + HeatmapPlate3D on replay/demo.
  * Reduces Canvas count from 3 to 2.
  *
@@ -15,7 +15,7 @@
 
 import { useRef, useMemo, useState, useEffect } from 'react';
 import { Orbitron, JetBrains_Mono } from 'next/font/google';
-import { Canvas, useFrame } from '@react-three/fiber';
+import { Canvas } from '@react-three/fiber';
 import {
   OrbitControls,
   Environment,
@@ -31,6 +31,7 @@ import {
 } from '@/constants/welding3d';
 import { getFrameAtTimestamp } from '@/utils/frameUtils';
 import { ThermalPlate } from './ThermalPlate';
+import { TorchSceneContent } from './TorchSceneContent';
 import { WeldTrail } from './WeldTrail';
 import type { Frame } from '@/types/frame';
 
@@ -73,21 +74,6 @@ export interface TorchWithHeatmap3DProps {
 }
 
 // ---------------------------------------------------------------------------
-// Weld pool color (matches TorchViz3D)
-// ---------------------------------------------------------------------------
-
-/** Weld pool color: cold green → orange → red. IR-style thermal. */
-function getWeldPoolColor(temp: number): THREE.Color {
-  const cold = new THREE.Color(0x22c55e);
-  const mid = new THREE.Color(0xf97316);
-  const hot = new THREE.Color(0xef4444);
-  const hotEnd = new THREE.Color(0xfa0505);
-  if (temp < 200) return new THREE.Color().lerpColors(cold, mid, temp / 200);
-  if (temp < 400) return new THREE.Color().lerpColors(mid, hot, (temp - 200) / 200);
-  return new THREE.Color().lerpColors(hot, hotEnd, Math.min((temp - 400) / 150, 1));
-}
-
-// ---------------------------------------------------------------------------
 // Scene content — torch + thermal or flat workpiece
 // ---------------------------------------------------------------------------
 
@@ -109,10 +95,6 @@ function SceneContent({
   plateSize,
   colorSensitivity,
 }: SceneContentProps) {
-  const torchGroupRef = useRef<THREE.Group>(null);
-  const weldPoolColor = useMemo(() => getWeldPoolColor(temp), [temp]);
-  const glowIntensity = useMemo(() => 0.5 + (temp / 700) * 2.5, [temp]);
-
   const activeFrame = useMemo(() => {
     if (frames.length === 0) return null;
     return getFrameAtTimestamp(frames, activeTimestamp) ?? frames[0] ?? null;
@@ -120,82 +102,9 @@ function SceneContent({
 
   const hasThermal = frames.length > 0;
 
-  useFrame(() => {
-    if (torchGroupRef.current) {
-      torchGroupRef.current.rotation.x = ((angle - 45) * Math.PI) / 180;
-    }
-  });
-
   return (
     <>
-      <ambientLight intensity={0.3} />
-      <directionalLight
-        position={[10, 10, 5]}
-        intensity={1.5}
-        castShadow
-        shadow-mapSize-width={1024}
-        shadow-mapSize-height={1024}
-        shadow-camera-far={50}
-        shadow-camera-left={-10}
-        shadow-camera-right={10}
-        shadow-camera-top={10}
-        shadow-camera-bottom={-10}
-      />
-      <directionalLight position={[-5, 3, -5]} intensity={0.8} color="#6366f1" />
-      <pointLight position={[0, 5, 0]} intensity={0.5} color="#ffffff" />
-      <pointLight
-        position={[0, -0.4, 0]}
-        intensity={glowIntensity}
-        color={weldPoolColor}
-        distance={2}
-        decay={2}
-      />
-
-      {/* Torch assembly (same as TorchViz3D) */}
-      <group ref={torchGroupRef} position={[0, 0.4, 0]}>
-        <mesh castShadow receiveShadow position={[0, 0, 0]}>
-          <cylinderGeometry args={[0.05, 0.045, 0.9, 32]} />
-          <meshStandardMaterial
-            color="#2a2a2a"
-            metalness={0.9}
-            roughness={0.2}
-            envMapIntensity={1.5}
-          />
-        </mesh>
-        <mesh castShadow receiveShadow position={[0, 0.1, 0]}>
-          <cylinderGeometry args={[0.052, 0.052, 0.3, 32]} />
-          <meshStandardMaterial color="#1a1a1a" metalness={0.3} roughness={0.8} />
-        </mesh>
-        <mesh castShadow receiveShadow position={[0, -0.5, 0]}>
-          <coneGeometry args={[0.08, 0.15, 32]} />
-          <meshStandardMaterial
-            color="#3a3a3a"
-            metalness={0.95}
-            roughness={0.15}
-            envMapIntensity={2}
-          />
-        </mesh>
-        <mesh castShadow position={[0, -0.6, 0]}>
-          <sphereGeometry args={[0.12, 32, 32]} />
-          <meshStandardMaterial
-            color={weldPoolColor}
-            emissive={weldPoolColor}
-            emissiveIntensity={glowIntensity}
-            metalness={0.8}
-            roughness={0.1}
-            envMapIntensity={3}
-          />
-        </mesh>
-        <mesh position={[0, -0.6, 0]}>
-          <sphereGeometry args={[0.18, 32, 32]} />
-          <meshBasicMaterial
-            color={weldPoolColor}
-            transparent
-            opacity={0.15}
-            side={THREE.BackSide}
-          />
-        </mesh>
-      </group>
+      <TorchSceneContent angle={angle} temp={temp} />
 
       {/* Workpiece — thermal or flat */}
       <group position={[0, WORKPIECE_GROUP_Y, 0]}>
@@ -249,7 +158,7 @@ function SceneContent({
         far={1}
       />
 
-      <Environment preset="warehouse" />
+      <Environment preset="city" />
     </>
   );
 }

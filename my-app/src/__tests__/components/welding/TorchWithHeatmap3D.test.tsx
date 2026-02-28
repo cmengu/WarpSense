@@ -16,6 +16,11 @@ import TorchWithHeatmap3D, {
 import { WORKPIECE_BASE_Y } from '@/constants/welding3d';
 import { THERMAL_MIN_TEMP, THERMAL_MAX_TEMP } from '@/constants/thermal';
 
+// Mock RectAreaLightUniformsLib — TorchSceneContent imports it; ESM module, Jest doesn't transform
+jest.mock('three/addons/lights/RectAreaLightUniformsLib.js', () => ({
+  RectAreaLightUniformsLib: { init: () => {} },
+}));
+
 jest.mock('@react-three/fiber', () => ({
   Canvas: (props: {
     onCreated?: (state: { gl: { domElement: HTMLCanvasElement } }) => void;
