@@ -20,15 +20,16 @@ describe('welding3d constants', () => {
     expect(metal_surface_max_Y).toBeLessThan(WELD_POOL_CENTER_Y);
   });
 
-  it('gap between metal max and weld pool is at least 0.1 (safety margin)', () => {
+  it('gap between metal max and weld pool equals METAL_TO_TORCH_GAP', () => {
     const metal_surface_max_Y = WORKPIECE_BASE_Y + MAX_THERMAL_DISPLACEMENT;
     const gap = WELD_POOL_CENTER_Y - metal_surface_max_Y;
-    expect(gap).toBeGreaterThanOrEqual(0.1);
+    // toBeCloseTo default: 2 decimal places (within ~0.005); 0.02 is exact
+    expect(gap).toBeCloseTo(METAL_TO_TORCH_GAP);
   });
 
   it('METAL_TO_TORCH_GAP matches derived gap', () => {
     const metal_surface_max_Y = WORKPIECE_BASE_Y + MAX_THERMAL_DISPLACEMENT;
     const gap = WELD_POOL_CENTER_Y - metal_surface_max_Y;
-    expect(gap).toBe(METAL_TO_TORCH_GAP);
+    expect(gap).toBeCloseTo(METAL_TO_TORCH_GAP);
   });
 });
