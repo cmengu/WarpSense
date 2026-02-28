@@ -92,7 +92,7 @@ function SceneContent({ angle, temp }: SceneContentProps) {
         far={1}
       />
 
-      <Environment preset="warehouse" />
+      <Environment preset="city" />
     </>
   );
 }
