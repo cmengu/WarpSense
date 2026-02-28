@@ -6,8 +6,8 @@ import { ComparePageInner } from './page';
 
 jest.mock('@/components/welding/TorchWithHeatmap3D', () => ({
   __esModule: true,
-  default: ({ label }: { label?: string }) => (
-    <div data-testid="torch-3d" data-label={label ?? ''} />
+  default: ({ label, labelPosition }: { label?: string; labelPosition?: string }) => (
+    <div data-testid="torch-3d" data-label={label ?? ''} data-label-position={labelPosition ?? ''} />
   ),
 }));
 
@@ -156,5 +156,19 @@ it('session B torch receives correct label', async () => {
     const torches = screen.getAllByTestId('torch-3d');
     const labels = torches.map((el) => el.getAttribute('data-label'));
     expect(labels).toContain('Session B (sess_novice_001)');
+  });
+});
+
+it('session A torch receives labelPosition=outside', async () => {
+  fetchSession
+    .mockResolvedValueOnce(SESSION_A)
+    .mockResolvedValueOnce(SESSION_B);
+  renderComparePage('sess_expert_001', 'sess_novice_001');
+  await waitForLoad();
+  await waitFor(() => {
+    const torches = screen.getAllByTestId('torch-3d');
+    expect(torches).toHaveLength(2);
+    expect(torches[0].getAttribute('data-label-position')).toBe('outside');
+    expect(torches[1].getAttribute('data-label-position')).toBe('');
   });
 });

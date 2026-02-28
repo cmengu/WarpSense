@@ -469,6 +469,7 @@ export function ComparePageInner({
                   angle={getFrameAtTimestamp(sessionA.frames, currentTimestamp)?.angle_degrees ?? 45}
                   temp={extractCenterTemperatureWithCarryForward(sessionA.frames, currentTimestamp)}
                   label={`Session A (${sessionIdA})`}
+                  labelPosition="outside"
                   frames={frameDataA.thermal_frames}
                   activeTimestamp={currentTimestamp}
                   maxTemp={sharedMaxTemp}
