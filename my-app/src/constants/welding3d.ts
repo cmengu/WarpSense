@@ -20,7 +20,7 @@ export const WELD_POOL_CENTER_Y = TORCH_GROUP_Y + WELD_POOL_OFFSET_Y; // -0.2
 export const MAX_THERMAL_DISPLACEMENT = 0.5;
 
 /** Desired gap between metal max surface and weld pool center (world units). */
-export const METAL_TO_TORCH_GAP = 0.15;
+export const METAL_TO_TORCH_GAP = 0.02;
 
 /** Workpiece base Y. Metal surface max = this + MAX_THERMAL_DISPLACEMENT. Must be < WELD_POOL_CENTER_Y - MAX_THERMAL_DISPLACEMENT. */
 export const WORKPIECE_BASE_Y =
