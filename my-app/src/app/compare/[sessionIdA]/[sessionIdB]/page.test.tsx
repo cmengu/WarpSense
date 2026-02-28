@@ -67,12 +67,16 @@ const makeFrame = (ts: number, angle = 45) => ({
 const FRAME_A = makeFrame(0, 45);
 const FRAME_B = makeFrame(0, 50);
 
+/** Canonical compare session IDs — aluminium format for consistency across mocks and demo. */
+export const COMPARE_SESSION_ID_A = 'sess_expert_aluminium_001_001';
+export const COMPARE_SESSION_ID_B = 'sess_novice_aluminium_001_001';
+
 const SESSION_A = {
-  session_id: 'sess_expert_001',
+  session_id: COMPARE_SESSION_ID_A,
   frames: [FRAME_A],
 };
 const SESSION_B = {
-  session_id: 'sess_novice_001',
+  session_id: COMPARE_SESSION_ID_B,
   frames: [FRAME_B],
 };
 
@@ -81,7 +85,7 @@ const SESSION_B = {
  * In Jest, use(promise) suspends and never resolves; ComparePageInner
  * is exported for testing so we can test the 3D block logic.
  */
-function renderComparePage(idA = 'sess_expert_001', idB = 'sess_novice_001') {
+function renderComparePage(idA = COMPARE_SESSION_ID_A, idB = COMPARE_SESSION_ID_B) {
   return render(<ComparePageInner sessionIdA={idA} sessionIdB={idB} />);
 }
 
@@ -97,7 +101,7 @@ beforeEach(() => jest.clearAllMocks());
 
 it('does not render torch block when sessionA frames are empty', async () => {
   fetchSession
-    .mockResolvedValueOnce({ session_id: 'sess_expert_001', frames: [] })
+    .mockResolvedValueOnce({ session_id: COMPARE_SESSION_ID_A, frames: [] })
     .mockResolvedValueOnce(SESSION_B);
   renderComparePage();
   await waitForLoad();
@@ -107,7 +111,7 @@ it('does not render torch block when sessionA frames are empty', async () => {
 it('does not render torch block when sessionB frames are empty', async () => {
   fetchSession
     .mockResolvedValueOnce(SESSION_A)
-    .mockResolvedValueOnce({ session_id: 'sess_novice_001', frames: [] });
+    .mockResolvedValueOnce({ session_id: COMPARE_SESSION_ID_B, frames: [] });
   renderComparePage();
   await waitForLoad();
   expect(screen.queryAllByTestId('torch-3d')).toHaveLength(0);
@@ -115,8 +119,8 @@ it('does not render torch block when sessionB frames are empty', async () => {
 
 it('does not render torch block when both sessions have empty frames', async () => {
   fetchSession
-    .mockResolvedValueOnce({ session_id: 'sess_expert_001', frames: [] })
-    .mockResolvedValueOnce({ session_id: 'sess_novice_001', frames: [] });
+    .mockResolvedValueOnce({ session_id: COMPARE_SESSION_ID_A, frames: [] })
+    .mockResolvedValueOnce({ session_id: COMPARE_SESSION_ID_B, frames: [] });
   renderComparePage();
   await waitForLoad();
   expect(screen.queryAllByTestId('torch-3d')).toHaveLength(0);
@@ -137,12 +141,12 @@ it('session A torch receives correct label', async () => {
   fetchSession
     .mockResolvedValueOnce(SESSION_A)
     .mockResolvedValueOnce(SESSION_B);
-  renderComparePage('sess_expert_001', 'sess_novice_001');
+  renderComparePage();
   await waitForLoad();
   await waitFor(() => {
     const torches = screen.getAllByTestId('torch-3d');
     const labels = torches.map((el) => el.getAttribute('data-label'));
-    expect(labels).toContain('Session A (sess_expert_001)');
+    expect(labels).toContain(`Session A (${COMPARE_SESSION_ID_A})`);
   });
 });
 
@@ -150,25 +154,25 @@ it('session B torch receives correct label', async () => {
   fetchSession
     .mockResolvedValueOnce(SESSION_A)
     .mockResolvedValueOnce(SESSION_B);
-  renderComparePage('sess_expert_001', 'sess_novice_001');
+  renderComparePage();
   await waitForLoad();
   await waitFor(() => {
     const torches = screen.getAllByTestId('torch-3d');
     const labels = torches.map((el) => el.getAttribute('data-label'));
-    expect(labels).toContain('Session B (sess_novice_001)');
+    expect(labels).toContain(`Session B (${COMPARE_SESSION_ID_B})`);
   });
 });
 
-it('session A torch receives labelPosition=outside', async () => {
+it('both torches receive labelPosition=outside', async () => {
   fetchSession
     .mockResolvedValueOnce(SESSION_A)
     .mockResolvedValueOnce(SESSION_B);
-  renderComparePage('sess_expert_001', 'sess_novice_001');
+  renderComparePage();
   await waitForLoad();
   await waitFor(() => {
     const torches = screen.getAllByTestId('torch-3d');
     expect(torches).toHaveLength(2);
     expect(torches[0].getAttribute('data-label-position')).toBe('outside');
-    expect(torches[1].getAttribute('data-label-position')).toBe('');
+    expect(torches[1].getAttribute('data-label-position')).toBe('outside');
   });
 });

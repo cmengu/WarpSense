@@ -40,7 +40,7 @@ function CompareForm() {
           Enter two session IDs to compare 3D torch visualizations and session alerts.
         </p>
         <Link
-          href="/compare/sess_expert_001/sess_novice_001"
+          href="/compare/sess_expert_aluminium_001_001/sess_novice_aluminium_001_001"
           className="mb-6 inline-block px-4 py-3 rounded-md bg-blue-500 text-white text-sm font-medium hover:bg-blue-600 transition-colors"
         >
           Expert vs Novice — Quick demo
@@ -66,7 +66,7 @@ function CompareForm() {
               type="text"
               value={sessionIdA}
               onChange={(e) => setSessionIdA(e.target.value)}
-              placeholder="e.g. sess_expert_001"
+              placeholder="e.g. sess_expert_aluminium_001_001"
               className="w-full px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-900 text-black dark:text-zinc-100 placeholder:text-zinc-400"
             />
           </div>
@@ -82,7 +82,7 @@ function CompareForm() {
               type="text"
               value={sessionIdB}
               onChange={(e) => setSessionIdB(e.target.value)}
-              placeholder="e.g. sess_novice_001"
+              placeholder="e.g. sess_novice_aluminium_001_001"
               className="w-full px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-900 text-black dark:text-zinc-100 placeholder:text-zinc-400"
             />
           </div>
