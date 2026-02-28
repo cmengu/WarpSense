@@ -13,7 +13,12 @@ import { render, screen, act } from '@testing-library/react';
 import TorchWithHeatmap3D, {
   WORKPIECE_GROUP_Y,
 } from '@/components/welding/TorchWithHeatmap3D';
-import { WORKPIECE_BASE_Y } from '@/constants/welding3d';
+import {
+  WORKPIECE_BASE_Y,
+  WELD_POOL_CENTER_Y,
+  MAX_THERMAL_DISPLACEMENT,
+  METAL_TO_TORCH_GAP,
+} from '@/constants/welding3d';
 import { THERMAL_MIN_TEMP, THERMAL_MAX_TEMP } from '@/constants/thermal';
 
 // Mock RectAreaLightUniformsLib — TorchSceneContent imports it; ESM module, Jest doesn't transform
@@ -163,8 +168,9 @@ describe('TorchWithHeatmap3D', () => {
 
   describe('TorchWithHeatmap3D constants application', () => {
     it('workpiece group uses WORKPIECE_BASE_Y from welding3d', () => {
+      const expected = WELD_POOL_CENTER_Y - MAX_THERMAL_DISPLACEMENT - METAL_TO_TORCH_GAP;
       expect(WORKPIECE_GROUP_Y).toBe(WORKPIECE_BASE_Y);
-      expect(WORKPIECE_GROUP_Y).toBe(-0.85);
+      expect(WORKPIECE_GROUP_Y).toBeCloseTo(expected);
     });
   });
 
