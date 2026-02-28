@@ -21,8 +21,20 @@ import {
   PerspectiveCamera,
 } from '@react-three/drei';
 import * as THREE from 'three';
+import { RectAreaLightUniformsLib } from 'three/addons/lights/RectAreaLightUniformsLib.js';
 import { getArcColor, getTempReadoutColor } from '@/utils/torchColors';
-import { TORCH_GROUP_Y, WELD_POOL_OFFSET_Y, ANGLE_RING_Y, GRID_Y, CONTACT_SHADOWS_Y } from '@/constants/welding3d';
+import {
+  TORCH_GROUP_Y,
+  WELD_POOL_OFFSET_Y,
+  WELD_POOL_CENTER_Y,
+  ANGLE_RING_Y,
+  GRID_Y,
+  CONTACT_SHADOWS_Y,
+} from '@/constants/welding3d';
+
+if (typeof window !== 'undefined') {
+  RectAreaLightUniformsLib.init();
+}
 
 const orbitron = Orbitron({ subsets: ['latin'], weight: ['600', '700'] });
 const jetbrainsMono = JetBrains_Mono({ subsets: ['latin'] });
@@ -63,9 +75,16 @@ function SceneContent({ angle, temp }: SceneContentProps) {
   return (
     <>
       <ambientLight intensity={0.3} />
+      <rectAreaLight
+        position={[0, 3, -1]}
+        width={4}
+        height={0.4}
+        intensity={1}
+        color="#ffffff"
+      />
       <directionalLight
-        position={[10, 10, 5]}
-        intensity={1.5}
+        position={[4, 8, 3]}
+        intensity={2.2}
         castShadow
         shadow-mapSize-width={1024}
         shadow-mapSize-height={1024}
@@ -75,11 +94,18 @@ function SceneContent({ angle, temp }: SceneContentProps) {
         shadow-camera-top={10}
         shadow-camera-bottom={-10}
       />
-      <directionalLight position={[-5, 3, -5]} intensity={0.8} color="#6366f1" />
+      <directionalLight position={[-4, 2, -4]} intensity={0.15} color="#ffffff" />
       <pointLight position={[0, 5, 0]} intensity={0.5} color="#ffffff" />
       <pointLight
         position={[0, -0.4, 0]}
         intensity={glowIntensity}
+        color={arcColor}
+        distance={2}
+        decay={2}
+      />
+      <pointLight
+        position={[0, WELD_POOL_CENTER_Y - 0.05, 0.1]}
+        intensity={0.3}
         color={arcColor}
         distance={2}
         decay={2}

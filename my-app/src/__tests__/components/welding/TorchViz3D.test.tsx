@@ -8,6 +8,11 @@
 import { render, screen, waitFor, act } from '@testing-library/react';
 import TorchViz3D from '@/components/welding/TorchViz3D';
 
+// Mock RectAreaLightUniformsLib — ESM module, Jest doesn't transform node_modules/three
+jest.mock('three/addons/lights/RectAreaLightUniformsLib.js', () => ({
+  RectAreaLightUniformsLib: { init: () => {} },
+}));
+
 // Mock R3F Canvas — avoid WebGL in jsdom; invokes onCreated + dispatches contextlost only when __TORCHVIZ_TEST_CONTEXT_LOSS is set
 jest.mock('@react-three/fiber', () => ({
   Canvas: (props: { onCreated?: (state: { gl: { domElement: HTMLCanvasElement } }) => void }) => {
