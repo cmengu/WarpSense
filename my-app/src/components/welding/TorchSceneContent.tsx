@@ -94,13 +94,13 @@ export function TorchSceneContent({ angle, temp }: TorchSceneContentProps) {
         <group rotation={[-0.45, 0, 0]}>
           <group rotation={[-0.35, 0, 0]}>
             <group rotation={[-0.15, 0, 0]}>
-              {/* Handle barrel — gunmetal */}
+              {/* Handle barrel — gunmetal; roughness 0.28 for visible specular on upper surface */}
               <mesh castShadow receiveShadow position={[0, 0, 0]}>
                 <cylinderGeometry args={[0.05, 0.045, 0.9, 32]} />
                 <meshStandardMaterial
                   color="#2a2a2a"
                   metalness={0.9}
-                  roughness={0.18}
+                  roughness={0.28}
                   envMapIntensity={1.5}
                 />
               </mesh>
