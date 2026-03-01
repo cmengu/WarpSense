@@ -3,8 +3,8 @@
 /**
  * Welder Roster — 10 welders with latest scores.
  *
- * Fetches latest (and second-latest for trend badge) score per welder.
- * Uses Promise.allSettled with 5s timeout so one failure doesn't block others.
+ * Fetches latest score per welder. Uses Promise.allSettled with 5s timeout
+ * so one failure doesn't block others. Cards sorted by score ascending (worst first).
  *
  * Pre-flight: Verify WELDERS matches WELDER_ARCHETYPES (backend/data/mock_welders.py).
  * Prerequisite: Run seed before opening dashboard.
@@ -18,6 +18,8 @@ import type { SessionScore } from "@/lib/api";
 // ---------------------------------------------------------------------------
 // Constants — Must match WELDER_ARCHETYPES (backend/data/mock_welders.py)
 // ---------------------------------------------------------------------------
+
+const EXPERT_SESSION_ID = "sess_expert-benchmark_005";
 
 interface Welder {
   id: string;
@@ -42,11 +44,6 @@ function getLatestSessionId(w: Welder): string {
   return `sess_${w.id}_${String(w.sessionCount).padStart(3, "0")}`;
 }
 
-function getSecondLatestSessionId(w: Welder): string | null {
-  if (w.sessionCount < 2) return null;
-  return `sess_${w.id}_${String(w.sessionCount - 1).padStart(3, "0")}`;
-}
-
 const FETCH_TIMEOUT_MS = 5000;
 
 async function fetchScoreWithTimeout(sessionId: string): Promise<SessionScore | null> {
@@ -60,21 +57,17 @@ async function fetchScoreWithTimeout(sessionId: string): Promise<SessionScore | 
   }
 }
 
-function getBadge(
-  score: number | null,
-  secondScore: number | null
-): "on_track" | "needs_attention" | "neutral" | null {
-  if (score === null || secondScore === null) return null;
-  const diff = score - secondScore;
-  if (Math.abs(diff) <= 2) return "neutral";
-  if (diff > 0) return "on_track";
-  return "needs_attention";
+/** Score-based badge colour: red <60, amber 60–80, green ≥80 */
+function getScoreBadgeClass(score: number | null): string {
+  if (score === null) return "";
+  if (score < 60) return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300";
+  if (score < 80) return "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300";
+  return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300";
 }
 
 interface WelderScoreResult {
   welder: Welder;
   score: number | null;
-  secondScore: number | null;
   error: unknown;
 }
 
@@ -92,39 +85,25 @@ export default function DashboardPage() {
     let mounted = true;
     setLoading(true);
 
-    const fetches: { welder: Welder; sessionId: string; isLatest: boolean }[] = [];
-    WELDERS.forEach((w) => {
-      fetches.push({ welder: w, sessionId: getLatestSessionId(w), isLatest: true });
-      const second = getSecondLatestSessionId(w);
-      if (second) fetches.push({ welder: w, sessionId: second, isLatest: false });
-    });
+    const fetches = WELDERS.map((w) => ({
+      welder: w,
+      sessionId: getLatestSessionId(w),
+    }));
 
     Promise.allSettled(
       fetches.map((f) => fetchScoreWithTimeout(f.sessionId).catch(() => null))
     ).then((results) => {
       if (!mounted) return;
-      const byWelder = new Map<
-        string,
-        { latest: number | null; second: number | null }
-      >();
-      WELDERS.forEach((w) => byWelder.set(w.id, { latest: null, second: null }));
-      fetches.forEach((f, i) => {
-        const r = results[i];
-        const val =
-          r.status === "fulfilled" && r.value != null
-            ? (r.value as SessionScore).total
-            : null;
-        const entry = byWelder.get(f.welder.id)!;
-        if (f.isLatest) entry.latest = val;
-        else entry.second = val;
-      });
       setWelderScores(
-        WELDERS.map((w) => {
-          const { latest, second } = byWelder.get(w.id)!;
+        fetches.map((f, i) => {
+          const r = results[i];
+          const score =
+            r.status === "fulfilled" && r.value != null
+              ? (r.value as SessionScore).total
+              : null;
           return {
-            welder: w,
-            score: latest,
-            secondScore: second,
+            welder: f.welder,
+            score,
             error: null,
           };
         })
@@ -160,6 +139,12 @@ export default function DashboardPage() {
     );
   }
 
+  const sorted = [...welderScores].sort((a, b) => {
+    const sa = a.score ?? Infinity;
+    const sb = b.score ?? Infinity;
+    return sa - sb;
+  });
+
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-black p-8">
       <div className="max-w-4xl">
@@ -168,12 +153,14 @@ export default function DashboardPage() {
         </h1>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          {welderScores.map(({ welder, score, secondScore }) => {
-            const badge = getBadge(score, secondScore);
+          {sorted.map(({ welder, score }) => {
+            const sessionId = getLatestSessionId(welder);
+            const isExpert = welder.id === "expert-benchmark";
+            const badgeClass = getScoreBadgeClass(score);
+
             return (
-              <Link
+              <div
                 key={welder.id}
-                href={`/replay/${getLatestSessionId(welder)}`}
                 className="block p-6 bg-white dark:bg-zinc-900 rounded-lg shadow border border-zinc-200 dark:border-zinc-800 hover:border-blue-500 dark:hover:border-blue-500 transition-colors"
               >
                 <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
@@ -181,7 +168,13 @@ export default function DashboardPage() {
                 </h2>
                 <p className="mt-2 text-sm flex items-center gap-2">
                   {score !== null ? (
-                    <span className="font-bold text-blue-600 dark:text-blue-400">
+                    <span
+                      className={
+                        badgeClass
+                          ? `inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${badgeClass}`
+                          : "font-bold text-blue-600 dark:text-blue-400"
+                      }
+                    >
                       {score}/100
                     </span>
                   ) : (
@@ -189,26 +182,30 @@ export default function DashboardPage() {
                       Score unavailable
                     </span>
                   )}
-                  {badge === "on_track" && (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
-                      On track
-                    </span>
-                  )}
-                  {badge === "needs_attention" && (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
-                      Needs attention
-                    </span>
-                  )}
-                  {badge === "neutral" && (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
-                      Neutral
-                    </span>
-                  )}
                 </p>
-                <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                  View report →
-                </p>
-              </Link>
+                <div className="mt-2 flex flex-col gap-1">
+                  <Link
+                    href={`/replay/${sessionId}`}
+                    className="text-xs text-zinc-500 dark:text-zinc-400 hover:underline"
+                  >
+                    View report →
+                  </Link>
+                  {!isExpert && (
+                    <Link
+                      href={`/compare/${sessionId}/${EXPERT_SESSION_ID}`}
+                      className="text-xs text-zinc-500 dark:text-zinc-400 hover:underline"
+                    >
+                      Compare to expert →
+                    </Link>
+                  )}
+                  <Link
+                    href={`/seagull/welder/${welder.id}`}
+                    className="text-xs text-zinc-500 dark:text-zinc-400 hover:underline"
+                  >
+                    Full report →
+                  </Link>
+                </div>
+              </div>
             );
           })}
         </div>
