@@ -5,6 +5,9 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: process.cwd(),
   },
+  async redirects() {
+    return [{ source: "/seagull", destination: "/dashboard", permanent: false }];
+  },
   async headers() {
     return [
       {
