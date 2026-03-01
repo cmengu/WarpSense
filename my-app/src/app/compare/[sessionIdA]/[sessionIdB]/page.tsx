@@ -150,18 +150,12 @@ export function ComparePageInner({
   }, [alertsA, alertsB, sessionA, sessionB, lastTimestamp]);
 
   const floorTs = currentTimestamp ?? firstTimestamp ?? 0;
-  const visibleAlertsA = useMemo(
-    () =>
-      alertsA
-        .filter((a) => a.timestamp_ms <= floorTs)
-        .sort((a, b) => b.timestamp_ms - a.timestamp_ms),
+  const firedAlertsA = useMemo(
+    () => alertsA.filter((a) => a.timestamp_ms <= floorTs),
     [alertsA, floorTs]
   );
-  const visibleAlertsB = useMemo(
-    () =>
-      alertsB
-        .filter((a) => a.timestamp_ms <= floorTs)
-        .sort((a, b) => b.timestamp_ms - a.timestamp_ms),
+  const firedAlertsB = useMemo(
+    () => alertsB.filter((a) => a.timestamp_ms <= floorTs),
     [alertsB, floorTs]
   );
 
@@ -290,10 +284,10 @@ export function ComparePageInner({
 
   useEffect(() => {
     const idsA = new Set(
-      visibleAlertsA.map((a) => `${a.frame_index}-${a.timestamp_ms}-${a.rule_triggered}`)
+      firedAlertsA.map((a) => `${a.frame_index}-${a.timestamp_ms}-${a.rule_triggered}`)
     );
     const idsB = new Set(
-      visibleAlertsB.map((a) => `${a.frame_index}-${a.timestamp_ms}-${a.rule_triggered}`)
+      firedAlertsB.map((a) => `${a.frame_index}-${a.timestamp_ms}-${a.rule_triggered}`)
     );
     const newInA = [...idsA].filter((id) => !prevVisibleIdsA.current.has(id));
     const newInB = [...idsB].filter((id) => !prevVisibleIdsB.current.has(id));
@@ -306,13 +300,13 @@ export function ComparePageInner({
     }
 
     const hasNewCriticalA = newInA.some((id) => {
-      const a = visibleAlertsA.find(
+      const a = firedAlertsA.find(
         (x) => `${x.frame_index}-${x.timestamp_ms}-${x.rule_triggered}` === id
       );
       return a?.severity === 'critical';
     });
     const hasNewCriticalB = newInB.some((id) => {
-      const a = visibleAlertsB.find(
+      const a = firedAlertsB.find(
         (x) => `${x.frame_index}-${x.timestamp_ms}-${x.rule_triggered}` === id
       );
       return a?.severity === 'critical';
@@ -327,7 +321,7 @@ export function ComparePageInner({
       timers.push(setTimeout(() => setColumnBCriticalFlash(false), 800));
     }
     return () => timers.forEach(clearTimeout);
-  }, [visibleAlertsA, visibleAlertsB]);
+  }, [firedAlertsA, firedAlertsB]);
 
   if (loading) {
     return (
@@ -503,14 +497,14 @@ export function ComparePageInner({
               Session A: {alertsErrorA != null ? (
                 <span className="text-amber-600 dark:text-amber-500">Alerts unavailable</span>
               ) : (
-                `${visibleAlertsA.length} alerts`
+                `${firedAlertsA.length} alerts`
               )}
             </div>
             <div className="text-sm text-zinc-600 dark:text-zinc-400">
               Session B: {alertsErrorB != null ? (
                 <span className="text-amber-600 dark:text-amber-500">Alerts unavailable</span>
               ) : (
-                `${visibleAlertsB.length} alerts`
+                `${firedAlertsB.length} alerts`
               )}
             </div>
           </div>
@@ -522,18 +516,16 @@ export function ComparePageInner({
                   : 'border-zinc-200 dark:border-zinc-700'
               }`}
             >
-              <div className="space-y-2">
-                {visibleAlertsA.map((alert) => (
-                  <AlertCard
-                    key={`${alert.frame_index}-${alert.timestamp_ms}-${alert.rule_triggered}`}
-                    alert={alert}
-                    onSeek={() => {
-                      setCurrentTimestamp(alert.timestamp_ms);
-                      setIsPlaying(false);
-                    }}
-                  />
-                ))}
-              </div>
+              <AlertFeedColumn
+                alerts={alertsA}
+                currentTimestamp={floorTs}
+                onSeek={(ts) => {
+                  setCurrentTimestamp(ts);
+                  setIsPlaying(false);
+                }}
+                error={alertsErrorA}
+                label="Session A"
+              />
             </div>
             <div
               className={`rounded-lg border p-4 transition-all ${
@@ -542,18 +534,16 @@ export function ComparePageInner({
                   : 'border-zinc-200 dark:border-zinc-700'
               }`}
             >
-              <div className="space-y-2">
-                {visibleAlertsB.map((alert) => (
-                  <AlertCard
-                    key={`${alert.frame_index}-${alert.timestamp_ms}-${alert.rule_triggered}`}
-                    alert={alert}
-                    onSeek={() => {
-                      setCurrentTimestamp(alert.timestamp_ms);
-                      setIsPlaying(false);
-                    }}
-                  />
-                ))}
-              </div>
+              <AlertFeedColumn
+                alerts={alertsB}
+                currentTimestamp={floorTs}
+                onSeek={(ts) => {
+                  setCurrentTimestamp(ts);
+                  setIsPlaying(false);
+                }}
+                error={alertsErrorB}
+                label="Session B"
+              />
             </div>
           </div>
         </div>
@@ -562,35 +552,100 @@ export function ComparePageInner({
   );
 }
 
-function AlertCard({
-  alert,
+/** Pop-in pattern: only fired alerts shown. Three states: active, corrected, uncorrected. */
+function AlertFeedColumn({
+  alerts,
+  currentTimestamp,
   onSeek,
+  error,
+  label,
 }: {
-  alert: AlertPayload;
-  onSeek: () => void;
+  alerts: AlertPayload[];
+  currentTimestamp: number | null;
+  onSeek: (ts: number) => void;
+  error: string | null;
+  label: string;
 }) {
-  const label = getRuleLabel(alert.rule_triggered);
-  const isCritical = alert.severity === 'critical';
+  const firedAlerts = alerts
+    .filter((a) => currentTimestamp != null && a.timestamp_ms <= currentTimestamp)
+    .sort((a, b) => a.timestamp_ms - b.timestamp_ms);
+
+  if (error) return <div className="p-2 text-xs text-amber-500">{error}</div>;
+
   return (
-    <button
-      type="button"
-      onClick={onSeek}
-      className="w-full text-left p-3 rounded border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer transition-colors"
-    >
-      <div className="flex items-center gap-2 mb-1">
-        <span
-          className={`text-xs font-medium px-2 py-0.5 rounded ${
-            isCritical
-              ? 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-200'
-              : 'bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-200'
-          }`}
-        >
-          {alert.severity}
-        </span>
-        <span className="text-xs text-zinc-500">⚡ Session alert</span>
+    <div className="flex flex-col">
+      <div className="text-[7px] font-semibold tracking-[0.28em] uppercase text-zinc-500 mb-2">
+        {label}
       </div>
-      <div className="font-medium text-sm text-black dark:text-zinc-100">{label}</div>
-      <div className="text-xs text-zinc-600 dark:text-zinc-400">{alert.message}</div>
-    </button>
+
+      {firedAlerts.length === 0 ? (
+        <div className="text-[9px] text-zinc-500">No alerts yet</div>
+      ) : (
+        firedAlerts.map((alert) => {
+          const elapsed =
+            currentTimestamp != null
+              ? (currentTimestamp - alert.timestamp_ms) / 1000
+              : 0;
+
+          const correctedNow =
+            alert.corrected === true &&
+            alert.corrected_in_seconds != null &&
+            elapsed >= alert.corrected_in_seconds;
+
+          const uncorrected = !correctedNow && elapsed >= 2;
+
+          const dotClass = correctedNow
+            ? 'bg-green-500'
+            : uncorrected
+              ? 'bg-red-500 opacity-50'
+              : 'bg-amber-500';
+
+          return (
+            <button
+              key={alert.frame_index}
+              type="button"
+              onClick={() => onSeek(alert.timestamp_ms)}
+              className={`w-full text-left bg-transparent border-0 border-b border-zinc-800 py-2 cursor-pointer flex gap-2.5 transition-opacity duration-400 ${uncorrected ? 'opacity-50' : 'opacity-100'}`}
+            >
+              {/* Dot */}
+              <div className="shrink-0 pt-0.5">
+                <div className={`w-[7px] h-[7px] rounded-full transition-colors duration-300 ${dotClass}`} />
+              </div>
+
+              <div className="flex-1">
+                {/* Rule + counter */}
+                <div className="flex justify-between items-baseline">
+                  <span className={`text-[9px] font-semibold tracking-[0.16em] uppercase ${correctedNow ? 'text-green-500' : uncorrected ? 'text-red-500' : 'text-amber-500'}`}>
+                    {getRuleLabel(alert.rule_triggered)}
+                  </span>
+                  {!uncorrected && (
+                    <span className={`text-[8px] ${correctedNow ? 'text-green-500' : 'text-zinc-500'}`}>
+                      {correctedNow
+                        ? `+${alert.corrected_in_seconds!.toFixed(1)}s`
+                        : `+${elapsed.toFixed(1)}s`}
+                    </span>
+                  )}
+                </div>
+
+                {/* Message */}
+                <div className="text-[7.5px] text-zinc-500 mt-0.5">{alert.message}</div>
+
+                {/* Footer */}
+                <div className="mt-0.5">
+                  {correctedNow && (
+                    <span className="text-[7.5px] tracking-[0.14em] uppercase text-green-500">
+                      ✓ corrected in {alert.corrected_in_seconds!.toFixed(1)}s
+                    </span>
+                  )}
+                  {uncorrected && (
+                    <span className="text-[7.5px] text-red-500">✗ not corrected</span>
+                  )}
+                </div>
+              </div>
+            </button>
+          );
+        })
+      )}
+    </div>
   );
 }
