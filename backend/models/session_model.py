@@ -41,6 +41,7 @@ class SessionScore(BaseModel):
 
 class WeldingSession(BaseModel):
     """DEPRECATED. Use models.session.Session for canonical time-series format."""
+
     meta: SessionMeta
     heat_map: Optional[List[HeatMapPoint]] = None
     torch_angle_deg: Optional[List[float]] = None

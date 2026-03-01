@@ -2,6 +2,7 @@
 Canonical enums shared across all WarpSense services.
 Import from here — never redefine these enums elsewhere.
 """
+
 from enum import Enum
 
 
