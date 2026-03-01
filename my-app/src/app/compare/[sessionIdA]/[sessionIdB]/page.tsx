@@ -566,9 +566,13 @@ function AlertFeedColumn({
   error: string | null;
   label: string;
 }) {
-  const firedAlerts = alerts
-    .filter((a) => currentTimestamp != null && a.timestamp_ms <= currentTimestamp)
-    .sort((a, b) => a.timestamp_ms - b.timestamp_ms);
+  const firedAlerts = useMemo(
+    () =>
+      alerts
+        .filter((a) => currentTimestamp != null && a.timestamp_ms <= currentTimestamp)
+        .sort((a, b) => b.timestamp_ms - a.timestamp_ms),
+    [alerts, currentTimestamp]
+  );
 
   if (error) return <div className="p-2 text-xs text-amber-500">{error}</div>;
 
@@ -605,7 +609,7 @@ function AlertFeedColumn({
               key={alert.frame_index}
               type="button"
               onClick={() => onSeek(alert.timestamp_ms)}
-              className={`w-full text-left bg-transparent border-0 border-b border-zinc-800 py-2 cursor-pointer flex gap-2.5 transition-opacity duration-400 ${uncorrected ? 'opacity-50' : 'opacity-100'}`}
+              className={`w-full text-left bg-transparent border-0 border-b border-zinc-800 py-2 cursor-pointer flex gap-2.5 transition-opacity duration-500 ${uncorrected ? 'opacity-50' : 'opacity-100'}`}
             >
               {/* Dot */}
               <div className="shrink-0 pt-0.5">
@@ -621,7 +625,7 @@ function AlertFeedColumn({
                   {!uncorrected && (
                     <span className={`text-[8px] ${correctedNow ? 'text-green-500' : 'text-zinc-500'}`}>
                       {correctedNow
-                        ? `+${alert.corrected_in_seconds!.toFixed(1)}s`
+                        ? `+${(alert.corrected_in_seconds ?? 0).toFixed(1)}s`
                         : `+${elapsed.toFixed(1)}s`}
                     </span>
                   )}
@@ -634,7 +638,7 @@ function AlertFeedColumn({
                 <div className="mt-0.5">
                   {correctedNow && (
                     <span className="text-[7.5px] tracking-[0.14em] uppercase text-green-500">
-                      ✓ corrected in {alert.corrected_in_seconds!.toFixed(1)}s
+                      ✓ corrected in {(alert.corrected_in_seconds ?? 0).toFixed(1)}s
                     </span>
                   )}
                   {uncorrected && (
