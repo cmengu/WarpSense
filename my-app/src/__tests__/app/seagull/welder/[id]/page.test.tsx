@@ -4,7 +4,7 @@
  * Validates:
  *   - Renders score header, AI summary, heatmaps, feedback, chart when data loads
  *   - Error state with back link when fetch fails
- *   - Back nav link to /seagull
+ *   - Back nav link to /dashboard
  *   - Fetches primary session, expert (sess_expert-benchmark_005), score, historical scores
  */
 
@@ -183,7 +183,7 @@ describe("WelderReportPage", () => {
       name: /← Back to Team Dashboard/i,
     });
     expect(backLink).toBeInTheDocument();
-    expect(backLink).toHaveAttribute("href", "/seagull");
+    expect(backLink).toHaveAttribute("href", "/dashboard");
   });
 
   it("fetches primary session, expert (sess_expert-benchmark_005), score, and historical scores", async () => {
@@ -293,7 +293,7 @@ describe("WelderReportPage", () => {
     const backLink = screen.getByRole("link", {
       name: /← Back to Team Dashboard/i,
     });
-    expect(backLink).toHaveAttribute("href", "/seagull");
+    expect(backLink).toHaveAttribute("href", "/dashboard");
   });
 
   describe("Export stubs", () => {

@@ -4,12 +4,12 @@
  * Verifies full user paths with mocked APIs:
  *   - Dashboard loads → 10 cards with scores or "Score unavailable"
  *   - WelderReport loads → score, AI summary, heatmaps, feedback, chart
- *   - Back link navigates to /seagull
+ *   - Back link navigates to /dashboard
  *   - Error state when fetch fails → error card with back link
  */
 
 import { render, screen, waitFor } from "@testing-library/react";
-import SeagullDashboardPage from "@/app/seagull/page";
+import DashboardPage from "@/app/(app)/dashboard/page";
 import WelderReportPage from "@/app/seagull/welder/[id]/page";
 
 const mockFetchSession = jest.fn();
@@ -67,7 +67,7 @@ describe("Seagull flow smoke tests", () => {
   });
 
   it("dashboard loads with 10 cards; no crash", async () => {
-    render(<SeagullDashboardPage />);
+    render(<DashboardPage />);
     await waitFor(() => {
       expect(screen.getByText(/Mike Chen/)).toBeInTheDocument();
     });
@@ -87,7 +87,7 @@ describe("Seagull flow smoke tests", () => {
     expect(screen.getByText(/Progress Over Time/)).toBeInTheDocument();
   });
 
-  it("welder report has Back link to /seagull", async () => {
+  it("welder report has Back link to /dashboard", async () => {
     render(<WelderReportPage params={Promise.resolve({ id: "mike-chen" })} />);
     await waitFor(() => {
       expect(screen.getByText(/75\/100/)).toBeInTheDocument();
@@ -95,7 +95,7 @@ describe("Seagull flow smoke tests", () => {
     const backLink = screen.getByRole("link", {
       name: /← Back to Team Dashboard/i,
     });
-    expect(backLink).toHaveAttribute("href", "/seagull");
+    expect(backLink).toHaveAttribute("href", "/dashboard");
   });
 
   it("welder report shows error card with back link when fetch fails", async () => {
@@ -108,6 +108,6 @@ describe("Seagull flow smoke tests", () => {
     const backLink = screen.getByRole("link", {
       name: /← Back to Team Dashboard/i,
     });
-    expect(backLink).toHaveAttribute("href", "/seagull");
+    expect(backLink).toHaveAttribute("href", "/dashboard");
   });
 });

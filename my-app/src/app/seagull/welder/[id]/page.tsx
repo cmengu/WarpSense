@@ -86,6 +86,13 @@ function getLatestSessionId(welderId: string): string {
   return `sess_${welderId}_${String(n).padStart(3, "0")}`;
 }
 
+/** Format duration for PDF meta line (e.g. "4 min 12 sec"). */
+function formatDuration(ms: number): string {
+  const min = Math.floor(ms / 60000);
+  const sec = Math.floor((ms % 60000) / 1000);
+  return `${min} min ${sec} sec`;
+}
+
 
 // ---------------------------------------------------------------------------
 // Local subcomponents (page-specific; not extracted to separate files)
@@ -360,7 +367,7 @@ function WelderReportInner({ welderId }: { welderId: string }) {
   } = useReportSummary(sessionId);
 
   const handleDownloadPDF = useCallback(async () => {
-    if (!report || !score) return;
+    if (!report || !score || !session) return;
     setPdfError(null);
     setPdfLoading(true);
     try {
@@ -380,6 +387,14 @@ function WelderReportInner({ welderId }: { welderId: string }) {
       const chartDataUrl = await captureChartToBase64("trend-chart");
 
       const welderName = toWelderName(displayName);
+
+      const durationMs =
+        session?.frames?.length && session.frames.length >= 2
+          ? (session.frames[session.frames.length - 1]?.timestamp_ms ?? 0) -
+            (session.frames[0]?.timestamp_ms ?? 0)
+          : 0;
+      const duration = durationMs > 0 ? formatDuration(durationMs) : undefined;
+
       const payload = {
         welder: { name: welderName },
         score: { total: score.total, rules: score.rules },
@@ -390,6 +405,11 @@ function WelderReportInner({ welderId }: { welderId: string }) {
         chartDataUrl,
         narrative: narrativeText,
         reportSummary: reportSummary ?? undefined,
+        sessionDate: session?.start_time
+          ? new Date(session.start_time).toLocaleDateString()
+          : undefined,
+        duration,
+        station: "Station —",
       };
 
       const apiUrl = `${getApiBase()}/api/welder-report-pdf`;
@@ -420,7 +440,7 @@ function WelderReportInner({ welderId }: { welderId: string }) {
     } finally {
       setPdfLoading(false);
     }
-  }, [report, score, displayName, sessionId, reportSummary]);
+  }, [report, score, displayName, sessionId, reportSummary, session]);
 
   if (error) {
     return (
@@ -431,7 +451,7 @@ function WelderReportInner({ welderId }: { welderId: string }) {
           </h2>
           <p className="text-violet-800 dark:text-violet-300 mt-2 text-sm">{error}</p>
           <Link
-            href="/seagull"
+            href="/dashboard"
             className="text-blue-600 dark:text-blue-400 underline mt-4 block"
           >
             ← Back to Team Dashboard
@@ -485,7 +505,7 @@ function WelderReportInner({ welderId }: { welderId: string }) {
       }
       backLink={
         <Link
-          href="/seagull"
+          href="/dashboard"
           className="text-blue-600 dark:text-blue-400 hover:underline text-sm"
         >
           ← Back to Team Dashboard
