@@ -243,9 +243,13 @@ function AlertFeedColumn({
   error: string | null;
   label: string;
 }) {
-  const firedAlerts = alerts
-    .filter((a) => currentTimestamp != null && a.timestamp_ms <= currentTimestamp)
-    .sort((a, b) => a.timestamp_ms - b.timestamp_ms);
+  const firedAlerts = useMemo(
+    () =>
+      alerts
+        .filter((a) => currentTimestamp != null && a.timestamp_ms <= currentTimestamp)
+        .sort((a, b) => b.timestamp_ms - a.timestamp_ms),
+    [alerts, currentTimestamp]
+  );
 
   if (error) {
     return (
@@ -361,7 +365,7 @@ function AlertFeedColumn({
                       }}
                     >
                       {correctedNow
-                        ? `+${alert.corrected_in_seconds!.toFixed(1)}s`
+                        ? `+${(alert.corrected_in_seconds ?? 0).toFixed(1)}s`
                         : `+${elapsed.toFixed(1)}s`}
                     </span>
                   )}
@@ -391,7 +395,7 @@ function AlertFeedColumn({
                         textTransform: 'uppercase',
                       }}
                     >
-                      ✓ corrected in {alert.corrected_in_seconds!.toFixed(1)}s
+                      ✓ corrected in {(alert.corrected_in_seconds ?? 0).toFixed(1)}s
                     </span>
                   )}
                   {uncorrected && (
