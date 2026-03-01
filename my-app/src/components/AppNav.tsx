@@ -4,7 +4,7 @@
  * Renders only in (app) layout (dashboard, demo, replay, compare).
  * Landing at / has its own nav; AppNav is omitted via route groups.
  *
- * Home → / (landing), Dashboard → /dashboard, Demo → /demo
+ * Home → / (landing), Dashboard → /dashboard
  */
 
 'use client';
