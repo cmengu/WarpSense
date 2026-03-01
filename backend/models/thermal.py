@@ -63,7 +63,9 @@ class ThermalSnapshot(BaseModel):
 
     @field_validator("readings")
     @classmethod
-    def validate_canonical_directions(cls, value: List[TemperaturePoint]) -> List[TemperaturePoint]:
+    def validate_canonical_directions(
+        cls, value: List[TemperaturePoint]
+    ) -> List[TemperaturePoint]:
         """Each canonical direction must appear exactly once."""
         seen = [r.direction for r in value]
         for direction in THERMAL_DIRECTIONS:
