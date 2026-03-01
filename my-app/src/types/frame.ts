@@ -160,6 +160,12 @@ export interface Frame {
    * Optional — backend sends it; older sessions may lack it.
    */
   travel_speed_mm_per_min?: number | null;
+
+  /**
+   * Heat input in kJ/mm. Backend computes: (Amps × Volts × 60) / (travel_speed_mm_per_min × 1000).
+   * Optional — older sessions may lack it. Chart omits null points; never plots 0 for null.
+   */
+  heat_input_kj_per_mm?: number | null;
 }
 
 // ---------------------------------------------------------------------------
