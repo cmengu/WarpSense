@@ -2,7 +2,7 @@
   "name": "WarpSense Live",
   "short_name": "WarpSense",
   "description": "Live weld quality monitoring for the bay floor",
-  "start_url": "/live",
+  "start_url": "/dashboard",
   "display": "standalone",
   "orientation": "landscape",
   "background_color": "#0a0a0a",
