@@ -51,8 +51,21 @@ describe("DashboardPage (Welder Roster)", () => {
     });
 
     const links = screen.getAllByRole("link");
-    const mikeLink = links.find((l) => l.getAttribute("href") === "/replay/sess_mike-chen_005");
-    expect(mikeLink).toBeDefined();
+    const mikeReplayLink = links.find((l) => l.getAttribute("href") === "/replay/sess_mike-chen_005");
+    expect(mikeReplayLink).toBeDefined();
+  });
+
+  it("links Full report to /seagull/welder/[id]", async () => {
+    render(<DashboardPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Mike Chen/)).toBeInTheDocument();
+    });
+
+    const allLinks = screen.getAllByRole("link");
+    const fullReportLink = allLinks.find((l) => l.getAttribute("href") === "/seagull/welder/mike-chen");
+    expect(fullReportLink).toBeDefined();
+    expect(fullReportLink?.textContent).toMatch(/Full report/);
   });
 
   it("uses Promise.allSettled: one failure shows Score unavailable, others show score", async () => {
@@ -73,21 +86,53 @@ describe("DashboardPage (Welder Roster)", () => {
     expect(screen.getByText(/Score unavailable/)).toBeInTheDocument();
   });
 
-  it("shows badge when score improves (On track)", async () => {
+  it("shows score-based badge colour (green for score ≥80)", async () => {
+    mockFetchScore.mockImplementation(() =>
+      Promise.resolve({ total: 85, rules: [] })
+    );
+
+    render(<DashboardPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Mike Chen/)).toBeInTheDocument();
+    });
+
+    const scoreBadges = screen.getAllByText("85/100");
+    expect(scoreBadges[0]).toHaveClass("bg-green-100");
+  });
+
+  it("sorts cards by score ascending (worst first)", async () => {
     mockFetchScore.mockImplementation((sessionId: string) => {
-      if (sessionId.endsWith("_005")) return Promise.resolve({ total: 80, rules: [] });
-      if (sessionId.endsWith("_004")) return Promise.resolve({ total: 70, rules: [] });
-      return Promise.resolve({ total: 75, rules: [] });
+      if (sessionId === "sess_tom-bradley_003") return Promise.resolve({ total: 55, rules: [] });
+      if (sessionId === "sess_mike-chen_005") return Promise.resolve({ total: 75, rules: [] });
+      return Promise.resolve({ total: 90, rules: [] });
     });
 
     render(<DashboardPage />);
 
     await waitFor(() => {
-      expect(screen.getAllByText(/On track/).length).toBeGreaterThan(0);
+      expect(screen.getByText(/Tom Bradley/)).toBeInTheDocument();
     });
+
+    const cards = screen.getAllByRole("heading", { level: 2 });
+    expect(cards[0]).toHaveTextContent("Tom Bradley");
+    expect(cards[1]).toHaveTextContent("Mike Chen");
   });
 
-  it("calls fetchScore for latest and second-latest sessions", async () => {
+  it("Expert Benchmark card has no Compare to expert link", async () => {
+    render(<DashboardPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Expert Benchmark/)).toBeInTheDocument();
+    });
+
+    const compareLinks = screen
+      .getAllByRole("link")
+      .filter((l) => l.getAttribute("href")?.includes("/compare/"));
+    expect(compareLinks).toHaveLength(9);
+  });
+
+  it("calls fetchScore for latest session only (one per welder)", async () => {
     render(<DashboardPage />);
 
     await waitFor(() => {
@@ -95,6 +140,6 @@ describe("DashboardPage (Welder Roster)", () => {
     });
 
     expect(mockFetchScore).toHaveBeenCalledWith("sess_mike-chen_005");
-    expect(mockFetchScore).toHaveBeenCalledWith("sess_mike-chen_004");
+    expect(mockFetchScore).not.toHaveBeenCalledWith("sess_mike-chen_004");
   });
 });
