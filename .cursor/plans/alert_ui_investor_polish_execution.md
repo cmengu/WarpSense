@@ -1,26 +1,23 @@
-# Feature Implementation Plan: Alert UI Investor Polish
+# Feature Implementation Plan: Alert Feed Pop-In Pattern
 
-**Overall Progress:** `100%`
+**Overall Progress:** `0%`
 
 ## TLDR
 
-Replace the cryptic "Haptic → gun" tag on every alert card with "⚡ Real-time alert" and map snake_case backend rule names (e.g. `lack_of_fusion_amps`, `arc_instability`) to human-readable labels across the compare page and realtime page. Investor demos should show professional labels, not internal tooling jargon.
+Replace the current filter-and-render alert feed with a pop-in pattern: alerts appear the moment `currentTimestamp >= alert.timestamp_ms`, ascending (oldest at top, newest appends at bottom). When a card appears it shows correction status immediately. The dot is reactive — it flips green when `currentTimestamp >= alert.timestamp_ms + alert.corrected_in_seconds * 1000`. Rule name is the hero; correction status is a quiet footer. Applies to demo page first; compare page follows with Tailwind.
 
 ---
 
 ## Critical Decisions
 
-- **Shared RULE_LABELS util:** Create `my-app/src/lib/alert-labels.ts` as single source of truth — compare and realtime both import from it. Avoids drift.
-- **Haptic tag:** Replace with "⚡ Real-time alert" — keeps the live-feedback indicator without leaking internal jargon. (User allowed "remove entirely" — replacement preferred per issue.)
-- **Backend unchanged:** `rule_triggered` stays snake_case; mapping happens at render time only.
-
----
-
-## Clarification Gate
-
-| Unknown | Required | Source | Blocking | Resolved |
-|---------|----------|--------|----------|----------|
-| Haptic tag: remove vs replace | "⚡ Real-time alert" (replacement) | Issue text: "either remove entirely or replace" — recommend replace | Step 2 | ✅ |
+| Decision | Value | Rationale |
+|----------|-------|-----------|
+| Render model | **Pop-in** — filter to fired alerts only | Alerts enter the list when timestamp passes. No pre-rendering, no opacity dims. |
+| Sort order | **Ascending** (a.timestamp_ms - b.timestamp_ms) | Timeline fills top-to-bottom. Newest alert appends at bottom. |
+| Correction dot | **Reactive** — derived from correctedNow inside card | Card pops in red/amber, flips green when correction timestamp passes. Not a static snapshot. |
+| correctedNow | `alert.corrected === true && alert.corrected_in_seconds != null && currentTimestamp != null && currentTimestamp >= alert.timestamp_ms + alert.corrected_in_seconds * 1000` | Uses actual AlertPayload fields; null-guards corrected_in_seconds. |
+| Count badge | Fired count — `alerts.filter(a => currentTimestamp != null && a.timestamp_ms <= currentTimestamp).length` | Numerically identical to old visibleAlerts.length at any playback position. |
+| Scope | Demo first (inline styles, C, FONT_LABEL, FONT_DATA); compare second (Tailwind) | Isolates risk. Same logic, different styling. |
 
 ---
 
@@ -36,288 +33,537 @@ Replace the cryptic "Haptic → gun" tag on every alert card with "⚡ Real-time
 
 ## Pre-Flight — Run Before Any Code Changes
 
-```
-Read my-app/src/lib/*.ts — list files and confirm no alert-labels.ts exists.
-Read my-app/src/app/compare/[sessionIdA]/[sessionIdB]/page.tsx lines 580–620 — capture RULE_LABELS and AlertCard structure.
-Read my-app/src/app/(app)/realtime/page.tsx lines 103–132 — capture AlertPanel and where rule_triggered is rendered.
-Grep -n 'rule_triggered=' backend/realtime/alert_engine.py — confirm all rule names.
-Run: cd my-app && npm run build 2>&1 | tail -20 — record exit code.
-Run: cd backend && python -m pytest -q 2>&1 | tail -5 — record passing test count.
-Run: wc -l my-app/src/app/compare/[sessionIdA]/[sessionIdB]/page.tsx my-app/src/app/\(app\)/realtime/page.tsx — record line counts.
+```bash
+# Confirm AlertPayload type exists with expected fields
+grep -n "export interface AlertPayload" my-app/src/lib/api.ts
+
+# Confirm corrected and corrected_in_seconds fields exist on AlertPayload
+grep -n "corrected" my-app/src/lib/api.ts
+
+# Confirm visibleAlertsA definition in demo page
+grep -n "visibleAlertsA" my-app/src/app/demo/[sessionIdA]/[sessionIdB]/page.tsx
+
+# Confirm visibleAlertsA/B in compare page — record all usages
+grep -n "visibleAlertsA\|visibleAlertsB" my-app/src/app/compare/[sessionIdA]/[sessionIdB]/page.tsx
+
+# Confirm AlertCard location in demo page
+grep -n "AlertCard\|FONT_LABEL\|FONT_DATA" my-app/src/app/demo/[sessionIdA]/[sessionIdB]/page.tsx | head -20
+
+# Record line counts before changes
+wc -l my-app/src/app/demo/[sessionIdA]/[sessionIdB]/page.tsx
+wc -l my-app/src/app/compare/[sessionIdA]/[sessionIdB]/page.tsx
+
+# Build must pass before any changes
+cd my-app && npm run build 2>&1 | tail -20
 ```
 
 **Baseline Snapshot (agent fills during pre-flight):**
 ```
 Build exit code before plan: ____
-Backend test count before plan: ____
+Line count demo page: ____
 Line count compare page: ____
-Line count realtime page: ____
-RULE_LABELS keys currently: rule1, rule2, rule3
-Alert engine rule_triggered values: rule1, rule2, rule3, porosity, oxide_inclusion, undercut, lack_of_fusion_amps, lack_of_fusion_speed, burn_through, crater_crack, arc_instability
+AlertPayload fields confirmed: frame_index, rule_triggered, severity, message, correction, timestamp_ms, corrected?, corrected_in_seconds?
+visibleAlertsA usages in compare page: ____ (list all line numbers)
 ```
 
-**Automated checks (all must pass before Step 1):**
+**Automated checks (all must pass before Step 1a):**
 - [ ] `npm run build` exits 0
-- [ ] `RULE_LABELS` at line 582–586 in compare page exists; keys: rule1, rule2, rule3
-- [ ] `⚡ Haptic → gun` appears exactly once at line 612 in compare page
-- [ ] `alert.rule_triggered` appears in AlertPanel at line 125 in realtime page
-- [ ] No `alert-labels.ts` in my-app/src/lib
-
----
-
-## Environment Matrix
-
-| Step | Dev | Staging | Prod | Notes |
-|------|-----|---------|------|-------|
-| Step 1 | ✅ | ✅ | ✅ | New file only |
-| Step 2 | ✅ | ✅ | ✅ | Compare page edit |
-| Step 3 | ✅ | ✅ | ✅ | Realtime page edit |
+- [ ] `export interface AlertPayload` found in my-app/src/lib/api.ts
+- [ ] `corrected_in_seconds` field confirmed on AlertPayload
+- [ ] `visibleAlertsA` found in demo page (useMemo, descending sort)
+- [ ] `C`, `FONT_LABEL`, `FONT_DATA` confirmed defined in demo page scope
 
 ---
 
 ## Tasks
 
-### Phase 1 — Alert Labels & UI Polish
-
-**Goal:** Investor-facing alert cards show human-readable rule names and "⚡ Real-time alert" instead of internal labels.
+### Phase 1 — Demo Page
 
 ---
 
-- [x] 🟩 **Step 1: Create shared RULE_LABELS util** — *Non-critical*
+- [ ] 🟥 **Step 1a: Add AlertFeedColumn to demo page — component only, no grid changes** — *Critical*
 
-  **Idempotent:** Yes — creating a new file; re-run overwrites with same content.
+  **Idempotent:** Yes — adding a new function; re-run overwrites with same content.
 
-  **Context:** Single source of truth for rule name mapping. Compare and realtime pages will import from this file.
+  **Context:** Demo page uses inline styles via C, FONT_LABEL, FONT_DATA constants defined at top of file. AlertFeedColumn replaces the filtering + AlertCard pattern with a pop-in feed. This step adds the component only — no existing code changes.
 
   **Pre-Read Gate:**
-  - Run `ls my-app/src/lib/`. Confirm `alert-labels.ts` does NOT exist. If it exists → STOP and report.
-  - Run `grep -n 'rule_triggered=' backend/realtime/alert_engine.py`. Must find 11 distinct rule_triggered values. Confirm list: rule1, rule2, rule3, porosity, oxide_inclusion, undercut, lack_of_fusion_amps, lack_of_fusion_speed, burn_through, crater_crack, arc_instability.
+  - Run `grep -n "function AlertCard" my-app/src/app/demo/[sessionIdA]/[sessionIdB]/page.tsx` — confirm AlertCard exists and record line number.
+  - Run `grep -n "getRuleLabel\|RULE_LABELS" my-app/src/app/demo/[sessionIdA]/[sessionIdB]/page.tsx` — confirm getRuleLabel is already in scope (from prior plan). If NOT found, check if it's imported or defined locally and record.
+  - Run `grep -n "^const C \|^  C," my-app/src/app/demo/[sessionIdA]/[sessionIdB]/page.tsx | head -5` — confirm C is defined.
 
-  **Self-Contained Rule:** All code below is complete. No references to other steps.
+  **Add AlertFeedColumn immediately before the AlertCard function definition:**
 
-  **No-Placeholder Rule:** No `<VALUE>` tokens.
+  ```tsx
+  function AlertFeedColumn({
+    alerts,
+    currentTimestamp,
+    onSeek,
+    error,
+    label,
+  }: {
+    alerts: AlertPayload[];
+    currentTimestamp: number | null;
+    onSeek: (ts: number) => void;
+    error: string | null;
+    label: string;
+  }) {
+    const firedAlerts = alerts
+      .filter((a) => currentTimestamp != null && a.timestamp_ms <= currentTimestamp)
+      .sort((a, b) => a.timestamp_ms - b.timestamp_ms);
 
-  ```typescript
-  // my-app/src/lib/alert-labels.ts
-  /** Maps backend rule_triggered (snake_case) to investor-facing human-readable labels. */
-  export const RULE_LABELS: Record<string, string> = {
-    rule1: 'Thermal asymmetry',
-    rule2: 'Torch angle',
-    rule3: 'Travel speed',
-    porosity: 'Porosity',
-    oxide_inclusion: 'Oxide Inclusion',
-    undercut: 'Undercut',
-    lack_of_fusion_amps: 'Lack of Fusion — Low Current',
-    lack_of_fusion_speed: 'Lack of Fusion — High Speed',
-    burn_through: 'Burn Through',
-    crater_crack: 'Crater Crack Risk',
-    arc_instability: 'Arc Instability',
-  };
+    if (error) {
+      return (
+        <div style={{ padding: '8px', color: C.textMuted, ...FONT_LABEL }}>
+          {error}
+        </div>
+      );
+    }
 
-  /** Returns human-readable label for rule_triggered; fallback to raw value if unknown. */
-  export function getRuleLabel(ruleTriggered: string): string {
-    return RULE_LABELS[ruleTriggered] ?? ruleTriggered;
+    if (firedAlerts.length === 0) {
+      return (
+        <div style={{ padding: '8px', color: C.textMuted, ...FONT_LABEL }}>
+          No alerts yet
+        </div>
+      );
+    }
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+        {firedAlerts.map((alert) => {
+          const correctedNow =
+            alert.corrected === true &&
+            alert.corrected_in_seconds != null &&
+            currentTimestamp != null &&
+            currentTimestamp >= alert.timestamp_ms + alert.corrected_in_seconds * 1000;
+
+          const dotColor = correctedNow
+            ? '#22c55e'
+            : alert.severity === 'critical'
+            ? '#ef4444'
+            : '#f59e0b';
+
+          return (
+            <div
+              key={`${alert.timestamp_ms}-${alert.rule_triggered}`}
+              onClick={() => onSeek(alert.timestamp_ms)}
+              style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '8px',
+                padding: '6px 8px',
+                borderRadius: '6px',
+                background: C.surfaceSubtle,
+                cursor: 'pointer',
+              }}
+            >
+              {/* Pulse dot */}
+              <div
+                style={{
+                  width: '7px',
+                  height: '7px',
+                  borderRadius: '50%',
+                  background: dotColor,
+                  marginTop: '4px',
+                  flexShrink: 0,
+                  transition: 'background 0.3s ease',
+                }}
+              />
+
+              {/* Content */}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                {/* Rule label — hero */}
+                <div style={{ ...FONT_LABEL, color: C.text, fontWeight: 600 }}>
+                  {getRuleLabel(alert.rule_triggered)}
+                </div>
+
+                {/* Timestamp + severity */}
+                <div style={{ ...FONT_LABEL, color: C.textMuted, marginTop: '1px' }}>
+                  {new Date(alert.timestamp_ms).toISOString().substr(11, 8)} · {alert.severity}
+                </div>
+
+                {/* Message */}
+                {alert.message && (
+                  <div style={{ ...FONT_LABEL, color: C.textMuted, marginTop: '2px' }}>
+                    {alert.message}
+                  </div>
+                )}
+
+                {/* Correction footer */}
+                <div
+                  style={{
+                    fontSize: '7.5px',
+                    color: correctedNow ? '#22c55e' : C.textMuted,
+                    marginTop: '3px',
+                    letterSpacing: '0.02em',
+                  }}
+                >
+                  {correctedNow
+                    ? `Corrected in ${alert.corrected_in_seconds?.toFixed(1)}s`
+                    : alert.corrected === false
+                    ? 'Not corrected'
+                    : ''}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
   }
   ```
 
-  **What it does:** Exports RULE_LABELS and getRuleLabel. Defensive fallback for unknown rules.
-
-  **Why this approach:** Shared util avoids duplicate maps in compare + realtime. getRuleLabel centralizes fallback logic.
+  **What it does:** Filters to fired alerts, sorts ascending, renders each with reactive dot and correction footer. No opacity or pre-rendering.
 
   **Assumptions:**
-  - All rule_triggered values from alert_engine.py are enumerated above.
-  - Future rules can use fallback (raw value) until explicitly added.
-
-  **Risks:**
-  - New backend rule not in map → mitigation: fallback displays raw value; add to map in follow-up.
+  - `C.surfaceSubtle`, `C.text`, `C.textMuted` exist in C object. If any are missing, use closest available equivalent from C and note in report.
+  - `getRuleLabel` is in scope in this file.
+  - `AlertPayload` is imported from `@/lib/api`.
 
   **Git Checkpoint:**
   ```bash
-  git add my-app/src/lib/alert-labels.ts
-  git commit -m "step 1: add shared alert rule labels util"
+  git add my-app/src/app/demo/[sessionIdA]/[sessionIdB]/page.tsx
+  git commit -m "step 1a: add AlertFeedColumn pop-in component to demo page"
   ```
 
   **Subtasks:**
-  - [ ] 🟥 Create my-app/src/lib/alert-labels.ts with RULE_LABELS and getRuleLabel
-  - [ ] 🟥 Verify file imports without error (build or lint)
+  - [ ] 🟥 Add AlertFeedColumn function before AlertCard in demo page
+  - [ ] 🟥 Confirm file compiles
 
-  **✓ Verification Test:**
+  **✓ Verification:**
 
-  **Type:** Unit
-  **Action:** `cd my-app && npm run build 2>&1 | grep -E '(error|Error|Failed)' || echo "build ok"`
-  **Expected:** `build ok` (no error lines)
-  **Observe:** Build output
-  **Pass:** Build completes; no TypeScript errors
-  **Fail:** If `error TS2307` → file path wrong or export missing. If other error → check syntax.
+  **Type:** Compile
+  **Action:** `cd my-app && npx tsc --noEmit 2>&1 | grep -E '(error TS|Error)' || echo "tsc ok"`
+  **Expected:** `tsc ok`
+  **Pass:** No TypeScript errors
+  **Fail:** If `error TS2339` on C property → check C object keys and use correct one. If `error TS2304` on getRuleLabel → confirm import/definition. One fix, re-run.
 
 ---
 
-- [x] 🟩 **Step 2: Update compare page — import labels, replace Haptic tag** — *Non-critical*
+- [ ] 🟥 **Step 1b: Replace right-panel grid, update count badge, remove visibleAlertsA/B** — *Critical*
 
-  **Idempotent:** Yes — re-run produces same result.
+  **Idempotent:** Yes.
 
-  **Context:** Compare page has local RULE_LABELS and hardcoded "⚡ Haptic → gun". Replace with shared util and "⚡ Real-time alert".
+  **Context:** Wire up AlertFeedColumn in the two-column right panel. Update the header count badge to use fired count. Remove visibleAlertsA/visibleAlertsB from the display layer (keep nothing that depended on them for display).
 
   **Pre-Read Gate:**
-  - Run `grep -n 'RULE_LABELS\|Haptic' my-app/src/app/compare/[sessionIdA]/[sessionIdB]/page.tsx`. Must find:
-    - `RULE_LABELS` at lines 582–586 (definition) and 595 (usage)
-    - `Haptic` at line 612
-  - Run `grep -n "from '@/lib/api'" my-app/src/app/compare/[sessionIdA]/[sessionIdB]/page.tsx`. Confirm import pattern for adding alert-labels.
+  - Run `grep -n "visibleAlertsA\|visibleAlertsB" my-app/src/app/demo/[sessionIdA]/[sessionIdB]/page.tsx` — list ALL usages. Categorise each: (a) definition/useMemo, (b) display map, (c) count badge, (d) other. Do not proceed if any usage is uncategorised.
+  - Run `grep -n "alertsErrorA\|alertsErrorB" my-app/src/app/demo/[sessionIdA]/[sessionIdB]/page.tsx` — confirm error state variable names.
+  - Run `grep -n "setCurrentTimestamp\|setIsPlaying" my-app/src/app/demo/[sessionIdA]/[sessionIdB]/page.tsx | head -5` — confirm setter names.
 
-  **Anchor Uniqueness Check:**
-  - Target: `const RULE_LABELS: Record<string, string> = {` — must appear exactly 1 time
-  - Target: `<span className="text-xs text-zinc-500">⚡ Haptic → gun</span>` — must appear exactly 1 time
+  **Anchor Uniqueness Check (run before edit):**
+  - `visibleAlertsA.map` — must appear exactly 1 time
+  - `visibleAlertsB.map` — must appear exactly 1 time
+  - Count badge line (e.g. `visibleAlertsA.length`) — must appear exactly 1 time per badge
 
-  **Uniqueness-Before-Replace:** Confirm `RULE_LABELS` is not imported from anywhere else in this file before removing local definition.
+  **Changes:**
 
-  ```typescript
-  // 1. Add import (near other @/lib imports, e.g. after fetchSessionAlerts import)
-  import { getRuleLabel } from '@/lib/alert-labels';
+  **1. Replace the two column divs (Session A / Session B) with AlertFeedColumn:**
+  ```tsx
+  // Replace Session A column inner content:
+  <AlertFeedColumn
+    alerts={alertsA}
+    currentTimestamp={currentTimestamp}
+    onSeek={(ts) => { setCurrentTimestamp(ts); setIsPlaying(false); }}
+    error={alertsErrorA}
+    label="Session A"
+  />
 
-  // 2. DELETE the local RULE_LABELS block (lines 582–586):
-  // const RULE_LABELS: Record<string, string> = {
-  //   rule1: 'Thermal asymmetry',
-  //   rule2: 'Torch angle',
-  //   rule3: 'Travel speed',
-  // };
-
-  // 3. In AlertCard, change:
-  //   const label = RULE_LABELS[alert.rule_triggered] ?? alert.rule_triggered;
-  // to:
-  const label = getRuleLabel(alert.rule_triggered);
-
-  // 4. Replace:
-  //   <span className="text-xs text-zinc-500">⚡ Haptic → gun</span>
-  // with:
-  <span className="text-xs text-zinc-500">⚡ Real-time alert</span>
+  // Replace Session B column inner content:
+  <AlertFeedColumn
+    alerts={alertsB}
+    currentTimestamp={currentTimestamp}
+    onSeek={(ts) => { setCurrentTimestamp(ts); setIsPlaying(false); }}
+    error={alertsErrorB}
+    label="Session B"
+  />
   ```
 
-  **What it does:** Uses shared labels; replaces cryptic haptic tag with investor-friendly text.
+  **2. Update count badges to fired count:**
+  ```ts
+  // Session A badge:
+  alertsErrorA ? '—' : alertsA.filter(a => currentTimestamp != null && a.timestamp_ms <= currentTimestamp).length
 
-  **Why this approach:** Minimal edits; single source of truth for labels.
+  // Session B badge:
+  alertsErrorB ? '—' : alertsB.filter(a => currentTimestamp != null && a.timestamp_ms <= currentTimestamp).length
+  ```
 
-  **Assumptions:**
-  - Step 1 created alert-labels.ts with getRuleLabel.
-  - No other component in compare page uses RULE_LABELS (grep confirms).
+  **3. Remove visibleAlertsA and visibleAlertsB useMemo definitions** — delete both blocks entirely.
 
-  **Risks:**
-  - Import path wrong → mitigation: use `@/lib/alert-labels` (matches project convention).
+  **4. Check AlertCard:** Run `grep -n "AlertCard" my-app/src/app/demo/[sessionIdA]/[sessionIdB]/page.tsx` after changes. If AlertCard is now unused, remove the function definition. If still used elsewhere, leave it.
+
+  **Git Checkpoint:**
+  ```bash
+  git add my-app/src/app/demo/[sessionIdA]/[sessionIdB]/page.tsx
+  git commit -m "step 1b: wire AlertFeedColumn into demo grid, update badge, remove visibleAlerts"
+  ```
+
+  **Subtasks:**
+  - [ ] 🟥 Replace Session A and B column display content with AlertFeedColumn
+  - [ ] 🟥 Update count badges to fired count filter
+  - [ ] 🟥 Remove visibleAlertsA and visibleAlertsB useMemo
+  - [ ] 🟥 Remove AlertCard if unused
+
+  **✓ Verification:**
+
+  **Type:** Compile + Runtime
+  **Action 1:** `cd my-app && npx tsc --noEmit 2>&1 | grep -E '(error TS|Error)' || echo "tsc ok"`
+  **Expected:** `tsc ok`
+
+  **Action 2:** `grep -n "visibleAlertsA\|visibleAlertsB" my-app/src/app/demo/[sessionIdA]/[sessionIdB]/page.tsx`
+  **Expected:** 0 matches
+
+  **Action 3:** Load `/demo/sess_novice_aluminium_001_001/sess_expert_aluminium_001_001`
+  - At t=0: alert feed shows "No alerts yet"
+  - Advance playback past first alert timestamp: card pops in, dot is red or amber
+  - Advance past correction timestamp of a corrected alert: dot flips green, footer reads "Corrected in X.Xs"
+  - Count badge increments as alerts fire
+  - Click a card: playback seeks to that alert's timestamp
+
+  **Pass:** All runtime checks pass, 0 visibleAlerts grep matches, tsc ok
+  **Fail:** If visibleAlerts still appears → grep all usages and remove remaining. If dot never turns green → check corrected_in_seconds is not null in test data.
+
+---
+
+### Phase 2 — Compare Page
+
+---
+
+- [ ] 🟥 **Step 2: Compare page — same pop-in pattern with Tailwind** — *Critical*
+
+  **Idempotent:** Yes.
+
+  **Context:** Compare page mirrors the demo pattern but uses Tailwind classes. Also has critical flash logic (`columnACriticalFlash` / `columnBCriticalFlash`) which depended on `visibleAlertsA/B`. Replace display usage with unfiltered arrays; derive `firedAlertsA`/`firedAlertsB` for flash logic and count badge only.
+
+  **Pre-Read Gate:**
+  - Run `grep -n "visibleAlertsA\|visibleAlertsB" my-app/src/app/compare/[sessionIdA]/[sessionIdB]/page.tsx` — list ALL usages. Categorise each: (a) definition, (b) display map, (c) count badge, (d) critical flash, (e) prevVisibleIds. Record every line number.
+  - Run `grep -n "columnACriticalFlash\|columnBCriticalFlash\|prevVisibleIds" my-app/src/app/compare/[sessionIdA]/[sessionIdB]/page.tsx` — capture full critical flash logic.
+  - Run `grep -n "AlertCard" my-app/src/app/compare/[sessionIdA]/[sessionIdB]/page.tsx` — record AlertCard definition and usage line numbers.
+  - Run `grep -n "AlertPayload\|from '@/lib/api'" my-app/src/app/compare/[sessionIdA]/[sessionIdB]/page.tsx` — confirm import pattern.
+
+  **Anchor Uniqueness Check:**
+  - `visibleAlertsA.map` — must appear exactly 1 time
+  - `visibleAlertsB.map` — must appear exactly 1 time
+
+  **Changes:**
+
+  **1. Add firedAlertsA and firedAlertsB derived values** (for flash + badge only — NOT for display):
+  ```ts
+  const firedAlertsA = alertsA.filter(
+    (a) => floorTs != null && a.timestamp_ms <= floorTs
+  );
+  const firedAlertsB = alertsB.filter(
+    (a) => floorTs != null && a.timestamp_ms <= floorTs
+  );
+  ```
+
+  **2. Update critical flash logic:** Replace every `visibleAlertsA` reference inside flash logic with `firedAlertsA`. Replace every `visibleAlertsB` with `firedAlertsB`. Same for `prevVisibleIds` if it references visibleAlerts — update to use firedAlerts.
+
+  **3. Update count badges:**
+  ```ts
+  // Column A badge:
+  alertsErrorA ? '—' : firedAlertsA.length
+
+  // Column B badge:
+  alertsErrorB ? '—' : firedAlertsB.length
+  ```
+
+  **4. Add AlertFeedColumn (Tailwind version) before AlertCard:**
+  ```tsx
+  function AlertFeedColumn({
+    alerts,
+    currentTimestamp,
+    onSeek,
+    error,
+  }: {
+    alerts: AlertPayload[];
+    currentTimestamp: number | null;
+    onSeek: (ts: number) => void;
+    error: string | null;
+  }) {
+    const firedAlerts = alerts
+      .filter((a) => currentTimestamp != null && a.timestamp_ms <= currentTimestamp)
+      .sort((a, b) => a.timestamp_ms - b.timestamp_ms);
+
+    if (error) {
+      return <div className="p-2 text-xs text-zinc-500">{error}</div>;
+    }
+
+    if (firedAlerts.length === 0) {
+      return <div className="p-2 text-xs text-zinc-500">No alerts yet</div>;
+    }
+
+    return (
+      <div className="flex flex-col gap-1.5">
+        {firedAlerts.map((alert) => {
+          const correctedNow =
+            alert.corrected === true &&
+            alert.corrected_in_seconds != null &&
+            currentTimestamp != null &&
+            currentTimestamp >= alert.timestamp_ms + alert.corrected_in_seconds * 1000;
+
+          const dotClass = correctedNow
+            ? 'bg-green-500'
+            : alert.severity === 'critical'
+            ? 'bg-red-500'
+            : 'bg-amber-500';
+
+          return (
+            <div
+              key={`${alert.timestamp_ms}-${alert.rule_triggered}`}
+              onClick={() => onSeek(alert.timestamp_ms)}
+              className="flex items-start gap-2 px-2 py-1.5 rounded-md bg-zinc-800 cursor-pointer hover:bg-zinc-700 transition-colors"
+            >
+              {/* Pulse dot */}
+              <div
+                className={`w-[7px] h-[7px] rounded-full mt-1 shrink-0 transition-colors duration-300 ${dotClass}`}
+              />
+
+              {/* Content */}
+              <div className="flex-1 min-w-0">
+                {/* Rule label — hero */}
+                <div className="text-xs font-semibold text-zinc-100">
+                  {getRuleLabel(alert.rule_triggered)}
+                </div>
+
+                {/* Timestamp + severity */}
+                <div className="text-xs text-zinc-500 mt-0.5">
+                  {new Date(alert.timestamp_ms).toISOString().substr(11, 8)} · {alert.severity}
+                </div>
+
+                {/* Message */}
+                {alert.message && (
+                  <div className="text-xs text-zinc-500 mt-0.5">{alert.message}</div>
+                )}
+
+                {/* Correction footer */}
+                <div
+                  className={`mt-0.5 ${correctedNow ? 'text-green-500' : 'text-zinc-600'}`}
+                  style={{ fontSize: '7.5px' }}
+                >
+                  {correctedNow
+                    ? `Corrected in ${alert.corrected_in_seconds?.toFixed(1)}s`
+                    : alert.corrected === false
+                    ? 'Not corrected'
+                    : ''}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+  ```
+
+  **5. Replace visibleAlertsA.map / visibleAlertsB.map with AlertFeedColumn:**
+  ```tsx
+  // Column A:
+  <AlertFeedColumn
+    alerts={alertsA}
+    currentTimestamp={floorTs}
+    onSeek={(ts) => seekTo(ts)}
+    error={alertsErrorA}
+  />
+
+  // Column B:
+  <AlertFeedColumn
+    alerts={alertsB}
+    currentTimestamp={floorTs}
+    onSeek={(ts) => seekTo(ts)}
+    error={alertsErrorB}
+  />
+  ```
+  *(Adjust `seekTo` / `floorTs` to match actual variable names in compare page scope — pre-read gate will confirm.)*
+
+  **6. Remove visibleAlertsA and visibleAlertsB useMemo definitions** — delete both blocks.
+
+  **7. Check AlertCard:** If now unused after step 5, remove the AlertCard function definition.
 
   **Git Checkpoint:**
   ```bash
   git add my-app/src/app/compare/[sessionIdA]/[sessionIdB]/page.tsx
-  git commit -m "step 2: compare page use shared labels and real-time alert tag"
+  git commit -m "step 2: compare page pop-in alert feed, firedAlerts for flash and badge"
   ```
 
   **Subtasks:**
-  - [ ] 🟥 Add import for getRuleLabel
-  - [ ] 🟥 Remove local RULE_LABELS
-  - [ ] 🟥 Replace label resolution with getRuleLabel(alert.rule_triggered)
-  - [ ] 🟥 Replace "⚡ Haptic → gun" with "⚡ Real-time alert"
+  - [ ] 🟥 Add firedAlertsA / firedAlertsB derived values
+  - [ ] 🟥 Update critical flash to use firedAlertsA / firedAlertsB
+  - [ ] 🟥 Update count badges to firedAlertsX.length
+  - [ ] 🟥 Add Tailwind AlertFeedColumn before AlertCard
+  - [ ] 🟥 Replace visibleAlertsA.map / visibleAlertsB.map with AlertFeedColumn
+  - [ ] 🟥 Remove visibleAlertsA / visibleAlertsB useMemo
+  - [ ] 🟥 Remove AlertCard if unused
 
-  **✓ Verification Test:**
+  **✓ Verification:**
 
-  **Type:** Integration
-  **Action:** `cd my-app && npm run build 2>&1`
-  **Expected:** Exit code 0; no TypeScript errors
-  **Observe:** Build output
-  **Pass:** Build succeeds
-  **Fail:** If import error → check path. If RULE_LABELS used elsewhere → grep and fix.
+  **Type:** Compile + Grep + Runtime
 
-  **Replacement assertion:** `grep -n 'Haptic' my-app/src/app/compare/[sessionIdA]/[sessionIdB]/page.tsx` must return 0 matches after edit.
+  **Action 1:** `cd my-app && npx tsc --noEmit 2>&1 | grep -E '(error TS|Error)' || echo "tsc ok"`
+  **Expected:** `tsc ok`
 
----
+  **Action 2:** `grep -n "visibleAlertsA\|visibleAlertsB" my-app/src/app/compare/[sessionIdA]/[sessionIdB]/page.tsx`
+  **Expected:** 0 matches
 
-- [x] 🟩 **Step 3: Update realtime page — use getRuleLabel for rule display** — *Non-critical*
+  **Action 3:** `grep -n "firedAlertsA\|firedAlertsB" my-app/src/app/compare/[sessionIdA]/[sessionIdB]/page.tsx`
+  **Expected:** matches in: definition (×2), badge (×2), critical flash (≥2). No display map usage.
 
-  **Idempotent:** Yes — re-run produces same result.
+  **Action 4:** Load compare page, advance playback
+  - Alerts pop in ascending order
+  - Critical column flash still triggers when a critical alert fires
+  - Dot flips green at correction timestamp
+  - Count badge matches fired count
 
-  **Context:** Realtime AlertPanel shows raw `alert.rule_triggered`. Replace with human-readable label.
-
-  **Pre-Read Gate:**
-  - Run `grep -n 'rule_triggered' my-app/src/app/(app)/realtime/page.tsx`. Must find line 125: `{alert.rule_triggered} · {alert.severity}`.
-  - Confirm no existing import from `@/lib/alert-labels`.
-
-  **Anchor Uniqueness Check:**
-  - Target: `{alert.rule_triggered} · {alert.severity}` — must appear exactly 1 time at line 125.
-
-  ```typescript
-  // 1. Add import near top
-  import { getRuleLabel } from '@/lib/alert-labels';
-
-  // 2. Replace line 125:
-  //   {alert.rule_triggered} · {alert.severity}
-  // with:
-  {getRuleLabel(alert.rule_triggered)} · {alert.severity}
-  ```
-
-  **What it does:** Displays human-readable rule name in realtime alert panel instead of snake_case.
-
-  **Why this approach:** Same pattern as compare page; consistent UX.
-
-  **Assumptions:**
-  - Step 1 and 2 complete. getRuleLabel exists.
-
-  **Risks:** None significant.
-
-  **Git Checkpoint:**
-  ```bash
-  git add "my-app/src/app/(app)/realtime/page.tsx"
-  git commit -m "step 3: realtime page use human-readable rule labels"
-  ```
-
-  **Subtasks:**
-  - [ ] 🟥 Add import for getRuleLabel
-  - [ ] 🟥 Replace alert.rule_triggered with getRuleLabel(alert.rule_triggered) in JSX
-
-  **✓ Verification Test:**
-
-  **Type:** Integration
-  **Action:** `cd my-app && npm run build 2>&1`
-  **Expected:** Exit code 0
-  **Observe:** Build output
-  **Pass:** Build succeeds
-  **Fail:** If import error → check path. If getRuleLabel not found → Step 1 incomplete.
+  **Pass:** All checks pass
+  **Fail:** If flash no longer triggers → grep flash logic and confirm firedAlertsA is used not visibleAlertsA. If type error on AlertPayload → confirm import.
 
 ---
 
 ## Regression Guard
 
-**Systems at risk from this plan:**
-- Compare page alert feed — RULE_LABELS removed; must use getRuleLabel
-- Realtime alert panel — rule display changed
+| System | Pre-change behaviour | Post-change verification |
+|--------|---------------------|--------------------------|
+| Demo alert feed | Filtered list, descending, no correction status | Pop-in, ascending, reactive correction dot + footer |
+| Compare alert feed | Same | Same |
+| Count badge (both) | `visibleAlerts.length` | `firedAlerts.filter(...).length` — identical value at any playback position |
+| Critical flash (compare) | Fires when critical in visibleAlerts | Fires when critical in firedAlertsA/B — same trigger condition |
+| Seek on card click | N/A (no click handler on old cards) | Clicking card seeks to alert timestamp |
+| Empty state | "No alerts" shown | "No alerts yet" shown when fired count = 0 |
 
-**Regression verification:**
+**Regression commands (run after both steps):**
+```bash
+# No visibleAlerts remaining in display layer
+grep -n "visibleAlertsA\|visibleAlertsB" my-app/src/app/demo/[sessionIdA]/[sessionIdB]/page.tsx
+# Expected: 0 matches
 
-| System | Pre-change behavior | Post-change verification |
-|--------|---------------------|---------------------------|
-| Compare AlertCard label | Shows rule1/rule2/rule3 or raw if unknown | Shows same labels (Thermal asymmetry, etc.) or new defect labels |
-| Compare AlertCard tag | Shows "⚡ Haptic → gun" | Shows "⚡ Real-time alert" |
-| Realtime AlertPanel | Shows `rule_triggered` (snake_case) | Shows human-readable label |
-| Backend | Unchanged | `rule_triggered` still snake_case in API; no backend edits |
+grep -n "visibleAlertsA\|visibleAlertsB" my-app/src/app/compare/[sessionIdA]/[sessionIdB]/page.tsx
+# Expected: 0 matches
 
-**Test count regression check:**
-- Backend tests before plan (Pre-Flight): `____`
-- Backend tests after plan: `cd backend && python -m pytest -q` — must be ≥ baseline
-- Frontend build: must pass before and after
+# firedAlerts used in compare for flash/badge only
+grep -n "firedAlertsA\|firedAlertsB" my-app/src/app/compare/[sessionIdA]/[sessionIdB]/page.tsx
+# Expected: only definition + badge + flash lines; no .map() usage
+
+# Build clean
+cd my-app && npm run build 2>&1 | tail -5
+# Expected: exit 0
+```
 
 ---
 
 ## Rollback Procedure
 
 ```bash
-# Reverse order (Step 3 → 2 → 1)
-git revert HEAD~0   # Step 3
-git revert HEAD~1   # Step 2
-git revert HEAD~2   # Step 1
+# Reverse order: Step 2 → 1b → 1a
+git revert HEAD~0   # Step 2
+git revert HEAD~1   # Step 1b
+git revert HEAD~2   # Step 1a
 
-# Or if single branch:
+# Or single range:
 git revert --no-commit HEAD~2..HEAD
-git commit -m "rollback: alert UI investor polish"
+git commit -m "rollback: alert feed pop-in pattern"
 
 # Confirm:
 cd my-app && npm run build
-cd backend && python -m pytest -q
 ```
 
 ---
@@ -326,24 +572,21 @@ cd backend && python -m pytest -q
 
 | Phase | Check | How to Confirm | Status |
 |-------|-------|----------------|--------|
-| Pre-flight | alert-labels.ts does not exist | `ls my-app/src/lib/` | ⬜ |
-| | RULE_LABELS in compare page | grep finds lines 582–586 | ⬜ |
-| | Haptic tag in compare page | grep finds line 612 | ⬜ |
-| | rule_triggered in realtime | grep finds line 125 | ⬜ |
+| Pre-flight | AlertPayload has corrected + corrected_in_seconds | grep fields in api.ts | ⬜ |
+| | visibleAlertsA defined in demo page (descending sort) | grep useMemo | ⬜ |
+| | All visibleAlerts usages in compare page catalogued | grep lists all lines | ⬜ |
+| | C, FONT_LABEL, FONT_DATA confirmed in demo scope | grep confirms | ⬜ |
 | | Build passes | npm run build exit 0 | ⬜ |
-| Step 1 | alert-labels.ts created | File exists, exports RULE_LABELS and getRuleLabel | ⬜ |
-| Step 2 | Compare page updated | No local RULE_LABELS; Haptic gone; getRuleLabel used | ⬜ |
-| Step 3 | Realtime page updated | getRuleLabel used in AlertPanel | ⬜ |
-
----
-
-## Risk Heatmap
-
-| Step | Risk Level | What Could Go Wrong | Early Detection | Idempotent |
-|------|-----------|---------------------|-----------------|------------|
-| Step 1 | Low | Path typo, missing export | Build fails on import | Yes |
-| Step 2 | Low | Wrong replace scope, leftover RULE_LABELS | Grep Haptic returns 0; build passes | Yes |
-| Step 3 | Low | Import path wrong | Build fails | Yes |
+| Step 1a | AlertFeedColumn added before AlertCard | grep finds function | ⬜ |
+| | tsc passes | tsc --noEmit ok | ⬜ |
+| Step 1b | Grid uses AlertFeedColumn | grep confirms | ⬜ |
+| | visibleAlertsA/B gone from demo | grep returns 0 | ⬜ |
+| | Count badge uses fired filter | grep confirms | ⬜ |
+| | tsc passes | tsc --noEmit ok | ⬜ |
+| Step 2 | firedAlertsA/B defined for flash + badge | grep confirms | ⬜ |
+| | visibleAlertsA/B gone from compare | grep returns 0 | ⬜ |
+| | Critical flash still uses firedAlerts | grep confirms | ⬜ |
+| | tsc passes | tsc --noEmit ok | ⬜ |
 
 ---
 
@@ -351,15 +594,19 @@ cd backend && python -m pytest -q
 
 | Feature | Target | Verification |
 |---------|--------|---------------|
-| Shared labels | RULE_LABELS + getRuleLabel in alert-labels.ts | **Do:** read file **Expect:** 11 rule keys, getRuleLabel function **Look:** my-app/src/lib/alert-labels.ts |
-| Compare page | No "Haptic → gun"; human labels | **Do:** grep Haptic compare page **Expect:** 0 matches **Look:** compare page |
-| Compare page | "⚡ Real-time alert" on cards | **Do:** grep "Real-time alert" compare page **Expect:** 1 match **Look:** compare page |
-| Realtime page | Human-readable rule in AlertPanel | **Do:** grep getRuleLabel realtime page **Expect:** 1 import, 1 usage **Look:** realtime page |
-| Regression | Backend unchanged | **Do:** grep rule_triggered backend **Expect:** No edits to backend | N/A |
+| Pop-in render | Alerts appear only when timestamp passes | At t=0: empty feed. Advance: card appears. |
+| Ascending order | Oldest at top, newest appends bottom | Verify card order matches timestamp order |
+| Reactive dot | Red/amber on pop-in; flips green at correction timestamp | Seek past corrected_in_seconds threshold on a corrected alert |
+| Correction footer | "Corrected in X.Xs" or "Not corrected" | Confirm for both corrected=true and corrected=false alerts |
+| Rule label hero | getRuleLabel output as primary text | Confirm snake_case is not visible |
+| Count badge | Fired count matches | Badge = N at position where N alerts have fired |
+| Critical flash (compare) | Still triggers | Advance past a critical alert — column flash fires |
+| No regressions | visibleAlerts fully removed from display layer | grep returns 0 matches in both files |
 
 ---
 
-⚠️ **Do not mark a step 🟩 Done until its verification test passes.**
-⚠️ **Do not proceed past a Human Gate without explicit human input.**
-⚠️ **If blocked, mark 🟨 In Progress and output the State Manifest before stopping.**
+⚠️ **Do not mark a step complete until its verification commands all pass.**
+⚠️ **Do not proceed to Step 1b until Step 1a tsc check passes.**
+⚠️ **Do not proceed to Step 2 until Step 1b runtime checks pass.**
+⚠️ **If blocked, output full contents of modified files before stopping.**
 ⚠️ **Do not batch multiple steps into one git commit.**

@@ -21,7 +21,7 @@ If FAIL: Wrong field names → run validate_frame_fields.py; check f.amps, f.ang
 import pytest
 
 from data.mock_sessions import generate_expert_session, generate_novice_session
-from features.extractor import extract_features
+from features.extractor import extract_features, extract_features_for_frames
 
 
 FEATURE_KEYS = frozenset({
@@ -172,3 +172,13 @@ class TestExtractFeaturesEdgeCases:
         # angle_max_deviation and volts_range can still be computed from single value
         assert result["angle_max_deviation"] == 0.0  # 45 - 45 = 0
         assert result["volts_range"] == 0.0  # single value
+
+
+def test_extract_features_for_frames_equals_extract_features() -> None:
+    """extract_features_for_frames(s.frames, 45) must equal extract_features(s, 45)."""
+    session = generate_expert_session()
+    from_frames = extract_features_for_frames(session.frames, 45)
+    from_session = extract_features(session, 45)
+    assert from_frames == from_session, (
+        f"Mismatch: extract_features_for_frames vs extract_features"
+    )

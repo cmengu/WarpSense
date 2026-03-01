@@ -8,8 +8,11 @@ DRAFT thresholds: tuned for mock expert/novice sessions; may need adjustment
 for real sensor data. Use WeldTypeThresholds when provided; fallback to constants.
 """
 
-from typing import Any, Dict, Optional
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional
 
+from features.extractor import extract_features_for_frames
+from models.frame import Frame
 from models.scoring import ScoreRule, SessionScore
 from models.session import Session
 from models.thresholds import WeldTypeThresholds
@@ -57,6 +60,51 @@ def score_session(
     passed_count = sum(1 for r in rules if r.passed)
     total = int(round(100 * passed_count / len(rules))) if rules else 0
     return SessionScore(total=total, rules=rules)
+
+
+def score_frames_windowed(
+    frames: List[Frame],
+    thresholds: Optional[WeldTypeThresholds],
+    session_metadata: Dict[str, Any],
+    angle_target_deg: float = 45,
+    window_size: int = 50,
+) -> List[Dict[str, Any]]:
+    """
+    Score frames in tumbling windows. Returns [{frame_start, frame_end, wqi}, ...].
+    session_metadata: dict with weld_type, thermal_sample_interval_ms, thermal_directions,
+      thermal_distance_interval_mm, sensor_sample_rate_hz from parent session.
+      Required so dummy Session passes validators (e.g. validate_thermal_distance_consistency).
+    """
+    if not frames or window_size < 1:
+        return []
+    m = session_metadata
+    weld_type = m.get("weld_type", "mig")
+    thermal_sample_interval_ms = m.get("thermal_sample_interval_ms", 100)
+    thermal_directions = m.get("thermal_directions", ["center"])
+    thermal_distance_interval_mm = m.get("thermal_distance_interval_mm", 1.0)
+    sensor_sample_rate_hz = m.get("sensor_sample_rate_hz", 100)
+    result = []
+    for start in range(0, len(frames), window_size):
+        window = frames[start : start + window_size]
+        if len(window) < 10:
+            continue
+        features = extract_features_for_frames(window, angle_target_deg)
+        dummy = Session(
+            session_id="__window__",
+            operator_id="",
+            start_time=datetime.now(timezone.utc),
+            weld_type=weld_type,
+            thermal_sample_interval_ms=thermal_sample_interval_ms,
+            thermal_directions=thermal_directions,
+            thermal_distance_interval_mm=thermal_distance_interval_mm,
+            sensor_sample_rate_hz=sensor_sample_rate_hz,
+            frames=window,
+            frame_count=len(window),
+            disable_sensor_continuity_checks=True,
+        )
+        score = score_session(dummy, features, thresholds)
+        result.append({"frame_start": start, "frame_end": start + len(window) - 1, "wqi": score.total})
+    return result
 
 
 def _check_amps_stability(

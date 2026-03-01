@@ -48,6 +48,12 @@ class SessionModel(Base):
     locked_until = Column(DateTime(timezone=True), nullable=True)
     version = Column(Integer, nullable=False, default=1)
     score_total = Column(Integer, nullable=True)
+    wqi_timeline = Column(JSON, nullable=True)
+    mean_wqi = Column(Float, nullable=True)
+    median_wqi = Column(Float, nullable=True)
+    min_wqi = Column(Integer, nullable=True)
+    max_wqi = Column(Integer, nullable=True)
+    wqi_trend = Column(String(32), nullable=True)
     process_type = Column(String, nullable=False, default="mig")
     team_id = Column(
         String(64),
@@ -89,6 +95,12 @@ class SessionModel(Base):
             completed_at=session.completed_at,
             disable_sensor_continuity_checks=session.disable_sensor_continuity_checks,
             score_total=getattr(session, "score_total", None),
+            wqi_timeline=getattr(session, "wqi_timeline", None),
+            mean_wqi=getattr(session, "mean_wqi", None),
+            median_wqi=getattr(session, "median_wqi", None),
+            min_wqi=getattr(session, "min_wqi", None),
+            max_wqi=getattr(session, "max_wqi", None),
+            wqi_trend=getattr(session, "wqi_trend", None),
             version=1,
             process_type=getattr(session, "process_type", None) or "mig",
         )
@@ -117,6 +129,12 @@ class SessionModel(Base):
             completed_at=self.completed_at,
             disable_sensor_continuity_checks=self.disable_sensor_continuity_checks,
             score_total=self.score_total,
+            wqi_timeline=getattr(self, "wqi_timeline", None),
+            mean_wqi=getattr(self, "mean_wqi", None),
+            median_wqi=getattr(self, "median_wqi", None),
+            min_wqi=getattr(self, "min_wqi", None),
+            max_wqi=getattr(self, "max_wqi", None),
+            wqi_trend=getattr(self, "wqi_trend", None),
             process_type=getattr(self, "process_type", None) or "mig",
         )
 

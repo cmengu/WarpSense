@@ -8,7 +8,7 @@ directly; callers call model_dump() when building HTTP responses.
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from realtime.alert_engine import AlertEngine
+from realtime.alert_engine import AlertEngine, load_thresholds
 from realtime.alert_models import AlertPayload, FrameInput
 
 if TYPE_CHECKING:
@@ -33,6 +33,49 @@ def _ns_asymmetry_from_frame_data(frame_data: dict) -> float:
     if north is None or south is None:
         return 0.0
     return float(north) - float(south)
+
+
+def _is_in_range_for_rule(
+    rule_triggered: str,
+    fd: dict,
+    cfg: dict,
+    ns_asymmetry: float,
+) -> bool:
+    """
+    Returns True if frame data indicates parameter is back in acceptable range.
+    Only rule1 and rule2 implemented. Rules 3–11 always return False.
+    """
+    if rule_triggered == "rule1":
+        return abs(ns_asymmetry) < float(cfg["thermal_ns_warning"])
+    if rule_triggered == "rule2":
+        angle = fd.get("travel_angle_degrees")
+        if angle is None:
+            return False
+        nominal = float(cfg["nominal_travel_angle"])
+        dev = abs(float(angle) - nominal)
+        return dev < float(cfg["angle_deviation_warning"])
+    return False
+
+
+def _enrich_alerts_with_correction(
+    alerts: list[AlertPayload],
+    frame_items: list[tuple[float, dict]],
+    cfg: dict,
+) -> None:
+    """Mutates alerts in place. frame_items: (timestamp_ms, frame_data) sorted by ts asc."""
+    for i, a in enumerate(alerts):
+        if a.rule_triggered not in ("rule1", "rule2"):
+            continue
+        a_ts = a.timestamp_ms
+        for ts, fd in frame_items:
+            if ts <= a_ts:
+                continue
+            ns = _ns_asymmetry_from_frame_data(fd)
+            if _is_in_range_for_rule(a.rule_triggered, fd, cfg, ns):
+                sec = (ts - a_ts) / 1000.0
+                a.corrected = True
+                a.corrected_in_seconds = sec
+                break
 
 
 async def run_session_alerts(session_id: str, db: "OrmSession") -> list[AlertPayload]:
@@ -80,4 +123,11 @@ async def run_session_alerts(session_id: str, db: "OrmSession") -> list[AlertPay
         if alert:
             alerts.append(alert)
 
+    cfg = load_thresholds(str(config_path))
+    frame_items = []
+    for fm in frame_models:
+        fd = dict(fm.frame_data)
+        ts = fd.get("timestamp_ms") or fm.timestamp_ms
+        frame_items.append((float(ts), fd))
+    _enrich_alerts_with_correction(alerts, frame_items, cfg)
     return alerts

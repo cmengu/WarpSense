@@ -26,8 +26,10 @@ if str(_backend) not in sys.path:
 import pytest
 
 from data.mock_sessions import generate_expert_session, generate_novice_session
-from features.extractor import extract_features
-from scoring.rule_based import score_session
+from features.extractor import extract_features, extract_features_for_frames
+from models.thresholds import WeldTypeThresholds
+from scoring.rule_based import score_frames_windowed, score_session
+from services.threshold_service import ALUMINUM_THRESHOLDS
 
 
 class TestScoreSessionStep9:
@@ -102,3 +104,70 @@ class TestScoreSessionStep9:
             "volts_stability",
         }
         assert rule_ids == expected
+
+
+class TestScoreFramesWindowed:
+    """Step 2 verification: score_frames_windowed returns windowed WQI timeline."""
+
+    def test_result_has_frame_start_end_wqi(self) -> None:
+        """Result entries have frame_start, frame_end, wqi."""
+        session = generate_expert_session()
+        frames = session.frames
+        metadata = {
+            "weld_type": session.weld_type,
+            "thermal_sample_interval_ms": session.thermal_sample_interval_ms,
+            "thermal_directions": session.thermal_directions,
+            "thermal_distance_interval_mm": session.thermal_distance_interval_mm,
+            "sensor_sample_rate_hz": session.sensor_sample_rate_hz,
+        }
+        result = score_frames_windowed(frames, None, metadata, window_size=50)
+        assert len(result) > 0
+        for entry in result:
+            assert "frame_start" in entry
+            assert "frame_end" in entry
+            assert "wqi" in entry
+            assert isinstance(entry["wqi"], int)
+            assert 0 <= entry["wqi"] <= 100
+
+    def test_empty_frames_returns_empty(self) -> None:
+        """Empty frames returns empty list."""
+        metadata = {"weld_type": "mig", "thermal_sample_interval_ms": 100}
+        assert score_frames_windowed([], None, metadata) == []
+
+    def test_rule_set_parity_with_aluminum_thresholds(self) -> None:
+        """First window uses same rule set as full score_session (aluminum thresholds)."""
+        session = generate_novice_session()
+        session = session.model_copy(update={"weld_type": "aluminum"})
+        thresholds = WeldTypeThresholds(**ALUMINUM_THRESHOLDS)
+        features_full = extract_features(session)
+        full = score_session(session, features_full, thresholds)
+        metadata = {
+            "weld_type": session.weld_type,
+            "thermal_sample_interval_ms": session.thermal_sample_interval_ms,
+            "thermal_directions": session.thermal_directions,
+            "thermal_distance_interval_mm": session.thermal_distance_interval_mm,
+            "sensor_sample_rate_hz": session.sensor_sample_rate_hz,
+        }
+        frames = session.frames
+        result = score_frames_windowed(frames, thresholds, metadata, window_size=50)
+        assert len(result) > 0
+        # First window: extract features and score via score_session
+        w = frames[:50]
+        f = extract_features_for_frames(w, thresholds.angle_target_degrees)
+        from models.session import Session
+        from datetime import datetime, timezone
+        dummy = Session(
+            session_id="__window__",
+            operator_id="",
+            start_time=datetime.now(timezone.utc),
+            weld_type=session.weld_type,
+            thermal_sample_interval_ms=session.thermal_sample_interval_ms,
+            thermal_directions=session.thermal_directions,
+            thermal_distance_interval_mm=session.thermal_distance_interval_mm,
+            sensor_sample_rate_hz=session.sensor_sample_rate_hz,
+            frames=w,
+            frame_count=len(w),
+            disable_sensor_continuity_checks=True,
+        )
+        sw = score_session(dummy, f, thresholds)
+        assert len(sw.rules) == len(full.rules), "Window and full must use same rule set"

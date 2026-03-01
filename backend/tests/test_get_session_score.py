@@ -118,3 +118,15 @@ class TestGetSessionScoreStep10:
         """Unknown session_id returns 404."""
         response = client.get("/api/sessions/nonexistent_session_xyz/score")
         assert response.status_code == 404
+
+    def test_response_includes_windowed_wqi_fields(self, seeded_client) -> None:
+        """Step 5: Response includes wqi_timeline, mean_wqi, etc. for 100+ frame session."""
+        response = seeded_client.get("/api/sessions/sess_expert_001/score")
+        data = response.json()
+        assert "wqi_timeline" in data
+        assert data["wqi_timeline"] is not None
+        assert len(data["wqi_timeline"]) > 0
+        assert "mean_wqi" in data
+        assert "median_wqi" in data
+        assert "min_wqi" in data
+        assert "max_wqi" in data

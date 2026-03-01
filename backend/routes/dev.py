@@ -9,10 +9,10 @@ import random
 import traceback
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session as OrmSession, joinedload
 
 from database.connection import SessionLocal
 from database.models import SessionModel
-from sqlalchemy.orm import Session as OrmSession
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -32,6 +32,42 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+def _score_demo_sessions_if_needed(db: OrmSession) -> None:
+    """Persist score_total for demo page pair so WQI shows without manual GET /score."""
+    demo_ids = ["sess_expert_aluminium_001_001", "sess_novice_aluminium_001_001"]
+    for sid in demo_ids:
+        m = (
+            db.query(SessionModel)
+            .options(joinedload(SessionModel.frames))
+            .filter_by(session_id=sid)
+            .first()
+        )
+        if not m or not getattr(m, "frames", None) or len(m.frames) < 10:
+            continue
+        if m.score_total is not None:
+            continue
+        if getattr(m, "status", None) != "complete":
+            continue
+        try:
+            from features.extractor import extract_features
+            from scoring.rule_based import score_session
+            from services.threshold_service import get_thresholds
+
+            session = m.to_pydantic()
+            process_type = getattr(session, "process_type", None) or "mig"
+            thresholds = get_thresholds(db, process_type)
+            features = extract_features(
+                session, angle_target_deg=thresholds.angle_target_degrees
+            )
+            score = score_session(session, features, thresholds)
+            m.score_total = score.total
+            logger.info("Demo session %s scored: score_total=%s", sid, score.total)
+        except Exception as e:
+            logger.warning("Demo session %s scoring failed (non-fatal): %s", sid, e)
+            continue
+    db.commit()
 
 
 def _handle_seed_error(exc: BaseException) -> HTTPException:
@@ -113,6 +149,9 @@ async def seed_mock_sessions(db: OrmSession = Depends(get_db)):
             session_ids.append(sid)
 
         db.commit()
+
+        # Score demo aluminium pair so /demo page shows WQI without manual GET /score
+        _score_demo_sessions_if_needed(db)
 
         # Seed drills and cert_standards for coaching-plan and certification-status smoke tests
         try:
