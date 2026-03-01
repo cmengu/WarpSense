@@ -1,12 +1,13 @@
 /**
  * Tests for Welder Roster (dashboard) — 10 welders with skill arcs.
  *
- * Roster content moved from seagull to dashboard. Validates:
+ * Validates:
  *   - Promise.allSettled: partial failures don't block working cards
  *   - Per-card error: "Score unavailable" when fetch fails
  *   - Loading state (skeleton cards)
- *   - Links to /replay/[sessionId] for welder reports
- *   - Badge display (On track, Needs attention, Neutral)
+ *   - Links to /replay/[sessionId], /seagull/welder/[id], /compare for non-expert
+ *   - Score-based badge colours (red/amber/green)
+ *   - Sort by score ascending (worst first)
  */
 
 import { render, screen, waitFor } from "@testing-library/react";
