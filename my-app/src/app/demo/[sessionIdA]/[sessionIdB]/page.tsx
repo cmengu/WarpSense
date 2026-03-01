@@ -228,46 +228,190 @@ function WQIScore({
   );
 }
 
-// ─── ALERT CARD ───────────────────────────────────────────────────────────────
-// No corrected/correctedIn — omitted until API supports it.
-function AlertCard({ alert, onSeek }: { alert: AlertPayload; onSeek: () => void }) {
-  const label = getRuleLabel(alert.rule_triggered);
-  const isCrit = alert.severity === 'critical';
+// ─── ALERT FEED COLUMN ─────────────────────────────────────────────────────────
+/** Pop-in pattern: only fired alerts (timestamp_ms <= currentTimestamp) shown. */
+function AlertFeedColumn({
+  alerts,
+  currentTimestamp,
+  onSeek,
+  error,
+  label,
+}: {
+  alerts: AlertPayload[];
+  currentTimestamp: number | null;
+  onSeek: (ts: number) => void;
+  error: string | null;
+  label: string;
+}) {
+  const firedAlerts = alerts
+    .filter((a) => currentTimestamp != null && a.timestamp_ms <= currentTimestamp)
+    .sort((a, b) => a.timestamp_ms - b.timestamp_ms);
+
+  if (error) {
+    return (
+      <div style={{ fontFamily: FONT_DATA, fontSize: 9, color: C.amber }}>
+        {error}
+      </div>
+    );
+  }
+
   return (
-    <button
-      type="button"
-      onClick={onSeek}
-      style={{
-        width: '100%',
-        textAlign: 'left',
-        padding: '8px 0',
-        background: 'none',
-        border: 'none',
-        borderBottom: `1px solid ${C.border}`,
-        cursor: 'pointer',
-      }}
-    >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-        <span
-          style={{
-            fontFamily: FONT_LABEL,
-            fontSize: 9,
-            fontWeight: 600,
-            letterSpacing: '0.16em',
-            color: isCrit ? C.novice : C.amber,
-            textTransform: 'uppercase',
-          }}
-        >
-          {label}
-        </span>
-        <span style={{ fontFamily: FONT_DATA, fontSize: 8, color: C.textDim }}>
-          T+{(alert.timestamp_ms / 1000).toFixed(1)}s
-        </span>
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
+      <div
+        style={{
+          fontSize: 7,
+          fontWeight: 600,
+          letterSpacing: '0.28em',
+          color: C.textDim,
+          textTransform: 'uppercase',
+          marginBottom: 8,
+        }}
+      >
+        {label}
       </div>
-      <div style={{ fontFamily: FONT_DATA, fontSize: 7.5, color: C.textDim, marginTop: 2 }}>
-        {alert.message}
-      </div>
-    </button>
+
+      {firedAlerts.length === 0 ? (
+        <div style={{ fontFamily: FONT_DATA, fontSize: 9, color: C.textDim }}>
+          No alerts yet
+        </div>
+      ) : (
+        firedAlerts.map((alert) => {
+          const elapsed =
+            currentTimestamp != null
+              ? (currentTimestamp - alert.timestamp_ms) / 1000
+              : 0;
+
+          const correctedNow =
+            alert.corrected === true &&
+            alert.corrected_in_seconds != null &&
+            elapsed >= alert.corrected_in_seconds;
+
+          const uncorrected = !correctedNow && elapsed >= 2;
+
+          // active = fired && !correctedNow && !uncorrected
+          const dotColor = correctedNow
+            ? C.expert
+            : uncorrected
+              ? C.novice
+              : C.amber;
+
+          const cardOpacity = uncorrected ? 0.5 : 1;
+
+          return (
+            <button
+              key={alert.frame_index}
+              type="button"
+              onClick={() => onSeek(alert.timestamp_ms)}
+              style={{
+                width: '100%',
+                textAlign: 'left',
+                background: 'none',
+                border: 'none',
+                borderBottom: `1px solid ${C.border}`,
+                padding: '8px 0',
+                cursor: 'pointer',
+                opacity: cardOpacity,
+                transition: 'opacity 0.4s ease',
+                display: 'flex',
+                gap: 10,
+              }}
+            >
+              {/* Pulse dot */}
+              <div style={{ flexShrink: 0, paddingTop: 3 }}>
+                <div
+                  style={{
+                    width: 7,
+                    height: 7,
+                    borderRadius: '50%',
+                    background: dotColor,
+                    transition: 'background 0.3s ease',
+                  }}
+                />
+              </div>
+
+              <div style={{ flex: 1 }}>
+                {/* Rule label + live counter */}
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'baseline',
+                  }}
+                >
+                  <span
+                    style={{
+                      fontFamily: FONT_LABEL,
+                      fontSize: 9,
+                      fontWeight: 600,
+                      letterSpacing: '0.16em',
+                      textTransform: 'uppercase',
+                      color: correctedNow ? C.expert : uncorrected ? C.novice : C.amber,
+                    }}
+                  >
+                    {getRuleLabel(alert.rule_triggered)}
+                  </span>
+
+                  {/* Counter: ticking when active, frozen when corrected, hidden when uncorrected */}
+                  {!uncorrected && (
+                    <span
+                      style={{
+                        fontFamily: FONT_DATA,
+                        fontSize: 8,
+                        color: correctedNow ? C.expert : C.textDim,
+                      }}
+                    >
+                      {correctedNow
+                        ? `+${alert.corrected_in_seconds!.toFixed(1)}s`
+                        : `+${elapsed.toFixed(1)}s`}
+                    </span>
+                  )}
+                </div>
+
+                {/* Message */}
+                <div
+                  style={{
+                    fontFamily: FONT_DATA,
+                    fontSize: 7.5,
+                    color: C.textDim,
+                    marginTop: 2,
+                  }}
+                >
+                  {alert.message}
+                </div>
+
+                {/* State footer */}
+                <div style={{ marginTop: 3 }}>
+                  {correctedNow && (
+                    <span
+                      style={{
+                        fontFamily: FONT_LABEL,
+                        fontSize: 7.5,
+                        letterSpacing: '0.14em',
+                        color: C.expert,
+                        textTransform: 'uppercase',
+                      }}
+                    >
+                      ✓ corrected in {alert.corrected_in_seconds!.toFixed(1)}s
+                    </span>
+                  )}
+                  {uncorrected && (
+                    <span
+                      style={{
+                        fontFamily: FONT_DATA,
+                        fontSize: 7.5,
+                        color: C.novice,
+                      }}
+                    >
+                      ✗ not corrected
+                    </span>
+                  )}
+                </div>
+              </div>
+            </button>
+          );
+        })
+      )}
+    </div>
   );
 }
 
@@ -592,18 +736,12 @@ export function DemoPageInner({
       : null;
 
   const floorTs = currentTimestamp ?? firstTimestamp ?? 0;
-  const visibleAlertsA = useMemo(
-    () =>
-      alertsA
-        .filter((a) => a.timestamp_ms <= floorTs)
-        .sort((a, b) => b.timestamp_ms - a.timestamp_ms),
+  const firedCountA = useMemo(
+    () => alertsA.filter((a) => a.timestamp_ms <= floorTs).length,
     [alertsA, floorTs]
   );
-  const visibleAlertsB = useMemo(
-    () =>
-      alertsB
-        .filter((a) => a.timestamp_ms <= floorTs)
-        .sort((a, b) => b.timestamp_ms - a.timestamp_ms),
+  const firedCountB = useMemo(
+    () => alertsB.filter((a) => a.timestamp_ms <= floorTs).length,
     [alertsB, floorTs]
   );
 
@@ -1154,7 +1292,7 @@ export function DemoPageInner({
                   color: alertsErrorA ? C.amber : C.novice,
                 }}
               >
-                A: {alertsErrorA ? '—' : visibleAlertsA.length}
+                A: {alertsErrorA ? '—' : firedCountA}
               </span>
               <span
                 style={{
@@ -1163,7 +1301,7 @@ export function DemoPageInner({
                   color: alertsErrorB ? C.amber : C.expert,
                 }}
               >
-                B: {alertsErrorB ? '—' : visibleAlertsB.length}
+                B: {alertsErrorB ? '—' : firedCountB}
               </span>
             </div>
           </div>
@@ -1182,72 +1320,28 @@ export function DemoPageInner({
                 overflowY: 'auto',
               }}
             >
-              <div
-                style={{
-                  fontSize: 7,
-                  fontWeight: 600,
-                  letterSpacing: '0.28em',
-                  color: C.textDim,
-                  textTransform: 'uppercase',
-                  marginBottom: 8,
+              <AlertFeedColumn
+                alerts={alertsA}
+                currentTimestamp={floorTs}
+                onSeek={(ts) => {
+                  setCurrentTimestamp(ts);
+                  setIsPlaying(false);
                 }}
-              >
-                Session A
-              </div>
-              {alertsErrorA ? (
-                <div style={{ fontFamily: FONT_DATA, fontSize: 9, color: C.amber }}>
-                  Alerts unavailable
-                </div>
-              ) : visibleAlertsA.length === 0 ? (
-                <div style={{ fontFamily: FONT_DATA, fontSize: 9, color: C.textDim }}>
-                  No alerts yet
-                </div>
-              ) : (
-                visibleAlertsA.map((alert) => (
-                  <AlertCard
-                    key={`a-${alert.frame_index}-${alert.timestamp_ms}-${alert.rule_triggered}`}
-                    alert={alert}
-                    onSeek={() => {
-                      setCurrentTimestamp(alert.timestamp_ms);
-                      setIsPlaying(false);
-                    }}
-                  />
-                ))
-              )}
+                error={alertsErrorA}
+                label="Session A"
+              />
             </div>
             <div style={{ padding: '10px 10px', overflowY: 'auto' }}>
-              <div
-                style={{
-                  fontSize: 7,
-                  fontWeight: 600,
-                  letterSpacing: '0.28em',
-                  color: C.textDim,
-                  textTransform: 'uppercase',
-                  marginBottom: 8,
+              <AlertFeedColumn
+                alerts={alertsB}
+                currentTimestamp={floorTs}
+                onSeek={(ts) => {
+                  setCurrentTimestamp(ts);
+                  setIsPlaying(false);
                 }}
-              >
-                Session B
-              </div>
-              {alertsErrorB ? (
-                <div style={{ fontFamily: FONT_DATA, fontSize: 9, color: C.amber }}>
-                  Alerts unavailable
-                </div>
-              ) : visibleAlertsB.length === 0 ? (
-                <div style={{ fontFamily: FONT_DATA, fontSize: 9, color: C.textDim }}>
-                  No alerts yet
-                </div>
-              ) : (
-                visibleAlertsB.map((alert) => (
-                  <AlertCard
-                    key={`b-${alert.frame_index}-${alert.timestamp_ms}-${alert.rule_triggered}`}
-                    alert={alert}
-                    onSeek={() => {
-                      setCurrentTimestamp(alert.timestamp_ms);
-                      setIsPlaying(false);
-                    }}
-                  />
-                ))
-              )}
+                error={alertsErrorB}
+                label="Session B"
+              />
             </div>
           </div>
         </div>
