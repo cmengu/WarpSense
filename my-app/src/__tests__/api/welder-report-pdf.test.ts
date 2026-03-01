@@ -145,6 +145,26 @@ describe("POST /api/welder-report-pdf", () => {
     }
   );
 
+  it("accepts optional sessionDate, duration, station and renders PDF", async () => {
+    const req = new Request("http://localhost/api/welder-report-pdf", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...VALID,
+        sessionDate: "2/27/2026",
+        duration: "4 min 12 sec",
+        station: "Station 4",
+      }),
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const buf = Buffer.from(await res.arrayBuffer());
+    const str = buf.toString("utf8");
+    expect(str).toContain("2/27/2026");
+    expect(str).toContain("4 min 12 sec");
+    expect(str).toContain("Station 4");
+  });
+
   it("toWelderName invariant: null/undefined/object never produce [object Object] or undefined in PDF", async () => {
     const cases = [{ name: null }, { name: undefined }, { name: [] }];
     for (const welderInput of cases) {

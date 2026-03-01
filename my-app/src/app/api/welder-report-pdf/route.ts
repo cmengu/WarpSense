@@ -37,6 +37,12 @@ interface PDFRequestBody {
     qualifying_sessions: number;
     sessions_required: number;
   }> | null;
+  /** Optional session date for top-bar meta (e.g. "2/27/2026"). */
+  sessionDate?: string | null;
+  /** Optional duration string (e.g. "4 min 12 sec") for top-bar meta. */
+  duration?: string | null;
+  /** Optional station placeholder (e.g. "Station 4") for top-bar meta. */
+  station?: string | null;
 }
 
 const MAX_FILENAME_LENGTH = 64;
@@ -255,6 +261,20 @@ export async function POST(request: Request) {
     feedback_items,
   };
 
+  /** Optional top-bar meta; validate strings, max 128 chars each. */
+  let sessionDate: string | undefined;
+  if (body.sessionDate != null && typeof body.sessionDate === "string") {
+    sessionDate = body.sessionDate.slice(0, 128) || undefined;
+  }
+  let duration: string | undefined;
+  if (body.duration != null && typeof body.duration === "string") {
+    duration = body.duration.slice(0, 128) || undefined;
+  }
+  let station: string | undefined;
+  if (body.station != null && typeof body.station === "string") {
+    station = body.station.slice(0, 128) || undefined;
+  }
+
   try {
     const pdfReact = React.createElement(WelderReportPDF, {
       welder,
@@ -264,6 +284,9 @@ export async function POST(request: Request) {
       narrative,
       certifications,
       reportSummary: reportSummary ?? undefined,
+      sessionDate: sessionDate ?? undefined,
+      duration: duration ?? undefined,
+      station: station ?? undefined,
     });
 
     const buffer = await renderToBuffer(toPdfDoc(pdfReact));

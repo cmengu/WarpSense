@@ -354,14 +354,16 @@ export interface SessionScore {
  * Backend loads session, extracts features, runs 5 rules, returns total + rules.
  *
  * @param sessionId - Session to score.
+ * @param signal - Optional AbortSignal for cancellation (e.g. unmount).
  * @returns SessionScore with total (0–100) and rules (✓/✗, threshold, actual_value).
  * @throws Error if session not found (404) or request fails.
  */
 export async function fetchScore(
-  sessionId: string
+  sessionId: string,
+  signal?: AbortSignal
 ): Promise<SessionScore> {
   const url = buildUrl(`/api/sessions/${encodeURIComponent(sessionId)}/score`);
-  return apiFetch<SessionScore>(url);
+  return apiFetch<SessionScore>(url, { signal });
 }
 
 /**

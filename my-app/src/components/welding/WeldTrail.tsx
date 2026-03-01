@@ -12,8 +12,7 @@
 
 import { useRef, useCallback, useMemo, useEffect, useState } from 'react';
 import * as THREE from 'three';
-import { extractCenterTemperature } from '@/utils/frameUtils';
-import { isArcActive } from '@/utils/frameUtils';
+import { extractCenterTemperature, isArcActive } from '@/utils/frameUtils';
 import { AL_TRAVEL_SPEED_BASE_MEAN } from '@/constants/aluminum';
 import { FRAME_INTERVAL_MS } from '@/constants/validation';
 import type { Frame } from '@/types/frame';
@@ -68,12 +67,10 @@ export function computeTrailData(
     const totalMs =
       arcActive[arcActive.length - 1].timestamp_ms - arcActive[0].timestamp_ms ||
       1;
-    let idx = 0;
     for (const f of arcActive) {
       const xNorm =
         (f.timestamp_ms - arcActive[0].timestamp_ms) / totalMs;
       withDist.push({ frame: f, rawCumDist: 0, xNorm });
-      idx++;
     }
   } else {
     // Two-pass normalization: Pass 1 accumulate, Pass 2 xNorm
@@ -218,13 +215,11 @@ export function WeldTrail({
     geo.setDrawRange(0, count);
   }, [positions, colors, count]);
 
-  if (!ready || count === 0) return null;
+  const geo = geometryRef.current;
+  const mat = materialRef.current;
+  if (!ready || count === 0 || !geo || !mat) return null;
 
   return (
-    <points
-      ref={pointsRef}
-      geometry={geometryRef.current!}
-      material={materialRef.current!}
-    />
+    <points ref={pointsRef} geometry={geo} material={mat} />
   );
 }

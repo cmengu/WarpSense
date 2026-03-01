@@ -21,7 +21,9 @@ export const RULE_LABELS: Record<string, string> = {
 /**
  * Returns human-readable label for rule_triggered; fallback to raw value if unknown.
  * Use this when rendering alerts to avoid leaking backend snake_case into the UI.
+ * Defensive: returns '' if ruleTriggered is undefined/null/empty (API edge case).
  */
-export function getRuleLabel(ruleTriggered: string): string {
+export function getRuleLabel(ruleTriggered: string | undefined | null): string {
+  if (ruleTriggered == null || ruleTriggered === '') return '';
   return RULE_LABELS[ruleTriggered] ?? ruleTriggered;
 }

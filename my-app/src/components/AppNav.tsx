@@ -1,7 +1,7 @@
 /**
  * AppNav — Minimal global navigation for app routes.
  *
- * Renders only in (app) layout (dashboard, demo, replay, compare).
+ * Renders only in (app) layout (dashboard, replay, compare, defects, ai).
  * Landing at / has its own nav; AppNav is omitted via route groups.
  *
  * Home → / (landing), Dashboard → /dashboard
