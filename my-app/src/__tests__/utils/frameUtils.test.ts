@@ -600,6 +600,35 @@ describe("extractCenterTemperatureWithCarryForward", () => {
       extractCenterTemperatureWithCarryForward(frames, 100)
     ).toBe(450);
   });
+
+  it("returns >= 200 for arc-active frames with realistic thermal fixture", () => {
+    const frames: Frame[] = [
+      makeSensorOnlyFrame({ timestamp_ms: 0, volts: 22, amps: 150 }),
+      makeThermalFrame({
+        timestamp_ms: 50,
+        volts: 22.5,
+        amps: 150,
+        thermal_snapshots: [makeSnapshot(10.0, 350)],
+      }),
+      makeSensorOnlyFrame({ timestamp_ms: 60, volts: 22.4, amps: 149 }),
+      makeThermalFrame({
+        timestamp_ms: 100,
+        volts: 22.6,
+        amps: 151,
+        thermal_snapshots: [makeSnapshot(10.0, 420)],
+      }),
+      makeSensorOnlyFrame({ timestamp_ms: 110, volts: 22.5, amps: 150 }),
+    ];
+    const t50 = extractCenterTemperatureWithCarryForward(frames, 50);
+    const t75 = extractCenterTemperatureWithCarryForward(frames, 75);
+    const t100 = extractCenterTemperatureWithCarryForward(frames, 100);
+    expect(t50).toBe(350);
+    expect(t75).toBe(350);
+    expect(t100).toBe(420);
+    expect(t50).toBeGreaterThanOrEqual(200);
+    expect(t75).toBeGreaterThanOrEqual(200);
+    expect(t100).toBeGreaterThanOrEqual(200);
+  });
 });
 
 // ---------------------------------------------------------------------------

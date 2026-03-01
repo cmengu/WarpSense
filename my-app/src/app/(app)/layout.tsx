@@ -1,6 +1,6 @@
 /**
  * App layout — wraps children with AppNav.
- * Used for dashboard, demo, replay, compare, and other app routes.
+ * Used for dashboard, replay, compare, defects, ai, and other app routes.
  */
 
 import { AppNav } from '@/components/AppNav';

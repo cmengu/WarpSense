@@ -14,9 +14,14 @@ import { render, screen, waitFor } from "@testing-library/react";
 import DashboardPage from "@/app/(app)/dashboard/page";
 
 const mockFetchScore = jest.fn();
+const mockPush = jest.fn();
 
 jest.mock("@/lib/api", () => ({
   fetchScore: (...args: unknown[]) => mockFetchScore(...args),
+}));
+
+jest.mock("next/navigation", () => ({
+  useRouter: () => ({ push: mockPush }),
 }));
 
 describe("DashboardPage (Welder Roster)", () => {
@@ -140,7 +145,11 @@ describe("DashboardPage (Welder Roster)", () => {
       expect(screen.getByText(/Mike Chen/)).toBeInTheDocument();
     });
 
-    expect(mockFetchScore).toHaveBeenCalledWith("sess_mike-chen_005");
-    expect(mockFetchScore).not.toHaveBeenCalledWith("sess_mike-chen_004");
+    expect(mockFetchScore).toHaveBeenCalledWith(
+      "sess_mike-chen_005",
+      expect.any(AbortSignal)
+    );
+    const calls = mockFetchScore.mock.calls.map((c) => c[0]);
+    expect(calls).not.toContain("sess_mike-chen_004");
   });
 });

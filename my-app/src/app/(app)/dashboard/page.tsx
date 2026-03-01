@@ -12,6 +12,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { fetchScore } from "@/lib/api";
 import type { SessionScore } from "@/lib/api";
 
@@ -46,12 +47,15 @@ function getLatestSessionId(w: Welder): string {
 
 const FETCH_TIMEOUT_MS = 5000;
 
-async function fetchScoreWithTimeout(sessionId: string): Promise<SessionScore | null> {
+async function fetchScoreWithTimeout(
+  sessionId: string,
+  signal?: AbortSignal
+): Promise<SessionScore | null> {
   const timeout = new Promise<null>((_, reject) =>
     setTimeout(() => reject(new Error("fetchScore timeout")), FETCH_TIMEOUT_MS)
   );
   try {
-    return await Promise.race([fetchScore(sessionId), timeout]);
+    return await Promise.race([fetchScore(sessionId, signal), timeout]);
   } catch {
     return null;
   }
@@ -68,7 +72,6 @@ function getScoreBadgeClass(score: number | null): string {
 interface WelderScoreResult {
   welder: Welder;
   score: number | null;
-  error: unknown;
 }
 
 // ---------------------------------------------------------------------------
@@ -76,6 +79,7 @@ interface WelderScoreResult {
 // ---------------------------------------------------------------------------
 
 export default function DashboardPage() {
+  const router = useRouter();
   const [welderScores, setWelderScores] = useState<WelderScoreResult[] | null>(
     null
   );
@@ -83,6 +87,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     let mounted = true;
+    const controller = new AbortController();
     setLoading(true);
 
     const fetches = WELDERS.map((w) => ({
@@ -91,7 +96,9 @@ export default function DashboardPage() {
     }));
 
     Promise.allSettled(
-      fetches.map((f) => fetchScoreWithTimeout(f.sessionId).catch(() => null))
+      fetches.map((f) =>
+        fetchScoreWithTimeout(f.sessionId, controller.signal).catch(() => null)
+      )
     ).then((results) => {
       if (!mounted) return;
       setWelderScores(
@@ -104,7 +111,6 @@ export default function DashboardPage() {
           return {
             welder: f.welder,
             score,
-            error: null,
           };
         })
       );
@@ -113,6 +119,7 @@ export default function DashboardPage() {
 
     return () => {
       mounted = false;
+      controller.abort();
     };
   }, []);
 
@@ -161,7 +168,16 @@ export default function DashboardPage() {
             return (
               <div
                 key={welder.id}
-                className="block p-6 bg-white dark:bg-zinc-900 rounded-lg shadow border border-zinc-200 dark:border-zinc-800 hover:border-blue-500 dark:hover:border-blue-500 transition-colors"
+                role="button"
+                tabIndex={0}
+                onClick={() => router.push(`/replay/${sessionId}`)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    router.push(`/replay/${sessionId}`);
+                  }
+                }}
+                className="block p-6 bg-white dark:bg-zinc-900 rounded-lg shadow border border-zinc-200 dark:border-zinc-800 hover:border-blue-500 dark:hover:border-blue-500 transition-colors cursor-pointer"
               >
                 <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
                   {welder.name}
@@ -169,11 +185,7 @@ export default function DashboardPage() {
                 <p className="mt-2 text-sm flex items-center gap-2">
                   {score !== null ? (
                     <span
-                      className={
-                        badgeClass
-                          ? `inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${badgeClass}`
-                          : "font-bold text-blue-600 dark:text-blue-400"
-                      }
+                      className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${badgeClass}`}
                     >
                       {score}/100
                     </span>
@@ -183,7 +195,10 @@ export default function DashboardPage() {
                     </span>
                   )}
                 </p>
-                <div className="mt-2 flex flex-col gap-1">
+                <div
+                  className="mt-2 flex flex-col gap-1"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <Link
                     href={`/replay/${sessionId}`}
                     className="text-xs text-zinc-500 dark:text-zinc-400 hover:underline"

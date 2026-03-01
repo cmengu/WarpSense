@@ -29,6 +29,7 @@ function makeFrame(
     has_thermal_data: false,
     thermal_snapshots: [],
     heat_dissipation_rate_celsius_per_sec: 0,
+    optional_sensors: null,
     ...overrides,
   } as unknown as Frame;
 }
