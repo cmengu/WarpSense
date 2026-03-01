@@ -18,13 +18,13 @@ import { useInView } from '@/hooks/useInView';
 import { useScrollParallax } from '@/hooks/useScrollParallax';
 
 /**
- * Schedule Demo: Calendly/Cal.com URL or fallback to /demo.
+ * Schedule Demo: Calendly/Cal.com URL or fallback to /dashboard.
  * Evaluated at build time (Next.js inlines NEXT_PUBLIC_*). Fallback when undefined or empty.
  */
 const DEMO_BOOKING_URL =
   (typeof process !== 'undefined' &&
     (process.env?.NEXT_PUBLIC_DEMO_BOOKING_URL ?? '').trim()) ||
-  '/demo';
+  '/dashboard';
 
 /**
  * Download Deck: PDF URL or fallback to #download-deck anchor in CTA section.
@@ -186,7 +186,7 @@ export default function LandingPage() {
 
           <div className="md:hidden flex items-center gap-4">
             <a
-              href="/demo"
+              href="/dashboard"
               className="text-sm font-medium text-white hover:text-gray-300"
             >
               Demo
@@ -320,7 +320,7 @@ export default function LandingPage() {
             className="flex flex-col sm:flex-row gap-4 justify-center"
           >
             <Link
-              href="/demo"
+              href="/dashboard"
               className="bg-white text-black px-8 py-4 rounded-full text-lg font-semibold hover:bg-gray-200 transition-colors text-center"
             >
               See Live Demo
@@ -563,7 +563,7 @@ export default function LandingPage() {
 
             <div className="mt-8 flex justify-center">
               <Link
-                href="/demo"
+                href="/dashboard"
                 className="inline-flex items-center gap-2 bg-white text-black px-6 py-3 rounded-full font-semibold hover:bg-gray-200 transition-colors"
               >
                 Try Full Demo <span aria-hidden>→</span>

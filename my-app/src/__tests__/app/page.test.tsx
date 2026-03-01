@@ -1,49 +1,34 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import DashboardPage from '@/app/(app)/dashboard/page';
 
-// Mock the API call to avoid actual fetch
-global.fetch = jest.fn(() =>
-  Promise.resolve({
-    ok: true,
-    json: () => Promise.resolve({ metrics: [], charts: [] }),
-  })
-) as jest.Mock;
+const mockFetchScore = jest.fn();
+jest.mock('@/lib/api', () => ({
+  fetchScore: (...args: unknown[]) => mockFetchScore(...args),
+}));
 
-describe('Dashboard Page Session List', () => {
-  it('renders Live Demo link for zero-setup demo', async () => {
-    render(<DashboardPage />);
-    await waitFor(() => {
-      const links = screen.getAllByRole('link');
-      const demoLink = links.find((l) => l.getAttribute('href') === '/demo');
-      expect(demoLink).toBeDefined();
-      expect(demoLink).toBeInTheDocument();
-    });
+describe('Dashboard Page (Welder Roster)', () => {
+  beforeEach(() => {
+    mockFetchScore.mockResolvedValue({ total: 75, rules: [] });
   });
 
-  it('renders session list links with correct hrefs', async () => {
+  it('renders welder roster with cards', async () => {
     render(<DashboardPage />);
-
-    // Wait for component to render and session links to appear
     await waitFor(() => {
-      expect(screen.getByRole('link', { name: /expert \(sess_expert_001\)/i })).toBeInTheDocument();
+      expect(screen.getByText(/Mike Chen/)).toBeInTheDocument();
     });
-
-    const link1 = screen.getByRole('link', { name: /expert \(sess_expert_001\)/i });
-    expect(link1).toHaveAttribute('href', '/replay/sess_expert_001');
-
-    const link2 = screen.getByRole('link', { name: /novice \(sess_novice_001\)/i });
-    expect(link2).toHaveAttribute('href', '/replay/sess_novice_001');
+    expect(screen.getByText(/Welder Roster/)).toBeInTheDocument();
+    expect(screen.getByText(/Expert Benchmark/)).toBeInTheDocument();
   });
 
-  it('displays mock label for sessions', async () => {
+  it('links cards to replay and full report', async () => {
     render(<DashboardPage />);
-    
-    // Wait for mock labels to appear
     await waitFor(() => {
-      expect(screen.getAllByText(/\(mock\)/i).length).toBeGreaterThan(0);
+      expect(screen.getByText(/Mike Chen/)).toBeInTheDocument();
     });
-    
-    const mockLabels = screen.getAllByText(/\(mock\)/i);
-    expect(mockLabels.length).toBeGreaterThan(0);
+    const links = screen.getAllByRole('link');
+    const replayLink = links.find((l) => l.getAttribute('href') === '/replay/sess_mike-chen_005');
+    const fullReportLink = links.find((l) => l.getAttribute('href') === '/seagull/welder/mike-chen');
+    expect(replayLink).toBeDefined();
+    expect(fullReportLink).toBeDefined();
   });
 });

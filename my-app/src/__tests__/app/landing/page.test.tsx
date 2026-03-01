@@ -54,10 +54,10 @@ describe('LandingPage', () => {
     expect(screen.getByText(/Interactive Demo/i)).toBeInTheDocument();
   });
 
-  it('renders Try Full Demo link to /demo', () => {
+  it('renders Try Full Demo link to /dashboard', () => {
     render(<LandingPage />);
     const link = screen.getByRole('link', { name: /Try Full Demo/i });
-    expect(link).toHaveAttribute('href', '/demo');
+    expect(link).toHaveAttribute('href', '/dashboard');
   });
 
   it('renders social proof with generic placeholders', () => {
@@ -82,19 +82,17 @@ describe('LandingPage', () => {
     ).toBeInTheDocument();
   });
 
-  it('links See Live Demo to /demo', () => {
+  it('links See Live Demo to /dashboard', () => {
     render(<LandingPage />);
     const link = screen.getByRole('link', { name: /See Live Demo/i });
-    expect(link).toHaveAttribute('href', '/demo');
+    expect(link).toHaveAttribute('href', '/dashboard');
   });
 
-  it('links Request Demo to /demo (fallback when env unset)', () => {
-    // Note: Cannot test env-unset case with jest.resetModules/isolateModules — causes
-    // React singleton mismatch (Invalid hook call). Default env already yields /demo.
+  it('links Request Demo to /dashboard (fallback when env unset)', () => {
     render(<LandingPage />);
     const links = screen.getAllByRole('link', { name: /Request Demo/i });
     expect(links.length).toBeGreaterThan(0);
-    expect(links[0]).toHaveAttribute('href', '/demo');
+    expect(links[0]).toHaveAttribute('href', '/dashboard');
   });
 
   it('renders footer with WarpSense', () => {
