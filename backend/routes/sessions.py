@@ -27,11 +27,10 @@ from sqlalchemy.orm import Session as OrmSession, joinedload
 
 from database.connection import SessionLocal
 from database.models import FrameModel, SessionModel
-from features.extractor import extract_features
 from models.frame import Frame
 from models.session import Session, SessionStatus
-from scoring.rule_based import score_session
 from services.benchmark_service import get_welder_benchmarks
+from services.scoring_service import get_session_score as compute_session_score
 from services.coaching_service import assign_coaching_plan, evaluate_progress
 from services.thermal_service import calculate_heat_dissipation
 from services.threshold_service import get_thresholds
@@ -356,12 +355,13 @@ async def get_session_score(
         )
 
     session = session_model.to_pydantic()
-    process_type = getattr(session_model, "process_type", None) or "mig"
-    thresholds = get_thresholds(db, process_type)
-    features = extract_features(
-        session, angle_target_deg=thresholds.angle_target_degrees
+    score = compute_session_score(
+        session_id,
+        db,
+        include_windowed=True,
+        session_model=session_model,
+        session=session,
     )
-    score = score_session(session, features, thresholds)
 
     # Lazy persistence: if COMPLETE and score_total is null, persist
     if (
@@ -370,6 +370,12 @@ async def get_session_score(
         and session_model.frame_count > 0
     ):
         session_model.score_total = score.total
+        session_model.wqi_timeline = score.wqi_timeline
+        session_model.mean_wqi = score.mean_wqi
+        session_model.median_wqi = score.median_wqi
+        session_model.min_wqi = score.min_wqi
+        session_model.max_wqi = score.max_wqi
+        session_model.wqi_trend = score.wqi_trend
         db.commit()
         # Non-critical: evaluate coaching progress; auto-assign drills when score < 60
         if session_model.operator_id:
@@ -405,6 +411,8 @@ async def get_session_score(
         result["session_score"] = None
     # TODO Session 4: remove legacy total/rules, use session_score only.
     # TODO Before Session 4: add mock WPS config (0.4–1.0) for test sessions or explicit annotation when expert mock (0.5–0.9) flags below WPS (0.9 floor); QA will otherwise see every expert failing heat_input.
+    process_type = getattr(session_model, "process_type", None) or "mig"
+    thresholds = get_thresholds(db, process_type)
     result["active_threshold_spec"] = {
         "weld_type": thresholds.weld_type,
         "angle_target": thresholds.angle_target_degrees,

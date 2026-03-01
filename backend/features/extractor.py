@@ -16,6 +16,7 @@ from typing import List, Dict, Any
 
 import numpy as np
 
+from models.frame import Frame
 from models.session import Session
 
 # Porosity window voltage σ threshold — calibrated via Step 8 (30-session calibration).
@@ -37,26 +38,17 @@ def _compute_cyclogram_area(volts: list, amps: list) -> float:
     return round(math.pi * v_std * a_std * math.sqrt(max(0.0, 1.0 - r ** 2)), 4)
 
 
-def extract_features(
-    session: Session, angle_target_deg: float = 45
+def extract_features_for_frames(
+    frames: List[Frame], angle_target_deg: float = 45
 ) -> Dict[str, Any]:
     """
-    Extract 5 features from a welding session for scoring.
-
-    Field names must match Frame model: f.amps, f.angle_degrees,
-    f.has_thermal_data. Wrong names → zeros → scoring broken.
-
-    Args:
-        session: Session with raw sensor data (frames with amps, angle_degrees,
-                 thermal_snapshots, heat_dissipation_rate_celsius_per_sec, volts)
-
-    Returns:
-        Dict with keys: amps_stddev, angle_max_deviation, north_south_delta_avg,
-        heat_diss_stddev, volts_range. All floats; empty lists yield 0.
+    Extract scoring features from a list of frames.
+    Same logic as extract_features; accepts List[Frame] instead of Session.
+    Used by extract_features (delegation) and score_frames_windowed (per-window).
     """
-    amps = [f.amps for f in session.frames if f.amps is not None]
-    angles = [f.angle_degrees for f in session.frames if f.angle_degrees is not None]
-    thermal_frames = [f for f in session.frames if f.has_thermal_data]
+    amps = [f.amps for f in frames if f.amps is not None]
+    angles = [f.angle_degrees for f in frames if f.angle_degrees is not None]
+    thermal_frames = [f for f in frames if f.has_thermal_data]
 
     north_temps: List[float] = []
     south_temps: List[float] = []
@@ -70,10 +62,10 @@ def extract_features(
 
     heat_diss = [
         f.heat_dissipation_rate_celsius_per_sec
-        for f in session.frames
+        for f in frames
         if f.heat_dissipation_rate_celsius_per_sec is not None
     ]
-    volts = [f.volts for f in session.frames if f.volts is not None]
+    volts = [f.volts for f in frames if f.volts is not None]
 
     amps_stddev = statistics.stdev(amps) if len(amps) > 1 else 0.0
     angle_max_deviation = (
@@ -89,13 +81,13 @@ def extract_features(
 
     # Travel speed stddev
     travel_speeds = [
-        f.travel_speed_mm_per_min for f in session.frames
+        f.travel_speed_mm_per_min for f in frames
         if f.travel_speed_mm_per_min is not None
     ]
     travel_speed_stddev = float(np.std(travel_speeds)) if len(travel_speeds) > 1 else 0.0
 
     # Cyclogram area — arc-on frames only
-    arc_frames = [f for f in session.frames if f.volts and f.volts > 1.0 and f.amps]
+    arc_frames = [f for f in frames if f.volts and f.volts > 1.0 and f.amps]
     cyclogram_area = _compute_cyclogram_area(
         [f.volts for f in arc_frames],
         [f.amps for f in arc_frames],
@@ -120,6 +112,27 @@ def extract_features(
         "cyclogram_area": cyclogram_area,
         "porosity_event_count": porosity_event_count,
     }
+
+
+def extract_features(
+    session: Session, angle_target_deg: float = 45
+) -> Dict[str, Any]:
+    """
+    Extract 5 features from a welding session for scoring.
+    Delegates to extract_features_for_frames(session.frames, angle_target_deg).
+
+    Field names must match Frame model: f.amps, f.angle_degrees,
+    f.has_thermal_data. Wrong names → zeros → scoring broken.
+
+    Args:
+        session: Session with raw sensor data (frames with amps, angle_degrees,
+                 thermal_snapshots, heat_dissipation_rate_celsius_per_sec, volts)
+
+    Returns:
+        Dict with keys: amps_stddev, angle_max_deviation, north_south_delta_avg,
+        heat_diss_stddev, volts_range. All floats; empty lists yield 0.
+    """
+    return extract_features_for_frames(session.frames, angle_target_deg)
 
 
 def extract_pressure_features(

@@ -22,3 +22,9 @@ class SessionScore(BaseModel):
 
     total: int
     rules: List[ScoreRule]
+    wqi_timeline: Optional[List[dict]] = None
+    mean_wqi: Optional[float] = None
+    median_wqi: Optional[float] = None
+    min_wqi: Optional[int] = None
+    max_wqi: Optional[int] = None
+    wqi_trend: Optional[str] = None

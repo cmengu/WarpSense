@@ -569,6 +569,10 @@ def _generate_continuous_novice_frames(
         )
         new_center_10mm = thermal_state[10.0]["center"]
 
+        heat_input_kj_per_mm: Optional[float] = None
+        if arc_active and travel_speed > 0 and amps and volts:
+            heat_input_kj_per_mm = (amps * volts * 60.0) / (travel_speed * 1000.0)
+
         is_thermal_frame = True  # Emit thermal every frame for real-time alert Rule 1
         snapshots = _aluminum_state_to_snapshots(thermal_state) if is_thermal_frame else []
 
@@ -596,6 +600,7 @@ def _generate_continuous_novice_frames(
                 travel_speed_mm_per_min=travel_speed,
                 travel_angle_degrees=travel_angle,
                 ctwd_mm=ctwd_mm,
+                heat_input_kj_per_mm=heat_input_kj_per_mm,
             )
         )
 

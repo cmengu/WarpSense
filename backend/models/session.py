@@ -81,6 +81,18 @@ class Session(BaseModel):
         None,
         description="Precomputed total score (persisted on first score computation).",
     )
+    wqi_timeline: Optional[List[dict]] = Field(
+        default=None,
+        description="[{frame_start, frame_end, wqi}] windowed WQI per window.",
+    )
+    mean_wqi: Optional[float] = Field(default=None)
+    median_wqi: Optional[float] = Field(default=None)
+    min_wqi: Optional[int] = Field(default=None)
+    max_wqi: Optional[int] = Field(default=None)
+    wqi_trend: Optional[str] = Field(
+        default=None,
+        description="improving|degrading|stable",
+    )
 
     @staticmethod
     def is_valid_status_transition(

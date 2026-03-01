@@ -47,6 +47,34 @@ def test_session_score_serialization():
     assert score.rules[0].rule_id == "pressure"
 
 
+def test_session_wqi_model_copy():
+    """Step 3: Session.model_copy(update={...}) works for wqi fields."""
+    from data.mock_sessions import generate_expert_session
+    s = generate_expert_session()
+    s2 = s.model_copy(update={"mean_wqi": 60.0})
+    assert s2.mean_wqi == 60.0
+
+
+def test_session_wqi_to_from_pydantic():
+    """Step 4: to_pydantic and from_pydantic map wqi columns."""
+    from database.models import SessionModel
+    from data.mock_sessions import generate_expert_session
+
+    # from_pydantic: Session with wqi_timeline -> SessionModel
+    session = generate_expert_session()
+    session = session.model_copy(
+        update={"wqi_timeline": [{"frame_start": 0, "frame_end": 49, "wqi": 60}]}
+    )
+    m = SessionModel.from_pydantic(session)
+    assert m.wqi_timeline is not None
+    assert m.wqi_timeline[0]["wqi"] == 60
+
+    # to_pydantic: SessionModel with wqi_timeline -> Session
+    s2 = m.to_pydantic()
+    assert s2.wqi_timeline is not None
+    assert s2.wqi_timeline[0]["wqi"] == 60
+
+
 def test_session_serialization_round_trip():
     """Test Session model serialization/deserialization round-trip."""
     frames = [

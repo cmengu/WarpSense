@@ -281,6 +281,8 @@ export interface AlertPayload {
   message: string;
   correction: string;
   timestamp_ms: number;
+  corrected?: boolean;
+  corrected_in_seconds?: number | null;
 }
 
 /**

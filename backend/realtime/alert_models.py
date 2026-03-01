@@ -46,3 +46,11 @@ class AlertPayload(BaseModel):
     message: str
     correction: str
     timestamp_ms: float
+    corrected: bool = Field(
+        False,
+        description="Parameter returned to range before session end.",
+    )
+    corrected_in_seconds: Optional[float] = Field(
+        None,
+        description="Seconds from alert to first in-range frame. Set only when corrected=True.",
+    )
