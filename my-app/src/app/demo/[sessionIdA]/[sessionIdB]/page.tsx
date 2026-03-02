@@ -1126,7 +1126,7 @@ export function DemoPageInner({
             />
             <div
               style={{
-                width: 'min(calc(100vh - 260px), 420px)',
+                width: 'min(calc(100vh - 260px), 460px)',
                 aspectRatio: '1/1',
                 borderRadius: '50%',
                 overflow: 'hidden',
