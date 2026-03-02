@@ -313,7 +313,7 @@ function AlertFeedColumn({
                 background: 'none',
                 border: 'none',
                 borderBottom: `1px solid ${C.border}`,
-                padding: '8px 0',
+                padding: '10px 0',
                 cursor: 'pointer',
                 opacity: cardOpacity,
                 transition: 'opacity 0.4s ease',
@@ -346,7 +346,7 @@ function AlertFeedColumn({
                   <span
                     style={{
                       fontFamily: FONT_LABEL,
-                      fontSize: 9,
+                      fontSize: 11,
                       fontWeight: 600,
                       letterSpacing: '0.16em',
                       textTransform: 'uppercase',
@@ -376,7 +376,7 @@ function AlertFeedColumn({
                 <div
                   style={{
                     fontFamily: FONT_DATA,
-                    fontSize: 7.5,
+                    fontSize: 9,
                     color: C.textDim,
                     marginTop: 2,
                   }}
@@ -390,7 +390,7 @@ function AlertFeedColumn({
                     <span
                       style={{
                         fontFamily: FONT_LABEL,
-                        fontSize: 7.5,
+                        fontSize: 9,
                         letterSpacing: '0.14em',
                         color: C.expert,
                         textTransform: 'uppercase',
@@ -403,7 +403,7 @@ function AlertFeedColumn({
                     <span
                       style={{
                         fontFamily: FONT_DATA,
-                        fontSize: 7.5,
+                        fontSize: 9,
                         color: C.novice,
                       }}
                     >
@@ -447,7 +447,7 @@ export function DemoSkeleton() {
       >
         <div style={{ width: 120, height: 12, background: 'rgba(255,255,255,0.05)', borderRadius: 2 }} />
       </header>
-      <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr 240px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr 300px' }}>
         <div style={{ borderRight: `1px solid ${C.border}`, padding: '20px 18px' }}>
           {[1, 2, 3].map((i) => (
             <div
@@ -902,7 +902,7 @@ export function DemoPageInner({
         </Link>
       </header>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr 240px', overflow: 'hidden' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr 300px', overflow: 'hidden' }}>
         <div
           style={{
             borderRight: `1px solid ${C.border}`,
@@ -1019,12 +1019,12 @@ export function DemoPageInner({
                 >
                   {l}
                 </span>
-                <span style={{ fontFamily: FONT_DATA, fontSize: 11, color: C.novice }}>
+                <span style={{ fontFamily: FONT_DATA, fontSize: 13, color: C.novice }}>
                   {av}
                   <span style={{ fontSize: 8, color: 'rgba(255,69,69,0.4)', marginLeft: 2 }}>{u}</span>
                 </span>
                 <span style={{ fontSize: 7, color: C.textDim }}>vs</span>
-                <span style={{ fontFamily: FONT_DATA, fontSize: 11, color: C.expert }}>
+                <span style={{ fontFamily: FONT_DATA, fontSize: 13, color: C.expert }}>
                   {bv}
                   <span style={{ fontSize: 8, color: 'rgba(0,229,160,0.4)', marginLeft: 2 }}>{u}</span>
                 </span>
@@ -1352,7 +1352,8 @@ export function DemoPageInner({
               <span
                 style={{
                   fontFamily: FONT_DATA,
-                  fontSize: 9,
+                  fontSize: 16,
+                  fontWeight: 700,
                   color: alertsErrorA ? C.amber : C.novice,
                 }}
               >
@@ -1361,7 +1362,8 @@ export function DemoPageInner({
               <span
                 style={{
                   fontFamily: FONT_DATA,
-                  fontSize: 9,
+                  fontSize: 16,
+                  fontWeight: 700,
                   color: alertsErrorB ? C.amber : C.expert,
                 }}
               >
