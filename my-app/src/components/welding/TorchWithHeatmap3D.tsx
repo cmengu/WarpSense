@@ -73,6 +73,14 @@ export interface TorchWithHeatmap3DProps {
   colorSensitivity?: number;
   /** Test-only: simulate WebGL context loss after mount. Dispatches webglcontextlost in onCreated; unit-test simulation only — real context-loss recovery may differ. */
   simulateContextLoss?: boolean;
+  /** Canvas background color. Default '#0a0a0a'. */
+  background?: string;
+  /** Override container div classes. When provided, replaces default h-64/border/rounded. Use e.g. "h-full border-0 rounded-[0px]" for embedded contexts. rounded-[0px] (not rounded-none) ensures Tailwind JIT emits the class in production. */
+  containerClassName?: string;
+  /** Whether OrbitControls are enabled. Default true. Set false when embedded (e.g. demo circle) to prevent accidental camera drift. */
+  enableOrbitControls?: boolean;
+  /** Whether the temperature scale legend (0–500°C pill) is shown. Default true. Set false when embedded to avoid off-brand blue styling. */
+  showLegend?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -183,6 +191,10 @@ export default function TorchWithHeatmap3D({
   plateSize = 3,
   colorSensitivity = 10,
   simulateContextLoss = false,
+  background,
+  containerClassName,
+  enableOrbitControls = true,
+  showLegend = true,
 }: TorchWithHeatmap3DProps) {
   const [contextLost, setContextLost] = useState(false);
   const [canvasKey, setCanvasKey] = useState(0);
@@ -236,19 +248,19 @@ export default function TorchWithHeatmap3D({
   ) : null;
 
   return (
-    <div className="w-full">
+    <div className={`w-full ${containerClassName ? 'h-full' : ''}`}>
       {labelPosition === 'outside' && hudContent && (
         <div data-testid="hud-outside" className="mb-2">
           {hudContent}
         </div>
       )}
-      <div className="relative w-full h-64 min-h-64 rounded-xl overflow-hidden border-2 border-blue-400/80 bg-neutral-950 shadow-[0_0_30px_rgba(59,130,246,0.15)]">
+      <div className={`relative w-full overflow-hidden bg-neutral-950 ${containerClassName ?? 'h-64 min-h-64 rounded-xl border-2 border-blue-400/80 shadow-[0_0_30px_rgba(59,130,246,0.15)]'}`}>
         {labelPosition === 'inside' && hudContent && (
           <div data-testid="hud-inside" className="absolute top-4 left-4 z-10">
             {hudContent}
           </div>
         )}
-        <div className="relative h-64 w-full isolate">
+        <div className={`relative w-full isolate ${containerClassName ? 'h-full' : 'h-64'}`}>
         {/* When context lost: unmount Canvas to release dead WebGL context. Keyed remount
             lets user try "Reload 3D" without full page reload. See Phase 2 in
             .cursor/plans/white-screen-reload-webgl-fix-plan.md */}
@@ -263,7 +275,7 @@ export default function TorchWithHeatmap3D({
             toneMapping: THREE.ACESFilmicToneMapping,
             toneMappingExposure: 1.2,
           }}
-          style={{ background: '#0a0a0a' }}
+          style={{ background: background ?? '#0a0a0a' }}
           onCreated={({ gl }) => {
             const canvas = gl.domElement;
             // Do NOT call e.preventDefault() — we don't manually recreate the renderer.
@@ -289,15 +301,17 @@ export default function TorchWithHeatmap3D({
           }}
         >
           <PerspectiveCamera makeDefault position={[1.2, 0.6, 1.5]} fov={45} />
-          <OrbitControls
-            enablePan={false}
-            enableZoom
-            minDistance={1}
-            maxDistance={4}
-            minPolarAngle={Math.PI / 6}
-            maxPolarAngle={Math.PI / 2}
-            dampingFactor={0.05}
-          />
+          {enableOrbitControls !== false && (
+            <OrbitControls
+              enablePan={false}
+              enableZoom
+              minDistance={1}
+              maxDistance={4}
+              minPolarAngle={Math.PI / 6}
+              maxPolarAngle={Math.PI / 2}
+              dampingFactor={0.05}
+            />
+          )}
           <SceneContent
             angle={angle}
             temp={temp}
@@ -352,16 +366,18 @@ export default function TorchWithHeatmap3D({
         )}
       </div>
 
-      <div className="absolute bottom-4 right-4 z-10">
-        <div className="backdrop-blur-md bg-black/50 border border-blue-400/40 rounded-lg px-3 py-2">
-          <div className="flex items-center gap-2">
-            <div className="w-24 h-1.5 rounded-full bg-gradient-to-r from-blue-600 via-violet-400 to-purple-400" />
-            <span className={`text-[10px] text-blue-400/70 ${jetbrainsMono.className}`}>
-              {minTemp}–{maxTemp}°C
-            </span>
+      {showLegend !== false && (
+        <div className="absolute bottom-4 right-4 z-10">
+          <div className="backdrop-blur-md bg-black/50 border border-blue-400/40 rounded-lg px-3 py-2">
+            <div className="flex items-center gap-2">
+              <div className="w-24 h-1.5 rounded-full bg-gradient-to-r from-blue-600 via-violet-400 to-purple-400" />
+              <span className={`text-[10px] text-blue-400/70 ${jetbrainsMono.className}`}>
+                {minTemp}–{maxTemp}°C
+              </span>
+            </div>
           </div>
         </div>
-      </div>
+      )}
       </div>
     </div>
   );
