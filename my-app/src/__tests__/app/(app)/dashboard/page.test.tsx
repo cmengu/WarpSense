@@ -10,18 +10,13 @@
  *   - Sort by score ascending (worst first)
  */
 
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import DashboardPage from "@/app/(app)/dashboard/page";
 
 const mockFetchScore = jest.fn();
-const mockPush = jest.fn();
 
 jest.mock("@/lib/api", () => ({
   fetchScore: (...args: unknown[]) => mockFetchScore(...args),
-}));
-
-jest.mock("next/navigation", () => ({
-  useRouter: () => ({ push: mockPush }),
 }));
 
 describe("DashboardPage (Welder Roster)", () => {
@@ -36,7 +31,7 @@ describe("DashboardPage (Welder Roster)", () => {
     expect(screen.getByText(/Welder Roster/)).toBeInTheDocument();
   });
 
-  it("renders 10 welder cards when fetches succeed", async () => {
+  it("renders welder roster with 9 grid cards and Expert Benchmark", async () => {
     render(<DashboardPage />);
 
     await waitFor(() => {
@@ -46,7 +41,7 @@ describe("DashboardPage (Welder Roster)", () => {
     expect(screen.getByText(/Mike Chen/)).toBeInTheDocument();
     expect(screen.getByText(/Sara Okafor/)).toBeInTheDocument();
     expect(screen.getByText(/Expert Benchmark/)).toBeInTheDocument();
-    expect(screen.getAllByText(/\/100/).length).toBeGreaterThanOrEqual(10);
+    expect(screen.getAllByRole("link", { name: /Compare to expert/ })).toHaveLength(9);
   });
 
   it("links cards to /replay/[sessionId]", async () => {
@@ -92,7 +87,7 @@ describe("DashboardPage (Welder Roster)", () => {
     expect(screen.getByText(/Score unavailable/)).toBeInTheDocument();
   });
 
-  it("shows score-based badge colour (green for score ≥80)", async () => {
+  it("shows score-based badge colour (good tier for score ≥75)", async () => {
     mockFetchScore.mockImplementation(() =>
       Promise.resolve({ total: 85, rules: [] })
     );
@@ -103,8 +98,12 @@ describe("DashboardPage (Welder Roster)", () => {
       expect(screen.getByText(/Mike Chen/)).toBeInTheDocument();
     });
 
-    const scoreBadges = screen.getAllByText("85/100");
-    expect(scoreBadges[0]).toHaveClass("bg-green-100");
+    const mikeCard = screen.getByRole("heading", { name: /Mike Chen/ }).closest(
+      "[class*='rounded-xl']"
+    ) as HTMLElement | null;
+    expect(mikeCard).toBeInTheDocument();
+    const badge = within(mikeCard!).getByText("85/100");
+    expect(badge).toHaveAttribute("data-score-tier", "good");
   });
 
   it("sorts cards by score ascending (worst first)", async () => {
@@ -120,9 +119,9 @@ describe("DashboardPage (Welder Roster)", () => {
       expect(screen.getByText(/Tom Bradley/)).toBeInTheDocument();
     });
 
-    const cards = screen.getAllByRole("heading", { level: 2 });
-    expect(cards[0]).toHaveTextContent("Tom Bradley");
-    expect(cards[1]).toHaveTextContent("Mike Chen");
+    const welderHeadings = screen.getAllByRole("heading", { level: 3 });
+    expect(welderHeadings[0]).toHaveTextContent("Tom Bradley");
+    expect(welderHeadings[1]).toHaveTextContent("Mike Chen");
   });
 
   it("Expert Benchmark card has no Compare to expert link", async () => {
