@@ -19,6 +19,11 @@ jest.mock('@/hooks/useSessionComparison', () => ({
   useSessionComparison: (...args: unknown[]) => mockUseSessionComparison(...args),
 }));
 
+jest.mock('@/components/welding/TorchWithHeatmap3D', () => ({
+  __esModule: true,
+  default: () => <div data-testid="torch-with-heatmap-3d" />,
+}));
+
 // Reconcile with Session type: every non-optional field must be present.
 const baseSession = {
   session_id: 'sess_a',
