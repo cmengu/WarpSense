@@ -4,8 +4,12 @@
 **For AI Tools:** Reference this file with `@LEARNING_LOG.md` when implementing 3D/WebGL features.  
 **For `.cursorrules`:** Check LEARNING_LOG.md for anti-patterns, required patterns, and past incidents before generating code.
 
-**Last Updated:** 2026-02-26  
-**Total Entries:** 23 incidents + Lessons & Reflections
+**Last Updated:** 2026-03-02  
+**Total Entries:** 27 incidents + Lessons & Reflections
+
+**Dashboard code review (2026-03-02):** `Promise.race` with `setTimeout` — clear timer in `finally` or it leaks when the main promise wins first. Tests: use `within(container).getByText()` + `toHaveAttribute` instead of `document.querySelector`; remove dead mocks (e.g. useRouter when page doesn't use it). See project-context.md "Promise.race Timeout Cleanup" and "Common Failure Points".
+
+**Demo circle heatmap (2026-03-02):** TorchWithHeatmap3D on new pages (e.g. demo) MUST use `dynamic(..., { ssr: false })` — never static import. Plan said `import TorchWithHeatmap3D from '...'`; implementation followed that and caused blank canvas (WebGL/DOM not available during SSR). Cross-check replay/compare pages before implementing; they already use dynamic import. Also: when `enableOrbitControls={false}`, R3F Canvas needs custom no-op events to avoid addEventListener on null. See project-context.md "SSR Safety (WebGL/Canvas)" and "Common Failure Points".
 
 **Session report data layer (2026-02-26):** `GET /api/sessions/{id}/report-summary` returns ReportSummary (heat input, travel angle excursions, arc termination, defect counts). `run_session_alerts()` in alert_service.py — single source for alerts + report-summary. Process_type mapping owned by `compute_report_summary`. Report_thresholds.json cached per process. See project-context.md "Session Report Data Layer".
 
@@ -45,6 +49,10 @@
 
 | Date | Title | Category | Severity |
 |------|-------|----------|----------|
+| 2026-03-02 | Promise.race Timeout Leak — No clearTimeout on Settle | Performance | 🟢 Medium |
+| 2026-03-02 | Testing: document.querySelector vs Testing Library | Testing | ⚪ Low |
+| 2026-03-02 | Dead Mocks (useRouter) in Tests | Testing | ⚪ Low |
+| 2026-03-02 | Demo Circle Heatmap — Static Import SSR Blank Canvas | Frontend / 3D | 🟡 High |
 | 2026-02-26 | Defect Score Penalty Uses Wrong Alert Count | Backend / Scoring | 🟢 Medium |
 | 2026-02-26 | Scoring Config Weight Validation | Backend / Config | 🟢 Medium |
 | 2026-02-26 | Backfill Script Per-Item Error Handling | Backend / Scripts | ⚪ Low |
@@ -74,6 +82,44 @@
 ---
 
 ## ⚡ Performance & Optimization
+
+### 📅 2026-03-02 — Promise.race Timeout Leak (No clearTimeout on Settle)
+
+**Category:** Performance  
+**Severity:** 🟢 Medium
+
+**What Happened:**
+`fetchScoreWithTimeout` used `Promise.race([fetchScore(...), timeout])` where `timeout` was created with `setTimeout`. When `fetchScore` resolved first, the timeout stayed scheduled until it fired — leaking the timer and wasting work.
+
+**The Fix:**
+
+```typescript
+// ❌ BEFORE — timeout never cleared when fetch wins
+const timeout = new Promise<null>((_, reject) =>
+  setTimeout(() => reject(new Error("timeout")), FETCH_TIMEOUT_MS)
+);
+try {
+  return await Promise.race([fetchScore(sessionId, signal), timeout]);
+} catch { return null; }
+
+// ✅ AFTER — clear timer in finally
+let timeoutId: ReturnType<typeof setTimeout>;
+const timeout = new Promise<never>((_, reject) => {
+  timeoutId = setTimeout(() => reject(new Error("timeout")), FETCH_TIMEOUT_MS);
+});
+try {
+  return await Promise.race([fetchScore(sessionId, signal), timeout]);
+} catch { return null; }
+finally { clearTimeout(timeoutId!); }
+```
+
+**Prevention:**
+- ✅ DO: Store setTimeout id; clear it in `finally` so it runs whether race resolves or rejects
+- ❌ DON'T: Create timeout Promise without cleanup when using Promise.race
+
+**AI Guidance:** When implementing timeouts with Promise.race, always clear the timer in a finally block. See project-context.md "Promise.race Timeout Cleanup".
+
+---
 
 ### 📅 2025-02-12 — WebGL Context Lost / White Screen on /dev/torch-viz
 
@@ -220,6 +266,62 @@ When adding thermal visualization to replay/demo:
 - `my-app/src/components/welding/TorchWithHeatmap3D.tsx`
 - `my-app/src/constants/thermal.ts` — THERMAL_COLOR_SENSITIVITY, THERMAL_MAX_TEMP
 - `.cursor/plans/unified-torch-heatmap-replay-plan.md`
+
+---
+
+### 📅 2026-03-02 — Demo Circle Heatmap — Static Import Caused Blank Canvas
+
+**Category:** Frontend / 3D  
+**Severity:** 🟡 High
+
+**What Happened:**
+Plan execution for demo page TorchWithHeatmap3D (two circles side-by-side) followed the plan exactly: `import TorchWithHeatmap3D from '...'` (static import). The heatmap circles did not display — blank or white canvas. Multiple camera position iterations and debugging followed before discovering the root cause.
+
+**Impact:**
+- Blank/white 3D view on demo page
+- 10+ camera position tweaks (trial and error)
+- R3F events error when enableOrbitControls={false} (addEventListener on null)
+- Extended debug time
+
+**Root Cause:**
+- **Technical:** Static import runs TorchWithHeatmap3D (R3F Canvas + WebGL) during Next.js SSR. WebGL and DOM do not exist in Node — result: blank canvas or hydration mismatch.
+- **Technical:** When OrbitControls disabled, R3F's default event system still tries to attach; needs custom no-op events on Canvas.
+- **Process:** Plan specified static import; did not cross-reference replay/compare pages which use `dynamic(..., { ssr: false })`.
+- **Knowledge:** Plan assumed "add import" without checking SSR safety for WebGL components.
+
+**The Fix:**
+
+```tsx
+// ❌ BEFORE — plan said: static import → SSR runs WebGL → blank canvas
+import TorchWithHeatmap3D from '@/components/welding/TorchWithHeatmap3D';
+
+// ✅ AFTER — dynamic + ssr: false (matches replay, compare)
+const TorchWithHeatmap3D = dynamic(
+  () => import('@/components/welding/TorchWithHeatmap3D').then((m) => m.default),
+  { ssr: false, loading: () => <div>Loading 3D…</div> }
+);
+```
+
+**Prevention:**
+- ✅ DO: Use `dynamic(..., { ssr: false })` for TorchWithHeatmap3D on any new page
+- ✅ DO: Cross-check replay and compare pages before implementing — they are the reference
+- ✅ DO: When enableOrbitControls={false}, pass custom no-op events to R3F Canvas (avoid null addEventListener)
+- ❌ DON'T: Follow a plan's "add import" verbatim for WebGL components without verifying SSR safety
+- ❌ DON'T: Guess camera position — enable OrbitControls, drag to find angle, then lock in values
+
+**AI Guidance:**
+```
+When adding TorchWithHeatmap3D to a new page:
+1. Use dynamic(..., { ssr: false }) — NEVER static import. Check replay/compare pages.
+2. If enableOrbitControls={false}, pass events={() => ({ enabled: false, connect: () => {}, ... })} to Canvas.
+3. For square/small viewports: cameraFov={72}, cameraPosition from user drag or replay default.
+4. Reference @LEARNING_LOG.md and @.cursor/context/project-context.md before implementing.
+```
+
+**References:**
+- `app/demo/[sessionIdA]/[sessionIdB]/page.tsx` — dynamic import
+- `app/replay/[sessionId]/page.tsx` — reference pattern
+- `.cursor/plans/demo-bead-diff-torch-split-execution.md` — plan that specified static import
 
 ---
 
@@ -1038,6 +1140,52 @@ npm test -- --testPathPattern="WarpRiskGauge|replay" --watchAll=false
 ---
 
 ## 🧪 Testing
+
+### 📅 2026-03-02 — document.querySelector vs Testing Library
+
+**Category:** Testing  
+**Severity:** ⚪ Low
+
+**What Happened:**
+Dashboard test used `document.querySelector('[data-score-tier="good"]')` to assert badge styling. Bypasses Testing Library's scoping and user-centric queries; couples to implementation details.
+
+**The Fix:**
+
+```tsx
+// ❌ BEFORE — document API, no scoping
+const badge = document.querySelector('[data-score-tier="good"]');
+expect(badge).toBeInTheDocument();
+
+// ✅ AFTER — within + getByText + toHaveAttribute
+const mikeCard = screen.getByRole("heading", { name: /Mike Chen/ })
+  .closest("[class*='rounded-xl']") as HTMLElement | null;
+expect(mikeCard).toBeInTheDocument();
+const badge = within(mikeCard!).getByText("85/100");
+expect(badge).toHaveAttribute("data-score-tier", "good");
+```
+
+**Prevention:**
+- ✅ DO: Use `within(container).getByText()` and `toHaveAttribute` for data attributes
+- ❌ DON'T: Use `document.querySelector` in React tests — prefer Testing Library queries
+
+---
+
+### 📅 2026-03-02 — Dead Mocks (useRouter When Page Doesn't Use It)
+
+**Category:** Testing  
+**Severity:** ⚪ Low
+
+**What Happened:**
+Dashboard test had `jest.mock("next/navigation", () => ({ useRouter: () => ({ push: mockPush }) }))` and `mockPush` but the DashboardPage never calls `useRouter`. Dead code clutters tests and suggests behavior that doesn't exist.
+
+**The Fix:**
+Remove unused `jest.mock("next/navigation", ...)` and `mockPush`. Only mock what the component actually uses.
+
+**Prevention:**
+- ✅ DO: Mock only APIs the component under test uses
+- ❌ DON'T: Copy mocks from other tests without verifying the component imports them
+
+---
 
 ### 📅 2026-02-26 — caplog.messages for Log Assertions
 

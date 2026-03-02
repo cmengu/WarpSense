@@ -2,7 +2,7 @@
 
 > **Purpose:** Single source of truth for AI tools. What exists, what patterns to follow, what constraints to respect.  
 > **For AI:** Reference `@.cursor/context/project-context.md` to avoid reimplementing features or violating patterns.  
-> **Last Updated:** 2026-02-26
+> **Last Updated:** 2026-03-02
 
 ---
 
@@ -22,6 +22,9 @@
 - ✅ iPad companion PWA (/live)
 - ✅ System 1 rule-based edge alerts (3 proxy + 7 defect rules), Aluminum mock sessions
 - ✅ Full-stack smoke tests
+- ✅ Windowed WQI scoring (extract_features_for_frames, score_frames_windowed, wqi_timeline/mean/median/min/max/trend)
+- ✅ Demo page API-wired (fetchSession, fetchSessionAlerts, useSessionComparison; no 3D)
+- ✅ Welder Roster dashboard (stats bar, Expert Benchmark card, 10 welder cards; Promise.allSettled + timeout)
 - 🔄 Post–Batch 4 verification
 - 📋 ESP32 sensor integration, production deployment
 
@@ -35,8 +38,9 @@
 ┌─────────────────────────────────────────────────────────────────────────────────┐
 │                           FRONTEND (Next.js, React)                             │
 ├─────────────────────────────────────────────────────────────────────────────────┤
-│  /demo              Investor-grade demo + guided tour → CTA to /demo/team       │
-│  /demo/team         Team dashboard                                               │
+│  /demo              Redirect to default pair → /demo/[A]/[B] (investor UX)        │
+│  /demo/[A]/[B]     Investor comparison: WQI gauges, sparklines, alert feed, playback (no 3D) │
+│  /dashboard        Welder Roster: 10 cards with latest scores, stats bar, Expert Benchmark  │
 │  /seagull           Seagull Team dashboard (cards from WELDER_ARCHETYPES)        │
 │  /seagull/welder/[id]  Welder report: ReportLayout, NarrativePanel, PDF download │
 │  /replay/[id]       Replay + WarpRiskGauge                                       │
@@ -98,6 +102,18 @@
 **What:** Heatmap, TorchAngleGraph, 3D torch + thermally-colored metal driven by shared playback timestamp.  
 **Location:** `app/replay/[sessionId]/page.tsx`, `HeatMap.tsx`, `TorchWithHeatmap3D.tsx`, `HeatmapPlate3D.tsx`  
 **Integration:** `fetchSession`, `useFrameData`, `extractHeatmapData`, `extractAngleData`
+
+### WeldTrail & 3D Torch Visualization
+**Status:** ✅  
+**What:** `WeldTrail` renders a colored point cloud on the workpiece showing torch path up to `activeTimestamp`. Arc-active frames only (volts/amps > 1). Uses cumulative distance for X-axis; falls back to timestamp-linear when `travel_speed_mm_per_min` is null. Color: green <200°C, orange <400°C, red ≥400°C.
+
+**WeldTrail location:** `components/welding/WeldTrail.tsx` — `computeTrailData` (exported for tests), `isArcActive` from frameUtils. Pre-allocates 10000 points.
+
+**TorchWithHeatmap3D:** Unified 3D scene (torch + thermal metal + WeldTrail). Used on **replay** and **compare** pages. Imports `TorchSceneContent` for torch geometry + lights; WeldTrail stays in TorchWithHeatmap3D (not extracted). Dynamic import with `ssr: false`.
+
+**3D pages:** Replay (1× TorchWithHeatmap3D), Compare (2× TorchWithHeatmap3D side-by-side), Demo (2× TorchWithHeatmap3D in circles). All use dynamic import with ssr: false.  
+**Constraint:** Max 2 Canvas per page; see `WEBGL_CONTEXT_LOSS.md`.  
+**Docs:** `docs/ISSUE_WELD_TRAIL.md`, `docs/ISSUE_COMPARE_3D_TORCH_VISUALIZATION.md`
 
 ### Rule-Based Scoring
 **Status:** ✅  
@@ -269,10 +285,28 @@
 **What:** ReportLayout slots; PDF with chart capture, narrative, certifications, compliance (reportSummary).  
 **Location:** `app/seagull/welder/[id]/page.tsx`, `ReportLayout.tsx`, `WelderReportPDF.tsx`, `app/api/welder-report-pdf/route.ts`
 
-### Investor Demo
+### Welder Roster (Dashboard)
 **Status:** ✅  
-**What:** Guided tour on /demo, team dashboard.  
-**Location:** `app/demo/`, `DemoTour.tsx`, `lib/demo-config.ts`, `lib/seagull-demo-data.ts`
+**What:** 10 welder cards with latest scores, stats bar (Total Welders, Quality Index), Expert Benchmark card. Uses `Promise.allSettled` with per-fetch 5s timeout so one failure doesn't block others. Cards sorted by score ascending (worst first). Links: /replay/[sessionId], /seagull/welder/[id], /compare for non-expert.
+
+**Patterns:** `fetchScoreWithTimeout` clears timer in `finally` to avoid leaks. `data-score-tier` on badges for test compatibility.
+
+**Location:** `app/(app)/dashboard/page.tsx`  
+**Tests:** `__tests__/app/(app)/dashboard/page.test.tsx` — use `within()` + `getByText` + `toHaveAttribute`, not `document.querySelector`.
+
+### Investor Demo (API-Wired)
+**Status:** ✅  
+**What:** `/demo` redirects to `/demo/sess_novice_aluminium_001_001/sess_expert_aluminium_001_001`. Full investor comparison UI at `/demo/[sessionIdA]/[sessionIdB]` driven by real APIs: `fetchSession`, `fetchSessionAlerts`, `useSessionComparison`.
+
+**Features:** WQI gauges (session.score_total), parameter sparklines (heat, amp, angle from frames), two side-by-side circles with TorchWithHeatmap3D (Session A vs B thermal heatmaps), two-column alert feed (severity + message; no correction status until API supports it), playback bar with shared timeline.
+
+**3D pattern:** TorchWithHeatmap3D MUST use `dynamic(..., { ssr: false })` — never static import. See LEARNING_LOG.md 2026-03-02. Camera: `cameraPosition={[-1.49, 1.21, -0.007]}`, `cameraFov={72}` for square viewports; `enableOrbitControls={true}` allows user drag.
+
+**Data flow:** Promise.all sessions → Promise.allSettled alerts → useSessionComparison(sessionA, sessionB) → deltas at shared timestamps. Sparkline history via useMemo from comparison.deltas (avoids setState thrash). Current values from `getFrameAtTimestamp`, `extractCenterTemperatureWithCarryForward`.
+
+**Location:** `app/demo/page.tsx` (redirect), `app/demo/[sessionIdA]/[sessionIdB]/page.tsx`  
+**Tests:** `app/__tests__/app/demo/page.test.tsx` — DemoPageInner, fetchSession/Alerts mocks, WQI -- when null, alerts unavailable, 404, no-overlap.  
+**Related:** `lib/demo-config.ts`, `lib/seagull-demo-data.ts` (used by /demo/team and seagull flows; demo comparison page does not use them).
 
 ### Compare Sessions
 **Status:** ✅  
@@ -462,8 +496,11 @@ DecomposedSessionScore: {
 | `utils/heatmapData.ts`, `utils/angleData.ts` | Data extraction |
 | `lib/micro-feedback.ts` | generateMicroFeedback(frames) |
 | `app/replay/[sessionId]/page.tsx` | Replay + WarpRiskGauge |
+| `app/demo/page.tsx` | Demo landing: redirect to default pair |
+| `app/demo/[sessionIdA]/[sessionIdB]/page.tsx` | Investor comparison: WQI gauges, sparklines, alert feed, playback (2D only) |
 | `app/compare/page.tsx` | Compare landing: session A/B inputs, Expert vs Novice demo |
-| `app/compare/[sessionIdA]/[sessionIdB]/page.tsx` | Compare view: heatmaps, delta, 3D, alert feed |
+| `app/compare/[sessionIdA]/[sessionIdB]/page.tsx` | Compare view: heatmaps, delta, 3D torch, alert feed |
+| `components/welding/WeldTrail.tsx` | Colored point cloud torch path on workpiece; used by TorchWithHeatmap3D |
 | `hooks/useSessionComparison.ts` | compareSessions, useSessionComparison — mirrors backend |
 | `hooks/useReportSummary.ts` | fetch report summary; AbortController on unmount |
 | `utils/deltaHeatmapData.ts` | extractDeltaHeatmapData, deltaTempToColor |
@@ -472,9 +509,10 @@ DecomposedSessionScore: {
 | `app/seagull/welder/[id]/page.tsx` | Welder report, ReportLayout, compliance slot |
 | `components/welding/ComplianceSummaryPanel.tsx` | Heat Input, Torch Angle, Arc Termination rows; 4 states |
 | `components/welding/ExcursionLogTable.tsx` | Excursion log; sort by timestamp/type; empty state |
+| `app/(app)/dashboard/page.tsx` | Welder Roster: 10 cards, stats bar, Expert Benchmark |
 | `app/(app)/supervisor/page.tsx` | WWAD dashboard |
 | `app/(app)/live/page.tsx` | iPad PWA |
-| `components/welding/TorchWithHeatmap3D.tsx` | Unified 3D torch + thermal metal |
+| `components/welding/TorchWithHeatmap3D.tsx` | Unified 3D torch + thermal metal + WeldTrail |
 
 ---
 
@@ -490,9 +528,10 @@ DecomposedSessionScore: {
 **How:** `extractCenterTemperatureWithCarryForward` — walk backwards for last known temp
 
 ### SSR Safety (WebGL/Canvas)
-**Use when:** Browser-only components  
-**How:** `dynamic(..., { ssr: false })`  
-**Why:** Prevents Next.js SSR errors; see LEARNING_LOG.md
+**Use when:** Browser-only components (R3F Canvas, TorchWithHeatmap3D, any WebGL)  
+**How:** `dynamic(..., { ssr: false })` — NEVER static import  
+**Why:** WebGL/DOM do not exist during Next.js SSR; static import causes blank canvas or hydration mismatch. See LEARNING_LOG.md 2026-03-02 (Demo circle heatmap).  
+**Reference:** Replay and compare pages use dynamic import for TorchWithHeatmap3D; cross-check before adding to new pages.
 
 ### Simulated Timestamp for Alerts
 **Use when:** Replaying frames faster than real-time  
@@ -514,6 +553,12 @@ DecomposedSessionScore: {
 **How:** Align frames by `timestamp_ms` only; only shared timestamps produce deltas. No role assumption (A/B arbitrary).  
 **Location:** `useSessionComparison`, `backend/services/comparison_service.py`  
 **Scale:** A and B heatmaps share `compareColorFn` (min/max over both); delta uses `deltaTempToColor` (-50°C→blue, 0→white, +50°C→purple)
+
+### Promise.race Timeout Cleanup
+**Use when:** Wrapping async work with a timeout via `Promise.race([fn(), timeout])`  
+**How:** Store `setTimeout` id; call `clearTimeout(id)` in a `finally` block so the timer is cleared when the race settles (whether fn wins or timeout wins).  
+**Why:** If fn wins first, the timeout stays scheduled until it fires — leak and wasted work.  
+**Location:** `fetchScoreWithTimeout` in dashboard page.
 
 ### Compare Alert Fetch Isolation
 **Use when:** Fetching alerts for both sessions on compare page  
@@ -581,6 +626,7 @@ Call all hooks before any `if (error) return ...`.
 ### Common Failure Points
 | ❌ Wrong | ✅ Right |
 |---------|---------|
+| Static import of TorchWithHeatmap3D on new pages | `dynamic(..., { ssr: false })` — match replay/compare |
 | Forgetting `ssr: false` on 3D | `dynamic(..., { ssr: false })` |
 | Recomputing heat dissipation frontend | Use `frame.heat_dissipation_rate_celsius_per_sec` |
 | Not handling sparse thermal | `extractCenterTemperatureWithCarryForward()` |
@@ -591,6 +637,9 @@ Call all hooks before any `if (error) return ...`.
 | try/except AttributeError for Pydantic copy | Use `hasattr(obj, "model_copy")` — explicit, no swallowed errors |
 | Inline magic numbers in mock generators | Extract to constants (AL_*_BASE_MEAN, etc.) |
 | Docstring contradicting implementation | Update docstring immediately — wrong doc causes "fix" that breaks code |
+| Promise.race with setTimeout, no cleanup | Clear timer in `finally` block — else leaks when fn wins first |
+| `document.querySelector` in React tests | Use `within(container).getByText()` + `toHaveAttribute` — Testing Library pattern |
+| Dead mocks (useRouter when page doesn't use it) | Remove unused `jest.mock` and mock vars — clutters tests |
 
 ---
 
@@ -609,8 +658,9 @@ Call all hooks before any `if (error) return ...`.
 **Used by:** Welder report page (`useReportSummary`), PDF route (optional body param)
 
 ### GET /api/sessions/{session_id}/score
-**Purpose:** Session score (legacy total + decomposed components).  
-**Response:** `{ total, rules, session_score: DecomposedSessionScore, active_threshold_spec }`  
+**Purpose:** Session score (legacy total + decomposed components) + windowed WQI when session has ≥10 frames.  
+**Response:** `{ total, rules, session_score: DecomposedSessionScore, active_threshold_spec, wqi_timeline?, mean_wqi?, median_wqi?, min_wqi?, max_wqi?, wqi_trend? }`  
+**Windowed WQI:** 50-frame tumbling windows; `wqi_timeline` = [{frame_start, frame_end, wqi}]; trend = improving|degrading|stable when ≥4 windows. Persisted on first score for COMPLETE sessions.  
 **Note:** `session_score` is canonical; `total` kept for backward compat. Decomposed score suppressed in production on exception.
 
 ### POST /api/sessions/{session_id}/rescore
@@ -678,6 +728,10 @@ python -m py_compile backend/main.py backend/routes/sites.py backend/routes/sess
 | `.cursor/plans/defect-alert-rules-implementation.md` | Defect alert implementation plan |
 | `docs/ISSUE_MOCK_DATA_FOUNDATION.md` | Mock data foundation issue spec |
 | `.cursor/plans/mock-data-foundation-execution.md` | Mock data implementation plan |
+| `.cursor/plans/demo-page-api-integration-refined.md` | Demo page API wiring plan |
+| `.cursor/plans/demo-page-api-integration-execution.md` | Demo page execution (route structure, data flow) |
+| `.cursor/plans/windowed-wqi-scoring.md` | Windowed WQI scoring plan |
 | `.cursor/plans/scoring-decomposition-execution.md` | Scoring decomposition + heat input implementation plan |
 | `docs/ISSUE_SESSION_REPORT_DATA_LAYER.md` | Session report data layer issue spec |
 | `.cursor/plans/session-report-data-layer-execution.md` | Report summary + compliance UI implementation plan |
+| `.cursor/plans/dashboard-welder-visual-redesign.md` | Welder Roster dashboard redesign plan |
