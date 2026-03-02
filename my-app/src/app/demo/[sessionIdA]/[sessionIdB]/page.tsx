@@ -9,6 +9,7 @@ import { FRAME_INTERVAL_MS } from '@/constants/validation';
 import { useSessionComparison } from '@/hooks/useSessionComparison';
 import { getFrameAtTimestamp, extractCenterTemperatureWithCarryForward } from '@/utils/frameUtils';
 import type { Session } from '@/types/session';
+import TorchWithHeatmap3D from '@/components/welding/TorchWithHeatmap3D';
 
 // ─── DESIGN TOKENS ────────────────────────────────────────────────────────────
 const C = {
@@ -1134,7 +1135,66 @@ export function DemoPageInner({
                   '0 0 80px rgba(0,0,0,0.9), inset 0 0 40px rgba(0,0,0,0.5)',
               }}
             >
-              <BeadDiffPlaceholder />
+              {currentTimestamp == null ? (
+                <BeadDiffPlaceholder />
+              ) : (
+                <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'row' }}>
+                  <div style={{ flex: 1, position: 'relative', borderRight: '1px solid rgba(255,255,255,0.06)' }}>
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: 6,
+                        left: 8,
+                        zIndex: 10,
+                        fontFamily: FONT_DATA,
+                        fontSize: 9,
+                        color: C.novice,
+                      }}
+                    >
+                      A
+                    </div>
+                    <TorchWithHeatmap3D
+                      angle={currentFrameA?.angle_degrees ?? 67}
+                      temp={currentTempA ?? 300}
+                      frames={sessionA?.frames ?? []}
+                      activeTimestamp={currentTimestamp}
+                      label=""
+                      labelPosition="inside"
+                      background="#07090d"
+                      containerClassName="h-full border-0 rounded-[0px]"
+                      enableOrbitControls={false}
+                      showLegend={false}
+                    />
+                  </div>
+                  <div style={{ flex: 1, position: 'relative' }}>
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: 6,
+                        left: 8,
+                        zIndex: 10,
+                        fontFamily: FONT_DATA,
+                        fontSize: 9,
+                        color: C.expert,
+                      }}
+                    >
+                      B
+                    </div>
+                    <TorchWithHeatmap3D
+                      angle={currentFrameB?.angle_degrees ?? 67}
+                      temp={currentTempB ?? 300}
+                      frames={sessionB?.frames ?? []}
+                      activeTimestamp={currentTimestamp}
+                      label=""
+                      labelPosition="inside"
+                      background="#07090d"
+                      containerClassName="h-full border-0 rounded-[0px]"
+                      enableOrbitControls={false}
+                      showLegend={false}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
