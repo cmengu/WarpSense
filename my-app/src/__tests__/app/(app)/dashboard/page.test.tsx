@@ -87,7 +87,7 @@ describe("DashboardPage (Welder Roster)", () => {
     expect(screen.getByText(/Score unavailable/)).toBeInTheDocument();
   });
 
-  it("shows score-based badge colour (good tier for score ≥75)", async () => {
+  it("shows score-based badge colour (high tier for score ≥85)", async () => {
     mockFetchScore.mockImplementation(() =>
       Promise.resolve({ total: 85, rules: [] })
     );
@@ -99,11 +99,11 @@ describe("DashboardPage (Welder Roster)", () => {
     });
 
     const mikeCard = screen.getByRole("heading", { name: /Mike Chen/ }).closest(
-      "[class*='rounded-xl']"
+      "[class*='rounded']"
     ) as HTMLElement | null;
     expect(mikeCard).toBeInTheDocument();
     const badge = within(mikeCard!).getByText("85/100");
-    expect(badge).toHaveAttribute("data-score-tier", "good");
+    expect(badge).toHaveAttribute("data-score-tier", "high");
   });
 
   it("sorts cards by score ascending (worst first)", async () => {

@@ -7,6 +7,19 @@ Your output must prioritize correctness, determinism, and explainability.
 
 ---
 
+## LEARN FROM LESSONS (APPLIES TO EVERY REQUEST)
+
+**Before generating or modifying any code:** Read `LEARNING_LOG.md` and apply its lessons.
+
+- Check for anti-patterns, required patterns, and past incidents related to your task.
+- The log documents mistakes and fixes (WebGL context limits, Pydantic compatibility, scoring config, mock data, alerts, etc.).
+- When in doubt, search LEARNING_LOG.md for the domain (3D, backend, alerts, mock data, API, tests).
+- Do not repeat documented mistakes; follow the "AI Guidance" and "Prevention" sections in each entry.
+
+This applies to every coding request 
+
+---
+
 ## TECH STACK
 
 Layer,Technology,Purpose

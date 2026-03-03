@@ -1,6 +1,7 @@
 'use client';
 
 import { Suspense, use, useEffect, useMemo, useRef, useState } from 'react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { fetchSession, fetchSessionAlerts, type AlertPayload } from '@/lib/api';
 import { getRuleLabel } from '@/lib/alert-labels';
@@ -9,7 +10,33 @@ import { FRAME_INTERVAL_MS } from '@/constants/validation';
 import { useSessionComparison } from '@/hooks/useSessionComparison';
 import { getFrameAtTimestamp, extractCenterTemperatureWithCarryForward } from '@/utils/frameUtils';
 import type { Session } from '@/types/session';
-import TorchWithHeatmap3D from '@/components/welding/TorchWithHeatmap3D';
+
+// Dynamic import — R3F Canvas requires DOM/WebGL; ssr: false avoids SSR hydration issues.
+// Per WEBGL_CONTEXT_LOSS.md: max 2 instances per page.
+const TorchWithHeatmap3D = dynamic(
+  () => import('@/components/welding/TorchWithHeatmap3D').then((m) => m.default),
+  {
+    ssr: false,
+    loading: () => (
+      <div
+        style={{
+          width: '100%',
+          height: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: '#07090d',
+        }}
+        role="status"
+        aria-live="polite"
+      >
+        <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: 'rgba(180,200,215,0.6)' }}>
+          Loading 3D…
+        </span>
+      </div>
+    ),
+  }
+);
 
 // ─── DESIGN TOKENS ────────────────────────────────────────────────────────────
 const C = {
@@ -1105,96 +1132,96 @@ export function DemoPageInner({
             <WQIScore value={sessionB?.score_total} label="Session B" color={C.expert} />
           </div>
 
-          <div style={{ position: 'relative' }}>
-            <div
-              style={{
-                position: 'absolute',
-                inset: -14,
-                borderRadius: '50%',
-                border: '1px solid rgba(255,255,255,0.05)',
-                pointerEvents: 'none',
-              }}
-            />
-            <div
-              style={{
-                position: 'absolute',
-                inset: -6,
-                borderRadius: '50%',
-                border: '1px solid rgba(255,255,255,0.03)',
-                pointerEvents: 'none',
-              }}
-            />
-            <div
-              style={{
-                width: 'min(calc(100vh - 260px), 460px)',
-                aspectRatio: '1/1',
-                borderRadius: '50%',
-                overflow: 'hidden',
-                border: '1px solid rgba(255,255,255,0.08)',
-                boxShadow:
-                  '0 0 80px rgba(0,0,0,0.9), inset 0 0 40px rgba(0,0,0,0.5)',
-              }}
-            >
-              {currentTimestamp == null ? (
-                <BeadDiffPlaceholder />
-              ) : (
-                <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'row' }}>
-                  <div style={{ flex: 1, position: 'relative', borderRight: '1px solid rgba(255,255,255,0.06)' }}>
-                    <div
-                      style={{
-                        position: 'absolute',
-                        top: 6,
-                        left: 8,
-                        zIndex: 10,
-                        fontFamily: FONT_DATA,
-                        fontSize: 9,
-                        color: C.novice,
-                      }}
-                    >
-                      A
-                    </div>
-                    <TorchWithHeatmap3D
-                      angle={currentFrameA?.angle_degrees ?? 67}
-                      temp={currentTempA ?? 300}
-                      frames={sessionA?.frames ?? []}
-                      activeTimestamp={currentTimestamp}
-                      label=""
-                      labelPosition="inside"
-                      background="#07090d"
-                      containerClassName="h-full border-0 rounded-[0px]"
-                      enableOrbitControls={false}
-                      showLegend={false}
-                    />
-                  </div>
-                  <div style={{ flex: 1, position: 'relative' }}>
-                    <div
-                      style={{
-                        position: 'absolute',
-                        top: 6,
-                        left: 8,
-                        zIndex: 10,
-                        fontFamily: FONT_DATA,
-                        fontSize: 9,
-                        color: C.expert,
-                      }}
-                    >
-                      B
-                    </div>
-                    <TorchWithHeatmap3D
-                      angle={currentFrameB?.angle_degrees ?? 67}
-                      temp={currentTempB ?? 300}
-                      frames={sessionB?.frames ?? []}
-                      activeTimestamp={currentTimestamp}
-                      label=""
-                      labelPosition="inside"
-                      background="#07090d"
-                      containerClassName="h-full border-0 rounded-[0px]"
-                      enableOrbitControls={false}
-                      showLegend={false}
-                    />
-                  </div>
-                </div>
-              )}
+          <div style={{ display: 'flex', gap: 16, alignItems: 'center', justifyContent: 'center' }}>
+            {/* Session A circle */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <div
+                style={{
+                  fontFamily: FONT_LABEL,
+                  fontSize: 8,
+                  letterSpacing: '0.28em',
+                  color: C.novice,
+                  textAlign: 'center',
+                  marginBottom: 6,
+                  textTransform: 'uppercase',
+                }}
+              >
+                A
+              </div>
+              <div
+                style={{
+                  width: 'min(calc(45vw - 60px), 340px)',
+                  aspectRatio: '1/1',
+                  borderRadius: '50%',
+                  overflow: 'hidden',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  boxShadow: `0 0 40px ${C.novice}15`,
+                }}
+              >
+                {currentTimestamp == null ? (
+                  <BeadDiffPlaceholder />
+                ) : (
+                  <TorchWithHeatmap3D
+                    angle={currentFrameA?.angle_degrees ?? 67}
+                    temp={currentTempA ?? 300}
+                    frames={sessionA?.frames ?? []}
+                    activeTimestamp={currentTimestamp}
+                    label=""
+                    labelPosition="inside"
+                    background="#07090d"
+                    containerClassName="h-full border-0 rounded-[0px]"
+                    enableOrbitControls={true}
+                    showLegend={false}
+                    cameraPosition={[-1.49, 1.21, -0.007]}
+                    cameraFov={72}
+                  />
+                )}
+              </div>
+            </div>
+            {/* Session B circle */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <div
+                style={{
+                  fontFamily: FONT_LABEL,
+                  fontSize: 8,
+                  letterSpacing: '0.28em',
+                  color: C.expert,
+                  textAlign: 'center',
+                  marginBottom: 6,
+                  textTransform: 'uppercase',
+                }}
+              >
+                B
+              </div>
+              <div
+                style={{
+                  width: 'min(calc(45vw - 60px), 340px)',
+                  aspectRatio: '1/1',
+                  borderRadius: '50%',
+                  overflow: 'hidden',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  boxShadow: `0 0 40px ${C.expert}15`,
+                }}
+              >
+                {currentTimestamp == null ? (
+                  <BeadDiffPlaceholder />
+                ) : (
+                  <TorchWithHeatmap3D
+                    angle={currentFrameB?.angle_degrees ?? 67}
+                    temp={currentTempB ?? 300}
+                    frames={sessionB?.frames ?? []}
+                    activeTimestamp={currentTimestamp}
+                    label=""
+                    labelPosition="inside"
+                    background="#07090d"
+                    containerClassName="h-full border-0 rounded-[0px]"
+                    enableOrbitControls={true}
+                    showLegend={false}
+                    cameraPosition={[-1.49, 1.21, -0.007]}
+                    cameraFov={72}
+                  />
+                )}
+              </div>
             </div>
           </div>
 

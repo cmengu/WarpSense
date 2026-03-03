@@ -9,12 +9,37 @@ Your responsibilities:
 - Clearly identify anything unclear or ambiguous in my description or the current implementation.
 - List clearly all questions or ambiguities you need clarified.
 
+---
 
+## Context Inventory (NEW — complete before mock execution)
 
+Before producing the mock, output a structured inventory of everything the plan will depend on:
+
+```
+Function contracts:
+  - [function name]: file path, exact signature, return shape, known edge cases
+
+API response shapes:
+  - [endpoint or hook]: exact fields returned, nullable fields, fields that may be missing in list vs detail responses
+
+Existing components referenced:
+  - [component name]: file path, props interface, what it expects from parent
+
+Constants and config:
+  - [constant name]: file path, current value, where it is consumed
+
+Ambiguities requiring human decision:
+  - [what is unclear]: why it matters, what the two options are, which steps are blocked until resolved
+```
+
+Do not proceed to mock execution until this inventory is complete.
+If any ambiguity has no answer from the codebase alone — surface it here and wait for human input before continuing.
+
+---
 
 ## High-Level Mock Execution (NOT Full Implementation)
 
-**After full exploration**, provide a "walk-through" showing HOW you'd implement this:
+After completing the inventory, provide a walk-through showing HOW you'd implement this:
 
 - **Data Flow**: How does data move through the system? (user input → state → API → UI)
 - **Component Structure**: What components would you create and how do they talk to each other?
@@ -22,23 +47,17 @@ Your responsibilities:
 - **Side Effects**: What useEffect hooks would you need? When would they run?
 - **Edge Cases**: How would you handle loading, errors, empty states?
 
-**Show this with:**
+Show this with:
 - Pseudocode or high-level JavaScript (not production code)
 - ASCII diagrams or flow charts if helpful
 - Code snippets (5-10 lines max) to illustrate key patterns
-- NOT full implementations—just the skeleton/pattern
+- NOT full implementations — just the skeleton/pattern
 
-**Example of what I mean:**
+Example of what I mean:
 ```
 // NOT THIS (full implementation):
 function UserCard({ userId }) {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  useEffect(() => {
-    fetchUser(userId)...
-  }, [userId]);
-  if (loading) return <Skeleton />;
   ...
 }
 
@@ -51,8 +70,10 @@ UserCard component:
     * If error: show error message
     * If data: show user details
 
-Data flow: userId prop → useEffect triggers → API call → setUser updates state → re-render with user data
+Data flow: userId prop → useEffect triggers → API call → setUser updates state → re-render
 ```
+
+---
 
 ## Implementation Approach
 
@@ -68,25 +89,25 @@ src/
   components/
     UserCard.tsx (NEW) - receives userId prop, manages fetch + state
     UserList.tsx (MODIFY) - pass userId to UserCard, handle list logic
-  hooks/
-    useUserData.ts (NEW) - custom hook for fetch logic (or inline in component?)
-  types/
-    user.ts (MODIFY) - add UserCardProps interface
 ```
 
-Then explain WHY each decision:
-- "UserCard is its own component because it's reusable across pages"
-- "I'd keep the fetch logic IN the component (not a custom hook) because it's simple and only used once"
-- "I'd modify UserList to handle the list state, not UserCard"
+Then explain WHY each decision.
+
+---
 
 ## Questions to Clarify
 
-List all questions or ambiguities that need YOUR confirmation before proceeding:
-- Is this supposed to fetch real data or use mock data?
-- Should loading/error states be skeletons or spinners?
-- Is this a single user or a list?
-- Any performance concerns if fetching 100 users?
+List all questions or ambiguities that need human confirmation before proceeding.
+Separate into two tiers:
 
-Remember, your job is NOT to implement yet. Just walk me through HOW you'd think about building this. We go back and forth until you fully understand the requirements and confirm the approach.
+**Blocking — plan cannot be written without these:**
+- [question] — [which steps are blocked]
 
-Please confirm that you fully understand and I will describe the problem I want to solve and the feature in a detailed manner.
+**Non-blocking — can proceed with assumption, but flag:**
+- [question] — [what assumption you are making, what breaks if assumption is wrong]
+
+---
+
+Remember: your job is NOT to implement yet. Complete the Context Inventory first, then the mock. We go back and forth until ambiguities are resolved and the approach is confirmed.
+
+Please confirm that you fully understand and I will describe the problem.
