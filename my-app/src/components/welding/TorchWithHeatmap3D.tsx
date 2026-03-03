@@ -81,6 +81,10 @@ export interface TorchWithHeatmap3DProps {
   enableOrbitControls?: boolean;
   /** Whether the temperature scale legend (0–500°C pill) is shown. Default true. Set false when embedded to avoid off-brand blue styling. */
   showLegend?: boolean;
+  /** Camera position [x, y, z]. Default [1.2, 0.6, 1.5] (landscape). Use e.g. [0, 1.4, 2.2] for more top-down view in square/small containers. */
+  cameraPosition?: [number, number, number];
+  /** Camera field of view in degrees. Default 45. Use wider (e.g. 72) for square viewports to capture full torch-to-plate. */
+  cameraFov?: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -195,6 +199,8 @@ export default function TorchWithHeatmap3D({
   containerClassName,
   enableOrbitControls = true,
   showLegend = true,
+  cameraPosition,
+  cameraFov,
 }: TorchWithHeatmap3DProps) {
   const [contextLost, setContextLost] = useState(false);
   const [canvasKey, setCanvasKey] = useState(0);
@@ -268,6 +274,19 @@ export default function TorchWithHeatmap3D({
         <Canvas
           key={canvasKey}
           shadows
+          events={
+            enableOrbitControls !== false
+              ? undefined
+              : () => ({
+                  enabled: false,
+                  priority: 0,
+                  connect: () => {},
+                  disconnect: () => {},
+                  compute: () => ({ pointer: { x: 0, y: 0 }, ray: { origin: { x: 0, y: 0, z: 0 }, direction: { x: 0, y: 0, z: 0 } } }),
+                  setPointerCapture: () => {},
+                  getObjects: () => [],
+                })
+          }
           gl={{
             antialias: true,
             alpha: true,
@@ -300,7 +319,7 @@ export default function TorchWithHeatmap3D({
             }
           }}
         >
-          <PerspectiveCamera makeDefault position={[1.2, 0.6, 1.5]} fov={45} />
+          <PerspectiveCamera makeDefault position={cameraPosition ?? [1.2, 0.6, 1.5]} fov={cameraFov ?? 45} />
           {enableOrbitControls !== false && (
             <OrbitControls
               enablePan={false}
