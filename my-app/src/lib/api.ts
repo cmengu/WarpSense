@@ -640,6 +640,37 @@ export async function fetchSites(): Promise<Site[]> {
 }
 
 // ---------------------------------------------------------------------------
+// Session list (demo/compare picker)
+// ---------------------------------------------------------------------------
+
+export interface SessionSummary {
+  session_id: string;
+  operator_id: string | null;
+  weld_type: string | null;
+  start_time: string | null; // ISO datetime string from backend
+  score_total: number | null;
+  frame_count: number | null;
+}
+
+export interface SessionListParams {
+  site_id?: string;
+  team_id?: string;
+  date_start?: string;
+  date_end?: string;
+}
+
+/**
+ * Fetch list of session summaries for demo/compare picker.
+ * Uses GET /api/sessions with optional filters.
+ */
+export async function fetchSessionList(
+  params?: SessionListParams
+): Promise<SessionSummary[]> {
+  const url = buildUrl("/api/sessions", (params ?? {}) as Record<string, string | number | boolean | undefined>);
+  return apiFetch<SessionSummary[]>(url);
+}
+
+// ---------------------------------------------------------------------------
 // Exported for testing
 // ---------------------------------------------------------------------------
 

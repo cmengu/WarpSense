@@ -38,6 +38,8 @@ from realtime.alert_engine import AlertEngine
 from realtime.alert_models import AlertPayload, FrameInput
 from scoring.report_summary import compute_report_summary
 from services.alert_service import run_session_alerts
+from models.aggregate import SessionSummary
+from services.aggregate_service import list_sessions_summary
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -168,17 +170,26 @@ async def create_session(
 
 
 @router.get("/sessions")
-async def list_sessions():
+async def list_sessions(
+    site_id: str | None = Query(default=None),
+    team_id: str | None = Query(default=None),
+    date_start: str | None = Query(default=None),
+    date_end: str | None = Query(default=None),
+    db: OrmSession = Depends(get_db),
+) -> List[SessionSummary]:
     """
-    List all welding sessions - Not implemented yet
-
-    Returns:
-        List of welding sessions
-
-    Raises:
-        HTTPException: 501 Not Implemented
+    List all welding sessions with summary fields.
+    Optional filters: site_id, team_id, date_start, date_end.
+    Returns COMPLETE sessions only (mirrors aggregate behaviour).
     """
-    raise HTTPException(status_code=501, detail="Not implemented yet")
+    raw = list_sessions_summary(
+        db,
+        site_id=site_id,
+        team_id=team_id,
+        date_start=date_start,
+        date_end=date_end,
+    )
+    return [SessionSummary(**s) for s in raw]
 
 
 @router.get("/sessions/{session_id}")
