@@ -3,6 +3,7 @@
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Suspense, useState } from 'react';
+import { SessionBrowserPanel } from '@/components/SessionBrowserPanel';
 
 /**
  * Compare landing page: choose two session IDs and go to the comparison view.
@@ -17,6 +18,7 @@ function CompareForm() {
   // Acceptable for MVP; fix by adding useEffect to sync if sessionBFromQuery changes.
   const [sessionIdA, setSessionIdA] = useState(sessionAFromQuery);
   const [sessionIdB, setSessionIdB] = useState(sessionBFromQuery);
+  const [showBrowser, setShowBrowser] = useState(false);
 
   const canCompare =
     sessionIdA.trim().length > 0 && sessionIdB.trim().length > 0;
@@ -86,6 +88,25 @@ function CompareForm() {
               className="w-full px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-900 text-black dark:text-zinc-100 placeholder:text-zinc-400"
             />
           </div>
+          <button
+            type="button"
+            onClick={() => setShowBrowser((v) => !v)}
+            className="text-[11px] font-mono text-zinc-500 hover:text-zinc-300 underline underline-offset-2 transition-colors text-left"
+          >
+            {showBrowser ? '▲ hide session browser' : '▼ browse & pick sessions'}
+          </button>
+          {showBrowser && (
+            <SessionBrowserPanel
+              navigateTo="compare"
+              initialA={sessionIdA || undefined}
+              initialB={sessionIdB || undefined}
+              onCompare={(a, b) => {
+                setSessionIdA(a);
+                setSessionIdB(b);
+                setShowBrowser(false);
+              }}
+            />
+          )}
           <Link
             href={compareHref}
             className={`inline-block px-4 py-2 rounded-md text-sm font-medium ${

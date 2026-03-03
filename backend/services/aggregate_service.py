@@ -137,3 +137,25 @@ def get_aggregate_kpis(
         result["sessions_truncated"] = len(sessions) > 1000
 
     return result
+
+
+def list_sessions_summary(
+    db,
+    site_id=None,
+    team_id=None,
+    date_start=None,
+    date_end=None,
+):
+    """
+    Return a flat list of session summary dicts without KPI aggregation overhead.
+    Delegates to get_aggregate_kpis to avoid duplicating session query logic.
+    """
+    data = get_aggregate_kpis(
+        db,
+        date_start=date_start,
+        date_end=date_end,
+        site_id=site_id,
+        team_id=team_id,
+        include_sessions=True,
+    )
+    return data.get("sessions", [])
