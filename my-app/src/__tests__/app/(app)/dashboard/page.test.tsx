@@ -75,7 +75,7 @@ describe("DashboardPage (Panel Readiness)", () => {
     expect(surveyorReportLink?.textContent).toMatch(/Surveyor report/);
   });
 
-  it("uses Promise.allSettled: one failure shows Score unavailable, others show score", async () => {
+  it("uses Promise.allSettled: one failure uses mock fallback, others show API score", async () => {
     mockFetchScore.mockImplementation((sessionId: string) => {
       if (sessionId === "sess_PANEL-4C_005") {
         return Promise.reject(new Error("404"));
@@ -86,11 +86,13 @@ describe("DashboardPage (Panel Readiness)", () => {
     render(<DashboardPage />);
 
     await waitFor(() => {
-      expect(screen.getByText(/Score unavailable/)).toBeInTheDocument();
+      expect(screen.getByText(/PANEL-4C/)).toBeInTheDocument();
     });
 
+    // PANEL-4C fetch failed → fallback to PANEL_MOCK_SCORES (45); others show API 95
     expect(screen.getByText(/PANEL-4C/)).toBeInTheDocument();
-    expect(screen.getByText(/Score unavailable/)).toBeInTheDocument();
+    const panel4CCard = screen.getByRole("heading", { name: /PANEL-4C/ }).closest("[class*='rounded']");
+    expect(within(panel4CCard!).getByText("45/100")).toBeInTheDocument();
   });
 
   it("shows score-based badge colour (high tier for score ≥85)", async () => {

@@ -207,8 +207,8 @@ export default function DashboardPage() {
         const r = results[i];
         const score =
           r.status === "fulfilled" && r.value != null
-            ? (r.value as SessionScore).total
-            : null;
+            ? (r.value as SessionScore).total           // real seeded score wins
+            : (PANEL_MOCK_SCORES[f.panel.id] ?? null); // fallback only when API returns null
         return { panel: f.panel, score, riskLevel: getRiskLevel(score) };
       });
       setPanelScores(panelResults);
