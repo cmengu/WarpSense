@@ -1,11 +1,11 @@
 /**
- * Tests for Welder Roster (dashboard) — 10 welders with skill arcs.
+ * Tests for Panel Readiness (dashboard) — 6 panels with inspection decisions.
  *
  * Validates:
  *   - Promise.allSettled: partial failures don't block working cards
  *   - Per-card error: "Score unavailable" when fetch fails
  *   - Loading state (skeleton cards)
- *   - Links to /replay/[sessionId], /seagull/welder/[id], /compare for non-expert
+ *   - Links to /replay/[sessionId], /seagull/welder/[id], /compare
  *   - Score-based badge colours (red/amber/green)
  *   - Sort by score ascending (worst first)
  */
@@ -19,7 +19,7 @@ jest.mock("@/lib/api", () => ({
   fetchScore: (...args: unknown[]) => mockFetchScore(...args),
 }));
 
-describe("DashboardPage (Welder Roster)", () => {
+describe("DashboardPage (Panel Readiness)", () => {
   beforeEach(() => {
     mockFetchScore.mockImplementation((sessionId: string) => {
       return Promise.resolve({ total: 75, rules: [] });
@@ -28,50 +28,56 @@ describe("DashboardPage (Welder Roster)", () => {
 
   it("shows loading state initially with skeleton", () => {
     render(<DashboardPage />);
-    expect(screen.getByText(/Welder Roster/)).toBeInTheDocument();
+    expect(screen.getByText(/Panel Readiness/)).toBeInTheDocument();
   });
 
-  it("renders welder roster with 9 grid cards and Expert Benchmark", async () => {
+  it("renders panel roster with 6 grid cards and Expert Benchmark", async () => {
     render(<DashboardPage />);
 
     await waitFor(() => {
-      expect(screen.getByText(/Mike Chen/)).toBeInTheDocument();
+      expect(screen.getByText(/PANEL-4C/)).toBeInTheDocument();
     });
 
-    expect(screen.getByText(/Mike Chen/)).toBeInTheDocument();
-    expect(screen.getByText(/Sara Okafor/)).toBeInTheDocument();
+    expect(screen.getByText(/PANEL-4C/)).toBeInTheDocument();
+    expect(screen.getByText(/PANEL-7A/)).toBeInTheDocument();
     expect(screen.getByText(/Expert Benchmark/)).toBeInTheDocument();
-    expect(screen.getAllByRole("link", { name: /Compare to expert/ })).toHaveLength(9);
+    expect(
+      screen.getAllByRole("link", { name: /Inspection decision/ })
+    ).toHaveLength(6);
   });
 
   it("links cards to /replay/[sessionId]", async () => {
     render(<DashboardPage />);
 
     await waitFor(() => {
-      expect(screen.getByText(/Mike Chen/)).toBeInTheDocument();
+      expect(screen.getByText(/PANEL-4C/)).toBeInTheDocument();
     });
 
     const links = screen.getAllByRole("link");
-    const mikeReplayLink = links.find((l) => l.getAttribute("href") === "/replay/sess_mike-chen_005");
-    expect(mikeReplayLink).toBeDefined();
+    const panelReplayLink = links.find(
+      (l) => l.getAttribute("href") === "/replay/sess_PANEL-4C_005"
+    );
+    expect(panelReplayLink).toBeDefined();
   });
 
-  it("links Full report to /seagull/welder/[id]", async () => {
+  it("links Surveyor report to /seagull/welder/[id]", async () => {
     render(<DashboardPage />);
 
     await waitFor(() => {
-      expect(screen.getByText(/Mike Chen/)).toBeInTheDocument();
+      expect(screen.getByText(/PANEL-4C/)).toBeInTheDocument();
     });
 
     const allLinks = screen.getAllByRole("link");
-    const fullReportLink = allLinks.find((l) => l.getAttribute("href") === "/seagull/welder/mike-chen");
-    expect(fullReportLink).toBeDefined();
-    expect(fullReportLink?.textContent).toMatch(/Full report/);
+    const surveyorReportLink = allLinks.find(
+      (l) => l.getAttribute("href") === "/seagull/welder/PANEL-4C"
+    );
+    expect(surveyorReportLink).toBeDefined();
+    expect(surveyorReportLink?.textContent).toMatch(/Surveyor report/);
   });
 
   it("uses Promise.allSettled: one failure shows Score unavailable, others show score", async () => {
     mockFetchScore.mockImplementation((sessionId: string) => {
-      if (sessionId === "sess_mike-chen_005") {
+      if (sessionId === "sess_PANEL-4C_005") {
         return Promise.reject(new Error("404"));
       }
       return Promise.resolve({ total: 95, rules: [] });
@@ -83,7 +89,7 @@ describe("DashboardPage (Welder Roster)", () => {
       expect(screen.getByText(/Score unavailable/)).toBeInTheDocument();
     });
 
-    expect(screen.getByText(/Mike Chen/)).toBeInTheDocument();
+    expect(screen.getByText(/PANEL-4C/)).toBeInTheDocument();
     expect(screen.getByText(/Score unavailable/)).toBeInTheDocument();
   });
 
@@ -95,36 +101,40 @@ describe("DashboardPage (Welder Roster)", () => {
     render(<DashboardPage />);
 
     await waitFor(() => {
-      expect(screen.getByText(/Mike Chen/)).toBeInTheDocument();
+      expect(screen.getByText(/PANEL-4C/)).toBeInTheDocument();
     });
 
-    const mikeCard = screen.getByRole("heading", { name: /Mike Chen/ }).closest(
-      "[class*='rounded']"
-    ) as HTMLElement | null;
-    expect(mikeCard).toBeInTheDocument();
-    const badge = within(mikeCard!).getByText("85/100");
+    const panelCard = screen
+      .getByRole("heading", { name: /PANEL-4C/ })
+      .closest("[class*='rounded']") as HTMLElement | null;
+    expect(panelCard).toBeInTheDocument();
+    const badge = within(panelCard!).getByText("85/100");
     expect(badge).toHaveAttribute("data-score-tier", "high");
   });
 
   it("sorts cards by score ascending (worst first)", async () => {
     mockFetchScore.mockImplementation((sessionId: string) => {
-      if (sessionId === "sess_tom-bradley_003") return Promise.resolve({ total: 55, rules: [] });
-      if (sessionId === "sess_mike-chen_005") return Promise.resolve({ total: 75, rules: [] });
+      if (sessionId === "sess_PANEL-4C_005")
+        return Promise.resolve({ total: 45, rules: [] });
+      if (sessionId === "sess_PANEL-7A_005")
+        return Promise.resolve({ total: 72, rules: [] });
       return Promise.resolve({ total: 90, rules: [] });
     });
 
     render(<DashboardPage />);
 
     await waitFor(() => {
-      expect(screen.getByText(/Tom Bradley/)).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: /PANEL-4C/ })).toBeInTheDocument();
     });
 
-    const welderHeadings = screen.getAllByRole("heading", { level: 3 });
-    expect(welderHeadings[0]).toHaveTextContent("Tom Bradley");
-    expect(welderHeadings[1]).toHaveTextContent("Mike Chen");
+    const panelHeadings = screen
+      .getAllByRole("heading", { level: 3 })
+      .filter((h) => /PANEL-/.test(h.textContent ?? ""));
+    expect(panelHeadings[0]).toHaveTextContent(/PANEL-4C/);
+    expect(panelHeadings[1]).toHaveTextContent(/PANEL-7A/);
   });
 
-  it("Expert Benchmark card has no Compare to expert link", async () => {
+  it("Expert Benchmark block is separate; 6 Inspection decision links in panel grid", async () => {
     render(<DashboardPage />);
 
     await waitFor(() => {
@@ -134,21 +144,21 @@ describe("DashboardPage (Welder Roster)", () => {
     const compareLinks = screen
       .getAllByRole("link")
       .filter((l) => l.getAttribute("href")?.includes("/compare/"));
-    expect(compareLinks).toHaveLength(9);
+    expect(compareLinks).toHaveLength(6);
   });
 
-  it("calls fetchScore for latest session only (one per welder)", async () => {
+  it("calls fetchScore for latest session only (one per panel)", async () => {
     render(<DashboardPage />);
 
     await waitFor(() => {
-      expect(screen.getByText(/Mike Chen/)).toBeInTheDocument();
+      expect(screen.getByText(/PANEL-4C/)).toBeInTheDocument();
     });
 
     expect(mockFetchScore).toHaveBeenCalledWith(
-      "sess_mike-chen_005",
+      "sess_PANEL-4C_005",
       expect.any(AbortSignal)
     );
     const calls = mockFetchScore.mock.calls.map((c) => c[0]);
-    expect(calls).not.toContain("sess_mike-chen_004");
+    expect(calls).not.toContain("sess_PANEL-4C_004");
   });
 });
