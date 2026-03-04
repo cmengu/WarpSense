@@ -3,7 +3,7 @@
  *
  * Validates:
  *   - Promise.allSettled: partial failures don't block working cards
- *   - Per-card error: "Score unavailable" when fetch fails
+ *   - Per-card mock fallback when fetch fails; others show API score
  *   - Loading state (skeleton cards)
  *   - Links to /replay/[sessionId], /seagull/welder/[id], /compare
  *   - Score-based badge colours (red/amber/green)

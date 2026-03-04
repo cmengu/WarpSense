@@ -2,7 +2,7 @@
 
 > **Purpose:** Single source of truth for AI tools. What exists, what patterns to follow, what constraints to respect.  
 > **For AI:** Reference `@.cursor/context/project-context.md` to avoid reimplementing features or violating patterns.  
-> **Last Updated:** 2026-03-04
+> **Last Updated:** 2026-03-05
 
 ---
 
@@ -24,7 +24,7 @@
 - ✅ Full-stack smoke tests
 - ✅ Windowed WQI scoring (extract_features_for_frames, score_frames_windowed, wqi_timeline/mean/median/min/max/trend)
 - ✅ Demo page API-wired (fetchSession, fetchSessionAlerts, useSessionComparison; no 3D)
-- ✅ Panel Readiness dashboard (6 panels, stats bar, Expert Benchmark; Promise.allSettled + timeout; inspection decision, risk level)
+- ✅ Panel Readiness dashboard (6 panels, stats bar, Expert Benchmark; PANEL_MOCK_SCORES fallback when unseeded; Promise.allSettled + timeout)
 - 🔄 Post–Batch 4 verification
 - 📋 ESP32 sensor integration, production deployment
 
@@ -289,9 +289,9 @@
 **Status:** ✅  
 **What:** 6 panel cards with latest scores, stats bar (ACTIVE PANELS, AVG READINESS, JOINTS INSPECTED, SURVEYOR-READY), filter tabs (All Panels, Needs Inspection, Surveyor-Ready), Expert Benchmark card. Uses `Promise.allSettled` with per-fetch 5s timeout so one failure doesn't block others. Cards sorted by score ascending (worst first). Per-panel: inspection decision (clear/needs-dpi/needs-xray/needs-surveyor), risk level (green/amber/red), stage badge. Links: /replay/[sessionId], /seagull/welder/[panelId], /compare for non-expert.
 
-**Data:** Static `PANELS` array in page; session IDs `sess_{panel.id}_{sessionCount}`. Backend seed creates welder sessions (sess_mike-chen_*) — panel sessions (sess_PANEL-4C_*) not yet seeded; "Score unavailable" until seed extended.
+**Data:** Static `PANELS` array in page; session IDs `sess_{panel.id}_{sessionCount}`. `PANEL_MOCK_SCORES` fallback map (panel ID → score) when API returns null (404/network) — panels show numeric scores without backend seed. Real API scores always win. Once panel sessions are seeded, delete `PANEL_MOCK_SCORES`.
 
-**Patterns:** `fetchScoreWithTimeout` clears timer in `finally` to avoid leaks; logs via `logWarn` on failure. `data-score-tier` on badges for test compatibility. Types: `Panel`, `PanelScoreResult` in `types/panel.ts`.
+**Patterns:** `fetchScoreWithTimeout` clears timer in `finally` to avoid leaks; logs via `logWarn` on failure. Fallback: `PANEL_MOCK_SCORES[f.panel.id] ?? null` in allSettled handler. `data-score-tier` on badges for test compatibility. Types: `Panel`, `PanelScoreResult` in `types/panel.ts`.
 
 **Location:** `app/(app)/dashboard/page.tsx`  
 **Tests:** `__tests__/app/(app)/dashboard/page.test.tsx` — panel assertions, sort by score, links.
@@ -739,3 +739,4 @@ python -m py_compile backend/main.py backend/routes/sites.py backend/routes/sess
 | `.cursor/plans/session-report-data-layer-execution.md` | Report summary + compliance UI implementation plan |
 | `.cursor/plans/dashboard-welder-visual-redesign.md` | Welder Roster dashboard redesign plan (superseded by panel readiness) |
 | `.cursor/plans/panel-readiness-dashboard.md` | Panel Readiness dashboard — welders → panels migration |
+| `.cursor/plans/panel_mock_data.md` | PANEL_MOCK_SCORES fallback when API returns null |
