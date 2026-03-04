@@ -22,7 +22,6 @@ export interface Panel {
   jointsComplete: number;
   jointsTotal: number;
   inspectionDecision: InspectionDecision;
-  trend: number | null; // % change, same shape as current welder trend
   sessionCount: number; // weld passes run on this panel
 }
 

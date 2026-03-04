@@ -2,7 +2,7 @@
 
 > **Purpose:** Single source of truth for AI tools. What exists, what patterns to follow, what constraints to respect.  
 > **For AI:** Reference `@.cursor/context/project-context.md` to avoid reimplementing features or violating patterns.  
-> **Last Updated:** 2026-03-02
+> **Last Updated:** 2026-03-04
 
 ---
 
@@ -24,7 +24,7 @@
 - ✅ Full-stack smoke tests
 - ✅ Windowed WQI scoring (extract_features_for_frames, score_frames_windowed, wqi_timeline/mean/median/min/max/trend)
 - ✅ Demo page API-wired (fetchSession, fetchSessionAlerts, useSessionComparison; no 3D)
-- ✅ Welder Roster dashboard (stats bar, Expert Benchmark card, 10 welder cards; Promise.allSettled + timeout)
+- ✅ Panel Readiness dashboard (6 panels, stats bar, Expert Benchmark; Promise.allSettled + timeout; inspection decision, risk level)
 - 🔄 Post–Batch 4 verification
 - 📋 ESP32 sensor integration, production deployment
 
@@ -40,7 +40,7 @@
 ├─────────────────────────────────────────────────────────────────────────────────┤
 │  /demo              Redirect to default pair → /demo/[A]/[B] (investor UX)        │
 │  /demo/[A]/[B]     Investor comparison: WQI gauges, sparklines, alert feed, playback (no 3D) │
-│  /dashboard        Welder Roster: 10 cards with latest scores, stats bar, Expert Benchmark  │
+│  /dashboard        Panel Readiness: 6 panel cards, stats bar, filter tabs, Expert Benchmark  │
 │  /seagull           Seagull Team dashboard (cards from WELDER_ARCHETYPES)        │
 │  /seagull/welder/[id]  Welder report: ReportLayout, NarrativePanel, PDF download │
 │  /replay/[id]       Replay + WarpRiskGauge                                       │
@@ -285,14 +285,16 @@
 **What:** ReportLayout slots; PDF with chart capture, narrative, certifications, compliance (reportSummary).  
 **Location:** `app/seagull/welder/[id]/page.tsx`, `ReportLayout.tsx`, `WelderReportPDF.tsx`, `app/api/welder-report-pdf/route.ts`
 
-### Welder Roster (Dashboard)
+### Panel Readiness (Dashboard)
 **Status:** ✅  
-**What:** 10 welder cards with latest scores, stats bar (Total Welders, Quality Index), Expert Benchmark card. Uses `Promise.allSettled` with per-fetch 5s timeout so one failure doesn't block others. Cards sorted by score ascending (worst first). Links: /replay/[sessionId], /seagull/welder/[id], /compare for non-expert.
+**What:** 6 panel cards with latest scores, stats bar (ACTIVE PANELS, AVG READINESS, JOINTS INSPECTED, SURVEYOR-READY), filter tabs (All Panels, Needs Inspection, Surveyor-Ready), Expert Benchmark card. Uses `Promise.allSettled` with per-fetch 5s timeout so one failure doesn't block others. Cards sorted by score ascending (worst first). Per-panel: inspection decision (clear/needs-dpi/needs-xray/needs-surveyor), risk level (green/amber/red), stage badge. Links: /replay/[sessionId], /seagull/welder/[panelId], /compare for non-expert.
 
-**Patterns:** `fetchScoreWithTimeout` clears timer in `finally` to avoid leaks. `data-score-tier` on badges for test compatibility.
+**Data:** Static `PANELS` array in page; session IDs `sess_{panel.id}_{sessionCount}`. Backend seed creates welder sessions (sess_mike-chen_*) — panel sessions (sess_PANEL-4C_*) not yet seeded; "Score unavailable" until seed extended.
+
+**Patterns:** `fetchScoreWithTimeout` clears timer in `finally` to avoid leaks; logs via `logWarn` on failure. `data-score-tier` on badges for test compatibility. Types: `Panel`, `PanelScoreResult` in `types/panel.ts`.
 
 **Location:** `app/(app)/dashboard/page.tsx`  
-**Tests:** `__tests__/app/(app)/dashboard/page.test.tsx` — use `within()` + `getByText` + `toHaveAttribute`, not `document.querySelector`.
+**Tests:** `__tests__/app/(app)/dashboard/page.test.tsx` — panel assertions, sort by score, links.
 
 ### Investor Demo (API-Wired)
 **Status:** ✅  
@@ -505,11 +507,12 @@ DecomposedSessionScore: {
 | `hooks/useReportSummary.ts` | fetch report summary; AbortController on unmount |
 | `utils/deltaHeatmapData.ts` | extractDeltaHeatmapData, deltaTempToColor |
 | `types/comparison.ts` | FrameDelta, ThermalDelta, TemperatureDelta |
+| `types/panel.ts` | Panel, PanelScoreResult, PanelRiskLevel, InspectionDecision |
 | `types/report-summary.ts` | ReportSummary, ExcursionEntry — matches backend |
 | `app/seagull/welder/[id]/page.tsx` | Welder report, ReportLayout, compliance slot |
 | `components/welding/ComplianceSummaryPanel.tsx` | Heat Input, Torch Angle, Arc Termination rows; 4 states |
 | `components/welding/ExcursionLogTable.tsx` | Excursion log; sort by timestamp/type; empty state |
-| `app/(app)/dashboard/page.tsx` | Welder Roster: 10 cards, stats bar, Expert Benchmark |
+| `app/(app)/dashboard/page.tsx` | Panel Readiness: 6 panels, stats bar, filter tabs, Expert Benchmark |
 | `app/(app)/supervisor/page.tsx` | WWAD dashboard |
 | `app/(app)/live/page.tsx` | iPad PWA |
 | `components/welding/TorchWithHeatmap3D.tsx` | Unified 3D torch + thermal metal + WeldTrail |
@@ -734,4 +737,5 @@ python -m py_compile backend/main.py backend/routes/sites.py backend/routes/sess
 | `.cursor/plans/scoring-decomposition-execution.md` | Scoring decomposition + heat input implementation plan |
 | `docs/ISSUE_SESSION_REPORT_DATA_LAYER.md` | Session report data layer issue spec |
 | `.cursor/plans/session-report-data-layer-execution.md` | Report summary + compliance UI implementation plan |
-| `.cursor/plans/dashboard-welder-visual-redesign.md` | Welder Roster dashboard redesign plan |
+| `.cursor/plans/dashboard-welder-visual-redesign.md` | Welder Roster dashboard redesign plan (superseded by panel readiness) |
+| `.cursor/plans/panel-readiness-dashboard.md` | Panel Readiness dashboard — welders → panels migration |

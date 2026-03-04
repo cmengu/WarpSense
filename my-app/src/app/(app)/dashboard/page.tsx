@@ -12,6 +12,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { fetchScore } from "@/lib/api";
 import type { SessionScore } from "@/lib/api";
+import { logWarn } from "@/lib/logger";
 import type { Panel, PanelScoreResult, PanelRiskLevel } from "@/types/panel";
 import { ArrowRight, CheckCircle } from "lucide-react";
 
@@ -32,7 +33,6 @@ const PANELS: Panel[] = [
     jointsComplete: 5,
     jointsTotal: 18,
     inspectionDecision: "needs-xray",
-    trend: -15,
     sessionCount: 5,
   },
   {
@@ -44,7 +44,6 @@ const PANELS: Panel[] = [
     jointsComplete: 14,
     jointsTotal: 18,
     inspectionDecision: "needs-dpi",
-    trend: 3,
     sessionCount: 5,
   },
   {
@@ -56,7 +55,6 @@ const PANELS: Panel[] = [
     jointsComplete: 10,
     jointsTotal: 18,
     inspectionDecision: "needs-dpi",
-    trend: 3,
     sessionCount: 5,
   },
   {
@@ -68,7 +66,6 @@ const PANELS: Panel[] = [
     jointsComplete: 18,
     jointsTotal: 18,
     inspectionDecision: "clear",
-    trend: 13,
     sessionCount: 5,
   },
   {
@@ -80,7 +77,6 @@ const PANELS: Panel[] = [
     jointsComplete: 18,
     jointsTotal: 18,
     inspectionDecision: "clear",
-    trend: 13,
     sessionCount: 5,
   },
   {
@@ -92,7 +88,6 @@ const PANELS: Panel[] = [
     jointsComplete: 18,
     jointsTotal: 18,
     inspectionDecision: "clear",
-    trend: 8,
     sessionCount: 5,
   },
 ];
@@ -131,10 +126,14 @@ function getScoreTier(score: number | null): string {
   return "low";
 }
 
-/** Fetch score with timeout; clears timer on settle to avoid leaks. */
+/**
+ * Fetch score with timeout; clears timer on settle to avoid leaks.
+ * Logs on failure when context.panelId provided (avoids log noise for expert benchmark).
+ */
 async function fetchScoreWithTimeout(
   sessionId: string,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  context?: { panelId: string }
 ): Promise<SessionScore | null> {
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
   const timeout = new Promise<never>((_, reject) => {
@@ -145,7 +144,14 @@ async function fetchScoreWithTimeout(
   });
   try {
     return await Promise.race([fetchScore(sessionId, signal), timeout]);
-  } catch {
+  } catch (err) {
+    if (context?.panelId) {
+      logWarn("DashboardPage", "Score unavailable", {
+        panelId: context.panelId,
+        sessionId,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
     return null;
   } finally {
     if (timeoutId !== undefined) clearTimeout(timeoutId);
@@ -180,7 +186,11 @@ export default function DashboardPage() {
 
     Promise.allSettled(
       allFetches.map((f) =>
-        fetchScoreWithTimeout(f.sessionId, controller.signal).catch(() => null)
+        fetchScoreWithTimeout(
+          f.sessionId,
+          controller.signal,
+          f.panel ? { panelId: f.panel.id } : undefined
+        )
       )
     ).then((results) => {
       if (!mounted) return;
