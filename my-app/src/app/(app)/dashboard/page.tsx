@@ -23,6 +23,15 @@ import { ArrowRight, CheckCircle } from "lucide-react";
 const EXPERT_SESSION_ID = "sess_expert-benchmark_005";
 const FETCH_TIMEOUT_MS = 5000;
 
+const PANEL_MOCK_SCORES: Record<string, number> = {
+  "PANEL-4C": 45,  // red   — X-ray inspection required
+  "PANEL-7A": 72,  // amber — Dye penetrant inspection required
+  "PANEL-2B": 63,  // amber — Dye penetrant inspection required
+  "PANEL-1A": 91,  // green — Surveyor-ready
+  "PANEL-9D": 88,  // green — Surveyor-ready
+  "PANEL-3F": 94,  // green — Surveyor-ready
+};
+
 const PANELS: Panel[] = [
   {
     id: "PANEL-4C",
