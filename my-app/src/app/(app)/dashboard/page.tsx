@@ -1,57 +1,122 @@
 "use client";
 
 /**
- * Welder Roster — 10 welders with latest scores.
+ * Panel Readiness — 6 panels with latest scores.
  *
- * Fetches latest score per welder. Uses Promise.allSettled with 5s timeout
+ * Fetches latest score per panel. Uses Promise.allSettled with 5s timeout
  * so one failure doesn't block others. Cards sorted by score ascending (worst first).
- *
- * Pre-flight: Verify WELDERS matches WELDER_ARCHETYPES (backend/data/mock_welders.py).
- * Prerequisite: Run seed before opening dashboard.
+ * Expert Benchmark fetched in same batch; stored in separate state.
  */
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { fetchScore } from "@/lib/api";
 import type { SessionScore } from "@/lib/api";
+import type { Panel, PanelScoreResult, PanelRiskLevel } from "@/types/panel";
 import { ArrowRight, CheckCircle } from "lucide-react";
 
 // ---------------------------------------------------------------------------
-// Constants — Must match WELDER_ARCHETYPES (backend/data/mock_welders.py)
+// Constants
 // ---------------------------------------------------------------------------
 
 const EXPERT_SESSION_ID = "sess_expert-benchmark_005";
 const FETCH_TIMEOUT_MS = 5000;
 
-interface Welder {
-  id: string;
-  name: string;
-  sessionCount: number;
-}
-
-interface WelderScoreResult {
-  welder: Welder;
-  score: number | null;
-}
-
-const WELDERS: Welder[] = [
-  { id: "mike-chen", name: "Mike Chen", sessionCount: 5 },
-  { id: "sara-okafor", name: "Sara Okafor", sessionCount: 5 },
-  { id: "james-park", name: "James Park", sessionCount: 5 },
-  { id: "lucia-reyes", name: "Lucia Reyes", sessionCount: 5 },
-  { id: "tom-bradley", name: "Tom Bradley", sessionCount: 3 },
-  { id: "ana-silva", name: "Ana Silva", sessionCount: 5 },
-  { id: "derek-kwon", name: "Derek Kwon", sessionCount: 5 },
-  { id: "priya-nair", name: "Priya Nair", sessionCount: 5 },
-  { id: "marcus-bell", name: "Marcus Bell", sessionCount: 5 },
-  { id: "expert-benchmark", name: "Expert Benchmark", sessionCount: 5 },
+const PANELS: Panel[] = [
+  {
+    id: "PANEL-4C",
+    label: "Deck Plate — Port Side",
+    blockId: "B04",
+    blockLabel: "Block 04 · Midship",
+    stage: "panel",
+    jointsComplete: 5,
+    jointsTotal: 18,
+    inspectionDecision: "needs-xray",
+    trend: -15,
+    sessionCount: 5,
+  },
+  {
+    id: "PANEL-7A",
+    label: "Bulkhead — Starboard",
+    blockId: "B07",
+    blockLabel: "Block 07 · Aft",
+    stage: "panel",
+    jointsComplete: 14,
+    jointsTotal: 18,
+    inspectionDecision: "needs-dpi",
+    trend: 3,
+    sessionCount: 5,
+  },
+  {
+    id: "PANEL-2B",
+    label: "Tank Top — Centre",
+    blockId: "B02",
+    blockLabel: "Block 02 · Forward",
+    stage: "panel",
+    jointsComplete: 10,
+    jointsTotal: 18,
+    inspectionDecision: "needs-dpi",
+    trend: 3,
+    sessionCount: 5,
+  },
+  {
+    id: "PANEL-1A",
+    label: "Keel Plate — Centre",
+    blockId: "B01",
+    blockLabel: "Block 01 · Forward",
+    stage: "panel",
+    jointsComplete: 18,
+    jointsTotal: 18,
+    inspectionDecision: "clear",
+    trend: 13,
+    sessionCount: 5,
+  },
+  {
+    id: "PANEL-9D",
+    label: "Side Shell — Port",
+    blockId: "B09",
+    blockLabel: "Block 09 · Midship",
+    stage: "block",
+    jointsComplete: 18,
+    jointsTotal: 18,
+    inspectionDecision: "clear",
+    trend: 13,
+    sessionCount: 5,
+  },
+  {
+    id: "PANEL-3F",
+    label: "Inner Bottom — Stbd",
+    blockId: "B03",
+    blockLabel: "Block 03 · Forward",
+    stage: "block",
+    jointsComplete: 18,
+    jointsTotal: 18,
+    inspectionDecision: "clear",
+    trend: 8,
+    sessionCount: 5,
+  },
 ];
 
-function getLatestSessionId(w: Welder): string {
-  return `sess_${w.id}_${String(w.sessionCount).padStart(3, "0")}`;
+function getSessionIdForPanel(panel: Panel): string {
+  return `sess_${panel.id}_${String(panel.sessionCount).padStart(3, "0")}`;
 }
 
-/** Score-based color using design tokens. */
+/** Risk level from score for panel cards. Do not confuse with RiskLevel in @/types/shared. */
+function getRiskLevel(score: number | null): PanelRiskLevel {
+  if (score === null) return "amber";
+  if (score >= 85) return "green";
+  if (score >= 60) return "amber";
+  return "red";
+}
+
+/** Color for risk level — green/amber/red. */
+function getRiskLevelColor(risk: PanelRiskLevel): string {
+  if (risk === "green") return "#22c55e";
+  if (risk === "amber") return "#f59e0b";
+  return "#ef4444";
+}
+
+/** Score-based color using design tokens (used by Expert block). */
 function getScoreColor(score: number): string {
   if (score >= 85) return "#3dd68c";
   if (score >= 60) return "#e8a030";
@@ -92,9 +157,10 @@ async function fetchScoreWithTimeout(
 // ---------------------------------------------------------------------------
 
 export default function DashboardPage() {
-  const [welderScores, setWelderScores] = useState<WelderScoreResult[] | null>(
+  const [panelScores, setPanelScores] = useState<PanelScoreResult[] | null>(
     null
   );
+  const [expertScore, setExpertScore] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "risk" | "top">("all");
 
@@ -103,30 +169,38 @@ export default function DashboardPage() {
     const controller = new AbortController();
     setLoading(true);
 
-    const fetches = WELDERS.map((w) => ({
-      welder: w,
-      sessionId: getLatestSessionId(w),
+    const panelFetches = PANELS.map((p) => ({
+      panel: p,
+      sessionId: getSessionIdForPanel(p),
     }));
+    const allFetches = [
+      ...panelFetches,
+      { panel: null, sessionId: EXPERT_SESSION_ID },
+    ];
 
     Promise.allSettled(
-      fetches.map((f) =>
+      allFetches.map((f) =>
         fetchScoreWithTimeout(f.sessionId, controller.signal).catch(() => null)
       )
     ).then((results) => {
       if (!mounted) return;
-      setWelderScores(
-        fetches.map((f, i) => {
-          const r = results[i];
-          const score =
-            r.status === "fulfilled" && r.value != null
-              ? (r.value as SessionScore).total
-              : null;
-          return {
-            welder: f.welder,
-            score,
-          };
-        })
-      );
+      const panelResults = panelFetches.map((f, i) => {
+        const r = results[i];
+        const score =
+          r.status === "fulfilled" && r.value != null
+            ? (r.value as SessionScore).total
+            : null;
+        return { panel: f.panel, score, riskLevel: getRiskLevel(score) };
+      });
+      setPanelScores(panelResults);
+
+      const expertR = results[results.length - 1];
+      const expertVal =
+        expertR.status === "fulfilled" && expertR.value != null
+          ? (expertR.value as SessionScore).total
+          : null;
+      setExpertScore(expertVal);
+
       setLoading(false);
     });
 
@@ -136,16 +210,16 @@ export default function DashboardPage() {
     };
   }, []);
 
-  if (loading || welderScores === null) {
+  if (loading || panelScores === null) {
     return (
       <div className="min-h-screen bg-black text-gray-100 relative overflow-hidden">
         <div className="fixed inset-0 bg-gradient-to-br from-cyan-900/5 via-transparent to-emerald-900/5 pointer-events-none" />
         <div className="max-w-7xl mx-auto px-6 py-12">
-          <h2 className="text-4xl font-bold mb-6">Welder Roster</h2>
+          <h2 className="text-4xl font-bold mb-6">Panel Readiness</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {WELDERS.filter((w) => w.id !== "expert-benchmark").map((w) => (
+            {PANELS.map((p) => (
               <div
-                key={w.id}
+                key={p.id}
                 className="rounded-xl p-6 bg-gray-900/80 animate-pulse"
               >
                 <div className="h-5 w-32 bg-gray-700 rounded mb-2" />
@@ -158,21 +232,21 @@ export default function DashboardPage() {
     );
   }
 
-  const rosterResults =
-    welderScores?.filter((r) => r.welder.id !== "expert-benchmark") ?? [];
-  const sorted = [...rosterResults].sort((a, b) => {
+  const panelResults = panelScores ?? [];
+  const sorted = [...panelResults].sort((a, b) => {
     const sa = a.score ?? Infinity;
     const sb = b.score ?? Infinity;
     return sa - sb;
   });
-  const filtered = sorted.filter(({ score }) => {
-    if (filter === "risk") return score !== null && score < 60;
-    if (filter === "top") return score !== null && score >= 85;
+  const filtered = sorted.filter(({ panel, score }) => {
+    if (filter === "risk")
+      return (score !== null && score < 70) ||
+        panel.inspectionDecision !== "clear";
+    if (filter === "top") return panel.inspectionDecision === "clear";
     return true;
   });
 
-  const rosterWelders = WELDERS.filter((w) => w.id !== "expert-benchmark");
-  const scores = rosterResults
+  const scores = panelResults
     .map((r) => r.score)
     .filter((s): s is number => s !== null);
   const totalNonNull = scores.length;
@@ -180,20 +254,17 @@ export default function DashboardPage() {
     totalNonNull === 0
       ? "—"
       : String(Math.round(scores.reduce((a, b) => a + b, 0) / totalNonNull));
-  const totalSessions = rosterWelders.reduce(
-    (s, w) => s + w.sessionCount,
+  const totalJointsComplete = PANELS.reduce(
+    (s, p) => s + p.jointsComplete,
     0
   );
-  const countAbove80 = scores.filter((s) => s >= 80).length;
-  const qualityIndex =
-    totalNonNull === 0
+  const surveyorReadyCount = PANELS.filter(
+    (p) => p.inspectionDecision === "clear"
+  ).length;
+  const surveyorReadyPct =
+    PANELS.length === 0
       ? "—"
-      : `${Math.round((countAbove80 / totalNonNull) * 100)}%`;
-
-  const expertResult = welderScores?.find(
-    (r) => r.welder.id === "expert-benchmark"
-  );
-  const expertScore = expertResult?.score ?? null;
+      : `${Math.round((surveyorReadyCount / PANELS.length) * 100)}%`;
 
   return (
     <div className="min-h-screen bg-black text-gray-100 relative overflow-hidden">
@@ -212,19 +283,19 @@ export default function DashboardPage() {
         >
           {[
             {
-              label: "ACTIVE WELDERS",
-              value: rosterWelders.length,
+              label: "ACTIVE PANELS",
+              value: PANELS.length,
               accent: false,
             },
-            { label: "AVG SCORE", value: avgScore, accent: true },
+            { label: "AVG READINESS", value: avgScore, accent: true },
             {
-              label: "TOTAL SESSIONS",
-              value: totalSessions,
+              label: "JOINTS INSPECTED",
+              value: totalJointsComplete,
               accent: false,
             },
             {
-              label: "QUALITY INDEX",
-              value: qualityIndex,
+              label: "SURVEYOR-READY",
+              value: surveyorReadyPct,
               accent: true,
             },
           ].map((stat, i) => (
@@ -264,8 +335,7 @@ export default function DashboardPage() {
               fontFamily: "var(--font-geist-mono)",
             }}
           >
-            Roster — {filtered.length}{" "}
-            {filtered.length === 1 ? "welder" : "welders"}
+            PANELS — {PANELS.length} ACTIVE
           </span>
           <div className="flex gap-1">
             {(["all", "risk", "top"] as const).map((f) => (
@@ -283,25 +353,28 @@ export default function DashboardPage() {
                 }}
               >
                 {f === "all"
-                  ? "All"
+                  ? "All Panels"
                   : f === "risk"
-                    ? "At Risk"
-                    : "Top Performers"}
+                    ? "Needs Inspection"
+                    : "Surveyor-Ready"}
               </button>
             ))}
           </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {filtered.map(({ welder, score }) => {
-            const sessionId = getLatestSessionId(welder);
-            const isExpert = welder.id === "expert-benchmark";
-            const trend =
+          {filtered.map(({ panel, score, riskLevel }) => {
+            const sessionId = getSessionIdForPanel(panel);
+            const tierFromRisk =
               score !== null
-                ? Math.min(15, Math.max(-15, Math.round((score - 75) / 2)))
-                : 0;
+                ? riskLevel === "green"
+                  ? "high"
+                  : riskLevel === "amber"
+                    ? "mid"
+                    : "low"
+                : "unknown";
             return (
               <div
-                key={welder.id}
+                key={panel.id}
                 className="rounded-[14px] p-[22px] pb-0 transition-all duration-200 hover:-translate-y-0.5"
                 style={{
                   background:
@@ -314,19 +387,27 @@ export default function DashboardPage() {
               >
                 {/* Top row */}
                 <div className="flex items-start justify-between mb-4">
-                  <h3
-                    className="text-[15px] font-semibold tracking-tight"
-                    style={{ color: "#f0f2f4" }}
-                  >
-                    {welder.name}
-                  </h3>
+                  <div>
+                    <h3
+                      className="text-[15px] font-semibold tracking-tight font-mono uppercase"
+                      style={{ color: "#f0f2f4", fontSize: "13px" }}
+                    >
+                      {panel.id}
+                    </h3>
+                    <div
+                      className="text-[12px] mt-0.5"
+                      style={{ color: "#8a9099" }}
+                    >
+                      {panel.label}
+                    </div>
+                  </div>
                   <div className="text-right">
                     {score !== null ? (
                       <span
-                        data-score-tier={getScoreTier(score)}
+                        data-score-tier={tierFromRisk}
                         className="text-[22px] font-medium leading-none"
                         style={{
-                          color: getScoreColor(score),
+                          color: getRiskLevelColor(riskLevel),
                           fontFamily: "var(--font-geist-mono)",
                           letterSpacing: "-0.02em",
                         }}
@@ -349,38 +430,65 @@ export default function DashboardPage() {
                       className="absolute inset-y-0 left-0 rounded-full"
                       style={{
                         width: `${score}%`,
-                        background: getScoreColor(score),
+                        background: getRiskLevelColor(riskLevel),
                       }}
                     />
                   )}
                 </div>
 
-                {/* Meta */}
-                <div className="flex items-center gap-2.5 mb-4">
+                {/* Meta row */}
+                <div className="flex items-center justify-between gap-2.5 mb-4">
+                  <div>
+                    <span
+                      className="text-[11.5px] font-medium px-2.5 py-0.5 rounded-full inline-block"
+                      style={{
+                        fontFamily: "var(--font-geist-mono)",
+                        color: "#8a9099",
+                        background: "rgba(255,255,255,0.05)",
+                      }}
+                    >
+                      {panel.stage.charAt(0).toUpperCase() +
+                        panel.stage.slice(1)}
+                    </span>
+                    <span
+                      className="text-[12px] ml-2"
+                      style={{ color: "#404750" }}
+                    >
+                      {panel.blockLabel}
+                    </span>
+                  </div>
                   <span
-                    className="text-[11.5px] font-medium px-2.5 py-0.5 rounded-full"
-                    style={{
-                      fontFamily: "var(--font-geist-mono)",
-                      color:
-                        trend > 0
-                          ? "#3dd68c"
-                          : trend < 0
-                            ? "#f06060"
-                            : "#8a9099",
-                      background:
-                        trend > 0
-                          ? "rgba(61,214,140,0.08)"
-                          : trend < 0
-                            ? "rgba(240,96,96,0.08)"
-                            : "rgba(255,255,255,0.05)",
-                    }}
+                    className="text-[12px] font-mono"
+                    style={{ color: "#8a9099" }}
                   >
-                    {trend > 0 ? "↑" : trend < 0 ? "↓" : "·"}{" "}
-                    {trend > 0 ? "+" : ""}
-                    {trend}%
+                    {panel.jointsComplete}/{panel.jointsTotal} joints
                   </span>
-                  <span className="text-[12px]" style={{ color: "#404750" }}>
-                    {welder.sessionCount} sessions
+                </div>
+
+                {/* Inspection decision row */}
+                <div className="flex items-center gap-2 mb-4">
+                  <div
+                    className="w-2 h-2 rounded-full shrink-0"
+                    style={{
+                      background:
+                        panel.inspectionDecision === "clear"
+                          ? "#22c55e"
+                          : panel.inspectionDecision === "needs-dpi"
+                            ? "#f59e0b"
+                            : "#ef4444",
+                    }}
+                  />
+                  <span
+                    className="text-[12px]"
+                    style={{ color: "#8a9099" }}
+                  >
+                    {panel.inspectionDecision === "clear"
+                      ? "Surveyor-ready — no inspection needed"
+                      : panel.inspectionDecision === "needs-dpi"
+                        ? "Dye penetrant inspection required"
+                        : panel.inspectionDecision === "needs-xray"
+                          ? "X-ray inspection required"
+                          : "Immediate surveyor visit required"}
                   </span>
                 </div>
 
@@ -399,32 +507,30 @@ export default function DashboardPage() {
                     }}
                   >
                     <span className="group-hover:text-[#f0f2f4] transition-colors">
-                      View report
+                      View weld passes
                     </span>
                     <ArrowRight className="w-3.5 h-3.5 opacity-40 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
                   </Link>
-                  {!isExpert && (
-                    <Link
-                      href={`/compare/${sessionId}/${EXPERT_SESSION_ID}`}
-                      className="flex items-center justify-between py-[11px] text-[12.5px] transition-colors duration-100 group"
-                      style={{
-                        color: "#8a9099",
-                        borderBottom: "1px solid rgba(255,255,255,0.04)",
-                      }}
-                    >
-                      <span className="group-hover:text-[#f0f2f4] transition-colors">
-                        Compare to expert
-                      </span>
-                      <ArrowRight className="w-3.5 h-3.5 opacity-40 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
-                    </Link>
-                  )}
                   <Link
-                    href={`/seagull/welder/${welder.id}`}
+                    href={`/compare/${sessionId}/${EXPERT_SESSION_ID}`}
+                    className="flex items-center justify-between py-[11px] text-[12.5px] transition-colors duration-100 group"
+                    style={{
+                      color: "#8a9099",
+                      borderBottom: "1px solid rgba(255,255,255,0.04)",
+                    }}
+                  >
+                    <span className="group-hover:text-[#f0f2f4] transition-colors">
+                      Inspection decision
+                    </span>
+                    <ArrowRight className="w-3.5 h-3.5 opacity-40 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
+                  </Link>
+                  <Link
+                    href={`/seagull/welder/${panel.id}`}
                     className="flex items-center justify-between py-[11px] text-[12.5px] transition-colors duration-100 group"
                     style={{ color: "#8a9099" }}
                   >
                     <span className="group-hover:text-[#f0f2f4] transition-colors">
-                      Full report
+                      Surveyor report
                     </span>
                     <ArrowRight className="w-3.5 h-3.5 opacity-40 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
                   </Link>
