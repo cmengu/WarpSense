@@ -13,6 +13,7 @@ import Link from "next/link";
 import { fetchScore } from "@/lib/api";
 import type { SessionScore } from "@/lib/api";
 import { logWarn } from "@/lib/logger";
+import { PANELS, getSessionIdForPanel } from "@/data/panels";
 import type { Panel, PanelScoreResult, PanelRiskLevel } from "@/types/panel";
 import { ArrowRight, CheckCircle } from "lucide-react";
 
@@ -31,79 +32,6 @@ const PANEL_MOCK_SCORES: Record<string, number> = {
   "PANEL-9D": 88,  // green — Surveyor-ready
   "PANEL-3F": 94,  // green — Surveyor-ready
 };
-
-const PANELS: Panel[] = [
-  {
-    id: "PANEL-4C",
-    label: "Deck Plate — Port Side",
-    blockId: "B04",
-    blockLabel: "Block 04 · Midship",
-    stage: "panel",
-    jointsComplete: 5,
-    jointsTotal: 18,
-    inspectionDecision: "needs-xray",
-    sessionCount: 5,
-  },
-  {
-    id: "PANEL-7A",
-    label: "Bulkhead — Starboard",
-    blockId: "B07",
-    blockLabel: "Block 07 · Aft",
-    stage: "panel",
-    jointsComplete: 14,
-    jointsTotal: 18,
-    inspectionDecision: "needs-dpi",
-    sessionCount: 5,
-  },
-  {
-    id: "PANEL-2B",
-    label: "Tank Top — Centre",
-    blockId: "B02",
-    blockLabel: "Block 02 · Forward",
-    stage: "panel",
-    jointsComplete: 10,
-    jointsTotal: 18,
-    inspectionDecision: "needs-dpi",
-    sessionCount: 5,
-  },
-  {
-    id: "PANEL-1A",
-    label: "Keel Plate — Centre",
-    blockId: "B01",
-    blockLabel: "Block 01 · Forward",
-    stage: "panel",
-    jointsComplete: 18,
-    jointsTotal: 18,
-    inspectionDecision: "clear",
-    sessionCount: 5,
-  },
-  {
-    id: "PANEL-9D",
-    label: "Side Shell — Port",
-    blockId: "B09",
-    blockLabel: "Block 09 · Midship",
-    stage: "block",
-    jointsComplete: 18,
-    jointsTotal: 18,
-    inspectionDecision: "clear",
-    sessionCount: 5,
-  },
-  {
-    id: "PANEL-3F",
-    label: "Inner Bottom — Stbd",
-    blockId: "B03",
-    blockLabel: "Block 03 · Forward",
-    stage: "block",
-    jointsComplete: 18,
-    jointsTotal: 18,
-    inspectionDecision: "clear",
-    sessionCount: 5,
-  },
-];
-
-function getSessionIdForPanel(panel: Panel): string {
-  return `sess_${panel.id}_${String(panel.sessionCount).padStart(3, "0")}`;
-}
 
 /** Risk level from score for panel cards. Do not confuse with RiskLevel in @/types/shared. */
 function getRiskLevel(score: number | null): PanelRiskLevel {
