@@ -2,7 +2,7 @@
 
 > **Purpose:** Single source of truth for AI tools. What exists, what patterns to follow, what constraints to respect.  
 > **For AI:** Reference `@.cursor/context/project-context.md` to avoid reimplementing features or violating patterns.  
-> **Last Updated:** 2026-03-05
+> **Last Updated:** 2026-03-06
 
 ---
 
@@ -25,6 +25,7 @@
 - ✅ Windowed WQI scoring (extract_features_for_frames, score_frames_windowed, wqi_timeline/mean/median/min/max/trend)
 - ✅ Demo page API-wired (fetchSession, fetchSessionAlerts, useSessionComparison; no 3D)
 - ✅ Panel Readiness dashboard (6 panels, stats bar, Expert Benchmark; PANEL_MOCK_SCORES fallback when unseeded; Promise.allSettled + timeout)
+- ✅ Panel Passes page (`/panel/[panelId]/passes`) — loads all weld-pass sessions for a panel; layout shell (70/30 grid); shared `@/data/panels`
 - 🔄 Post–Batch 4 verification
 - 📋 ESP32 sensor integration, production deployment
 
@@ -41,6 +42,7 @@
 │  /demo              Redirect to default pair → /demo/[A]/[B] (investor UX)        │
 │  /demo/[A]/[B]     Investor comparison: WQI gauges, sparklines, alert feed, playback (no 3D) │
 │  /dashboard        Panel Readiness: 6 panel cards, stats bar, filter tabs, Expert Benchmark  │
+│  /panel/[panelId]/passes  Panel-centric view: all weld-pass sessions; 70/30 layout shell       │
 │  /seagull           Seagull Team dashboard (cards from WELDER_ARCHETYPES)        │
 │  /seagull/welder/[id]  Welder report: ReportLayout, NarrativePanel, PDF download │
 │  /replay/[id]       Replay + WarpRiskGauge                                       │
@@ -289,12 +291,23 @@
 **Status:** ✅  
 **What:** 6 panel cards with latest scores, stats bar (ACTIVE PANELS, AVG READINESS, JOINTS INSPECTED, SURVEYOR-READY), filter tabs (All Panels, Needs Inspection, Surveyor-Ready), Expert Benchmark card. Uses `Promise.allSettled` with per-fetch 5s timeout so one failure doesn't block others. Cards sorted by score ascending (worst first). Per-panel: inspection decision (clear/needs-dpi/needs-xray/needs-surveyor), risk level (green/amber/red), stage badge. Links: /replay/[sessionId], /seagull/welder/[panelId], /compare for non-expert.
 
-**Data:** Static `PANELS` array in page; session IDs `sess_{panel.id}_{sessionCount}`. `PANEL_MOCK_SCORES` fallback map (panel ID → score) when API returns null (404/network) — panels show numeric scores without backend seed. Real API scores always win. Once panel sessions are seeded, delete `PANEL_MOCK_SCORES`.
+**Data:** `PANELS` and `getSessionIdForPanel` from `@/data/panels`; session IDs `sess_{panel.id}_{sessionCount}`. `PANEL_MOCK_SCORES` fallback map (panel ID → score) when API returns null (404/network) — panels show numeric scores without backend seed. Real API scores always win. Once panel sessions are seeded, delete `PANEL_MOCK_SCORES`.
 
 **Patterns:** `fetchScoreWithTimeout` clears timer in `finally` to avoid leaks; logs via `logWarn` on failure. Fallback: `PANEL_MOCK_SCORES[f.panel.id] ?? null` in allSettled handler. `data-score-tier` on badges for test compatibility. Types: `Panel`, `PanelScoreResult` in `types/panel.ts`.
 
 **Location:** `app/(app)/dashboard/page.tsx`  
 **Tests:** `__tests__/app/(app)/dashboard/page.test.tsx` — panel assertions, sort by score, links.
+
+### Panel Passes Page
+**Status:** ✅  
+**What:** `/panel/[panelId]/passes` — loads all weld-pass sessions for a panel (`sess_PANEL-X_001` through `sess_PANEL-X_00N`) via `Promise.allSettled`. Individual 404s logged and skipped; `alertOnReplayFailure` only when ALL sessions fail. Layout: top bar (panel id + label, session count, back to Dashboard), 70% canvas placeholder, 30% defect panel placeholder.
+
+**Data:** `PANELS`, `getSessionIdsForPanel` from `@/data/panels`. Single `results.forEach` loop — no separate `failures` variable; `firstError` captured from first rejected result for alert. `logWarn("panel_passes", ...)` on per-session rejection. `panel` state for safe top bar during loading (`panel?.id ?? panelId`).
+
+**Structure:** PanelPassesPage (Suspense) → PanelPassesPageWithParams (`use(params)`) → PanelPassesPageInner (state + layout). Same pattern as replay page.
+
+**Location:** `app/panel/[panelId]/passes/page.tsx`  
+**Shared:** `data/panels.ts` — `PANELS`, `getSessionIdForPanel`, `getSessionIdsForPanel`; used by dashboard and panel passes page.
 
 ### Investor Demo (API-Wired)
 **Status:** ✅  
@@ -508,11 +521,13 @@ DecomposedSessionScore: {
 | `utils/deltaHeatmapData.ts` | extractDeltaHeatmapData, deltaTempToColor |
 | `types/comparison.ts` | FrameDelta, ThermalDelta, TemperatureDelta |
 | `types/panel.ts` | Panel, PanelScoreResult, PanelRiskLevel, InspectionDecision |
+| `data/panels.ts` | PANELS, getSessionIdForPanel, getSessionIdsForPanel — shared by dashboard and panel passes page |
+| `app/(app)/dashboard/page.tsx` | Panel Readiness: 6 panels, stats bar, filter tabs, Expert Benchmark |
+| `app/panel/[panelId]/passes/page.tsx` | Panel passes: all weld-pass sessions; 70/30 layout shell |
 | `types/report-summary.ts` | ReportSummary, ExcursionEntry — matches backend |
 | `app/seagull/welder/[id]/page.tsx` | Welder report, ReportLayout, compliance slot |
 | `components/welding/ComplianceSummaryPanel.tsx` | Heat Input, Torch Angle, Arc Termination rows; 4 states |
 | `components/welding/ExcursionLogTable.tsx` | Excursion log; sort by timestamp/type; empty state |
-| `app/(app)/dashboard/page.tsx` | Panel Readiness: 6 panels, stats bar, filter tabs, Expert Benchmark |
 | `app/(app)/supervisor/page.tsx` | WWAD dashboard |
 | `app/(app)/live/page.tsx` | iPad PWA |
 | `components/welding/TorchWithHeatmap3D.tsx` | Unified 3D torch + thermal metal + WeldTrail |
@@ -740,3 +755,5 @@ python -m py_compile backend/main.py backend/routes/sites.py backend/routes/sess
 | `.cursor/plans/dashboard-welder-visual-redesign.md` | Welder Roster dashboard redesign plan (superseded by panel readiness) |
 | `.cursor/plans/panel-readiness-dashboard.md` | Panel Readiness dashboard — welders → panels migration |
 | `.cursor/plans/panel_mock_data.md` | PANEL_MOCK_SCORES fallback when API returns null |
+| `docs/ISSUE_PANEL_PASSES_PAGE.md` | Panel passes page — data loading + layout shell |
+| `.cursor/plans/panel-passes-page-implementation.md` | Panel passes page implementation plan |
