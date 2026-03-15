@@ -326,6 +326,7 @@ export function SessionBrowserPanel({
           type="button"
           onClick={handleCompare}
           disabled={!bothSelected}
+          aria-disabled={!bothSelected}
           className={[
             "flex-1 py-2.5 text-xs font-mono font-bold uppercase tracking-[0.15em] border transition-all duration-150",
             bothSelected
@@ -333,7 +334,7 @@ export function SessionBrowserPanel({
               : "border-zinc-800 text-zinc-700 cursor-not-allowed",
           ].join(" ")}
         >
-          {bothSelected ? "▶  Compare sessions" : "select two sessions"}
+          {bothSelected ? "▶ Compare sessions" : "Select two sessions"}
         </button>
         {bothSelected && (
           <button
@@ -350,7 +351,7 @@ export function SessionBrowserPanel({
       </div>
 
       {bothSelected && (
-        <p className="text-[10px] text-zinc-600 font-mono -mt-2">
+        <p className="text-[10px] text-zinc-600 font-mono mt-1">
           ℹ Delta charts require overlapping timestamps. All seeded sessions
           share a 15 s / 10 ms window.
         </p>

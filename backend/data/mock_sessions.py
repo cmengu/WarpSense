@@ -265,7 +265,7 @@ def _generate_stitch_expert_frames(
 ) -> List[Frame]:
     """
     Aluminum stitch expert:
-    - Stitch pattern: 150 frames arc-on, 100 frames arc-off (repeats)
+    - Stitch pattern: 220 frames arc-on, 30 frames arc-off (repeats, arc_on_ratio=0.88)
     - Thermal override: if 10mm center > 220°C, force arc off
     - Thermal grid state advances every frame; thermal snapshots emitted every frame (for real-time alert Rule 1)
     - heat_dissipation_rate set on thermal frames (cooling-only metric: clamp at 0)
@@ -295,7 +295,7 @@ def _generate_stitch_expert_frames(
     frame_in_stitch = -1
 
     for i in range(num_frames):
-        arc_active = (i % 250) < 150
+        arc_active = (i % 250) < 220   # 220/250 = 0.88, within expert range 0.88–0.92
 
         # Thermal override: disabled (999 > AL_MAX_TEMP) — stitch pattern dominates.
         # Was 380°C, triggered on 89% of expert arc-on frames; data looked artificially capped.
@@ -313,8 +313,8 @@ def _generate_stitch_expert_frames(
             if stitch_count == 1:
                 # Stitch 1: pre-warm to 250°C (cold plate before first bead)
                 thermal_state = _init_thermal_state(250.0)
-            # Stitch 2+: thermal_state already cooled correctly during 100-frame arc-off;
-            # do NOT overwrite with 30s interpass model — actual gap is 1s
+            # Stitch 2+: thermal_state already cooled correctly during 30-frame arc-off;
+            # do NOT overwrite with 30s interpass model — actual gap is 300ms
         elif prev_arc_active and arc_active:
             frame_in_stitch += 1
 
@@ -326,20 +326,12 @@ def _generate_stitch_expert_frames(
             and 0 <= frame_in_stitch < 15
         )
         bead_start = arc_active and 0 <= frame_in_stitch < 20
-        bead_end = arc_active and frame_in_stitch >= 130
+        bead_end = arc_active and frame_in_stitch >= 200   # last 20 of 220 arc-on frames
         decel_mult = 0.85 if (corner_window or bead_start or bead_end) else 1.0
 
-        # Angle reacts to thermal state (expert behavior)
-        north_10mm = thermal_state[10.0]["north"]
-        south_10mm = thermal_state[10.0]["south"]
-        if center_10mm > 180.0 and (north_10mm - south_10mm) > 10.0:
-            angle_target = 35.0
-        elif center_10mm > 220.0:
-            angle_target = 90.0
-        else:
-            angle_target = 45.0
-
-        angle += (angle_target - angle) * 0.03 + rng.gauss(0.0, 1.2)
+        # Expert holds stable 45°; σ=0.3 gives ~3° 1s drift (GOOD < 10°)
+        angle_target = 45.0
+        angle += (angle_target - angle) * 0.03 + rng.gauss(0.0, 0.3)
         angle = max(20.0, min(85.0, angle))
 
         # Expert travel speed: base 380–420 mm/min, 15% decel at bead start/end and corners
