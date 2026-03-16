@@ -27,7 +27,7 @@ import json
 import os
 import re
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from groq import Groq
@@ -258,6 +258,29 @@ class WarpSenseAgent:
             embedding_function=ef,
         )
         self._log(f"[Agent] KB loaded: {self.collection.count()} chunks")
+
+    # Stable public wrappers used by eval_prompts.py.
+    # These keep eval code decoupled from private step method names.
+    def prepare_context(self, features: "SessionFeatures", prediction: "WeldPrediction") -> tuple:
+        """
+        Run Steps 1–3 and return (violations, chunks, defect_categories).
+
+        Note: prepare_context takes (features, prediction) but
+        _step3_retrieve_standards takes (prediction, features, ...).
+        The argument order reversal is intentional.
+        """
+        defect_categories = self._step1_defect_intake(prediction, features)
+        violations = self._step2_threshold_check(features)
+        chunks = self._step3_retrieve_standards(
+            prediction, features, defect_categories, violations
+        )
+        return violations, chunks, defect_categories
+
+    def verify_citations(self, report_dict: dict, chunks: list) -> tuple:
+        """
+        Run citation grounding check and return (passed, reason).
+        """
+        return self._step5_self_check(report_dict, chunks)
 
     def assess(self, prediction, features):
         session_id = prediction.session_id
@@ -536,7 +559,7 @@ RULES:
             )
         return WeldQualityReport(
             session_id=prediction.session_id,
-            report_timestamp=datetime.utcnow().isoformat() + "Z",
+            report_timestamp=datetime.now(timezone.utc).isoformat(),
             quality_class=prediction.quality_class,
             confidence=prediction.confidence,
             iso_5817_level=llm_output.get("iso_5817_level", "D"),

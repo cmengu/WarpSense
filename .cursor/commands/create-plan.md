@@ -115,6 +115,39 @@ Functions in [module]: ____
 
 ---
 
+## ARCHITECTURE THINKING BLOCK — Fill Once Per Plan
+
+> This section captures the high-level design reasoning for the entire plan before any step is written. It explains WHY this approach was chosen, what patterns are being applied, and what alternatives were rejected. It is written once at the plan level, then each step gets its own focused **Step Architecture Thinking** subsection.
+>
+> An agent that understands *why* a design was chosen makes better micro-decisions when the code doesn't perfectly match the plan. This block prevents the agent from silently substituting a simpler pattern when it encounters ambiguity.
+
+```
+## Architecture Overview
+
+**The problem this plan solves:**
+[What is currently wrong or missing in the codebase. Be specific — name the file and the limitation.]
+
+**The pattern applied:**
+[Name the design pattern(s) explicitly: Coordinator, Template Method, DTO, Open/Closed, Facade, DRY, etc.
+For each pattern, state: what it is, why it was chosen over the alternative, and what breaks if it is violated.]
+
+**What stays unchanged:**
+[Every file this plan intentionally does NOT touch, and why it is safe to leave it unchanged.]
+
+**What this plan adds:**
+[Every new file or class, and the single responsibility each one owns.]
+
+**Critical decisions (with alternatives rejected):**
+[For each major decision, state the decision, the alternative considered, and why the alternative was rejected.
+Format: Decision → Alternative → Why rejected]
+
+**Known limitations acknowledged in this plan:**
+[Explicit list of shortcuts, stubs, or imperfect solutions that are intentional.
+Each must state: what it is, why it is acceptable now, and what the upgrade path is.]
+```
+
+---
+
 ## CRITICAL CODE REVIEW APPROACH
 
 **High-level summary only at top** — architectural decisions, not code snippets.
@@ -129,13 +162,33 @@ Functions in [module]: ____
 
 For each critical step, include all fields in the Code Review Block below.
 
-For non-critical steps: include Verification Test only.
+For non-critical steps: include Step Architecture Thinking + Verification only.
 
 ---
 
 ## CODE REVIEW BLOCK (for critical steps)
 
+> Every critical step includes a **Step Architecture Thinking** subsection before the Pre-Read Gate. This is the per-step design rationale — more focused than the plan-level Architecture Overview. It answers: what OOP principle or pattern is being applied here, why this file is the right place for this change, and what would break if the implementation deviated from the described approach.
+
 ```
+**Step Architecture Thinking:**
+
+**Pattern applied:** [Name the specific OOP pattern or principle: Template Method, SRP, Facade, DRY, DTO, Open/Closed, Dependency Inversion, etc.]
+
+**Why this step exists here in the sequence:**
+[What must be true before this step runs, and what becomes possible after it completes that was not possible before.]
+
+**Why this file / class is the right location:**
+[Not just "it makes sense" — name the specific reason. E.g. "models.py is the contract layer; defining the shape here means every downstream file imports from one source of truth rather than inferring the shape from usage."]
+
+**Alternative approach considered and rejected:**
+[One specific alternative. State what it would have looked like and exactly why it was worse.]
+
+**What breaks if this step deviates from the described pattern:**
+[Concrete failure mode — not abstract. E.g. "If token_count is not 0 by default, SummaryAgent cannot construct a SpecialistResult in the GREEN path where no LLM call is made."]
+
+---
+
 **Context:** [How this fits into the larger system. What breaks if this step is wrong.]
 
 **Idempotent:** Yes / No — [reason. If No: describe what breaks on re-run and how to detect it.]
@@ -223,11 +276,6 @@ Fail:      [Symptom] → [Likely cause] → [Specific file/function to check]
 
 > Any operation with two phases where Phase 1 succeeding but Phase 2 failing produces a silent broken state must be split into two separate steps with a human gate between them.
 
-**Common examples:**
-- Schema migration (add columns) + Data migration (populate columns) → split into Migration A and Migration B
-- File creation + reference update → confirm file exists before adding reference
-- Dependency install + code that uses dependency → confirm install before writing code
-
 **Pattern:**
 ```
 Step N — Phase A (safe, reversible)
@@ -244,8 +292,6 @@ Step N — Phase B (data-dependent, uses values from calibration/previous output
 
 ## STATE MANIFEST (use at every Human Gate)
 
-> When execution pauses at a Human Gate, the agent must output a complete State Manifest so a fresh agent session can resume without re-reading the full conversation.
-
 ```
 STATE MANIFEST — [Step N] — [timestamp or session ID if available]
 
@@ -254,7 +300,6 @@ Files modified so far:
   [file B]: [brief description of what changed]
 
 Values produced:
-  [variable / output name]: [actual value]
   [variable / output name]: [actual value]
 
 Verifications passed:
@@ -299,12 +344,41 @@ Step 2 ([name]) — [Critical / Non-critical] ([reason]) — [full code review /
 
 ---
 
-## Critical Decisions
+## Architecture Overview
 
-Key architectural choices (NO CODE — decisions only):
+> Fill this section completely before writing any steps. An agent that understands the design makes better decisions when code doesn't perfectly match the plan.
+
+**The problem this plan solves:**
+[What is currently wrong or missing. Name the file and the specific limitation.]
+
+**The pattern(s) applied:**
+[Name each design pattern explicitly. For each: what it is, why it was chosen, what breaks if violated.]
+
+**What stays unchanged:**
+[Every file intentionally NOT touched, and why it is safe to leave it unchanged.]
+
+**What this plan adds:**
+[Every new file or class, and the single responsibility each one owns.]
+
+**Critical decisions:**
+
+| Decision | Alternative considered | Why alternative rejected |
+|----------|----------------------|--------------------------|
+| [choice made] | [what else was considered] | [specific reason rejected] |
+| [choice made] | [what else was considered] | [specific reason rejected] |
+
+**Known limitations acknowledged:**
+
+| Limitation | Why acceptable now | Upgrade path |
+|-----------|-------------------|--------------|
+| [shortcut or stub] | [reason] | [future fix] |
+
+---
+
+## Critical Decisions
+[Repeat the decisions table above as a bulleted list for quick reference during execution.]
 - **Decision 1:** [choice] — [rationale]
 - **Decision 2:** [choice] — [rationale]
-- **Decision 3:** [choice] — [rationale]
 
 ---
 
@@ -315,7 +389,6 @@ Key architectural choices (NO CODE — decisions only):
 | Unknown | Required | Source | Blocking | Resolved |
 |---------|----------|--------|----------|----------|
 | [what is unclear] | [exact value or decision] | [codebase / human / step output] | [step N] | ⬜ |
-| [what is unclear] | [exact value or decision] | [codebase / human / step output] | [step N] | ⬜ |
 
 ---
 
@@ -323,7 +396,7 @@ Key architectural choices (NO CODE — decisions only):
 
 1. A verification command fails → read the full error output.
 2. Cause is unambiguous → make ONE targeted fix → re-run the same verification command.
-3. If still failing after one fix → **STOP**. Before stopping, output the full current contents of every file modified in this step. Report: (a) command run, (b) full error verbatim, (c) fix attempted, (d) current state of each modified file, (e) why you cannot proceed.
+3. If still failing after one fix → **STOP**. Output full contents of every modified file. Report: (a) command run, (b) full error verbatim, (c) fix attempted, (d) current state of each modified file, (e) why you cannot proceed.
 4. Never attempt a second fix without human instruction.
 5. Never modify files not named in the current step.
 
@@ -362,13 +435,10 @@ Line count [file B]:    ____
 
 ## Environment Matrix
 
-> Identify which steps apply per environment and what changes between them.
-
 | Step | Dev | Staging | Prod | Notes |
 |------|-----|---------|------|-------|
 | Step 1 | ✅ | ✅ | ✅ | No environment-specific changes |
 | Step 2 | ✅ | ✅ | ⚠️ Manual gate | Requires prod DB credentials |
-| Step 3 | ✅ | ❌ Skip | ❌ Skip | Dev-only seed data |
 
 ---
 
@@ -382,6 +452,24 @@ Line count [file B]:    ____
 
 - [ ] 🟥 **Step 1: [Name]** — *[Critical / Non-critical]: [one-line reason]*
 
+  **Step Architecture Thinking:**
+
+  **Pattern applied:** [Name the OOP pattern or principle explicitly — e.g. Template Method, Single Responsibility, Facade, DTO, Open/Closed, DRY, Dependency Inversion, Coordinator.]
+
+  **Why this step exists here in the sequence:**
+  [What must be true before this step, and what becomes possible after it that was not possible before. One concrete sentence per direction.]
+
+  **Why this file / class is the right location:**
+  [Name the specific reason. E.g. "This is the contract layer — defining the shape here means every downstream file imports from one source of truth."]
+
+  **Alternative approach considered and rejected:**
+  [One specific alternative. What it would have looked like and exactly why it was worse.]
+
+  **What breaks if this step deviates from the described pattern:**
+  [Concrete failure mode — not abstract. Name the file and function that would fail.]
+
+  ---
+
   **Idempotent:** Yes / No — [reason. If No: what breaks on re-run and how to detect it.]
 
   **Context:** [How this fits into the system. What is currently wrong and why this fixes it.]
@@ -390,7 +478,6 @@ Line count [file B]:    ____
   Before any edit:
   - Run `grep -n '[anchor_string]' [file]`. Must return exactly 1 match inside `[function/class]`. If 0 or 2+ → STOP.
   - Run `grep -n '[variable_to_reference]' [file]`. Must exist in correct scope. If missing → STOP.
-  - Run `grep -n '[line_to_replace]' [file]`. Must return exactly the line(s) to be replaced, no others. If multiple → confirm by line number before proceeding.
 
   **Self-Contained Rule:** All code below is complete and runnable. No "see Step N" references.
 
@@ -407,11 +494,9 @@ Line count [file B]:    ____
 
   **Assumptions:**
   - [What must already be true in the codebase]
-  - [What the existing function signature looks like]
 
   **Risks:**
   - [Risk 1] → mitigation: [specific action]
-  - [Risk 2] → mitigation: [specific action]
 
   **Git Checkpoint:**
   ```bash
@@ -427,13 +512,11 @@ Line count [file B]:    ____
 
   **Type:** [Unit / Integration / E2E]
 
-  **Action:** [Exact command or interaction — no placeholders]
+  **Action:** [Exact command — no placeholders]
 
   **Expected:**
-  - [Specific output, value, or state]
+  - [Specific output or state]
   - [Old content no longer present — for replacements]
-
-  **Observe:** [Where to look — log line, response field, UI element, DB value]
 
   **Pass:** [The single observable that confirms this step is done]
 
@@ -445,93 +528,103 @@ Line count [file B]:    ____
 
 - [ ] 🟥 **Step 2: [Name]** — *[Critical]: [reason]*
 
-  > ⚠️ **Split Operation** — This step has two phases. Phase A must complete and verify before Phase B begins. A Human Gate separates them.
+  > ⚠️ **Split Operation** — Phase A must complete and verify before Phase B begins.
 
-  **Idempotent:** Phase A: Yes / No — [reason]. Phase B: Yes / No — [reason]
+  **Step Architecture Thinking:**
+
+  **Pattern applied:** [Name pattern]
+
+  **Why this step exists here in the sequence:** [What A.1 enabled that makes this possible now]
+
+  **Why this file / class is the right location:** [Specific reason]
+
+  **Alternative approach considered and rejected:** [One alternative and why rejected]
+
+  **What breaks if this step deviates:** [Concrete failure mode]
+
+  ---
+
+  **Idempotent:** Phase A: Yes. Phase B: No — [reason]
 
   **Context:** [Why splitting is necessary. What silent failure would occur if combined.]
 
   ---
 
-  **Phase A — [Schema / Structure / Safe change]**
+  **Phase A — [Safe change]**
 
   **Pre-Read Gate:**
   - Run `[command]`. Show output. STOP. Do not proceed until human confirms `[specific value]`.
 
   ```[language]
-  # Phase A code only — no data changes
+  # Phase A code only
   ```
 
   **Phase A Verification:**
-  - [Specific check that Phase A succeeded and only Phase A]
-  - [Confirm new structure exists]
+  - [Specific check that Phase A succeeded]
   - [Confirm no data was changed]
 
   **Git Checkpoint (Phase A):**
   ```bash
   git add [Phase A files only]
-  git commit -m "step 2a: [imperative description of Phase A only]"
+  git commit -m "step 2a: [Phase A description]"
   ```
 
   **State Manifest — Phase A:**
   ```
   Files modified: [list]
   Values produced: [list any outputs Phase B needs]
-  Verifications passed: Step 1 ✅, Step 2A ✅
   Next: Step 2B requires [specific human input]
   ```
 
-  **Human Gate — Phase A complete:**
-  Output `"[PHASE A COMPLETE — WAITING FOR [specific input needed for Phase B]]"` as the final line of your response.
+  **Human Gate:**
+  Output `"[PHASE A COMPLETE — WAITING FOR [specific input needed for Phase B]]"` as the final line.
   Do not write any code or call any tools after this line.
 
   ---
 
-  **Phase B — [Data / Population / Dependent change]**
+  **Phase B — [Data-dependent change]**
 
   > Only execute after human provides: [exact list of values/confirmations needed]
-
-  **Agent instruction:** Substitute the values provided by the human. Do not invent values. If human has not confirmed, output `"WAITING FOR HUMAN CONFIRMATION"` and stop.
 
   ```[language]
   # Phase B code — uses actual values from human confirmation, not placeholders
   ```
 
-  **Phase B Verification:**
-  - [Check that data was actually written — not just that the command ran]
-  - [Confirm non-null / non-empty / expected count]
-  - [Confirm zero rows updated = visible failure, not silent success]
-
   **Git Checkpoint (Phase B):**
   ```bash
   git add [Phase B files only]
-  git commit -m "step 2b: [imperative description of Phase B only]"
+  git commit -m "step 2b: [Phase B description]"
   ```
-
-  **Subtasks:**
-  - [ ] 🟥 Phase A complete and verified
-  - [ ] 🟥 Human gate passed — values received
-  - [ ] 🟥 Phase B complete and verified
 
   **✓ Verification Test (Phase B):**
 
   **Type:** [Unit / Integration / E2E]
 
-  **Action:** [Query or check that confirms data exists with expected values]
+  **Action:** [Query or check that confirms data exists]
 
-  **Expected:** [Non-null values in specific fields]
-
-  **Observe:** [Database query result / API response / log output]
-
-  **Pass:** [All three fields non-null, values match Step 2A calibration output]
+  **Pass:** [All fields non-null, values match Phase A output]
 
   **Fail:**
-  - If zero rows updated → `WHERE` clause matched nothing — confirm `[field] = '[value]'` exists in table
-  - If fields are null → Phase B ran but UPDATE failed silently — check transaction log
+  - If zero rows updated → WHERE clause matched nothing → confirm field exists in table
+  - If fields null → UPDATE failed silently → check transaction log
 
 ---
 
 - [ ] 🟥 **Step 3: [Name]** — *Non-critical*
+
+  **Step Architecture Thinking:**
+
+  **Pattern applied:** [Name pattern]
+
+  **Why this step exists here in the sequence:** [One sentence]
+
+  **Why this file / class is the right location:** [One sentence]
+
+  **Alternative approach considered and rejected:** [One alternative]
+
+  **What breaks if this step deviates:** [One sentence]
+
+  ---
 
   **Idempotent:** Yes — [reason]
 
@@ -541,19 +634,11 @@ Line count [file B]:    ____
   git commit -m "step 3: [imperative description]"
   ```
 
-  **Subtasks:**
-  - [ ] 🟥 [Subtask 1]
-  - [ ] 🟥 [Subtask 2]
-
   **✓ Verification Test:**
 
   **Type:** [Unit / Integration / E2E]
 
   **Action:** [Exact interaction]
-
-  **Expected:** [Observable outcome]
-
-  **Observe:** [Where to look]
 
   **Pass:** [Specific success indicator]
 
@@ -566,44 +651,32 @@ Line count [file B]:    ____
 
 **Goal:** [What is true after this phase]
 
-> [Same step structure as Phase 1]
+> [Same step structure as Phase 1 — every step includes Step Architecture Thinking block]
 
 ---
 
 ## Regression Guard
 
-> Every plan that touches shared infrastructure must end with a regression check confirming that previously-working behavior still works.
-
 **Systems at risk from this plan:**
 - [System 1] — [why it could be affected]
-- [System 2] — [why it could be affected]
 
 **Regression verification:**
 
 | System | Pre-change behavior | Post-change verification |
 |--------|---------------------|--------------------------|
 | [System 1] | [What it did before] | [Exact check that confirms it still does] |
-| [System 2] | [What it did before] | [Exact check that confirms it still does] |
 
 **Test count regression check:**
 - Tests before plan (from Pre-Flight baseline): `____`
 - Tests after plan: run `[test command]` — must be `≥` baseline count
-- If count decreased → a test was deleted or renamed — STOP and report
 
 ---
 
 ## Rollback Procedure
 
-> Must be documented before any irreversible step executes. Each rollback must be a single command or a numbered sequence of unambiguous commands.
-
 ```bash
 # Rollback Step N (reverse order)
 git revert [commit hash from Step N git checkpoint]
-# or if schema change:
-[specific migration rollback command]
-
-# Rollback Step N-1
-git revert [commit hash from Step N-1 git checkpoint]
 
 # Confirm system is back to pre-plan state:
 [test command] — must return same count as Pre-Flight baseline
@@ -616,13 +689,12 @@ git revert [commit hash from Step N-1 git checkpoint]
 | Phase | Check | How to Confirm | Status |
 |-------|-------|----------------|--------|
 | **Pre-flight** | Clarification Gate complete | All unknowns resolved | ⬜ |
+| | Architecture Overview complete | All patterns named, alternatives documented | ⬜ |
 | | Baseline snapshot captured | Test count + line counts recorded | ⬜ |
 | **Phase 1** | [Dependency] installed/available | [Import or version check] | ⬜ |
-| | [Service] running | [Health check or import] | ⬜ |
 | | [Anchor line] exists once in correct scope | grep returns exactly 1 match | ⬜ |
 | | Existing tests pass | Test count matches pre-flight baseline | ⬜ |
 | **Phase 2** | [Phase 1 complete] | All Phase 1 verifications passed | ⬜ |
-| | [Human gate value] received | Human confirmed [specific value] | ⬜ |
 
 ---
 
@@ -632,8 +704,7 @@ git revert [commit hash from Step N-1 git checkpoint]
 |------|-----------|---------------------|-----------------|------------|
 | Step 1 | 🟢 **Low** | [Risk] | [How you'd know early] | Yes |
 | Step 2 Phase A | 🟡 **Medium** | [Risk] | [How you'd know early] | Yes |
-| Step 2 Phase B | 🔴 **High** | Silent failure if Phase A verified but Phase B skipped | Check non-null fields immediately after | No — re-run duplicates rows |
-| Step N | 🔴 **High** | [Risk] | [How you'd know early] | No — [reason] |
+| Step 2 Phase B | 🔴 **High** | Silent failure if Phase A verified but Phase B skipped | Check non-null fields immediately after | No |
 
 ---
 
@@ -642,7 +713,6 @@ git revert [commit hash from Step N-1 git checkpoint]
 | Feature | Target | Verification |
 |---------|--------|--------------|
 | [Feature 1] | [Specific measurable behavior] | **Do:** [action] → **Expect:** [output] → **Look:** [location] |
-| [Feature 2] | [Specific measurable behavior] | **Do:** [action] → **Expect:** [output] → **Look:** [location] |
 | [Regression: Feature X] | Unchanged from pre-plan | **Do:** [existing test] → **Expect:** [same result as before] |
 | Test count | ≥ pre-plan baseline | Run [test command] → count must not decrease |
 
@@ -653,3 +723,5 @@ git revert [commit hash from Step N-1 git checkpoint]
 ⚠️ **If blocked, mark 🟨 In Progress and output the State Manifest before stopping.**
 ⚠️ **Do not batch multiple steps into one git commit.**
 ⚠️ **If idempotent = No, confirm the step has not already run before executing.**
+⚠️ **Architecture Overview must be complete before Pre-Flight begins.**
+⚠️ **Every step must include a Step Architecture Thinking block — no exceptions.**
