@@ -44,6 +44,7 @@ from backend.agent.warpsense_agent import (
     THRESHOLDS, LLM_MODEL, LOF_LOP_PRIMARY_FEATURES,
     StandardsChunk, ThresholdViolation, WeldQualityReport,
 )
+from backend.knowledge.rag_retriever import RAGRetriever, decompose_queries
 from backend.features.session_feature_extractor import SessionFeatures, OPTIMAL_ANGLE_DEG
 from backend.features.weld_classifier import WeldPrediction
 
@@ -130,9 +131,9 @@ def process_triggered(features: SessionFeatures) -> bool:
 class BaseSpecialistAgent(ABC):
     OWNED_FEATURES: set[str] = set()
 
-    def __init__(self, groq_client: Groq, collection, llm_model: str = LLM_MODEL, n_chunks: int = 4, verbose: bool = True):
+    def __init__(self, groq_client: Groq, retriever: RAGRetriever, llm_model: str = LLM_MODEL, n_chunks: int = 4, verbose: bool = True):
         self.groq = groq_client
-        self.collection = collection
+        self.retriever = retriever
         self.llm_model = llm_model
         self.n_chunks = n_chunks
         self.verbose = verbose
@@ -140,6 +141,12 @@ class BaseSpecialistAgent(ABC):
     @property
     @abstractmethod
     def agent_name(self) -> str: ...
+
+    @property
+    @abstractmethod
+    def domain(self) -> str: ...
+    # Must return "thermal" | "geometry" | "process"
+    # Used by _retrieve() to select the domain anchor query in decompose_queries
 
     @abstractmethod
     def _get_triggered_features(self, features: SessionFeatures) -> list[str]: ...
@@ -154,30 +161,13 @@ class BaseSpecialistAgent(ABC):
         if self.verbose:
             print(msg)
 
-    def _retrieve(self, queries: list[str]) -> list[StandardsChunk]:
-        seen_ids: set[str] = set()
-        chunks: list[StandardsChunk] = []
-        for q in queries[:3]:
-            try:
-                results = self.collection.query(
-                    query_texts=[q], n_results=3,
-                    include=["documents", "metadatas", "distances"],
-                )
-                for i, doc in enumerate(results["documents"][0]):
-                    chunk_id = results["ids"][0][i]
-                    if chunk_id not in seen_ids:
-                        seen_ids.add(chunk_id)
-                        meta = results["metadatas"][0][i]
-                        chunks.append(StandardsChunk(
-                            chunk_id=chunk_id, text=doc,
-                            source=meta.get("source", "unknown"),
-                            section=meta.get("section", ""),
-                            score=round(1 - results["distances"][0][i], 4),
-                        ))
-            except Exception as e:
-                self._log(f"  [{self.agent_name}] KB query failed: {e}")
-        chunks.sort(key=lambda c: c.score, reverse=True)
-        return chunks[:self.n_chunks]
+    def _retrieve(self, queries: list[str], violations: list) -> list[StandardsChunk]:
+        """
+        Delegate to RAGRetriever after expanding queries via decompose_queries.
+        violations: own_violations for this specialist (list[ThresholdViolation])
+        """
+        expanded = decompose_queries(queries, violations, self.domain)
+        return self.retriever.retrieve(expanded)
 
     def _call_llm(self, prompt: str) -> tuple[dict, str, bool]:
         """Returns (parsed_dict, raw_str, fallback_used)."""
@@ -236,7 +226,7 @@ class BaseSpecialistAgent(ABC):
         own_violations = [v for v in violations if v.feature in self.OWNED_FEATURES]
 
         queries = self._get_queries(prediction, features, own_violations)
-        chunks = self._retrieve(queries)
+        chunks = self._retrieve(queries, own_violations)
         prompt = self._build_prompt(prediction, features, own_violations, chunks)
         parsed, raw, fallback_used = self._call_llm(prompt)
 
@@ -273,6 +263,10 @@ class ThermalAgent(BaseSpecialistAgent):
     @property
     def agent_name(self) -> str:
         return "ThermalAgent"
+
+    @property
+    def domain(self) -> str:
+        return "thermal"
 
     def _get_triggered_features(self, features: SessionFeatures) -> list[str]:
         fv = features.to_vector()
@@ -345,6 +339,10 @@ class GeometryAgent(BaseSpecialistAgent):
     def agent_name(self) -> str:
         return "GeometryAgent"
 
+    @property
+    def domain(self) -> str:
+        return "geometry"
+
     def _get_triggered_features(self, features: SessionFeatures) -> list[str]:
         fv = features.to_vector()
         t = THRESHOLDS
@@ -411,6 +409,10 @@ class ProcessStabilityAgent(BaseSpecialistAgent):
     @property
     def agent_name(self) -> str:
         return "ProcessStabilityAgent"
+
+    @property
+    def domain(self) -> str:
+        return "process"
 
     def _get_triggered_features(self, features: SessionFeatures) -> list[str]:
         fv = features.to_vector()
