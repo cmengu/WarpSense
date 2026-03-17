@@ -55,7 +55,10 @@ class AgentEvalResult:
     agent_name:          str
     n_scenarios:         int
     llm_runs:            int
-    tp: int; fp: int; tn: int; fn: int
+    tp: int
+    fp: int
+    tn: int
+    fn: int
     precision:           float
     recall:              float
     f1:                  float
@@ -107,7 +110,11 @@ class MultiAgentEvaluator:
     def _detect_fallback(self, report) -> bool:
         fallback_used = False
         if hasattr(report, "root_cause"):
-            fallback_used = ("failed" in report.root_cause.lower() or "fallback" in report.root_cause.lower())
+            fallback_used = (
+                report.root_cause.startswith("LLM") or
+                report.root_cause.startswith("LangChain agent failed") or
+                "LLM call failed:" in report.root_cause
+            )
         # LangGraph: llm_raw_response is JSON array of SpecialistResult (from SummaryAgent.synthesise)
         if hasattr(report, "llm_raw_response") and report.llm_raw_response:
             try:
@@ -299,7 +306,7 @@ class MultiAgentEvaluator:
     def save(self, report: ComparisonReport) -> Path:
         ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
         out = RESULTS_DIR / f"multi_agent_eval_{ts}.json"
-        with open(out, "w") as f:
+        with open(out, "w", encoding="utf-8") as f:
             json.dump(asdict(report), f, indent=2)
         print(f"[MultiEval] Results saved: {out}")
         return out

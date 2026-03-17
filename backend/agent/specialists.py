@@ -196,7 +196,13 @@ class BaseSpecialistAgent(ABC):
             parsed = json.loads(clean)
         except json.JSONDecodeError:
             match = re.search(r"\{.*\}", raw, re.DOTALL)
-            parsed = json.loads(match.group()) if match else {}
+            if match:
+                try:
+                    parsed = json.loads(match.group())
+                except json.JSONDecodeError:
+                    parsed = {}
+            else:
+                parsed = {}
             fallback_used = True
         except Exception as e:
             parsed = {

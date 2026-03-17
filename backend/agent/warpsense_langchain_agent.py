@@ -54,8 +54,9 @@ from backend.features.weld_classifier import WeldPrediction
 
 class WarpSenseLangChainAgent:
     """
-    LangChain tool-calling agent. Single-threaded only (session_ref is module-level closure).
-    For parallel eval, replace session_ref with contextvars.ContextVar.
+    LangChain tool-calling agent. Single-threaded only — session_ref is an instance attribute;
+    concurrent assess() calls on the same instance would race.
+    For parallel eval, replace self._session with contextvars.ContextVar.
     """
 
     def __init__(
@@ -135,12 +136,18 @@ class WarpSenseLangChainAgent:
             features = session["features"]
             violations = session["violations"]
             fv = features.to_vector()
+            angle_note = ""
             if domain == "thermal":
                 feats = ["heat_diss_max_spike", "heat_diss_mean", "heat_input_min_rolling", "heat_input_drop_severity"]
                 triggered = thermal_triggered(features)
             elif domain == "geometry":
                 feats = ["angle_deviation_mean", "angle_max_drift_1s"]
                 triggered = geometry_triggered(features)
+                angle_note = (
+                    f"Target angle: {OPTIMAL_ANGLE_DEG:.0f}° (not 45°). "
+                    f"angle_deviation_mean = |measured - {OPTIMAL_ANGLE_DEG:.0f}|. "
+                    f"Correct to {OPTIMAL_ANGLE_DEG:.0f} ± 5 degrees."
+                )
             else:
                 feats = ["voltage_cv", "amps_cv", "heat_input_cv", "arc_on_ratio", "heat_input_mean"]
                 triggered = process_triggered(features)
@@ -148,10 +155,12 @@ class WarpSenseLangChainAgent:
             domain_viols = [v for v in violations if v.feature in domain_feats]
             viol_text = "\n".join(v.as_display_line() for v in domain_viols) or "None"
             feat_text = "\n".join(f"  {k}: {val}" for k, val in domain_feats.items())
+            note_line = f"\nNote: {angle_note}" if angle_note else ""
             return (
                 f"{domain.capitalize()} triggered: {triggered}\n"
                 f"{domain.capitalize()} Features:\n{feat_text}\n"
                 f"{domain.capitalize()} Violations:\n{viol_text}"
+                f"{note_line}"
             )
 
         return [retrieve_standards, get_domain_context]
@@ -204,6 +213,9 @@ class WarpSenseLangChainAgent:
                 except (json.JSONDecodeError, TypeError):
                     parsed = {}
 
+        if not parsed:
+            return self._fallback_report(prediction, violations, "LLM output unparseable")
+
         disposition = parsed.get("disposition", "CONDITIONAL")
 
         # LOF/LOP safety override: any RISK violation in LOF/LOP features → REWORK_REQUIRED
@@ -231,8 +243,8 @@ class WarpSenseLangChainAgent:
             retrieved_chunks_used=[],
             disposition=disposition,
             disposition_rationale=parsed.get("disposition_rationale", f"{disposition} per LangChain agent."),
-            self_check_passed=True,
-            self_check_notes="LangChain tool-calling agent. Citations not cross-checked.",
+            self_check_passed=False,
+            self_check_notes="LangChain: no citation cross-check performed.",
             llm_raw_response=raw_output,
         )
 
@@ -270,7 +282,6 @@ class WarpSenseLangChainAgent:
         self._session = {"features": features, "violations": violations}
 
         try:
-            fv = features.to_vector()
             session_summary = (
                 f"Session: {prediction.session_id} | Class: {prediction.quality_class} ({prediction.confidence:.2f})\n"
                 f"Violations: {len(violations)} total\n"

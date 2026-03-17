@@ -16,6 +16,7 @@ Usage:
     report = graph.assess(prediction, features)  # → WeldQualityReport
 """
 
+import os
 import sys
 from pathlib import Path
 from typing import Dict, Optional, TypedDict
@@ -31,6 +32,7 @@ from chromadb.utils import embedding_functions
 from groq import Groq
 
 from backend.agent.warpsense_agent import LLM_MODEL, WeldQualityReport
+from backend.agent.specialists import ThresholdViolation
 from backend.agent.specialists import (
     SpecialistResult,
     ThermalAgent,
@@ -50,7 +52,7 @@ class WarpSenseState(TypedDict):
     session_id:         str
     features:           SessionFeatures
     prediction:         WeldPrediction
-    violations:         list
+    violations:         list[ThresholdViolation]
     routing_decision:   Dict[str, bool]   # thermal_triggered, geometry_triggered, process_triggered — observability only
     thermal_result:     Optional[SpecialistResult]
     geometry_result:    Optional[SpecialistResult]
@@ -84,7 +86,6 @@ class WarpSenseGraph:
         ef = embedding_functions.DefaultEmbeddingFunction()
         self._collection = client.get_collection(name=collection_name, embedding_function=ef)
 
-        import os
         groq_client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
         self._thermal  = ThermalAgent(groq_client, self._collection, llm_model, n_chunks_per_specialist, verbose)
@@ -126,7 +127,7 @@ class WarpSenseGraph:
         return {"process_result": result}
 
     def _summary_node(self, state: WarpSenseState) -> dict:
-        results = [r for r in [state.get("thermal_result"), state.get("geometry_result"), state.get("process_result")] if r is not None]
+        results = [r for r in [state["thermal_result"], state["geometry_result"], state["process_result"]] if r is not None]
         report = self._summary.synthesise(results, state["prediction"], state["features"], state["violations"])
         self._log(f"[Graph] SummaryAgent: {report.disposition}")
         return {"final_report": report}
