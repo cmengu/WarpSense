@@ -1,0 +1,573 @@
+{
+  "timestamp": "2026-03-17T05:37:43.751391+00:00",
+  "n_scenarios": 24,
+  "llm_runs": 1,
+  "results": [
+    {
+      "agent_name": "single_agent",
+      "n_scenarios": 24,
+      "llm_runs": 1,
+      "tp": 12,
+      "fp": 0,
+      "tn": 12,
+      "fn": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "fpr": 0.0,
+      "fnr": 0.0,
+      "mean_fallback_rate": 0.0,
+      "p50_ms": 7442.949582997244,
+      "p95_ms": 8279.072125005769,
+      "error_count": 0,
+      "scenario_results": [
+        {
+          "scenario_id": "TC_001_novice_classic",
+          "category": "TRUE_REWORK",
+          "expected_disposition": "REWORK_REQUIRED",
+          "most_common_actual": "REWORK_REQUIRED",
+          "correct_rate": 1.0
+        },
+        {
+          "scenario_id": "TC_002_thermal_spike_only",
+          "category": "TRUE_REWORK",
+          "expected_disposition": "REWORK_REQUIRED",
+          "most_common_actual": "REWORK_REQUIRED",
+          "correct_rate": 1.0
+        },
+        {
+          "scenario_id": "TC_003_angle_drift_only",
+          "category": "TRUE_REWORK",
+          "expected_disposition": "REWORK_REQUIRED",
+          "most_common_actual": "REWORK_REQUIRED",
+          "correct_rate": 1.0
+        },
+        {
+          "scenario_id": "TC_004_cold_window_lop_risk",
+          "category": "TRUE_REWORK",
+          "expected_disposition": "REWORK_REQUIRED",
+          "most_common_actual": "REWORK_REQUIRED",
+          "correct_rate": 1.0
+        },
+        {
+          "scenario_id": "TC_005_all_lof_features_at_risk_floor",
+          "category": "TRUE_REWORK",
+          "expected_disposition": "REWORK_REQUIRED",
+          "most_common_actual": "REWORK_REQUIRED",
+          "correct_rate": 1.0
+        },
+        {
+          "scenario_id": "TC_006_compound_process_instability",
+          "category": "TRUE_REWORK",
+          "expected_disposition": "REWORK_REQUIRED",
+          "most_common_actual": "REWORK_REQUIRED",
+          "correct_rate": 1.0
+        },
+        {
+          "scenario_id": "TC_007_low_arc_continuity",
+          "category": "TRUE_REWORK",
+          "expected_disposition": "REWORK_REQUIRED",
+          "most_common_actual": "REWORK_REQUIRED",
+          "correct_rate": 1.0
+        },
+        {
+          "scenario_id": "TC_008_heat_drop_severity_risk",
+          "category": "TRUE_REWORK",
+          "expected_disposition": "REWORK_REQUIRED",
+          "most_common_actual": "REWORK_REQUIRED",
+          "correct_rate": 1.0
+        },
+        {
+          "scenario_id": "TC_009_expert_benchmark_exact",
+          "category": "TRUE_PASS",
+          "expected_disposition": "PASS",
+          "most_common_actual": "PASS",
+          "correct_rate": 1.0
+        },
+        {
+          "scenario_id": "TC_010_all_features_good_band_boundary",
+          "category": "TRUE_PASS",
+          "expected_disposition": "PASS",
+          "most_common_actual": "PASS",
+          "correct_rate": 1.0
+        },
+        {
+          "scenario_id": "TC_011_thermal_spike_below_threshold",
+          "category": "TRUE_PASS",
+          "expected_disposition": "PASS",
+          "most_common_actual": "PASS",
+          "correct_rate": 1.0
+        },
+        {
+          "scenario_id": "TC_012_angle_deviation_below_threshold",
+          "category": "TRUE_PASS",
+          "expected_disposition": "PASS",
+          "most_common_actual": "PASS",
+          "correct_rate": 1.0
+        },
+        {
+          "scenario_id": "TC_013_hot_but_controlled",
+          "category": "TRUE_PASS",
+          "expected_disposition": "PASS",
+          "most_common_actual": "PASS",
+          "correct_rate": 1.0
+        },
+        {
+          "scenario_id": "TC_014_stitch_expert_profile",
+          "category": "TRUE_PASS",
+          "expected_disposition": "PASS",
+          "most_common_actual": "PASS",
+          "correct_rate": 1.0
+        },
+        {
+          "scenario_id": "TC_015_continuous_expert_arc",
+          "category": "TRUE_PASS",
+          "expected_disposition": "PASS",
+          "most_common_actual": "PASS",
+          "correct_rate": 1.0
+        },
+        {
+          "scenario_id": "TC_016_minimal_variance_process",
+          "category": "TRUE_PASS",
+          "expected_disposition": "PASS",
+          "most_common_actual": "PASS",
+          "correct_rate": 1.0
+        },
+        {
+          "scenario_id": "TC_017_heat_input_mean_marginal",
+          "category": "FP_RISK",
+          "expected_disposition": "CONDITIONAL",
+          "most_common_actual": "CONDITIONAL",
+          "correct_rate": 1.0
+        },
+        {
+          "scenario_id": "TC_018_voltage_cv_marginal",
+          "category": "FP_RISK",
+          "expected_disposition": "CONDITIONAL",
+          "most_common_actual": "CONDITIONAL",
+          "correct_rate": 1.0
+        },
+        {
+          "scenario_id": "TC_019_arc_on_ratio_borderline",
+          "category": "FP_RISK",
+          "expected_disposition": "CONDITIONAL",
+          "most_common_actual": "PASS",
+          "correct_rate": 0.0
+        },
+        {
+          "scenario_id": "TC_020_single_marginal_feature",
+          "category": "FP_RISK",
+          "expected_disposition": "CONDITIONAL",
+          "most_common_actual": "CONDITIONAL",
+          "correct_rate": 1.0
+        },
+        {
+          "scenario_id": "TC_021_thermal_spike_risk_floor",
+          "category": "FN_RISK",
+          "expected_disposition": "REWORK_REQUIRED",
+          "most_common_actual": "REWORK_REQUIRED",
+          "correct_rate": 1.0
+        },
+        {
+          "scenario_id": "TC_022_angle_deviation_risk_floor",
+          "category": "FN_RISK",
+          "expected_disposition": "REWORK_REQUIRED",
+          "most_common_actual": "REWORK_REQUIRED",
+          "correct_rate": 1.0
+        },
+        {
+          "scenario_id": "TC_023_compound_marginal_risk",
+          "category": "FN_RISK",
+          "expected_disposition": "REWORK_REQUIRED",
+          "most_common_actual": "REWORK_REQUIRED",
+          "correct_rate": 1.0
+        },
+        {
+          "scenario_id": "TC_024_low_confidence_with_risk_feature",
+          "category": "FN_RISK",
+          "expected_disposition": "REWORK_REQUIRED",
+          "most_common_actual": "REWORK_REQUIRED",
+          "correct_rate": 1.0
+        }
+      ]
+    },
+    {
+      "agent_name": "langgraph",
+      "n_scenarios": 24,
+      "llm_runs": 1,
+      "tp": 12,
+      "fp": 0,
+      "tn": 12,
+      "fn": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "fpr": 0.0,
+      "fnr": 0.0,
+      "mean_fallback_rate": 0.08333333333333333,
+      "p50_ms": 5164.623791992199,
+      "p95_ms": 9839.110916975187,
+      "error_count": 0,
+      "scenario_results": [
+        {
+          "scenario_id": "TC_001_novice_classic",
+          "category": "TRUE_REWORK",
+          "expected_disposition": "REWORK_REQUIRED",
+          "most_common_actual": "REWORK_REQUIRED",
+          "correct_rate": 1.0
+        },
+        {
+          "scenario_id": "TC_002_thermal_spike_only",
+          "category": "TRUE_REWORK",
+          "expected_disposition": "REWORK_REQUIRED",
+          "most_common_actual": "REWORK_REQUIRED",
+          "correct_rate": 1.0
+        },
+        {
+          "scenario_id": "TC_003_angle_drift_only",
+          "category": "TRUE_REWORK",
+          "expected_disposition": "REWORK_REQUIRED",
+          "most_common_actual": "REWORK_REQUIRED",
+          "correct_rate": 1.0
+        },
+        {
+          "scenario_id": "TC_004_cold_window_lop_risk",
+          "category": "TRUE_REWORK",
+          "expected_disposition": "REWORK_REQUIRED",
+          "most_common_actual": "REWORK_REQUIRED",
+          "correct_rate": 1.0
+        },
+        {
+          "scenario_id": "TC_005_all_lof_features_at_risk_floor",
+          "category": "TRUE_REWORK",
+          "expected_disposition": "REWORK_REQUIRED",
+          "most_common_actual": "REWORK_REQUIRED",
+          "correct_rate": 1.0
+        },
+        {
+          "scenario_id": "TC_006_compound_process_instability",
+          "category": "TRUE_REWORK",
+          "expected_disposition": "REWORK_REQUIRED",
+          "most_common_actual": "REWORK_REQUIRED",
+          "correct_rate": 1.0
+        },
+        {
+          "scenario_id": "TC_007_low_arc_continuity",
+          "category": "TRUE_REWORK",
+          "expected_disposition": "REWORK_REQUIRED",
+          "most_common_actual": "REWORK_REQUIRED",
+          "correct_rate": 1.0
+        },
+        {
+          "scenario_id": "TC_008_heat_drop_severity_risk",
+          "category": "TRUE_REWORK",
+          "expected_disposition": "REWORK_REQUIRED",
+          "most_common_actual": "REWORK_REQUIRED",
+          "correct_rate": 1.0
+        },
+        {
+          "scenario_id": "TC_009_expert_benchmark_exact",
+          "category": "TRUE_PASS",
+          "expected_disposition": "PASS",
+          "most_common_actual": "PASS",
+          "correct_rate": 1.0
+        },
+        {
+          "scenario_id": "TC_010_all_features_good_band_boundary",
+          "category": "TRUE_PASS",
+          "expected_disposition": "PASS",
+          "most_common_actual": "PASS",
+          "correct_rate": 1.0
+        },
+        {
+          "scenario_id": "TC_011_thermal_spike_below_threshold",
+          "category": "TRUE_PASS",
+          "expected_disposition": "PASS",
+          "most_common_actual": "PASS",
+          "correct_rate": 1.0
+        },
+        {
+          "scenario_id": "TC_012_angle_deviation_below_threshold",
+          "category": "TRUE_PASS",
+          "expected_disposition": "PASS",
+          "most_common_actual": "PASS",
+          "correct_rate": 1.0
+        },
+        {
+          "scenario_id": "TC_013_hot_but_controlled",
+          "category": "TRUE_PASS",
+          "expected_disposition": "PASS",
+          "most_common_actual": "PASS",
+          "correct_rate": 1.0
+        },
+        {
+          "scenario_id": "TC_014_stitch_expert_profile",
+          "category": "TRUE_PASS",
+          "expected_disposition": "PASS",
+          "most_common_actual": "PASS",
+          "correct_rate": 1.0
+        },
+        {
+          "scenario_id": "TC_015_continuous_expert_arc",
+          "category": "TRUE_PASS",
+          "expected_disposition": "PASS",
+          "most_common_actual": "PASS",
+          "correct_rate": 1.0
+        },
+        {
+          "scenario_id": "TC_016_minimal_variance_process",
+          "category": "TRUE_PASS",
+          "expected_disposition": "PASS",
+          "most_common_actual": "PASS",
+          "correct_rate": 1.0
+        },
+        {
+          "scenario_id": "TC_017_heat_input_mean_marginal",
+          "category": "FP_RISK",
+          "expected_disposition": "CONDITIONAL",
+          "most_common_actual": "CONDITIONAL",
+          "correct_rate": 1.0
+        },
+        {
+          "scenario_id": "TC_018_voltage_cv_marginal",
+          "category": "FP_RISK",
+          "expected_disposition": "CONDITIONAL",
+          "most_common_actual": "CONDITIONAL",
+          "correct_rate": 1.0
+        },
+        {
+          "scenario_id": "TC_019_arc_on_ratio_borderline",
+          "category": "FP_RISK",
+          "expected_disposition": "CONDITIONAL",
+          "most_common_actual": "CONDITIONAL",
+          "correct_rate": 1.0
+        },
+        {
+          "scenario_id": "TC_020_single_marginal_feature",
+          "category": "FP_RISK",
+          "expected_disposition": "CONDITIONAL",
+          "most_common_actual": "CONDITIONAL",
+          "correct_rate": 1.0
+        },
+        {
+          "scenario_id": "TC_021_thermal_spike_risk_floor",
+          "category": "FN_RISK",
+          "expected_disposition": "REWORK_REQUIRED",
+          "most_common_actual": "REWORK_REQUIRED",
+          "correct_rate": 1.0
+        },
+        {
+          "scenario_id": "TC_022_angle_deviation_risk_floor",
+          "category": "FN_RISK",
+          "expected_disposition": "REWORK_REQUIRED",
+          "most_common_actual": "REWORK_REQUIRED",
+          "correct_rate": 1.0
+        },
+        {
+          "scenario_id": "TC_023_compound_marginal_risk",
+          "category": "FN_RISK",
+          "expected_disposition": "REWORK_REQUIRED",
+          "most_common_actual": "REWORK_REQUIRED",
+          "correct_rate": 1.0
+        },
+        {
+          "scenario_id": "TC_024_low_confidence_with_risk_feature",
+          "category": "FN_RISK",
+          "expected_disposition": "REWORK_REQUIRED",
+          "most_common_actual": "REWORK_REQUIRED",
+          "correct_rate": 1.0
+        }
+      ]
+    },
+    {
+      "agent_name": "langchain",
+      "n_scenarios": 24,
+      "llm_runs": 1,
+      "tp": 12,
+      "fp": 0,
+      "tn": 12,
+      "fn": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "fpr": 0.0,
+      "fnr": 0.0,
+      "mean_fallback_rate": 1.0,
+      "p50_ms": 1.376458996674046,
+      "p95_ms": 1.8294579931534827,
+      "error_count": 0,
+      "scenario_results": [
+        {
+          "scenario_id": "TC_001_novice_classic",
+          "category": "TRUE_REWORK",
+          "expected_disposition": "REWORK_REQUIRED",
+          "most_common_actual": "REWORK_REQUIRED",
+          "correct_rate": 1.0
+        },
+        {
+          "scenario_id": "TC_002_thermal_spike_only",
+          "category": "TRUE_REWORK",
+          "expected_disposition": "REWORK_REQUIRED",
+          "most_common_actual": "REWORK_REQUIRED",
+          "correct_rate": 1.0
+        },
+        {
+          "scenario_id": "TC_003_angle_drift_only",
+          "category": "TRUE_REWORK",
+          "expected_disposition": "REWORK_REQUIRED",
+          "most_common_actual": "REWORK_REQUIRED",
+          "correct_rate": 1.0
+        },
+        {
+          "scenario_id": "TC_004_cold_window_lop_risk",
+          "category": "TRUE_REWORK",
+          "expected_disposition": "REWORK_REQUIRED",
+          "most_common_actual": "REWORK_REQUIRED",
+          "correct_rate": 1.0
+        },
+        {
+          "scenario_id": "TC_005_all_lof_features_at_risk_floor",
+          "category": "TRUE_REWORK",
+          "expected_disposition": "REWORK_REQUIRED",
+          "most_common_actual": "REWORK_REQUIRED",
+          "correct_rate": 1.0
+        },
+        {
+          "scenario_id": "TC_006_compound_process_instability",
+          "category": "TRUE_REWORK",
+          "expected_disposition": "REWORK_REQUIRED",
+          "most_common_actual": "REWORK_REQUIRED",
+          "correct_rate": 1.0
+        },
+        {
+          "scenario_id": "TC_007_low_arc_continuity",
+          "category": "TRUE_REWORK",
+          "expected_disposition": "REWORK_REQUIRED",
+          "most_common_actual": "REWORK_REQUIRED",
+          "correct_rate": 1.0
+        },
+        {
+          "scenario_id": "TC_008_heat_drop_severity_risk",
+          "category": "TRUE_REWORK",
+          "expected_disposition": "REWORK_REQUIRED",
+          "most_common_actual": "REWORK_REQUIRED",
+          "correct_rate": 1.0
+        },
+        {
+          "scenario_id": "TC_009_expert_benchmark_exact",
+          "category": "TRUE_PASS",
+          "expected_disposition": "PASS",
+          "most_common_actual": "CONDITIONAL",
+          "correct_rate": 0.0
+        },
+        {
+          "scenario_id": "TC_010_all_features_good_band_boundary",
+          "category": "TRUE_PASS",
+          "expected_disposition": "PASS",
+          "most_common_actual": "CONDITIONAL",
+          "correct_rate": 0.0
+        },
+        {
+          "scenario_id": "TC_011_thermal_spike_below_threshold",
+          "category": "TRUE_PASS",
+          "expected_disposition": "PASS",
+          "most_common_actual": "CONDITIONAL",
+          "correct_rate": 0.0
+        },
+        {
+          "scenario_id": "TC_012_angle_deviation_below_threshold",
+          "category": "TRUE_PASS",
+          "expected_disposition": "PASS",
+          "most_common_actual": "CONDITIONAL",
+          "correct_rate": 0.0
+        },
+        {
+          "scenario_id": "TC_013_hot_but_controlled",
+          "category": "TRUE_PASS",
+          "expected_disposition": "PASS",
+          "most_common_actual": "CONDITIONAL",
+          "correct_rate": 0.0
+        },
+        {
+          "scenario_id": "TC_014_stitch_expert_profile",
+          "category": "TRUE_PASS",
+          "expected_disposition": "PASS",
+          "most_common_actual": "CONDITIONAL",
+          "correct_rate": 0.0
+        },
+        {
+          "scenario_id": "TC_015_continuous_expert_arc",
+          "category": "TRUE_PASS",
+          "expected_disposition": "PASS",
+          "most_common_actual": "CONDITIONAL",
+          "correct_rate": 0.0
+        },
+        {
+          "scenario_id": "TC_016_minimal_variance_process",
+          "category": "TRUE_PASS",
+          "expected_disposition": "PASS",
+          "most_common_actual": "CONDITIONAL",
+          "correct_rate": 0.0
+        },
+        {
+          "scenario_id": "TC_017_heat_input_mean_marginal",
+          "category": "FP_RISK",
+          "expected_disposition": "CONDITIONAL",
+          "most_common_actual": "CONDITIONAL",
+          "correct_rate": 1.0
+        },
+        {
+          "scenario_id": "TC_018_voltage_cv_marginal",
+          "category": "FP_RISK",
+          "expected_disposition": "CONDITIONAL",
+          "most_common_actual": "CONDITIONAL",
+          "correct_rate": 1.0
+        },
+        {
+          "scenario_id": "TC_019_arc_on_ratio_borderline",
+          "category": "FP_RISK",
+          "expected_disposition": "CONDITIONAL",
+          "most_common_actual": "CONDITIONAL",
+          "correct_rate": 1.0
+        },
+        {
+          "scenario_id": "TC_020_single_marginal_feature",
+          "category": "FP_RISK",
+          "expected_disposition": "CONDITIONAL",
+          "most_common_actual": "CONDITIONAL",
+          "correct_rate": 1.0
+        },
+        {
+          "scenario_id": "TC_021_thermal_spike_risk_floor",
+          "category": "FN_RISK",
+          "expected_disposition": "REWORK_REQUIRED",
+          "most_common_actual": "REWORK_REQUIRED",
+          "correct_rate": 1.0
+        },
+        {
+          "scenario_id": "TC_022_angle_deviation_risk_floor",
+          "category": "FN_RISK",
+          "expected_disposition": "REWORK_REQUIRED",
+          "most_common_actual": "REWORK_REQUIRED",
+          "correct_rate": 1.0
+        },
+        {
+          "scenario_id": "TC_023_compound_marginal_risk",
+          "category": "FN_RISK",
+          "expected_disposition": "REWORK_REQUIRED",
+          "most_common_actual": "REWORK_REQUIRED",
+          "correct_rate": 1.0
+        },
+        {
+          "scenario_id": "TC_024_low_confidence_with_risk_feature",
+          "category": "FN_RISK",
+          "expected_disposition": "REWORK_REQUIRED",
+          "most_common_actual": "REWORK_REQUIRED",
+          "correct_rate": 1.0
+        }
+      ]
+    }
+  ],
+  "winner": "langchain",
+  "winner_rationale": "langchain achieves FNR=0.000 with F1=1.000 and p95=2ms."
+}
