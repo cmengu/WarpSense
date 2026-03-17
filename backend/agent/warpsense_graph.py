@@ -28,7 +28,6 @@ if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
 import chromadb
-from chromadb.utils import embedding_functions
 from groq import Groq
 
 from backend.agent.warpsense_agent import LLM_MODEL, WeldQualityReport
@@ -44,6 +43,7 @@ from backend.agent.specialists import (
     geometry_triggered,
     process_triggered,
 )
+from backend.knowledge.rag_retriever import RAGRetriever
 from backend.features.session_feature_extractor import SessionFeatures
 from backend.features.weld_classifier import WeldPrediction
 
@@ -83,14 +83,16 @@ class WarpSenseGraph:
         else:
             kb_path = chroma_path or str(_KB_PATH)
             client = chromadb.PersistentClient(path=kb_path)
-        ef = embedding_functions.DefaultEmbeddingFunction()
-        self._collection = client.get_collection(name=collection_name, embedding_function=ef)
-
         groq_client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
-        self._thermal  = ThermalAgent(groq_client, self._collection, llm_model, n_chunks_per_specialist, verbose)
-        self._geometry = GeometryAgent(groq_client, self._collection, llm_model, n_chunks_per_specialist, verbose)
-        self._process  = ProcessStabilityAgent(groq_client, self._collection, llm_model, n_chunks_per_specialist, verbose)
+        retriever = RAGRetriever(
+            chroma_client=client,
+            collection_name=collection_name,
+            n_results=n_chunks_per_specialist,
+        )
+        self._thermal  = ThermalAgent(groq_client, retriever, llm_model, n_chunks_per_specialist, verbose)
+        self._geometry = GeometryAgent(groq_client, retriever, llm_model, n_chunks_per_specialist, verbose)
+        self._process  = ProcessStabilityAgent(groq_client, retriever, llm_model, n_chunks_per_specialist, verbose)
         self._summary  = SummaryAgent()
 
         self._graph = self._build_graph()
