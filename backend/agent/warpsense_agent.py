@@ -34,6 +34,12 @@ from groq import Groq
 import chromadb
 from chromadb.utils import embedding_functions
 
+import logging
+
+from backend.prompts.versions import PROMPT_VERSIONS
+
+logger = logging.getLogger(__name__)
+
 import sys
 from pathlib import Path
 
@@ -426,6 +432,11 @@ class WarpSenseAgent:
         return top_chunks
 
     def _step4_llm_generate(self, prediction, features, defect_categories, violations, chunks):
+        version = PROMPT_VERSIONS.get("WarpSenseAgent", "unknown")
+        logger.info(
+            "llm_call_start",
+            extra={"agent_name": "WarpSenseAgent", "prompt_version": version},
+        )
         feat_dict = features.to_vector()
         violations_text = "\n".join(v.as_display_line() for v in violations) or "None"
         defects_text = ", ".join(defect_categories) or "None identified"
@@ -578,4 +589,4 @@ RULES:
 
     def _log(self, msg):
         if self.verbose:
-            print(msg)
+            logger.info(msg)

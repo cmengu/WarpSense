@@ -51,6 +51,10 @@ from backend.agent.specialists import (
 from backend.features.session_feature_extractor import SessionFeatures, OPTIMAL_ANGLE_DEG
 from backend.features.weld_classifier import WeldPrediction
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class WarpSenseLangChainAgent:
     """
@@ -94,7 +98,7 @@ class WarpSenseLangChainAgent:
 
     def _log(self, msg: str) -> None:
         if self.verbose:
-            print(msg)
+            logger.info(msg)
 
     def _build_tools(self):
         agent_self = self

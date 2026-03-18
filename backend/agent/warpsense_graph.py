@@ -30,6 +30,10 @@ if str(_ROOT) not in sys.path:
 import chromadb
 from groq import Groq
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 from backend.agent.warpsense_agent import LLM_MODEL, WeldQualityReport
 from backend.agent.specialists import ThresholdViolation
 from backend.agent.specialists import (
@@ -99,7 +103,7 @@ class WarpSenseGraph:
 
     def _log(self, msg: str) -> None:
         if self.verbose:
-            print(msg)
+            logger.info(msg)
 
     def _route_node(self, state: WarpSenseState) -> dict:
         features = state["features"]

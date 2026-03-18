@@ -29,6 +29,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from statistics import mean
 from typing import Optional
+import logging
+logger = logging.getLogger(__name__)
 
 _ROOT = Path(__file__).resolve().parent.parent.parent
 if str(_ROOT) not in sys.path:
@@ -36,6 +38,8 @@ if str(_ROOT) not in sys.path:
 
 from dotenv import load_dotenv
 load_dotenv(_ROOT / ".env")
+from backend.observability.logging_config import configure_logging
+configure_logging()
 
 import chromadb
 
@@ -105,7 +109,7 @@ class MultiAgentEvaluator:
 
     def _log(self, msg: str) -> None:
         if self.verbose:
-            print(msg)
+            logger.info(msg)
 
     def _detect_fallback(self, report) -> bool:
         fallback_used = False

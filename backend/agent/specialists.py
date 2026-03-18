@@ -48,6 +48,12 @@ from backend.knowledge.rag_retriever import RAGRetriever, decompose_queries
 from backend.features.session_feature_extractor import SessionFeatures, OPTIMAL_ANGLE_DEG
 from backend.features.weld_classifier import WeldPrediction
 
+import logging
+
+from backend.prompts.versions import PROMPT_VERSIONS
+
+logger = logging.getLogger(__name__)
+
 
 @dataclass
 class SpecialistResult:
@@ -135,7 +141,7 @@ class BaseSpecialistAgent(ABC):
         self.groq = groq_client
         self.retriever = retriever
         self.llm_model = llm_model
-        self.n_chunks = n_chunks
+        self.n_chunks = n_chunks  # Retained for interface compatibility; retrieval cap is controlled by RAGRetriever.n_results
         self.verbose = verbose
 
     @property
@@ -159,9 +165,9 @@ class BaseSpecialistAgent(ABC):
 
     def _log(self, msg: str) -> None:
         if self.verbose:
-            print(msg)
+            logger.info(msg)
 
-    def _retrieve(self, queries: list[str], violations: list) -> list[StandardsChunk]:
+    def _retrieve(self, queries: list[str], violations: list[ThresholdViolation]) -> list[StandardsChunk]:
         """
         Delegate to RAGRetriever after expanding queries via decompose_queries.
         violations: own_violations for this specialist (list[ThresholdViolation])
@@ -172,6 +178,11 @@ class BaseSpecialistAgent(ABC):
     def _call_llm(self, prompt: str) -> tuple[dict, str, bool]:
         """Returns (parsed_dict, raw_str, fallback_used)."""
         raw = ""
+        version = PROMPT_VERSIONS.get(self.agent_name, "unknown")
+        logger.info(
+            "llm_call_start",
+            extra={"agent_name": self.agent_name, "prompt_version": version},
+        )
         fallback_used = False
         try:
             response = self.groq.chat.completions.create(
