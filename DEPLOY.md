@@ -101,3 +101,13 @@ ports:
 | **Seeding failed** | DB not ready, schema mismatch, or import error | Check logs: `docker compose logs backend`. Error output is printed; fix the root cause. Deployment continues without demo data. |
 | **Services fail to start** | DB init slow, insufficient RAM, or image pull failure | Wait longer or check `docker compose logs`. Ensure 2GB+ RAM. Run `docker compose pull` then retry. |
 | **Health check timeout** | Backend/Frontend slow to start | Increase `wait_for_health` timeout in `deploy.sh` or check backend logs for migration/startup errors. |
+
+## Railway (Backend)
+
+When deploying the backend to Railway, set **Build Context** to `backend`:
+
+1. Railway dashboard → your backend service → **Settings** → **Build**
+2. Set **Build Context** / **Root Directory**: `backend`
+3. Redeploy
+
+The backend Dockerfile uses `COPY requirements.txt .` and expects to be built from inside `backend/`. Without this setting, Railway builds from the repo root and cannot find `requirements.txt`.
