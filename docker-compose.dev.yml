@@ -13,7 +13,9 @@ services:
       - postgres_data_dev:/var/lib/postgresql/data
 
   backend:
-    build: ./backend
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
     ports:
       - "8000:8000"
     depends_on:

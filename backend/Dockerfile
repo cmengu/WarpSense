@@ -1,34 +1,29 @@
-# WarpSense Backend — Multi-stage build for smaller final image
+# WarpSense Backend — multi-stage build
+# Build context: repo root. Use: docker build -f backend/Dockerfile .
 # psycopg2-binary bundles libpq; no apt install needed (avoids Trixie libpq5 conflict)
 
-FROM python:3.11-slim AS builder
+FROM python:3.11-slim-bookworm AS builder
 
 WORKDIR /app
 
-# Copy and install Python dependencies
-COPY requirements.txt .
+COPY backend/requirements.txt .
 RUN pip install --user --no-cache-dir -r requirements.txt
 
 # ---
 
-FROM python:3.11-slim
+FROM python:3.11-slim-bookworm
 
 WORKDIR /app
 
-# Copy installed packages from builder
 COPY --from=builder /root/.local /root/.local
-
-# Add local pip packages to PATH
 ENV PATH=/root/.local/bin:$PATH
 
-# Copy application code
-COPY . .
+COPY backend/ .
 
-# Create non-root user (security)
 RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
 USER appuser
 
+ENV PYTHONUNBUFFERED=1
 EXPOSE 8000
 
-# Run migrations then start server. Migrations are idempotent (safe to re-run).
-CMD ["sh", "-c", "alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port 8000"]
+CMD ["sh", "-c", "alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}"]

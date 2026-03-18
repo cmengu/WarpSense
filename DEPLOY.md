@@ -104,10 +104,6 @@ ports:
 
 ## Railway (Backend)
 
-When deploying the backend to Railway, set **Build Context** to `backend`:
+The backend Dockerfile uses `COPY backend/requirements.txt` and `COPY backend/` — it expects build context = **repo root** (default on Railway). No Root Directory override needed.
 
-1. Railway dashboard → your backend service → **Settings** → **Build**
-2. Set **Build Context** / **Root Directory**: `backend`
-3. Redeploy
-
-The backend Dockerfile uses `COPY requirements.txt .` and expects to be built from inside `backend/`. Without this setting, Railway builds from the repo root and cannot find `requirements.txt`.
+If you previously set Root Directory to `backend`, clear it so Railway uses the repo root.
