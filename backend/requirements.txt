@@ -15,3 +15,7 @@ anthropic>=0.18.0
 google-generativeai>=0.8.0
 chromadb>=0.4.0
 groq>=0.4.0
+langsmith>=0.1.0
+langchain>=0.2.0
+langgraph>=0.2.0
+langchain-groq>=0.1.0
