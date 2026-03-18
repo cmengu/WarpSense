@@ -60,6 +60,12 @@ class SessionModel(Base):
         ForeignKey("teams.id", ondelete="SET NULL"),
         nullable=True,
     )
+    quality_report_id = Column(
+        Integer,
+        ForeignKey("weld_quality_reports.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
 
     frames = relationship(
         "FrameModel",
@@ -177,6 +183,43 @@ class WeldThresholdModel(Base):
     travel_speed_consistency = Column(Float, nullable=True)
     cyclogram_area_max = Column(Float, nullable=True)
     porosity_event_max = Column(Float, nullable=True)
+
+
+class WeldQualityReportModel(Base):
+    """
+    Persisted WarpSense quality report for a completed weld session.
+    One row per session_id (unique constraint).
+    operator_id is denormalised from sessions for efficient welder trend queries.
+    """
+
+    __tablename__ = "weld_quality_reports"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    session_id = Column(
+        String,
+        ForeignKey("sessions.session_id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
+        index=True,
+    )
+    operator_id = Column(String, nullable=False, index=True)
+    report_timestamp = Column(DateTime(timezone=True), nullable=False)
+    quality_class = Column(String, nullable=False)
+    confidence = Column(Float, nullable=False)
+    iso_5817_level = Column(String, nullable=False)
+    disposition = Column(String, nullable=False, index=True)
+    disposition_rationale = Column(String, nullable=True)
+    root_cause = Column(String, nullable=True)
+    corrective_actions = Column(JSON, nullable=False, default=list)
+    standards_references = Column(JSON, nullable=False, default=list)
+    retrieved_chunks_used = Column(JSON, nullable=False, default=list)
+    primary_defect_categories = Column(JSON, nullable=False, default=list)
+    threshold_violations = Column(JSON, nullable=False, default=list)
+    self_check_passed = Column(Boolean, nullable=False, default=True)
+    self_check_notes = Column(String, nullable=True)
+    llm_raw_response = Column(String, nullable=True)
+    agent_type = Column(String, nullable=False, default="langgraph")
+    created_at = Column(DateTime(timezone=True), nullable=False)
 
 
 from models.site import Site, Team  # noqa: E402, F401

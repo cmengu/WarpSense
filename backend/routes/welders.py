@@ -15,6 +15,7 @@ Routes added per batch:
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session as OrmSession
 
+from database.models import WeldQualityReportModel
 from routes.sessions import get_db
 from schemas.benchmark import WelderBenchmarks
 from schemas.certification import WelderCertificationSummary
@@ -66,3 +67,64 @@ def trigger_coaching_assignment(welder_id: str, db: OrmSession = Depends(get_db)
 def get_certifications(welder_id: str, db: OrmSession = Depends(get_db)):
     """Returns certification readiness for welder across all standards."""
     return get_certification_status(welder_id, db)
+
+
+def _clamp_quality_trend_days(days: int) -> int:
+    """Clamp days to [1, 90]. Negative or zero -> 1; >90 -> 90."""
+    return max(1, min(days, 90))
+
+
+@router.get("/{welder_id}/quality-trend")
+def get_quality_trend(
+    welder_id: str,
+    days: int = 30,
+    db: OrmSession = Depends(get_db),
+):
+    """
+    Returns 30-day rolling quality disposition trend for a welder.
+    welder_id maps to operator_id in the sessions and weld_quality_reports tables.
+
+    Query param:
+      days: lookback window in days (default 30, max 90)
+
+    Returns:
+      welder_id, days, cutoff_timestamp, total_sessions_analysed,
+      disposition_counts (PASS/CONDITIONAL/REWORK_REQUIRED), reports list.
+    """
+    from datetime import datetime, timedelta, timezone
+
+    days = _clamp_quality_trend_days(days)
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+
+    reports = (
+        db.query(WeldQualityReportModel)
+        .filter(
+            WeldQualityReportModel.operator_id == welder_id,
+            WeldQualityReportModel.report_timestamp >= cutoff,
+        )
+        .order_by(WeldQualityReportModel.report_timestamp.desc())
+        .all()
+    )
+
+    disposition_counts = {"PASS": 0, "CONDITIONAL": 0, "REWORK_REQUIRED": 0}
+    for r in reports:
+        if r.disposition in disposition_counts:
+            disposition_counts[r.disposition] += 1
+
+    return {
+        "welder_id": welder_id,
+        "days": days,
+        "cutoff_timestamp": cutoff.isoformat(),
+        "total_sessions_analysed": len(reports),
+        "disposition_counts": disposition_counts,
+        "reports": [
+            {
+                "session_id": r.session_id,
+                "disposition": r.disposition,
+                "quality_class": r.quality_class,
+                "confidence": r.confidence,
+                "report_timestamp": r.report_timestamp.isoformat(),
+            }
+            for r in reports
+        ],
+    }

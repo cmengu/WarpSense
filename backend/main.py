@@ -23,6 +23,8 @@ from routes.sites import router as sites_router
 from routes.realtime import router as realtime_router
 from routes.thresholds import router as thresholds_router
 from routes.welders import router as welders_router
+from routes.warp_analysis import router as warp_analysis_router
+from services.warp_service import init_warp_components
 
 
 @asynccontextmanager
@@ -33,6 +35,7 @@ async def lifespan(app: FastAPI):
             "Database connectivity check failed at startup. "
             "Verify DATABASE_URL and that PostgreSQL is running."
         )
+    init_warp_components()
     yield
     # Shutdown: nothing to clean up for DB (engine manages connections)
 
@@ -69,6 +72,8 @@ app.include_router(aggregate_router, prefix="/api")
 # Annotations BEFORE sessions so /api/sessions/{id}/annotations matches
 app.include_router(narratives.router)
 app.include_router(annotations_router)
+# WarpSense AI analysis: POST /api/sessions/{id}/analyse, GET /api/sessions/{id}/reports, GET /api/health/warp
+app.include_router(warp_analysis_router)
 app.include_router(sessions_router, prefix="/api")
 app.include_router(thresholds_router, prefix="/api")
 app.include_router(welders_router)
