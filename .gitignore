@@ -9,6 +9,11 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
+
+# Cursor (keep locally, exclude from repo)
+.cursor/
+.cursorrules
+**/.cursor_*
 *.swp
 *.swo
 *.sublime-*
