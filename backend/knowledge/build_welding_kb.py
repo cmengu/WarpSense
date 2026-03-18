@@ -102,6 +102,19 @@ SMOKE_TESTS = [
 ]
 
 
+def kb_is_ready() -> bool:
+    """
+    Return True if the persisted collection exists and has the expected chunk count.
+    Used by init_system to skip rebuild when chroma_data volume already has valid index.
+    """
+    try:
+        client = chromadb.PersistentClient(path=str(CHROMA_PATH))
+        coll = client.get_collection(COLLECTION_NAME)
+        return coll.count() == len(CHUNKS)
+    except Exception:
+        return False
+
+
 def build_knowledge_base(persist=True, verbose=True):
     if persist:
         client = chromadb.PersistentClient(path=str(CHROMA_PATH))

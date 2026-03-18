@@ -80,6 +80,79 @@ def _handle_seed_error(exc: BaseException) -> HTTPException:
     return HTTPException(status_code=500, detail="Seed failed")
 
 
+def run_seed_mock_sessions(db: OrmSession) -> list[str]:
+    """
+    Core seed logic — importable and callable without FastAPI request context.
+    Used by POST /api/dev/seed-mock-sessions (route handler) and init_system.py (startup).
+    Caller must provide an open OrmSession and handle commit/rollback/close.
+    """
+    from data.mock_welders import WELDER_ARCHETYPES
+    from data.mock_sessions import (
+        generate_session_for_welder,
+        generate_expert_session,
+        generate_novice_session,
+    )
+
+    session_ids = []
+    for arch in WELDER_ARCHETYPES:
+        welder_id = arch["welder_id"]
+        n = arch["sessions"]
+        for i in range(1, n + 1):
+            session_ids.append(f"sess_{welder_id}_{i:03d}")
+
+    if len(session_ids) == 0:
+        raise ValueError("WELDER_ARCHETYPES is empty")
+
+    for existing in db.query(SessionModel).filter(
+        SessionModel.session_id.in_(session_ids)
+    ).all():
+        db.delete(existing)
+    db.flush()
+
+    demo_ids = ["sess_expert_001", "sess_novice_001"]
+    for existing in db.query(SessionModel).filter(
+        SessionModel.session_id.in_(demo_ids)
+    ).all():
+        db.delete(existing)
+    db.flush()
+
+    random.seed(42)
+    for arch in WELDER_ARCHETYPES:
+        welder_id = arch["welder_id"]
+        arc_type = arch["arc"]
+        n = arch["sessions"]
+        for i in range(1, n + 1):
+            sid = f"sess_{welder_id}_{i:03d}"
+            session = generate_session_for_welder(welder_id, arc_type, i - 1, sid)
+            model = SessionModel.from_pydantic(session)
+            db.add(model)
+
+    for sid in demo_ids:
+        session = (
+            generate_expert_session(sid)
+            if "expert" in sid
+            else generate_novice_session(sid)
+        )
+        model = SessionModel.from_pydantic(session)
+        db.add(model)
+        session_ids.append(sid)
+
+    db.commit()
+    _score_demo_sessions_if_needed(db)
+
+    try:
+        from scripts.seed_demo_data import _seed_drills, _seed_cert_standards
+        _seed_drills(db)
+        _seed_cert_standards(db)
+    except Exception as drill_cert_err:
+        logger.warning(
+            "Drills/cert seed failed (non-fatal): %s",
+            drill_cert_err,
+        )
+
+    return session_ids
+
+
 @router.post("/seed-mock-sessions")
 async def seed_mock_sessions(db: OrmSession = Depends(get_db)):
     """
@@ -96,74 +169,7 @@ async def seed_mock_sessions(db: OrmSession = Depends(get_db)):
         )
 
     try:
-        from data.mock_welders import WELDER_ARCHETYPES
-        from data.mock_sessions import (
-            generate_session_for_welder,
-            generate_expert_session,
-            generate_novice_session,
-        )
-
-        session_ids = []
-        for arch in WELDER_ARCHETYPES:
-            welder_id = arch["welder_id"]
-            n = arch["sessions"]
-            for i in range(1, n + 1):
-                session_ids.append(f"sess_{welder_id}_{i:03d}")
-
-        if len(session_ids) == 0:
-            raise HTTPException(status_code=500, detail="WELDER_ARCHETYPES is empty")
-
-        for existing in db.query(SessionModel).filter(
-            SessionModel.session_id.in_(session_ids)
-        ).all():
-            db.delete(existing)
-        db.flush()
-
-        # Also seed sess_expert_001 and sess_novice_001 (used by replay/STARTME)
-        demo_ids = ["sess_expert_001", "sess_novice_001"]
-        for existing in db.query(SessionModel).filter(
-            SessionModel.session_id.in_(demo_ids)
-        ).all():
-            db.delete(existing)
-        db.flush()
-
-        random.seed(42)
-        for arch in WELDER_ARCHETYPES:
-            welder_id = arch["welder_id"]
-            arc_type = arch["arc"]
-            n = arch["sessions"]
-            for i in range(1, n + 1):
-                sid = f"sess_{welder_id}_{i:03d}"
-                session = generate_session_for_welder(welder_id, arc_type, i - 1, sid)
-                model = SessionModel.from_pydantic(session)
-                db.add(model)
-
-        for sid in demo_ids:
-            session = (
-                generate_expert_session(sid)
-                if "expert" in sid
-                else generate_novice_session(sid)
-            )
-            model = SessionModel.from_pydantic(session)
-            db.add(model)
-            session_ids.append(sid)
-
-        db.commit()
-
-        # Score demo aluminium pair so /demo page shows WQI without manual GET /score
-        _score_demo_sessions_if_needed(db)
-
-        # Seed drills and cert_standards for coaching-plan and certification-status smoke tests
-        try:
-            from scripts.seed_demo_data import _seed_drills, _seed_cert_standards
-            _seed_drills(db)
-            _seed_cert_standards(db)
-        except Exception as drill_cert_err:
-            logger.warning(
-                "Drills/cert seed failed (non-fatal): %s. Coaching/cert endpoints may fail until manual seed.",
-                drill_cert_err,
-            )
-
+        session_ids = run_seed_mock_sessions(db)
         return {"seeded": session_ids}
     except HTTPException:
         raise

@@ -167,9 +167,16 @@ Each specialist fires `decompose_queries()` with its domain anchor (`"thermal"` 
 
 ## Quick Start
 
+**Option A — Local Docker (recommended for demo):**
 ```bash
-git clone https://github.com/your-handle/warpsense
-cd warpsense
+cp .env.example .env          # optional: add GROQ_API_KEY for full AI
+docker-compose -f docker-compose.dev.yml up --build
+# Backend: http://localhost:8000  |  Frontend: http://localhost:3000
+# KB + seed run at startup; ≥10 aluminum sessions after ~30s
+```
+
+**Option B — Local Python:**
+```bash
 cp .env.example .env          # add GROQ_API_KEY
 python backend/knowledge/build_welding_kb.py   # build 63-chunk ChromaDB corpus
 python backend/run_warpsense_agent.py          # all 10 mock sessions, summary table

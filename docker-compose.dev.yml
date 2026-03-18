@@ -1,0 +1,41 @@
+# WarpSense — Local Docker development (Phase 7.5)
+# Run: docker-compose -f docker-compose.dev.yml up --build
+# Optional: cp .env.example .env and add GROQ_API_KEY etc. for full AI features.
+
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: warpsense
+      POSTGRES_PASSWORD: warpsense
+      POSTGRES_DB: warpsense
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data
+
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    volumes:
+      - chroma_data_dev:/app/knowledge/chroma_db
+    environment:
+      DATABASE_URL: postgresql://warpsense:warpsense@db:5432/warpsense
+      DEBUG: "1"
+      API_URL: "http://localhost:8000"
+    env_file:
+      - .env
+
+  frontend:
+    build: ./my-app
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+
+volumes:
+  postgres_data_dev:
+  chroma_data_dev:

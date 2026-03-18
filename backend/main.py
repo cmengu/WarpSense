@@ -26,6 +26,8 @@ from routes.welders import router as welders_router
 from routes.warp_analysis import router as warp_analysis_router
 from services.warp_service import init_warp_components
 
+from init_system import run as init_system_run
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -35,6 +37,13 @@ async def lifespan(app: FastAPI):
             "Database connectivity check failed at startup. "
             "Verify DATABASE_URL and that PostgreSQL is running."
         )
+    # KB + seed must run before init_warp_components — WarpSenseGraph loads ChromaDB on init
+    try:
+        init_system_run()
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning("[INIT] Startup init failed — %s", e)
+        # Non-fatal: API still boots, manual init possible
     init_warp_components()
     yield
     # Shutdown: nothing to clean up for DB (engine manages connections)
