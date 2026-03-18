@@ -18,7 +18,7 @@ import chromadb
 from chromadb.utils import embedding_functions
 from rank_bm25 import BM25Okapi
 
-from backend.agent.warpsense_agent import StandardsChunk
+from backend.agent.warpsense_agent import StandardsChunk, ThresholdViolation
 
 _KB_PATH = Path(__file__).resolve().parent / "chroma_db"
 _COLLECTION_NAME = "welding_standards"
@@ -26,7 +26,7 @@ _COLLECTION_NAME = "welding_standards"
 
 def decompose_queries(
     base_queries: list[str],
-    violations: list,
+    violations: list["ThresholdViolation"],
     domain: Literal["thermal", "geometry", "process"],
 ) -> list[str]:
     """
@@ -90,9 +90,11 @@ class RAGRetriever:
         collection_name: str = _COLLECTION_NAME,
         n_results: int = 4,
         rrf_k: int = 60,
+        verbose: bool = True,
     ):
         self.n_results = n_results
         self.rrf_k = rrf_k
+        self.verbose = verbose
 
         # ── Dense (ChromaDB) ──────────────────────────────────────────
         if chroma_client is not None:
@@ -106,6 +108,16 @@ class RAGRetriever:
             name=collection_name, embedding_function=ef
         )
 
+        # _dense_retrieve converts ChromaDB distances to scores via (1 - dist),
+        # which is only valid under cosine distance.  Fail loudly if the
+        # collection was created with a different space.
+        space = (self._collection.metadata or {}).get("hnsw:space", "cosine")
+        if space != "cosine":
+            raise ValueError(
+                f"[RAGRetriever] Expected hnsw:space='cosine' but got '{space}'. "
+                "Dense score formula (1 - dist) is only valid for cosine distance."
+            )
+
         # ── Sparse (BM25) — fields declared here, populated below ─────
         # Declared at object level so every method can safely read them
         # without checking for attribute existence.
@@ -116,10 +128,11 @@ class RAGRetriever:
 
         self._build_bm25_index()
 
-        print(
-            f"[RAGRetriever] {len(self._chunk_ids)} chunks loaded. "
-            f"BM25 ready."
-        )
+        if self.verbose:
+            print(
+                f"[RAGRetriever] {len(self._chunk_ids)} chunks loaded. "
+                f"BM25 ready."
+            )
 
     def _build_bm25_index(self) -> None:
         """
@@ -160,6 +173,9 @@ class RAGRetriever:
 
     def _sparse_retrieve(self, query: str, n: int) -> list[tuple[str, float]]:
         """Returns [(chunk_id, bm25_score), ...] sorted descending."""
+        assert self._bm25 is not None, (
+            "_sparse_retrieve called before BM25 index was built"
+        )
         tokens = query.lower().split()
         scores = self._bm25.get_scores(tokens)
         ranked = sorted(
@@ -258,7 +274,8 @@ class RAGRetriever:
                     for cid, score in self._rrf_merge(dense, sparse):
                         candidate_pool[cid] = max(candidate_pool.get(cid, 0.0), score)
             except Exception as e:
-                print(f"[RAGRetriever] query failed (skipping): {e}")
+                if self.verbose:
+                    print(f"[RAGRetriever] query failed (skipping): {e}")
 
         top_ids = [
             cid for cid, _ in sorted(

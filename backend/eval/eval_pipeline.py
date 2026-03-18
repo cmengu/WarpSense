@@ -127,6 +127,9 @@ class PipelineEvaluator:
         except Exception as e:
             error = str(e)
             report = None
+            if self.verbose:
+                import traceback
+                print(f"\n[Eval] ERROR on {scenario.scenario_id}: {e}\n{traceback.format_exc()}")
 
         total_ms = (time.perf_counter() - t_start) * 1000
 
