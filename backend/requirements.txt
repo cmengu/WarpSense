@@ -20,3 +20,4 @@ langsmith>=0.1.0
 langchain>=0.2.0
 langgraph>=0.2.0
 langchain-groq>=0.1.0
+rank-bm25
