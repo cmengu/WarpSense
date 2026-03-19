@@ -15,7 +15,7 @@ Metrics that use defect categories will show this agent performing worse than ac
 FNR/F1 comparison is unaffected.
 
 Usage:
-    from backend.agent.warpsense_langchain_agent import WarpSenseLangChainAgent
+    from agent.warpsense_langchain_agent import WarpSenseLangChainAgent
     agent = WarpSenseLangChainAgent()
     report = agent.assess(prediction, features)  # → WeldQualityReport
 """
@@ -41,15 +41,15 @@ from langchain.tools import tool
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_groq import ChatGroq
 
-from backend.agent.warpsense_agent import LLM_MODEL, WeldQualityReport, ThresholdViolation
-from backend.agent.specialists import (
+from agent.warpsense_agent import LLM_MODEL, WeldQualityReport, ThresholdViolation
+from agent.specialists import (
     compute_violations,
     thermal_triggered,
     geometry_triggered,
     process_triggered,
 )
-from backend.features.session_feature_extractor import SessionFeatures, OPTIMAL_ANGLE_DEG
-from backend.features.weld_classifier import WeldPrediction
+from features.session_feature_extractor import SessionFeatures, OPTIMAL_ANGLE_DEG
+from features.weld_classifier import WeldPrediction
 
 import logging
 

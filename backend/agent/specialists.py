@@ -40,17 +40,17 @@ if str(_ROOT) not in sys.path:
 
 from groq import Groq
 
-from backend.agent.warpsense_agent import (
+from agent.warpsense_agent import (
     THRESHOLDS, LLM_MODEL, LOF_LOP_PRIMARY_FEATURES,
     StandardsChunk, ThresholdViolation, WeldQualityReport,
 )
-from backend.knowledge.rag_retriever import RAGRetriever, decompose_queries
-from backend.features.session_feature_extractor import SessionFeatures, OPTIMAL_ANGLE_DEG
-from backend.features.weld_classifier import WeldPrediction
+from knowledge.rag_retriever import RAGRetriever, decompose_queries
+from features.session_feature_extractor import SessionFeatures, OPTIMAL_ANGLE_DEG
+from features.weld_classifier import WeldPrediction
 
 import logging
 
-from backend.prompts.versions import PROMPT_VERSIONS
+from prompts.versions import PROMPT_VERSIONS
 
 logger = logging.getLogger(__name__)
 

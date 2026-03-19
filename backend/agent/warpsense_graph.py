@@ -11,7 +11,7 @@ read routing_decision. The routing_decision field in WarpSenseState is for obser
 and logging only.
 
 Usage:
-    from backend.agent.warpsense_graph import WarpSenseGraph
+    from agent.warpsense_graph import WarpSenseGraph
     graph = WarpSenseGraph()
     report = graph.assess(prediction, features)  # → WeldQualityReport
 """
@@ -34,9 +34,9 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from backend.agent.warpsense_agent import LLM_MODEL, WeldQualityReport
-from backend.agent.specialists import ThresholdViolation
-from backend.agent.specialists import (
+from agent.warpsense_agent import LLM_MODEL, WeldQualityReport
+from agent.specialists import ThresholdViolation
+from agent.specialists import (
     SpecialistResult,
     ThermalAgent,
     GeometryAgent,
@@ -47,9 +47,9 @@ from backend.agent.specialists import (
     geometry_triggered,
     process_triggered,
 )
-from backend.knowledge.rag_retriever import RAGRetriever
-from backend.features.session_feature_extractor import SessionFeatures
-from backend.features.weld_classifier import WeldPrediction
+from knowledge.rag_retriever import RAGRetriever
+from features.session_feature_extractor import SessionFeatures
+from features.weld_classifier import WeldPrediction
 
 
 class WarpSenseState(TypedDict):

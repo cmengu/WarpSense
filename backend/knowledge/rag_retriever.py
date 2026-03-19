@@ -18,7 +18,7 @@ import chromadb
 from chromadb.utils import embedding_functions
 from rank_bm25 import BM25Okapi
 
-from backend.agent.warpsense_agent import StandardsChunk, ThresholdViolation
+from agent.warpsense_agent import StandardsChunk, ThresholdViolation
 
 _KB_PATH = Path(__file__).resolve().parent / "chroma_db"
 _COLLECTION_NAME = "welding_standards"

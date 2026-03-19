@@ -25,10 +25,10 @@ load_dotenv(_ROOT / ".env")
 
 from groq import Groq
 
-from backend.agent.warpsense_agent import WarpSenseAgent
-from backend.eval.eval_scenarios import SCENARIOS, EvalScenario
-from backend.features.session_feature_extractor import generate_feature_dataset
-from backend.features.weld_classifier import WeldClassifier
+from agent.warpsense_agent import WarpSenseAgent
+from eval.eval_scenarios import SCENARIOS, EvalScenario
+from features.session_feature_extractor import generate_feature_dataset
+from features.weld_classifier import WeldClassifier
 
 RESULTS_DIR = Path(__file__).parent / "results"
 RESULTS_DIR.mkdir(exist_ok=True)

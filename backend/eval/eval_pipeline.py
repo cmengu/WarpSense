@@ -31,10 +31,10 @@ from dotenv import load_dotenv
 
 load_dotenv(_ROOT / ".env")
 
-from backend.agent.warpsense_agent import WarpSenseAgent
-from backend.eval.eval_scenarios import SCENARIOS, EvalScenario, get_scenarios_by_category
-from backend.features.session_feature_extractor import generate_feature_dataset
-from backend.features.weld_classifier import WeldClassifier
+from agent.warpsense_agent import WarpSenseAgent
+from eval.eval_scenarios import SCENARIOS, EvalScenario, get_scenarios_by_category
+from features.session_feature_extractor import generate_feature_dataset
+from features.weld_classifier import WeldClassifier
 
 RESULTS_DIR = Path(__file__).parent / "results"
 RESULTS_DIR.mkdir(exist_ok=True)

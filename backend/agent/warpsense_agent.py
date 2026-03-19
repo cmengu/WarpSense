@@ -18,7 +18,7 @@ Step ordering is a safety property, not a preference:
   6. Return report   — WeldQualityReport dataclass
 
 Usage:
-    from backend.agent.warpsense_agent import WarpSenseAgent
+    from agent.warpsense_agent import WarpSenseAgent
     agent = WarpSenseAgent()
     report = agent.assess(prediction, features)
 """
@@ -36,7 +36,7 @@ from chromadb.utils import embedding_functions
 
 import logging
 
-from backend.prompts.versions import PROMPT_VERSIONS
+from prompts.versions import PROMPT_VERSIONS
 
 logger = logging.getLogger(__name__)
 

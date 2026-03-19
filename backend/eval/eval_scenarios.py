@@ -16,7 +16,7 @@ Scenario categories:
   FN_RISK      (4) — floor/boundary cases that must NOT be missed
 
 Usage:
-    from backend.eval.eval_scenarios import SCENARIOS, BASE_EXPERT_FEATURES
+    from eval.eval_scenarios import SCENARIOS, BASE_EXPERT_FEATURES
 """
 
 from dataclasses import dataclass
@@ -28,7 +28,7 @@ _ROOT = Path(__file__).resolve().parent.parent.parent
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
-from backend.features.session_feature_extractor import SessionFeatures
+from features.session_feature_extractor import SessionFeatures
 
 
 # ─────────────────────────────────────────────────────────────────────────────
