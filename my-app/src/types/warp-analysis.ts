@@ -70,3 +70,12 @@ export interface WarpHealthResponse {
   graph_initialised:      boolean;
   classifier_initialised: boolean;
 }
+
+// GET /api/welders/{welder_id}/quality-trend — one item per analysed session
+export interface WelderTrendPoint {
+  session_id:        string;
+  report_timestamp:  string;
+  weld_type:         string | null;
+  disposition:       WarpDisposition;
+  quality_score:     number;
+}
