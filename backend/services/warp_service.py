@@ -12,6 +12,7 @@ service works even if lifespan was not used (e.g. in tests).
 """
 
 import asyncio
+import json
 import logging
 import os
 from dataclasses import asdict
@@ -170,3 +171,151 @@ async def analyse_session(session_id: str, db: OrmSession) -> WeldQualityReportM
         report.disposition,
     )
     return report_model
+
+
+async def analyse_session_stream(session_id: str, db: OrmSession):
+    """
+    Async generator — yields SSE-formatted strings for the WarpSense pipeline.
+
+    Event sequence (9 total):
+      1.  {"stage": "start",          "status": "running", "message": "Pipeline initialised"}
+      2.  {"stage": "thermal_agent",  "status": "running", "message": "Analysing heat profile"}
+      3.  {"stage": "thermal_agent",  "status": "done",    "disposition": "..."}
+      4.  {"stage": "geometry_agent", "status": "running", "message": "Checking torch angle"}
+      5.  {"stage": "geometry_agent", "status": "done",    "disposition": "..."}
+      6.  {"stage": "process_agent",  "status": "running", "message": "Evaluating arc stability"}
+      7.  {"stage": "process_agent",  "status": "done",    "disposition": "..."}
+      8.  {"stage": "summary",        "status": "running", "message": "Synthesising report"}
+      9a. {"stage": "complete",       "status": "done",    "report": {...}}   — on success
+      9b. {"stage": "error",          "status": "error",   "message": "..."}  — on failure
+
+    Thread-safety contract:
+      - _progress_cb runs inside run_in_executor (thread pool thread).
+        It MUST use loop.call_soon_threadsafe() to put events on the queue.
+      - _run_pipeline() is a coroutine on the event loop.
+        It MUST use queue.put_nowait() directly (NOT call_soon_threadsafe).
+    """
+    queue: asyncio.Queue = asyncio.Queue()
+    loop = asyncio.get_running_loop()
+
+    def _progress_cb(event: dict) -> None:
+        # Called from thread executor — call_soon_threadsafe is required here.
+        loop.call_soon_threadsafe(queue.put_nowait, event)
+
+    def _sse(event: dict) -> str:
+        return f"data: {json.dumps(event)}\n\n"
+
+    # Event 1: emit start immediately before any blocking work
+    yield _sse({"stage": "start", "status": "running", "message": "Pipeline initialised"})
+
+    async def _run_pipeline() -> None:
+        # Runs on the event loop. Use queue.put_nowait() directly here.
+        try:
+            # 1. Load session
+            session_model = db.query(SessionModel).filter_by(session_id=session_id).first()
+            if session_model is None:
+                raise ValueError(f"Session {session_id} not found")
+
+            # 2. Load frames (explicit limit=1500 — default is 50)
+            frames = get_session_frames_raw(session_id, db, limit=1500)
+            if not frames:
+                raise ValueError(f"Session {session_id} has no frames")
+
+            # 3. Extract features
+            extractor = SessionFeatureExtractor()
+            features = extractor.extract(session_id, frames)
+
+            # 4. Classify
+            classifier = get_classifier()
+            prediction = classifier.predict(features)
+
+            # 5. Assess with per-stage progress — runs in thread executor; blocks until complete.
+            #    Events 2–8 are emitted by _progress_cb via call_soon_threadsafe.
+            graph = get_graph()
+            report = await loop.run_in_executor(
+                None,
+                lambda: graph.assess_with_progress(prediction, features, _progress_cb),
+            )
+
+            # 6. Persist (upsert: delete existing then insert)
+            existing = db.query(WeldQualityReportModel).filter_by(session_id=session_id).first()
+            if existing:
+                db.delete(existing)
+                db.flush()
+
+            report_model = WeldQualityReportModel(
+                session_id=session_id,
+                operator_id=session_model.operator_id,
+                report_timestamp=datetime.now(timezone.utc),
+                quality_class=report.quality_class,
+                confidence=report.confidence,
+                iso_5817_level=report.iso_5817_level,
+                disposition=report.disposition,
+                disposition_rationale=report.disposition_rationale,
+                root_cause=report.root_cause,
+                corrective_actions=report.corrective_actions,
+                standards_references=report.standards_references,
+                retrieved_chunks_used=getattr(report, "retrieved_chunks_used", []),
+                primary_defect_categories=report.primary_defect_categories,
+                threshold_violations=[asdict(v) for v in report.threshold_violations],
+                self_check_passed=report.self_check_passed,
+                self_check_notes=report.self_check_notes,
+                llm_raw_response=getattr(report, "llm_raw_response", None),
+                agent_type="langgraph",
+                created_at=datetime.now(timezone.utc),
+            )
+            db.add(report_model)
+            db.flush()
+
+            # 7. Link session -> latest report — single transaction
+            session_model.quality_report_id = report_model.id
+            db.add(session_model)
+            db.commit()
+            db.refresh(report_model)
+
+            logger.info(
+                "warp_service: analyse_session_stream OK session_id=%s disposition=%s",
+                session_id,
+                report.disposition,
+            )
+
+            # Event 9a: success — include full report payload
+            queue.put_nowait({
+                "stage":      "complete",
+                "status":     "done",
+                "report": {
+                    "session_id":              report_model.session_id,
+                    "quality_class":           report_model.quality_class,
+                    "confidence":              report_model.confidence,
+                    "iso_5817_level":          report_model.iso_5817_level,
+                    "disposition":             report_model.disposition,
+                    "disposition_rationale":   report_model.disposition_rationale,
+                    "root_cause":              report_model.root_cause,
+                    "corrective_actions":      report_model.corrective_actions,
+                    "standards_references":    report_model.standards_references,
+                    "primary_defect_categories": report_model.primary_defect_categories,
+                    "threshold_violations":    report_model.threshold_violations,
+                    "self_check_passed":       report_model.self_check_passed,
+                    "self_check_notes":        report_model.self_check_notes,
+                    "report_timestamp":        report_model.report_timestamp.isoformat(),
+                },
+            })
+
+        except Exception as e:
+            logger.error(
+                "warp_service: analyse_session_stream ERROR session_id=%s error=%s",
+                session_id, str(e),
+            )
+            # Event 9b: error — frontend uses stage="error" to trigger retry UI
+            queue.put_nowait({"stage": "error", "status": "error", "message": str(e)})
+        finally:
+            queue.put_nowait(None)  # Sentinel — signals generator to stop
+
+    asyncio.create_task(_run_pipeline())
+
+    # Drain queue until sentinel
+    while True:
+        event = await queue.get()
+        if event is None:
+            break
+        yield _sse(event)
