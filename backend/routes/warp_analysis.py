@@ -1,16 +1,17 @@
 """
 WarpSense AI analysis routes.
 
-POST /api/sessions/{session_id}/analyse  — run WarpSense pipeline, persist report
+POST /api/sessions/{session_id}/analyse  — stream WarpSense pipeline as SSE
 GET  /api/sessions/{session_id}/reports  — retrieve persisted quality report
 GET  /api/health/warp                    — WarpSense component health check
+GET  /api/mock-sessions                  — 10 aluminium demo sessions (in-memory)
 
 All session routes use the same get_db pattern as routes/sessions.py.
 Do NOT add these routes to sessions.py — AI analysis is a separate domain.
 """
 
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
@@ -23,6 +24,13 @@ from services.warp_service import analyse_session_stream, get_graph, get_classif
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["warp-analysis"])
+
+# Aluminium archetype welder IDs — match WELDER_ARCHETYPES entries for the demo surface.
+_MOCK_SESSION_WELDER_IDS = {"expert_aluminium_001", "novice_aluminium_001"}
+
+# Anchor timestamp for deterministic session ordering in the demo.
+# Sessions are numbered oldest-first from this point, 1 day apart.
+_MOCK_BASE_TIMESTAMP = datetime(2025, 1, 1, 9, 0, 0, tzinfo=timezone.utc)
 
 
 @router.post("/api/sessions/{session_id}/analyse")
@@ -43,8 +51,6 @@ async def run_analysis(
     Phase UI-4 must use fetch() + ReadableStream to consume this stream;
     the browser EventSource API is GET-only and is incompatible with this POST route.
     """
-    # Errors are emitted as SSE events (stage="error") rather than HTTP error codes.
-    # The client reads the stream; stage="error" triggers the retry UI in Phase UI-8.
     return StreamingResponse(
         analyse_session_stream(session_id, db),
         media_type="text/event-stream",
@@ -126,14 +132,6 @@ async def warp_health():
     return status
 
 
-# Aluminium archetype welder IDs — match WELDER_ARCHETYPES entries for the demo surface.
-_MOCK_SESSION_WELDER_IDS = {"expert_aluminium_001", "novice_aluminium_001"}
-
-# Anchor timestamp for deterministic session ordering in the demo.
-# Sessions are numbered oldest-first from this point, 1 day apart.
-_MOCK_BASE_TIMESTAMP = datetime(2025, 1, 1, 9, 0, 0, tzinfo=timezone.utc)
-
-
 @router.get("/api/mock-sessions")
 async def get_mock_sessions():
     """
@@ -156,9 +154,7 @@ async def get_mock_sessions():
             session_id = f"{archetype['welder_id']}_s{i + 1:02d}"
 
             # 1 day apart, oldest first — deterministic, no randomness
-            started_at = _MOCK_BASE_TIMESTAMP.replace(
-                day=_MOCK_BASE_TIMESTAMP.day + session_index
-            )
+            started_at = _MOCK_BASE_TIMESTAMP + timedelta(days=session_index)
 
             sessions.append({
                 "session_id":     session_id,

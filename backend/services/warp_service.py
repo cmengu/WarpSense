@@ -1,10 +1,11 @@
 """
 WarpSense singleton service.
 
-init_warp_components() — called once in main.py lifespan after DB check.
-analyse_session()      — called by POST /sessions/{session_id}/analyse route.
-get_graph()            — returns shared WarpSenseGraph instance.
-get_classifier()       — returns shared WeldClassifier instance.
+init_warp_components()     — called once in main.py lifespan after DB check.
+analyse_session()          — non-streaming pipeline; returns persisted report model.
+analyse_session_stream()   — async generator; yields SSE strings for POST /analyse.
+get_graph()                — returns shared WarpSenseGraph instance.
+get_classifier()           — returns shared WeldClassifier instance.
 
 Singleton pattern: _graph and _classifier are module-level. init_warp_components()
 populates them. get_graph()/get_classifier() include a lazy-init fallback so the
@@ -17,7 +18,7 @@ import logging
 import os
 from dataclasses import asdict
 from datetime import datetime, timezone
-from typing import Optional
+from typing import AsyncGenerator, Optional
 
 from sqlalchemy.orm import Session as OrmSession
 
@@ -173,7 +174,7 @@ async def analyse_session(session_id: str, db: OrmSession) -> WeldQualityReportM
     return report_model
 
 
-async def analyse_session_stream(session_id: str, db: OrmSession):
+async def analyse_session_stream(session_id: str, db: OrmSession) -> AsyncGenerator[str, None]:
     """
     Async generator — yields SSE-formatted strings for the WarpSense pipeline.
 
@@ -313,9 +314,10 @@ async def analyse_session_stream(session_id: str, db: OrmSession):
 
     asyncio.create_task(_run_pipeline())
 
-    # Drain queue until sentinel
+    # Drain queue until sentinel.
+    # 300 s timeout guards against a hung pipeline leaving the connection open forever.
     while True:
-        event = await queue.get()
+        event = await asyncio.wait_for(queue.get(), timeout=300.0)
         if event is None:
             break
         yield _sse(event)

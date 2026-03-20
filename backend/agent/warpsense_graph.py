@@ -175,10 +175,10 @@ class WarpSenseGraph:
 
     def assess_with_progress(
         self,
-        prediction: "WeldPrediction",
-        features: "SessionFeatures",
+        prediction: WeldPrediction,
+        features: SessionFeatures,
         progress_cb=None,
-    ) -> "WeldQualityReport":
+    ) -> WeldQualityReport:
         """
         Run the WarpSense pipeline with per-stage progress callbacks.
 
