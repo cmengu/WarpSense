@@ -18,7 +18,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session as OrmSession
 
 from data.mock_welders import WELDER_ARCHETYPES
-from database.models import WeldQualityReportModel
+from database.models import SessionModel, WeldQualityReportModel
 from routes.sessions import get_db
 from services.warp_service import analyse_session_stream, get_graph, get_classifier
 
@@ -169,3 +169,51 @@ async def get_mock_sessions():
             session_index += 1
 
     return sessions
+
+
+# Disposition → numeric quality score.
+# Single source of truth: backend computes score; frontend uses it verbatim.
+_DISPOSITION_SCORE: dict[str, float] = {
+    "PASS":             1.0,
+    "CONDITIONAL":      0.5,
+    "REWORK_REQUIRED":  0.0,
+}
+
+
+@router.get("/api/welders/{welder_id}/quality-trend")
+async def get_quality_trend(
+    welder_id: str,
+    db: OrmSession = Depends(get_db),
+):
+    """
+    Return last 10 quality reports for a welder, ordered oldest-first.
+
+    Each item:
+      session_id      — report's session
+      report_timestamp — ISO-8601 UTC string
+      weld_type       — from sessions table (null if session row absent)
+      disposition     — PASS / CONDITIONAL / REWORK_REQUIRED
+      quality_score   — 1.0 / 0.5 / 0.0 (deterministic from disposition)
+
+    Filters by operator_id = welder_id.
+    In the demo context welder_id == operator_id (e.g. expert_aluminium_001).
+    """
+    rows = (
+        db.query(WeldQualityReportModel, SessionModel.weld_type, SessionModel.start_time)
+        .outerjoin(SessionModel, WeldQualityReportModel.session_id == SessionModel.session_id)
+        .filter(WeldQualityReportModel.operator_id == welder_id)
+        .order_by(WeldQualityReportModel.report_timestamp.asc())
+        .limit(10)
+        .all()
+    )
+
+    return [
+        {
+            "session_id":        report.session_id,
+            "report_timestamp":  report.report_timestamp.isoformat(),
+            "weld_type":         weld_type,
+            "disposition":       report.disposition,
+            "quality_score":     _DISPOSITION_SCORE.get(report.disposition, 0.0),
+        }
+        for report, weld_type, _start_time in rows
+    ]
