@@ -34,7 +34,8 @@ export interface ThresholdViolation {
   feature: string; value: number; threshold: number; severity: string;
 }
 
-// Full report — matches SSE "complete" event payload AND GET /reports response
+// SSE `complete` payload minimum; GET `/reports` and future backend expansions
+// may include the optional fields below.
 export interface WarpReport {
   session_id:                string;
   quality_class:             string;
@@ -50,6 +51,10 @@ export interface WarpReport {
   self_check_passed:         boolean;
   self_check_notes:          string;
   report_timestamp:          string;
+  report_id?:                number;
+  retrieved_chunks_used?:    string[];
+  agent_type?:               string;
+  llm_raw_response?:         string | null;
 }
 
 // Specialist card state (AnalysisStream internal)
