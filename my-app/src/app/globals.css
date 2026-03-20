@@ -122,3 +122,23 @@ body {
   overflow: hidden;
   transition: opacity 0.2s ease-out, max-height 0.2s ease-out;
 }
+
+/* WarpSense Analysis Surface — --warp-* prefix avoids collision with --color-* tokens */
+:root {
+  --warp-bg:         #080a0e;
+  --warp-surface:    #0a0d14;
+  --warp-surface-2:  #0f1520;
+  --warp-border:     #1a2035;
+  --warp-amber:      #F59E0B;
+  --warp-green:      #22C55E;
+  --warp-danger:     #EF4444;
+  --warp-blue:       #3B82F6;
+  --warp-orange:     #ff6b1a;
+  --warp-text:       #e2e8f0;
+  --warp-text-muted: #475569;
+  --warp-text-dim:   #334155;
+}
+@keyframes warp-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--warp-amber) 0%, transparent); }
+  50%       { box-shadow: 0 0 0 4px color-mix(in srgb, var(--warp-amber) 20%, transparent); }
+}
