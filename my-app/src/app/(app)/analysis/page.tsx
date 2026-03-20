@@ -266,11 +266,16 @@ export default function AnalysisPage() {
           )}
 
           {viewState.mode === "report" && (
-            <QualityReportCard
-              report={viewState.report}
-              welderDisplayName={selectedSession?.welder_name ?? null}
-              onReanalyse={handleReanalyse}
-            />
+            <div
+              key={viewState.report.session_id}
+              className="animate-warp-fade-in h-full min-h-0"
+            >
+              <QualityReportCard
+                report={viewState.report}
+                welderDisplayName={selectedSession?.welder_name ?? null}
+                onReanalyse={handleReanalyse}
+              />
+            </div>
           )}
         </div>
       </div>

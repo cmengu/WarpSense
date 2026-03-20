@@ -142,3 +142,8 @@ body {
   0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--warp-amber) 0%, transparent); }
   50%       { box-shadow: 0 0 0 4px color-mix(in srgb, var(--warp-amber) 20%, transparent); }
 }
+
+/* UI-8: report panel fade-in (reuses @keyframes fade-in above) */
+.animate-warp-fade-in {
+  animation: fade-in 300ms ease-out forwards;
+}
