@@ -172,3 +172,81 @@ class WarpSenseGraph:
         if report is None:
             raise RuntimeError(f"[WarpSenseGraph] final_report is None for session {session_id}")
         return report
+
+    def assess_with_progress(
+        self,
+        prediction: "WeldPrediction",
+        features: "SessionFeatures",
+        progress_cb=None,
+    ) -> "WeldQualityReport":
+        """
+        Run the WarpSense pipeline with per-stage progress callbacks.
+
+        Calls internal node methods in the same order as assess() but fires
+        progress_cb(event_dict) between each agent stage. Used by the SSE route
+        to emit live progress events to the frontend.
+
+        progress_cb is called from whatever thread this method runs in.
+        When called via run_in_executor, the caller must use
+        loop.call_soon_threadsafe to forward events to the event loop.
+
+        assess() is unchanged and remains the primary method for non-SSE callers.
+        """
+        def _emit(event: dict) -> None:
+            if progress_cb is not None:
+                progress_cb(event)
+
+        session_id = getattr(prediction, "session_id", "unknown")
+
+        state: WarpSenseState = {
+            "session_id":       session_id,
+            "features":         features,
+            "prediction":       prediction,
+            "violations":       [],
+            "routing_decision": {},
+            "thermal_result":   None,
+            "geometry_result":  None,
+            "process_result":   None,
+            "final_report":     None,
+        }
+
+        # Route node — computes violations and routing_decision (fast, no progress event)
+        state.update(self._route_node(state))
+
+        # Thermal agent
+        _emit({"stage": "thermal_agent", "status": "running", "message": "Analysing heat profile"})
+        state.update(self._thermal_node(state))
+        _emit({
+            "stage": "thermal_agent",
+            "status": "done",
+            "disposition": state["thermal_result"].disposition,
+        })
+
+        # Geometry agent
+        _emit({"stage": "geometry_agent", "status": "running", "message": "Checking torch angle"})
+        state.update(self._geometry_node(state))
+        _emit({
+            "stage": "geometry_agent",
+            "status": "done",
+            "disposition": state["geometry_result"].disposition,
+        })
+
+        # Process stability agent
+        _emit({"stage": "process_agent", "status": "running", "message": "Evaluating arc stability"})
+        state.update(self._process_node(state))
+        _emit({
+            "stage": "process_agent",
+            "status": "done",
+            "disposition": state["process_result"].disposition,
+        })
+
+        # Summary agent (LLM synthesis — slow step)
+        _emit({"stage": "summary", "status": "running", "message": "Synthesising report"})
+        state.update(self._summary_node(state))
+
+        report = state.get("final_report")
+        if report is None:
+            raise RuntimeError(
+                f"[WarpSenseGraph] assess_with_progress: final_report is None for session {session_id}"
+            )
+        return report
