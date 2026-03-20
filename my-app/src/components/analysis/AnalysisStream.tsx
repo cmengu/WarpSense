@@ -164,9 +164,17 @@ export function AnalysisStream({ sessionId, onComplete, onError }: AnalysisStrea
         />
       </div>
 
-      <div className="flex gap-px p-4 shrink-0">
-        {AGENT_STAGES.map((stage) => (
-          <SpecialistCard key={stage} stage={stage} state={stageStates[stage]} />
+      <div className="flex shrink-0 gap-px p-4">
+        {AGENT_STAGES.map((stage, index) => (
+          <div
+            key={stage}
+            className="flex-1"
+            style={{
+              animation: `warp-card-enter 200ms ease-out ${index * 150}ms both`,
+            }}
+          >
+            <SpecialistCard stage={stage} state={stageStates[stage]} />
+          </div>
         ))}
       </div>
 

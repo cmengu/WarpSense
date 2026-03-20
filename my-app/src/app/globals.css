@@ -147,3 +147,15 @@ body {
 .animate-warp-fade-in {
   animation: fade-in 300ms ease-out forwards;
 }
+
+/* UI-8: specialist cards stagger on AnalysisStream mount */
+@keyframes warp-card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

@@ -22,7 +22,7 @@ export function SpecialistCard({ stage, state }: SpecialistCardProps) {
 
   if (state.status === "queued") {
     return (
-      <div className="flex-1 border border-zinc-800 border-l-2 border-l-zinc-700 p-3">
+      <div className="border border-zinc-800 border-l-2 border-l-zinc-700 p-3">
         <p className="font-mono text-[9px] uppercase tracking-widest text-zinc-600">{label}</p>
         <p className="font-mono text-[10px] text-zinc-700 mt-1">Queued</p>
       </div>
@@ -39,7 +39,7 @@ export function SpecialistCard({ stage, state }: SpecialistCardProps) {
   }
 
   return (
-    <div className={`flex-1 border border-zinc-800 border-l-2 p-3 ${doneStyle(state.disposition)}`}>
+    <div className={`border border-zinc-800 border-l-2 p-3 ${doneStyle(state.disposition)}`}>
       <p className="font-mono text-[9px] uppercase tracking-widest opacity-70">{label}</p>
       <p className="font-mono text-[10px] mt-1">
         {state.disposition?.replaceAll("_", " ") ?? "DONE"}
