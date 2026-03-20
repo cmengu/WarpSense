@@ -1,4 +1,3 @@
-"use client";
 /** /analysis — WarpSense analysis surface. Full UI in Phase UI-7. */
 export default function AnalysisPage() {
   return (
