@@ -6,7 +6,9 @@ export const dynamic = "force-dynamic";
 export async function GET(): Promise<NextResponse<MockSession[] | { detail: string }>> {
   try {
     const res = await fetch(`${API_BASE}/api/mock-sessions`);
-    const data = await res.json();
+    const text = await res.text();
+    let data: unknown;
+    try { data = JSON.parse(text); } catch { data = { detail: text.slice(0, 200) }; }
     return NextResponse.json(data, { status: res.status });
   } catch {
     return NextResponse.json({ detail: "Backend unreachable" }, { status: 502 });
