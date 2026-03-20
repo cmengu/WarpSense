@@ -21,7 +21,10 @@ export async function GET(
     const text = await res.text();
     let data: unknown;
     try { data = JSON.parse(text); } catch { data = { detail: text.slice(0, 200) }; }
-    return NextResponse.json(data, { status: res.status });
+    return NextResponse.json(
+      data as WelderTrendPoint[] | { detail: string },
+      { status: res.status },
+    );
   } catch {
     return NextResponse.json({ detail: "Backend unreachable" }, { status: 502 });
   }

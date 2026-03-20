@@ -91,7 +91,10 @@ describe("DashboardPage (Panel Readiness)", () => {
 
     // PANEL-4C fetch failed → fallback to PANEL_MOCK_SCORES (45); others show API 95
     expect(screen.getByText(/PANEL-4C/)).toBeInTheDocument();
-    const panel4CCard = screen.getByRole("heading", { name: /PANEL-4C/ }).closest("[class*='rounded']");
+    const panel4CCard = screen
+      .getByRole("heading", { name: /PANEL-4C/ })
+      .closest("[class*='rounded']") as HTMLElement | null;
+    expect(panel4CCard).not.toBeNull();
     expect(within(panel4CCard!).getByText("45/100")).toBeInTheDocument();
   });
 

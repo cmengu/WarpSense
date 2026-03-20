@@ -167,11 +167,19 @@ export function WelderTrendChart({ welderId }: WelderTrendChartProps) {
               fontFamily: "var(--font-warp-mono)",
               color: "var(--warp-text)",
             }}
-            formatter={(value: number, _name, entry: any) => {
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-              const row = entry.payload as ChartRow | undefined;
+            formatter={(value, _name, item) => {
+              const row =
+                item &&
+                typeof item === "object" &&
+                "payload" in item
+                  ? (item.payload as ChartRow | undefined)
+                  : undefined;
               const disposition = row?.disposition ?? "";
-              return [`${disposition} (${value})`, "Quality"];
+              const n =
+                typeof value === "number" && Number.isFinite(value)
+                  ? value
+                  : "—";
+              return [`${disposition} (${n})`, "Quality"];
             }}
             labelFormatter={(label) => `Session ${String(label)}`}
           />
