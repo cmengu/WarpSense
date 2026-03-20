@@ -3,7 +3,7 @@
  * streamAnalysis() returns the raw ReadableStream — caller parses SSE lines.
  * fetchWarpHealth() never throws — returns both=false on network error.
  */
-import type { MockSession, WarpReport, WarpHealthResponse } from "@/types/warp-analysis";
+import type { MockSession, WarpReport, WarpHealthResponse, WelderTrendPoint } from "@/types/warp-analysis";
 
 export async function fetchMockSessions(): Promise<MockSession[]> {
   const res = await fetch("/api/warp/mock-sessions");
@@ -41,4 +41,16 @@ export async function fetchWarpHealth(): Promise<WarpHealthResponse> {
   } catch {
     return { graph_initialised: false, classifier_initialised: false };
   }
+}
+
+/**
+ * Returns quality trend for the given welder (last 10 analysed sessions, oldest first).
+ * Returns [] on 404 (no sessions analysed yet for this welder).
+ * Throws on other errors.
+ */
+export async function fetchWelderTrend(welderId: string): Promise<WelderTrendPoint[]> {
+  const res = await fetch(`/api/warp/welders/${encodeURIComponent(welderId)}/quality-trend`);
+  if (res.status === 404) return [];
+  if (!res.ok) throw new Error(`fetchWelderTrend: ${res.status}`);
+  return res.json() as Promise<WelderTrendPoint[]>;
 }
