@@ -17,8 +17,12 @@ export function StatusBadge({ disposition }: StatusBadgeProps) {
   const key = disposition ?? "null";
   const { label, dot, text } = BADGE[key];
   return (
-    <span className={`inline-flex items-center gap-1 font-mono text-[9px] uppercase tracking-widest ${text}`}>
-      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dot}`} />
+    <span
+      className={`inline-flex items-center gap-1 font-mono text-[9px] uppercase tracking-widest transition-colors duration-200 ${text}`}
+    >
+      <span
+        className={`h-1.5 w-1.5 shrink-0 rounded-full transition-colors duration-200 ${dot}`}
+      />
       {label}
     </span>
   );
