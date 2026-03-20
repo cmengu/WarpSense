@@ -84,9 +84,18 @@ export default function AnalysisPage() {
 
       const callId = ++selectCounterRef.current;
 
-      const existingReport = await fetchWarpReport(session.session_id).catch(
-        () => null,
-      );
+      let existingReport: WarpReport | null = null;
+      try {
+        existingReport = await fetchWarpReport(session.session_id);
+      } catch (err) {
+        if (callId !== selectCounterRef.current) return;
+        // Non-404 failure (e.g. 5xx, network) — surface error instead of silently
+        // starting analysis, which would waste the 8–10 s pipeline call.
+        setStreamError(
+          `Could not load report for ${session.session_id}: ${String(err)}`,
+        );
+        return;
+      }
 
       if (callId !== selectCounterRef.current) return;
 
@@ -129,7 +138,13 @@ export default function AnalysisPage() {
   }, [selectedSession, startStream]);
 
   const handleAnalyseAll = useCallback(async () => {
-    const sessions = await fetchMockSessions().catch(() => []);
+    let sessions: MockSession[];
+    try {
+      sessions = await fetchMockSessions();
+    } catch (err) {
+      setStreamError(`Could not load sessions: ${String(err)}`);
+      return;
+    }
     if (sessions.length === 0) return;
     const first = sessions[0];
     analyseQueueRef.current = sessions.slice(1);
@@ -180,16 +195,28 @@ export default function AnalysisPage() {
       {streamError && (
         <div className="flex shrink-0 items-center justify-between border-b border-red-800 bg-red-950/50 px-4 py-2 font-mono text-[10px] text-red-300">
           <span>Analysis failed: {streamError}</span>
-          <button
-            type="button"
-            onClick={() => {
-              setStreamError(null);
-            }}
-            className="ml-4 text-red-400 transition-colors hover:text-red-200"
-            aria-label="Dismiss error"
-          >
-            ✕
-          </button>
+          <div className="ml-4 flex items-center gap-3">
+            {selectedSession && (
+              <button
+                type="button"
+                onClick={handleReanalyse}
+                className="text-red-400 transition-colors hover:text-red-200"
+                aria-label="Retry analysis"
+              >
+                Retry
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                setStreamError(null);
+              }}
+              className="text-red-400 transition-colors hover:text-red-200"
+              aria-label="Dismiss error"
+            >
+              ✕
+            </button>
+          </div>
         </div>
       )}
 

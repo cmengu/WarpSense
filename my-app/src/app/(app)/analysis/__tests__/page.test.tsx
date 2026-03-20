@@ -259,6 +259,21 @@ describe("AnalysisPage", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("report fetch failure (non-404) shows stream error and does not start analysis", async () => {
+    mockFetchWarpReport.mockRejectedValue(new Error("500 Internal Server Error"));
+    await renderAnalysisPage();
+
+    fireEvent.click(screen.getByTestId("select-session-btn"));
+
+    await waitFor(() =>
+      expect(
+        screen.getByText(/could not load report for mock-session-001/i),
+      ).toBeInTheDocument(),
+    );
+
+    expect(screen.queryByTestId("analysis-stream")).not.toBeInTheDocument();
+  });
+
   it("clicking a session with an existing report shows the report directly", async () => {
     mockFetchWarpReport.mockResolvedValue({
       session_id: "mock-session-001",
@@ -397,6 +412,35 @@ describe("AnalysisPage", () => {
     fireEvent.click(screen.getByRole("button", { name: /dismiss error/i }));
 
     expect(screen.queryByText(/pipeline timeout/i)).not.toBeInTheDocument();
+  });
+
+  it("retry button on error banner restarts the stream for the selected session", async () => {
+    mockFetchWarpReport.mockResolvedValue(null);
+    await renderAnalysisPage();
+
+    fireEvent.click(screen.getByTestId("select-session-btn"));
+    await waitFor(() =>
+      expect(screen.getByTestId("analysis-stream")).toBeInTheDocument(),
+    );
+
+    fireEvent.click(screen.getByTestId("error-stream-btn"));
+    await waitFor(() =>
+      expect(screen.getByText(/analysis failed/i)).toBeInTheDocument(),
+    );
+
+    const retryBtn = screen.getByRole("button", { name: /retry analysis/i });
+    expect(retryBtn).toBeInTheDocument();
+
+    fireEvent.click(retryBtn);
+    await waitFor(() =>
+      expect(screen.getByTestId("analysis-stream")).toBeInTheDocument(),
+    );
+
+    expect(screen.getByTestId("analysis-stream").dataset.sessionId).toBe(
+      "mock-session-001",
+    );
+
+    expect(screen.queryByText(/analysis failed/i)).not.toBeInTheDocument();
   });
 
   it("Analyse All advances queue to second session after first stream completes", async () => {
