@@ -113,13 +113,16 @@ export function AnalysisStream({ sessionId, onComplete, onError }: AnalysisStrea
               }));
             }
 
+            // Ignore late terminal events after unmount/session switch.
             if (event.stage === "complete" && event.report) {
+              if (cancelled) return;
               setProgress(100);
               onCompleteRef.current(event.report);
               return;
             }
 
             if (event.stage === "error") {
+              if (cancelled) return;
               onErrorRef.current(event.message ?? "Pipeline error");
               return;
             }
