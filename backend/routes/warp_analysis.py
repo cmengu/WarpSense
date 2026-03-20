@@ -10,11 +10,13 @@ Do NOT add these routes to sessions.py — AI analysis is a separate domain.
 """
 
 import logging
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session as OrmSession
 
+from data.mock_welders import WELDER_ARCHETYPES
 from database.models import WeldQualityReportModel
 from routes.sessions import get_db
 from services.warp_service import analyse_session_stream, get_graph, get_classifier
@@ -122,3 +124,52 @@ async def warp_health():
         logger.warning("warp_health classifier check failed: %s", e)
 
     return status
+
+
+# Aluminium archetype welder IDs — match WELDER_ARCHETYPES entries for the demo surface.
+_MOCK_SESSION_WELDER_IDS = {"expert_aluminium_001", "novice_aluminium_001"}
+
+# Anchor timestamp for deterministic session ordering in the demo.
+# Sessions are numbered oldest-first from this point, 1 day apart.
+_MOCK_BASE_TIMESTAMP = datetime(2025, 1, 1, 9, 0, 0, tzinfo=timezone.utc)
+
+
+@router.get("/api/mock-sessions")
+async def get_mock_sessions():
+    """
+    Return session metadata for the 10 aluminium demo sessions, generated in-memory.
+
+    No DB required — uses WELDER_ARCHETYPES to determine session count per welder.
+    arc_on_ratio and disposition are null (sessions are in pre-analysis state).
+    Sessions are ordered chronologically: expert_aluminium_001 first, then novice.
+    Timestamps are deterministic (no randomness) for exact replay in tests.
+    """
+    sessions = []
+    session_index = 0
+
+    for archetype in WELDER_ARCHETYPES:
+        if archetype["welder_id"] not in _MOCK_SESSION_WELDER_IDS:
+            continue
+
+        for i in range(archetype["sessions"]):
+            # Deterministic session_id: welder_id + zero-padded session number
+            session_id = f"{archetype['welder_id']}_s{i + 1:02d}"
+
+            # 1 day apart, oldest first — deterministic, no randomness
+            started_at = _MOCK_BASE_TIMESTAMP.replace(
+                day=_MOCK_BASE_TIMESTAMP.day + session_index
+            )
+
+            sessions.append({
+                "session_id":     session_id,
+                "welder_id":      archetype["welder_id"],
+                "welder_name":    archetype["name"],
+                "arc_type":       archetype["arc"],
+                # null until POST /analyse has been called for this session
+                "arc_on_ratio":   None,
+                "disposition":    None,
+                "started_at":     started_at.isoformat(),
+            })
+            session_index += 1
+
+    return sessions
