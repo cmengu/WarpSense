@@ -51,17 +51,31 @@ function dispositionStrip(disposition: WarpReport["disposition"]): string {
  * Parse persisted specialist JSON when the backend eventually exposes it.
  * Returns null if the field is absent, invalid, or has no valid rows.
  */
+function toStringArray(val: unknown): string[] {
+  if (!Array.isArray(val)) return [];
+  return val.filter((v): v is string => typeof v === "string");
+}
+
 function parseSpecialistRows(raw: string | null | undefined): ParsedSpecialistRow[] | null {
   if (raw == null || raw.trim() === "") return null;
   try {
     const parsed = JSON.parse(raw) as unknown;
     if (!Array.isArray(parsed)) return null;
-    const rows = parsed.filter(
-      (item): item is ParsedSpecialistRow =>
-        typeof item === "object" &&
-        item !== null &&
-        typeof (item as ParsedSpecialistRow).agent_name === "string",
-    );
+    const rows: ParsedSpecialistRow[] = [];
+    for (const item of parsed) {
+      if (typeof item !== "object" || item === null) continue;
+      const obj = item as Record<string, unknown>;
+      if (typeof obj.agent_name !== "string") continue;
+      // Normalize every optional array field so downstream JSX map/join are always safe.
+      rows.push({
+        agent_name:           obj.agent_name,
+        disposition:          typeof obj.disposition === "string" ? obj.disposition : undefined,
+        root_cause:           typeof obj.root_cause === "string" ? obj.root_cause : undefined,
+        corrective_actions:   toStringArray(obj.corrective_actions),
+        standards_references: toStringArray(obj.standards_references),
+        retrieved_chunk_ids:  toStringArray(obj.retrieved_chunk_ids),
+      });
+    }
     return rows.length > 0 ? rows : null;
   } catch {
     return null;
@@ -109,10 +123,10 @@ function buildDriverBars(report: WarpReport): DriverBar[] {
     }));
   }
 
-  const categories = report.primary_defect_categories ?? [];
+  const categories = (report.primary_defect_categories ?? []).slice(0, 5);
   if (categories.length === 0) return [];
   const even = Math.round(1000 / categories.length) / 10;
-  return categories.slice(0, 5).map((label) => ({
+  return categories.map((label) => ({
     label,
     percent: even,
     detail: "Primary defect category",
@@ -231,7 +245,7 @@ export function QualityReportCard({
               <button
                 key={`${ref}-${index}`}
                 type="button"
-                onClick={() => void navigator?.clipboard?.writeText?.(ref)}
+                onClick={() => void navigator?.clipboard?.writeText?.(ref).catch(() => {})}
                 className="font-mono text-[8px] uppercase tracking-widest border border-zinc-800 px-2 py-1 text-[var(--warp-text-muted)] hover:border-amber-400 hover:text-[var(--warp-amber)] transition-colors duration-100"
               >
                 {ref}
