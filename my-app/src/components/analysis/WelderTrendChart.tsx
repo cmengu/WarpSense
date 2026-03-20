@@ -104,10 +104,15 @@ export function WelderTrendChart({ welderId }: WelderTrendChartProps) {
 
   if (errorMsg) {
     return (
-      <div className={`${containerClass} flex items-center justify-center`}>
+      <div className={`${containerClass} flex flex-col items-center justify-center gap-1`}>
         <p className="font-mono text-[9px] text-red-400 uppercase tracking-widest">
           Trend unavailable
         </p>
+        {process.env.NODE_ENV === "development" && (
+          <p className="font-mono text-[8px] text-red-400/60 text-center px-2 break-all">
+            {errorMsg}
+          </p>
+        )}
       </div>
     );
   }

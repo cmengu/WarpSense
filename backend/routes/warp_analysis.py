@@ -199,7 +199,7 @@ async def get_quality_trend(
     In the demo context welder_id == operator_id (e.g. expert_aluminium_001).
     """
     rows = (
-        db.query(WeldQualityReportModel, SessionModel.weld_type, SessionModel.start_time)
+        db.query(WeldQualityReportModel, SessionModel.weld_type)
         .outerjoin(SessionModel, WeldQualityReportModel.session_id == SessionModel.session_id)
         .filter(WeldQualityReportModel.operator_id == welder_id)
         .order_by(WeldQualityReportModel.report_timestamp.asc())
@@ -207,13 +207,21 @@ async def get_quality_trend(
         .all()
     )
 
-    return [
-        {
+    result = []
+    for report, weld_type in rows:
+        score = _DISPOSITION_SCORE.get(report.disposition)
+        if score is None:
+            logger.warning(
+                "get_quality_trend: unknown disposition %r for session %s — skipping row",
+                report.disposition,
+                report.session_id,
+            )
+            continue
+        result.append({
             "session_id":        report.session_id,
             "report_timestamp":  report.report_timestamp.isoformat(),
             "weld_type":         weld_type,
             "disposition":       report.disposition,
-            "quality_score":     _DISPOSITION_SCORE.get(report.disposition, 0.0),
-        }
-        for report, weld_type, _start_time in rows
-    ]
+            "quality_score":     score,
+        })
+    return result
