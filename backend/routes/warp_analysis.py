@@ -54,7 +54,14 @@ async def run_analysis(
     return StreamingResponse(
         analyse_session_stream(session_id, db),
         media_type="text/event-stream",
-        headers={"X-Accel-Buffering": "no"},
+        headers={
+            "X-Accel-Buffering": "no",
+            "Cache-Control":     "no-cache",
+            # Prevents GZipMiddleware from buffering SSE events until minimum_size
+            # (1 KB) is reached — without this header, all events arrive at the client
+            # in one dump when the pipeline completes rather than streaming live.
+            "Content-Encoding":  "identity",
+        },
     )
 
 
@@ -150,8 +157,8 @@ async def get_mock_sessions():
             continue
 
         for i in range(archetype["sessions"]):
-            # Deterministic session_id: welder_id + zero-padded session number
-            session_id = f"{archetype['welder_id']}_s{i + 1:02d}"
+            # Must match scripts/seed_demo_data.py: sess_{welder_id}_{n:03d} for n in 1..sessions
+            session_id = f"sess_{archetype['welder_id']}_{i + 1:03d}"
 
             # 1 day apart, oldest first — deterministic, no randomness
             started_at = _MOCK_BASE_TIMESTAMP + timedelta(days=session_index)

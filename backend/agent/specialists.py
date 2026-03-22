@@ -175,8 +175,79 @@ class BaseSpecialistAgent(ABC):
         expanded = decompose_queries(queries, violations, self.domain)
         return self.retriever.retrieve(expanded)
 
+    def _threshold_fallback(self, own_violations: list[ThresholdViolation]) -> dict:
+        """
+        Pure threshold-based result used when the LLM is unavailable (e.g. rate-limited).
+        Derives disposition, root cause and corrective actions from violations alone so that
+        no LLM error details are ever exposed in the user-facing report.
+        """
+        if not own_violations:
+            return {
+                "disposition": "PASS",
+                "defect_categories": [],
+                "root_cause": "No threshold violations detected in monitored features.",
+                "corrective_actions": [],
+                "standards_references": [],
+            }
+
+        risk_viols     = [v for v in own_violations if v.severity == "RISK"]
+        marginal_viols = [v for v in own_violations if v.severity == "MARGINAL"]
+
+        if risk_viols:
+            disposition = "REWORK_REQUIRED"
+        elif marginal_viols:
+            disposition = "CONDITIONAL"
+        else:
+            disposition = "PASS"
+
+        # Defect categories — deduplicated, order-preserving
+        seen: set[str] = set()
+        defect_categories: list[str] = []
+        for v in own_violations:
+            for cat in v.defect_categories:
+                if cat not in seen:
+                    seen.add(cat)
+                    defect_categories.append(cat)
+
+        # Root cause — describe violations without any LLM error text
+        if risk_viols:
+            feat_list  = ", ".join(v.feature.replace("_", " ") for v in risk_viols)
+            root_cause = (
+                f"RISK-level exceedance in: {feat_list}. "
+                f"Threshold violations indicate elevated defect probability."
+            )
+        else:
+            feat_list  = ", ".join(v.feature.replace("_", " ") for v in marginal_viols)
+            root_cause = (
+                f"Marginal values in: {feat_list}. "
+                f"Monitor closely and review process parameters."
+            )
+
+        # Corrective actions — one per violation, deterministic
+        corrective_actions: list[str] = []
+        for v in own_violations:
+            direction = "below" if v.threshold_type == "max" else "above"
+            unit_str  = f" {v.unit}" if v.unit else ""
+            corrective_actions.append(
+                f"Adjust {v.feature.replace('_', ' ')} {direction} "
+                f"{v.threshold}{unit_str} (current: {v.value:.3g}{unit_str})"
+            )
+
+        return {
+            "disposition": disposition,
+            "defect_categories": defect_categories,
+            "root_cause": root_cause,
+            "corrective_actions": corrective_actions[:4],
+            "standards_references": [],
+        }
+
     def _call_llm(self, prompt: str) -> tuple[dict, str, bool]:
-        """Returns (parsed_dict, raw_str, fallback_used)."""
+        """Returns (parsed_dict, raw_str, fallback_used).
+
+        parsed_dict is empty ({}) when the LLM call fails with an API error
+        (e.g. rate-limit 429, network error). run() detects the empty dict and
+        calls _threshold_fallback() so no error text reaches the user-facing report.
+        """
         raw = ""
         version = PROMPT_VERSIONS.get(self.agent_name, "unknown")
         logger.info(
@@ -206,13 +277,13 @@ class BaseSpecialistAgent(ABC):
                 parsed = {}
             fallback_used = True
         except Exception as e:
-            parsed = {
-                "disposition": "CONDITIONAL",
-                "defect_categories": [],
-                "root_cause": f"LLM call failed: {e}",
-                "corrective_actions": ["Review threshold violations above"],
-                "standards_references": [],
-            }
+            # Log for ops visibility; return empty dict so run() uses threshold fallback.
+            # Never put the raw exception in the returned dict — it would reach the user report.
+            logger.warning(
+                "[%s] LLM call failed (%s): %s — threshold-based fallback will be used",
+                self.agent_name, type(e).__name__, e,
+            )
+            parsed = {}
             fallback_used = True
         return parsed, raw, fallback_used
 
@@ -240,6 +311,9 @@ class BaseSpecialistAgent(ABC):
         chunks = self._retrieve(queries, own_violations)
         prompt = self._build_prompt(prediction, features, own_violations, chunks)
         parsed, raw, fallback_used = self._call_llm(prompt)
+        if fallback_used and not parsed:
+            # LLM API unavailable (e.g. rate-limited) — derive result from violations only.
+            parsed = self._threshold_fallback(own_violations)
 
         disposition = parsed.get("disposition", "CONDITIONAL")
         lof_lop_risk = any(
