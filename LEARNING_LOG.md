@@ -1,11 +1,11 @@
 # Development Learning Log
 
 **Purpose:** Document mistakes, solutions, and lessons learned to prevent repeating the same errors. Feed lessons to AI tools.  
-**For AI Tools:** Reference this file with `@LEARNING_LOG.md` when implementing 3D/WebGL features.  
+**For AI Tools:** Reference this file with `@LEARNING_LOG.md` when implementing 3D/WebGL, SSE/streaming APIs, or analysis UI (`AnalysisTimeline`).  
 **For `.cursorrules`:** Check LEARNING_LOG.md for anti-patterns, required patterns, and past incidents before generating code.
 
-**Last Updated:** 2026-03-02  
-**Total Entries:** 27 incidents + Lessons & Reflections
+**Last Updated:** 2026-03-21  
+**Total Entries:** 29 incidents + Lessons & Reflections
 
 **Dashboard code review (2026-03-02):** `Promise.race` with `setTimeout` — clear timer in `finally` or it leaks when the main promise wins first. Tests: use `within(container).getByText()` + `toHaveAttribute` instead of `document.querySelector`; remove dead mocks (e.g. useRouter when page doesn't use it). See project-context.md "Promise.race Timeout Cleanup" and "Common Failure Points".
 
@@ -43,12 +43,18 @@
 
 **Stale seed data when mock generators change (2026-02-23):** `seed_demo_data.py` skips re-seeding when existing count matches expected. If you change mock_sessions.py (e.g. duration_ms, arc types), run `python -m scripts.seed_demo_data --force` or `curl -X POST .../wipe-mock-sessions` then `.../seed-mock-sessions`. See STARTME.md.
 
+**GZip middleware + SSE (2026-03-21):** FastAPI `GZipMiddleware(minimum_size=1000)` buffers small chunks until 1 KB before flushing. WarpSense SSE events (~80–100 B each) sat in the buffer until the large `complete` event — browser saw silence then a burst. Fix: set `Content-Encoding: identity` on `StreamingResponse` for SSE so gzip skips that response. See `backend/routes/warp_analysis.py` `run_analysis` headers.
+
+**AnalysisTimeline + Analyse All (2026-03-21):** Calling `onComplete(report)` in the same synchronous block as `setReport` + `setPhase("done")` let React 18 batch with parent `startStream(next)`; `key={sessionId}` changed in the same commit, unmounting the timeline before the report painted. Fix: defer `onComplete` with `useEffect` + `setTimeout(..., 800)` after `phase === "done"` and `report` are set. See `my-app/src/components/analysis/AnalysisTimeline.tsx`.
+
 ---
 
 ## Quick Reference
 
 | Date | Title | Category | Severity |
 |------|-------|----------|----------|
+| 2026-03-21 | GZipMiddleware Buffers SSE Until 1 KB — Use identity | API / Streaming | 🟡 High |
+| 2026-03-21 | onComplete + key — Batch Unmount Before Report Renders | Frontend / React | 🟡 High |
 | 2026-03-02 | Promise.race Timeout Leak — No clearTimeout on Settle | Performance | 🟢 Medium |
 | 2026-03-02 | Testing: document.querySelector vs Testing Library | Testing | ⚪ Low |
 | 2026-03-02 | Dead Mocks (useRouter) in Tests | Testing | ⚪ Low |
@@ -438,6 +444,53 @@ When adding new valid values to API enums/allowlists (e.g. process_type, weld_ty
 
 ---
 
+### 📅 2026-03-21 — GZipMiddleware Buffers SSE Until minimum_size (1 KB)
+
+**Category:** API / Streaming  
+**Severity:** 🟡 High
+
+**What Happened:**
+The app used `GZipMiddleware` with `minimum_size=1000`. GZip accumulates response body bytes and only compresses/flushes once enough data exists. Each WarpSense SSE `data:` line is tiny (~80–100 bytes). The middleware held events 1–8 until the final `complete` event (large JSON report) pushed the buffer over 1 KB. The browser then received everything at once after ~15 s of apparent silence — looked like React batching or a broken stream, but the server had never flushed.
+
+**Impact:**
+- No live progressive UI for agent stages; report appeared only after full pipeline finished
+- Misleading debugging (frontend yields, keepalives) while root cause was response compression
+
+**Root Cause:**
+- **Technical:** Starlette/FastAPI `GZipMiddleware` is inappropriate for streaming bodies that must flush per chunk unless explicitly bypassed.
+
+**The Fix:**
+
+```python
+# On StreamingResponse for SSE — tell middleware not to compress this response
+return StreamingResponse(
+    analyse_session_stream(session_id, db),
+    media_type="text/event-stream",
+    headers={
+        "X-Accel-Buffering": "no",
+        "Cache-Control":     "no-cache",
+        "Content-Encoding":  "identity",
+    },
+)
+```
+
+**Prevention:**
+- ✅ DO: For `text/event-stream` / SSE, set `Content-Encoding: identity` (or exclude streaming routes from GZip) so bytes pass through immediately
+- ✅ DO: When adding new streaming endpoints, grep for `GZipMiddleware` and verify they bypass compression
+- ❌ DON'T: Assume small incremental writes from a generator reach the client immediately if global compression middleware is enabled
+
+**AI Guidance:**
+```
+When implementing SSE or chunked streaming in FastAPI with GZipMiddleware:
+"Set Content-Encoding: identity on the StreamingResponse (or disable gzip for that route). Otherwise events buffer until minimum_size. See LEARNING_LOG.md GZip SSE entry and backend/routes/warp_analysis.py run_analysis."
+```
+
+**References:**
+- `backend/main.py` — `app.add_middleware(GZipMiddleware, minimum_size=1000)`
+- `backend/routes/warp_analysis.py` — `POST .../analyse`, `StreamingResponse` headers
+
+---
+
 ## ⚙️ Backend / Scoring (2026-02-26)
 
 ### 📅 2026-02-26 — Defect Score Penalty Uses Wrong Alert Count
@@ -729,6 +782,55 @@ Include additional unique fields: `key={\`${timestamp_ms}-${defect_type}-${param
 - ✅ DO: When list items can have duplicate primary fields, include secondary fields or a stable id in the key
 - ❌ DON'T: Rely on index alone when items can be reordered or filtered
 - [ ] Code review: "Can two items have the same (timestamp, type)? Is the key sufficiently unique?"
+
+---
+
+### 📅 2026-03-21 — onComplete + session key — React 18 batch unmounts before report paints
+
+**Category:** Frontend / React  
+**Severity:** 🟡 High
+
+**What Happened:**
+`AnalysisTimeline` called `setReport`, `setPhase("done")`, and `onComplete(report)` synchronously when the SSE `complete` event arrived. The parent’s `onComplete` (Analyse All) called `startStream(nextSessionId)`, updating `sessionId`. `AnalysisTimeline` was rendered with `key={sessionId}`. React 18 batched the child state updates and the parent update into one render; the key changed, so React destroyed the timeline instance before the user ever saw the report for the finished session.
+
+**Impact:**
+- Last item in Analyse All (or any flow that advances immediately) showed no final report flash
+- Appeared as “skipped” or broken queue behaviour
+
+**Root Cause:**
+- **Technical:** Same render commit: timeline transitions to “done” and parent replaces `sessionId` → new component instance
+- **Process:** Parent callbacks that change identity (`key`) must not run in the same synchronous turn as “show result” state
+
+**The Fix:**
+
+```tsx
+// ❌ BEFORE — in SSE loop on complete
+setReport(event.report);
+setPhase("done");
+onCompleteRef.current?.(event.report); // parent changes key → unmount
+
+// ✅ AFTER — report commits first; onComplete deferred
+setReport(event.report);
+setPhase("done");
+// useEffect when phase === "done" && report:
+//   setTimeout(() => onCompleteRef.current?.(report), 800)
+// cleanup: clearTimeout
+```
+
+**Prevention:**
+- ✅ DO: Defer parent notifications that remount or change `key` until after the user-visible state has committed (e.g. `useEffect` + short `setTimeout`, or `queueMicrotask`/`requestAnimationFrame` if sufficient)
+- ✅ DO: Reset any “fired once” ref when `sessionId` / `streamTrigger` restarts the stream
+- ❌ DON'T: Call parent queue-advance callbacks inline in the same handler that sets “show result” UI when the parent passes a changing `key`
+
+**AI Guidance:**
+```
+When a child finishes async work and the parent advances queue / changes key:
+"Do not call onComplete synchronously with setState that shows the result. Defer onComplete (useEffect + setTimeout) so the report renders first. See LEARNING_LOG.md AnalysisTimeline onComplete batching."
+```
+
+**References:**
+- `my-app/src/components/analysis/AnalysisTimeline.tsx` — deferred `onComplete`, `onCompleteFiredRef`
+- `my-app/src/app/(app)/analysis/page.tsx` — `key={viewState.sessionId}`, `handleStreamComplete`
 
 ---
 

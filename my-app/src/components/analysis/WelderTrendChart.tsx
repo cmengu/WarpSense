@@ -47,9 +47,9 @@ function CustomDot(props: {
 }
 
 function yTickFormatter(value: number): string {
-  if (value === 1.0) return "PASS";
-  if (value === 0.5) return "COND";
-  if (value === 0.0) return "REWORK";
+  if (value === 1.0) return "Pass";
+  if (value === 0.5) return "Review";
+  if (value === 0.0) return "Rework";
   return String(value);
 }
 
@@ -167,19 +167,18 @@ export function WelderTrendChart({ welderId }: WelderTrendChartProps) {
               fontFamily: "var(--font-warp-mono)",
               color: "var(--warp-text)",
             }}
-            formatter={(value, _name, item) => {
+            formatter={(_value, _name, item) => {
               const row =
-                item &&
-                typeof item === "object" &&
-                "payload" in item
+                item && typeof item === "object" && "payload" in item
                   ? (item.payload as ChartRow | undefined)
                   : undefined;
-              const disposition = row?.disposition ?? "";
-              const n =
-                typeof value === "number" && Number.isFinite(value)
-                  ? value
-                  : "—";
-              return [`${disposition} (${n})`, "Quality"];
+              const d = row?.disposition ?? "";
+              const label =
+                d === "REWORK_REQUIRED" ? "Rework Required"
+                : d === "CONDITIONAL"   ? "Conditional"
+                : d === "PASS"          ? "Pass"
+                : d;
+              return [label, "Result"];
             }}
             labelFormatter={(label) => `Session ${String(label)}`}
           />

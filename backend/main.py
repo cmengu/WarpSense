@@ -3,12 +3,46 @@ FastAPI application entry point
 Configures CORS, registers routes, and starts the server
 """
 
+from __future__ import annotations
+
 import os
+import sys
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
+
+
+def _require_project_venv_if_present() -> None:
+    """
+    Fail fast when `backend/venv` exists but the interpreter is not that venv
+    (e.g. conda `base` `python`). Avoids opaque errors like ModuleNotFoundError: psycopg2.
+
+    Uses sys.prefix (venv root), not Path(sys.executable).resolve(): the venv's python
+    binary is often a symlink to the base interpreter, so resolving the executable
+    incorrectly points outside backend/venv.
+    """
+    backend_root = Path(__file__).resolve().parent
+    venv_root = (backend_root / "venv").resolve()
+    venv_bin = venv_root / "bin"
+    if not venv_bin.is_dir():
+        return
+    prefix = Path(sys.prefix).resolve()
+    if not prefix.is_relative_to(venv_root):
+        raise RuntimeError(
+            "Wrong Python interpreter: backend/venv exists but you are not using it.\n"
+            f"  sys.prefix: {prefix}\n"
+            f"  Expected under: {venv_root}\n"
+            f"  sys.executable: {sys.executable}\n"
+            "  Fix:     cd backend && source venv/bin/activate && "
+            "python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000\n"
+            "  Or from repo root: npm run dev:backend"
+        ) from None
+
+
+_require_project_venv_if_present()
 
 from database.connection import check_db_connectivity
 from routes.ai import router as ai_router

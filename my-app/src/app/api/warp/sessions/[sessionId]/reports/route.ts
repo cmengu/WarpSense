@@ -4,7 +4,9 @@
  */
 import { NextResponse } from "next/server";
 import type { WarpReport } from "@/types/warp-analysis";
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+import { getServerBackendBaseUrl } from "@/lib/server-backend-base-url";
+
+const API_BASE = getServerBackendBaseUrl();
 export const dynamic = "force-dynamic";
 export async function GET(
   _request: Request,

@@ -1,13 +1,19 @@
 "use client";
+import { useEffect, useState } from "react";
 import type { AgentStage, AgentCardState, WarpDisposition } from "@/types/warp-analysis";
 
 export interface SpecialistCardProps { stage: AgentStage; state: AgentCardState; }
 
 const STAGE_LABEL: Record<AgentStage, string> = {
-  thermal_agent:  "Thermal",
-  geometry_agent: "Geometry",
-  process_agent:  "Process",
+  thermal_agent:  "Heat Profile",
+  geometry_agent: "Torch Angle",
+  process_agent:  "Arc Stability",
 };
+
+/** Format milliseconds to "0.0s" or "12.3s" for display. */
+function fmtMs(ms: number): string {
+  return `${(ms / 1000).toFixed(1)}s`;
+}
 
 /** Left border + text colour based on disposition when done. */
 function doneStyle(disposition: WarpDisposition | null): string {
@@ -19,6 +25,16 @@ function doneStyle(disposition: WarpDisposition | null): string {
 
 export function SpecialistCard({ stage, state }: SpecialistCardProps) {
   const label = STAGE_LABEL[stage];
+
+  // Live elapsed counter — ticks every 100ms while agent is running.
+  const [elapsed, setElapsed] = useState<number>(0);
+  useEffect(() => {
+    if (state.status !== "running" || state.startedAt === undefined) return;
+    const id = setInterval(() => {
+      setElapsed(Date.now() - (state.startedAt as number));
+    }, 100);
+    return () => clearInterval(id);
+  }, [state.status, state.startedAt]);
 
   if (state.status === "queued") {
     return (
@@ -33,10 +49,23 @@ export function SpecialistCard({ stage, state }: SpecialistCardProps) {
     return (
       <div className="flex-1 border border-amber-400/30 border-l-2 border-l-amber-400 p-3 [animation:warp-pulse_2s_ease-in-out_infinite]">
         <p className="font-mono text-[9px] uppercase tracking-widest text-amber-400">{label}</p>
-        <p className="font-mono text-[10px] text-amber-300 mt-1 animate-pulse">Analysing…</p>
+        <p className="font-mono text-[10px] text-amber-300 mt-1 animate-pulse">
+          Analysing… {fmtMs(elapsed)}
+        </p>
+        {state.message && (
+          <p className="font-mono text-[9px] text-amber-400/60 mt-1 truncate" title={state.message}>
+            {state.message}
+          </p>
+        )}
       </div>
     );
   }
+
+  // done state
+  const duration =
+    state.startedAt !== undefined && state.finishedAt !== undefined
+      ? fmtMs(state.finishedAt - state.startedAt)
+      : null;
 
   return (
     <div className={`border border-zinc-800 border-l-2 p-3 ${doneStyle(state.disposition)}`}>
@@ -44,6 +73,9 @@ export function SpecialistCard({ stage, state }: SpecialistCardProps) {
       <p className="font-mono text-[10px] mt-1">
         {state.disposition?.replaceAll("_", " ") ?? "DONE"}
       </p>
+      {duration && (
+        <p className="font-mono text-[9px] text-zinc-600 mt-0.5">{duration}</p>
+      )}
     </div>
   );
 }

@@ -34,6 +34,14 @@ function formatDate(iso: string): string {
   });
 }
 
+/** Maps disposition to a Tailwind left-border colour class for unselected rows. */
+function dispositionBorderClass(disposition: MockSession["disposition"]): string {
+  if (disposition === "PASS")             return "border-l-green-500";
+  if (disposition === "CONDITIONAL")      return "border-l-amber-400";
+  if (disposition === "REWORK_REQUIRED")  return "border-l-red-500";
+  return "border-l-zinc-700";
+}
+
 function SkeletonRows() {
   return (
     <>
@@ -114,7 +122,7 @@ export function SessionList({
                 "transition-colors duration-100",
                 selected
                   ? "border-l-amber-400 bg-[var(--warp-surface-2)]"
-                  : "border-l-transparent hover:bg-[var(--warp-surface-2)] hover:border-l-zinc-600",
+                  : `${dispositionBorderClass(session.disposition)} hover:bg-[var(--warp-surface-2)]`,
               ].join(" ")}
             >
               {/* Welder avatar — colour coded by archetype */}

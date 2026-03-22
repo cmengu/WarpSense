@@ -1,14 +1,16 @@
 /**
  * POST /api/warp/sessions/[sessionId]/analyse
- * Pipes FastAPI SSE stream to client — zero buffering.
+ * Same-origin proxy: pipes FastAPI SSE with new Response(upstream.body).
  *
- * MUST use new Response(upstream.body). NextResponse.json() buffers the
- * entire stream before sending — this kills the live-progress UX.
- * Client uses fetch() + ReadableStream. Never EventSource (POST route).
+ * Browser UI uses `streamAnalysis()` in warp-api.ts → direct POST to FastAPI instead,
+ * to avoid any proxy buffering/timing issues. Keep this route for curl/tests/same-origin tools.
+ * Backend is POST-only for analyse — EventSource (GET) does not apply.
  * Next.js 16: params is a Promise — await before use.
  */
 import { NextResponse } from "next/server";
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+import { getServerBackendBaseUrl } from "@/lib/server-backend-base-url";
+
+const API_BASE = getServerBackendBaseUrl();
 export const dynamic = "force-dynamic";
 // Node.js runtime required — Edge runtime does not support ReadableStream pipe-through.
 export const runtime = "nodejs";

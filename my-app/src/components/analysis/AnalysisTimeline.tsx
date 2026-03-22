@@ -204,12 +204,34 @@ export function AnalysisTimeline({
     };
   }, [sessionId, streamTrigger]);
 
+  // Derived once per render — drives header colour on completion.
+  const headerBorderClass =
+    phase === "done" && report
+      ? report.disposition === "PASS"          ? "border-green-900"
+        : report.disposition === "CONDITIONAL" ? "border-amber-900"
+        : "border-red-900"
+      : "border-zinc-900";
+
+  const headerTextClass =
+    phase === "done" && report
+      ? report.disposition === "PASS"          ? "text-green-400"
+        : report.disposition === "CONDITIONAL" ? "text-amber-400"
+        : "text-red-400"
+      : "text-[var(--warp-text-muted)]";
+
+  const headerLabel =
+    phase === "done" && report
+      ? report.disposition === "REWORK_REQUIRED" ? "Rework Required"
+        : report.disposition === "CONDITIONAL"   ? "Conditional"
+        : "Pass"
+      : "Analysis in Progress";
+
   return (
     <div className="flex flex-col h-full min-h-0 bg-[var(--warp-surface)]">
-      {/* Header + progress bar */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-900 shrink-0">
-        <span className="font-mono text-[10px] uppercase tracking-widest text-[var(--warp-text-muted)]">
-          {phase === "streaming" ? "Analysis in Progress" : "Analysis Complete"}
+      {/* Header + verdict colour on done */}
+      <div className={`flex items-center justify-between px-4 py-3 border-b shrink-0 ${headerBorderClass}`}>
+        <span className={`font-mono text-[11px] font-semibold uppercase tracking-widest ${headerTextClass}`}>
+          {headerLabel}
         </span>
         <span className="font-mono text-[9px] text-[var(--warp-text-dim)]">{sessionId}</span>
       </div>

@@ -2,12 +2,11 @@
 /**
  * /analysis — WarpSense post-weld analysis surface.
  *
- * State machine:
- *   empty     → no session selected; right panel shows prompt
- *   streaming → SSE pipeline running; right panel shows AnalysisStream
- *   report    → pipeline complete; right panel shows QualityReportCard
+ * State machine (simplified in Phase UI-8.5):
+ *   empty  → no session selected; right panel shows prompt
+ *   active → AnalysisTimeline owns both SSE streaming and inline report display
  *
- * Height: fills the `(app)` layout content row via `h-full min-h-0` (grid `1fr` below AppNav).
+ * Height: fills the `(app)` layout content area via `h-full min-h-0` beside AppSidebar.
  * WelderTrendChart is loaded via next/dynamic (ssr:false) — Recharts uses DOM APIs
  * unavailable in Node. See LEARNING_LOG.md 2026-03-02.
  */
@@ -24,8 +23,7 @@ import {
   fetchMockSessions,
 } from "@/lib/warp-api";
 import { SessionList } from "@/components/analysis/SessionList";
-import { AnalysisStream } from "@/components/analysis/AnalysisStream";
-import { QualityReportCard } from "@/components/analysis/QualityReportCard";
+import { AnalysisTimeline } from "@/components/analysis/AnalysisTimeline";
 
 const WelderTrendChart = dynamic(
   () =>
@@ -37,23 +35,20 @@ const WelderTrendChart = dynamic(
 
 type ViewState =
   | { mode: "empty" }
-  | { mode: "streaming"; sessionId: string }
-  | { mode: "report"; report: WarpReport };
+  | { mode: "active"; sessionId: string };
 
 const HEALTH_POLL_MS = 30_000;
 
 export default function AnalysisPage() {
-  const [selectedSession, setSelectedSession] = useState<MockSession | null>(
-    null,
-  );
-  const [viewState, setViewState] = useState<ViewState>({ mode: "empty" });
-  const [streamError, setStreamError] = useState<string | null>(null);
-  // null = not yet fetched; prevents false "unavailable" banner flash on load.
-  const [health, setHealth] = useState<WarpHealthResponse | null>(null);
-  const [isAnalysing, setIsAnalysing] = useState(false);
+  const [selectedSession, setSelectedSession] = useState<MockSession | null>(null);
+  const [viewState, setViewState]             = useState<ViewState>({ mode: "empty" });
+  // Increment to re-trigger AnalysisTimeline's stream effect without unmounting.
+  const [streamTrigger, setStreamTrigger]     = useState(0);
+  const [streamError, setStreamError]         = useState<string | null>(null);
+  const [health, setHealth]                   = useState<WarpHealthResponse | null>(null);
+  const [isAnalysing, setIsAnalysing]         = useState(false);
 
-  // Queue for "Analyse All" — full MockSession[] so selectedSession updates per item.
-  const analyseQueueRef = useRef<MockSession[]>([]);
+  const analyseQueueRef  = useRef<MockSession[]>([]);
   const selectCounterRef = useRef(0);
 
   useEffect(() => {
@@ -64,15 +59,13 @@ export default function AnalysisPage() {
     };
     void poll();
     const id = setInterval(() => void poll(), HEALTH_POLL_MS);
-    return () => {
-      cancelled = true;
-      clearInterval(id);
-    };
+    return () => { cancelled = true; clearInterval(id); };
   }, []);
 
   const startStream = useCallback((sessionId: string) => {
     setStreamError(null);
-    setViewState({ mode: "streaming", sessionId });
+    setViewState({ mode: "active", sessionId });
+    setStreamTrigger((n) => n + 1);
   }, []);
 
   const handleSessionSelect = useCallback(
@@ -84,13 +77,10 @@ export default function AnalysisPage() {
 
       const callId = ++selectCounterRef.current;
 
-      let existingReport: WarpReport | null = null;
       try {
-        existingReport = await fetchWarpReport(session.session_id);
+        await fetchWarpReport(session.session_id);
       } catch (err) {
         if (callId !== selectCounterRef.current) return;
-        // Non-404 failure (e.g. 5xx, network) — surface error instead of silently
-        // starting analysis, which would waste the 8–10 s pipeline call.
         setStreamError(
           `Could not load report for ${session.session_id}: ${String(err)}`,
         );
@@ -99,19 +89,16 @@ export default function AnalysisPage() {
 
       if (callId !== selectCounterRef.current) return;
 
-      if (existingReport) {
-        setViewState({ mode: "report", report: existingReport });
-      } else {
-        startStream(session.session_id);
-      }
+      // Whether or not a cached report exists, we stream — backend may short-circuit to cached result.
+      startStream(session.session_id);
     },
     [startStream],
   );
 
   const handleStreamComplete = useCallback(
-    (report: WarpReport) => {
-      setViewState({ mode: "report", report });
-
+    (_report: WarpReport) => {
+      // AnalysisTimeline displays the report internally.
+      // This callback advances the Analyse All queue.
       const queue = analyseQueueRef.current;
       if (queue.length > 0) {
         const nextSession = queue[0];
@@ -134,6 +121,7 @@ export default function AnalysisPage() {
 
   const handleReanalyse = useCallback(() => {
     if (!selectedSession) return;
+    // Restores active mode after error (view was cleared) and bumps streamTrigger to re-run.
     startStream(selectedSession.session_id);
   }, [selectedSession, startStream]);
 
@@ -257,25 +245,16 @@ export default function AnalysisPage() {
             </div>
           )}
 
-          {viewState.mode === "streaming" && (
-            <AnalysisStream
+          {viewState.mode === "active" && (
+            <AnalysisTimeline
+              key={viewState.sessionId}
               sessionId={viewState.sessionId}
-              onComplete={handleStreamComplete}
+              streamTrigger={streamTrigger}
               onError={handleStreamError}
+              onComplete={handleStreamComplete}
+              onReanalyse={handleReanalyse}
+              welderDisplayName={selectedSession?.welder_name ?? null}
             />
-          )}
-
-          {viewState.mode === "report" && (
-            <div
-              key={viewState.report.session_id}
-              className="animate-warp-fade-in h-full min-h-0"
-            >
-              <QualityReportCard
-                report={viewState.report}
-                welderDisplayName={selectedSession?.welder_name ?? null}
-                onReanalyse={handleReanalyse}
-              />
-            </div>
           )}
         </div>
       </div>

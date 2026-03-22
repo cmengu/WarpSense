@@ -4,6 +4,27 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ThresholdViolation, WarpReport } from "@/types/warp-analysis";
 import { StatusBadge } from "./StatusBadge";
 
+/** Maps internal feature variable names → short operational labels for supervisor-facing display. */
+const FEATURE_DISPLAY: Record<string, string> = {
+  heat_diss_max_spike:       "Peak heat dissipation",
+  heat_input_min_rolling:    "Min rolling heat input",
+  heat_input_drop_severity:  "Heat input drop",
+  angle_deviation_mean:      "Torch angle deviation",
+  angle_max_drift_1s:        "Torch angle drift (1 s)",
+  voltage_cv:                "Voltage stability",
+  amps_cv:                   "Current stability",
+  heat_input_cv:             "Heat input consistency",
+  arc_on_ratio:              "Arc continuity",
+  heat_input_mean:           "Average heat input",
+};
+
+/** Maps agent code-names → operational display labels. */
+const AGENT_DISPLAY: Record<string, string> = {
+  ThermalAgent:           "Heat Profile",
+  GeometryAgent:          "Torch Angle",
+  ProcessStabilityAgent:  "Arc Stability",
+};
+
 export interface QualityReportCardProps {
   report: WarpReport;
   /** Wired in Phase UI-7 from selectedSession.welder_name. */
@@ -207,8 +228,7 @@ export function QualityReportCard({
           </div>
         </div>
         <p className="font-mono text-[10px] text-white/60 mt-2">
-          {report.quality_class} · confidence {(report.confidence * 100).toFixed(1)}% · ISO{" "}
-          {report.iso_5817_level}
+          {(report.confidence * 100).toFixed(0)}% confidence · ISO 5817 Grade {report.iso_5817_level}
         </p>
       </div>
 
@@ -291,8 +311,8 @@ export function QualityReportCard({
               {specialistRows.map((row, index) => (
                 <details key={`${row.agent_name}-${index}`} className="border border-zinc-800 rounded">
                   <summary className="cursor-pointer px-3 py-2 font-mono text-[10px] text-[var(--warp-text)] hover:bg-[var(--warp-surface-2)]">
-                    {row.agent_name}
-                    {row.disposition ? ` · ${row.disposition}` : ""}
+                    {AGENT_DISPLAY[row.agent_name] ?? row.agent_name}
+                    {row.disposition ? ` · ${row.disposition.replace("_", " ")}` : ""}
                   </summary>
                   <div className="px-3 pb-3 pt-1 space-y-2">
                     {row.root_cause ? (

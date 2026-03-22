@@ -314,10 +314,27 @@ async def analyse_session_stream(session_id: str, db: OrmSession) -> AsyncGenera
 
     asyncio.create_task(_run_pipeline())
 
-    # Drain queue until sentinel.
-    # 300 s timeout guards against a hung pipeline leaving the connection open forever.
+    # Drain queue until sentinel, emitting SSE keepalive comments every 10 s.
+    # Prevents Nginx proxy_read_timeout (default 60 s) from silently killing
+    # the connection during long Groq LLM calls.
+    _KEEPALIVE_S = 10.0
+    loop = asyncio.get_running_loop()
+    _deadline = loop.time() + 300.0
+
     while True:
-        event = await asyncio.wait_for(queue.get(), timeout=300.0)
+        remaining = _deadline - loop.time()
+        if remaining <= 0:
+            break
+        try:
+            event = await asyncio.wait_for(
+                queue.get(), timeout=min(_KEEPALIVE_S, remaining)
+            )
+        except asyncio.TimeoutError:
+            if loop.time() >= _deadline:
+                break
+            # SSE comment — ignored by frontend parser; resets proxy idle timer.
+            yield ": keepalive\n\n"
+            continue
         if event is None:
             break
         yield _sse(event)

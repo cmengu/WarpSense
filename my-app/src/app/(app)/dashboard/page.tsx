@@ -326,8 +326,14 @@ export default function DashboardPage() {
                 style={{
                   background:
                     "linear-gradient(160deg, #181c21 0%, #111316 60%)",
-                  border: "1px solid rgba(255,255,255,0.09)",
-                  borderTopColor: "rgba(255,255,255,0.14)",
+                  borderTop:    "1px solid rgba(255,255,255,0.14)",
+                  borderRight:  "1px solid rgba(255,255,255,0.09)",
+                  borderBottom: "1px solid rgba(255,255,255,0.09)",
+                  borderLeft: riskLevel === "green"
+                    ? "3px solid #22c55e"
+                    : riskLevel === "amber"
+                      ? "3px solid #f59e0b"
+                      : "3px solid #ef4444",
                   boxShadow:
                     "0 1px 0 0 rgba(255,255,255,0.06) inset, 0 -1px 0 0 rgba(0,0,0,0.4) inset, 0 4px 8px rgba(0,0,0,0.35), 0 12px 28px rgba(0,0,0,0.3)",
                 }}

@@ -54,6 +54,21 @@ from prompts.versions import PROMPT_VERSIONS
 
 logger = logging.getLogger(__name__)
 
+# Human-readable display names for threshold features — used in _threshold_fallback()
+# corrective actions so the user-facing report never shows raw Python variable names.
+_FEATURE_LABELS: dict[str, str] = {
+    "heat_diss_max_spike":       "peak heat dissipation rate",
+    "heat_input_min_rolling":    "minimum rolling heat input",
+    "heat_input_drop_severity":  "heat input drop severity",
+    "angle_deviation_mean":      "average torch angle deviation",
+    "angle_max_drift_1s":        "max torch angle drift (1 s)",
+    "voltage_cv":                "voltage consistency (CV)",
+    "amps_cv":                   "current consistency (CV)",
+    "heat_input_cv":             "heat input consistency (CV)",
+    "arc_on_ratio":              "arc continuity ratio",
+    "heat_input_mean":           "average heat input",
+}
+
 
 @dataclass
 class SpecialistResult:
@@ -228,8 +243,9 @@ class BaseSpecialistAgent(ABC):
         for v in own_violations:
             direction = "below" if v.threshold_type == "max" else "above"
             unit_str  = f" {v.unit}" if v.unit else ""
+            label = _FEATURE_LABELS.get(v.feature, v.feature.replace("_", " "))
             corrective_actions.append(
-                f"Adjust {v.feature.replace('_', ' ')} {direction} "
+                f"Adjust {label} {direction} "
                 f"{v.threshold}{unit_str} (current: {v.value:.3g}{unit_str})"
             )
 

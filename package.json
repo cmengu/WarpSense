@@ -7,7 +7,7 @@
     "dev": "npm run dev:all",
     "dev:all": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\" --names \"BACKEND,FRONTEND\" --prefix-colors \"cyan,magenta\"",
     "dev:frontend": "cd my-app && npm run dev",
-    "dev:backend": "cd backend && source venv/bin/activate && ENV=development python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000",
+    "dev:backend": "cd backend && ENV=development bash start.sh",
     "build": "cd my-app && npm run build",
     "test": "npm run test:frontend && npm run test:backend",
     "test:frontend": "cd my-app && npm test",

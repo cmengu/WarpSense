@@ -148,7 +148,7 @@ body {
   animation: fade-in 300ms ease-out forwards;
 }
 
-/* UI-8: specialist cards stagger on AnalysisStream mount */
+/* UI-8: specialist cards stagger on specialist row mount (AnalysisTimeline) */
 @keyframes warp-card-enter {
   from {
     opacity: 0;

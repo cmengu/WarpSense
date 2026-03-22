@@ -57,12 +57,18 @@ export interface WarpReport {
   llm_raw_response?:         string | null;
 }
 
-// Specialist card state (AnalysisStream internal)
+// Specialist card state (analysis SSE consumer)
 export type AgentStage = "thermal_agent" | "geometry_agent" | "process_agent";
 export type AgentCardStatus = "queued" | "running" | "done";
 export interface AgentCardState {
   status: AgentCardStatus;
   disposition: WarpDisposition | null;
+  /** Live message text from the SSE event — displayed on running cards. */
+  message: string | null;
+  /** Wall-clock ms when agent entered "running" state. */
+  startedAt: number | undefined;
+  /** Wall-clock ms when agent reached "done" state. */
+  finishedAt: number | undefined;
 }
 
 // GET /api/health/warp

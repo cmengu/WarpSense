@@ -4,7 +4,7 @@
  * Mocks:
  *  - @/lib/warp-api — all fetch helpers return minimal stubs
  *  - next/dynamic — returns a <div data-testid="welder-trend-chart" />
- *  - @/components/analysis/* — stubs for SessionList, AnalysisStream, QualityReportCard
+ *  - @/components/analysis/* — stubs for SessionList, AnalysisTimeline
  */
 import type { FC } from "react";
 import { render, screen, waitFor, act, fireEvent } from "@testing-library/react";
@@ -74,72 +74,93 @@ jest.mock("@/components/analysis/SessionList", () => ({
   ),
 }));
 
-jest.mock("@/components/analysis/AnalysisStream", () => ({
-  AnalysisStream: ({
-    sessionId,
-    onComplete,
-    onError,
-  }: {
-    sessionId: string;
-    onComplete: (r: object) => void;
-    onError: (m: string) => void;
-  }) => (
-    <div data-testid="analysis-stream" data-session-id={sessionId}>
-      <button
-        data-testid="complete-stream-btn"
-        type="button"
-        onClick={() =>
-          onComplete({
-            session_id: sessionId,
-            disposition: "PASS",
-            quality_class: "Class A",
-            confidence: 0.95,
-            iso_5817_level: "B",
-            disposition_rationale: "All checks passed.",
-            root_cause: "No defects detected.",
-            corrective_actions: [],
-            standards_references: [],
-            primary_defect_categories: [],
-            threshold_violations: [],
-            self_check_passed: true,
-            self_check_notes: "OK",
-            report_timestamp: "2026-01-01T00:00:00Z",
-          })
-        }
-      >
-        Complete Stream
-      </button>
-      <button
-        data-testid="error-stream-btn"
-        type="button"
-        onClick={() => onError("pipeline timeout")}
-      >
-        Error Stream
-      </button>
-    </div>
-  ),
-}));
+const MOCK_REPORT = {
+  session_id: "mock-session-001",
+  disposition: "PASS",
+  quality_class: "Class A",
+  confidence: 0.95,
+  iso_5817_level: "B",
+  disposition_rationale: "All checks passed.",
+  root_cause: "No defects detected.",
+  corrective_actions: [] as string[],
+  standards_references: [] as string[],
+  primary_defect_categories: [] as string[],
+  threshold_violations: [] as object[],
+  self_check_passed: true,
+  self_check_notes: "OK",
+  report_timestamp: "2026-01-01T00:00:00Z",
+};
 
-jest.mock("@/components/analysis/QualityReportCard", () => ({
-  QualityReportCard: ({
-    report,
-    welderDisplayName,
-    onReanalyse,
-  }: {
-    report: { disposition: string; session_id: string };
-    welderDisplayName?: string | null;
-    onReanalyse?: () => void;
-  }) => (
-    <div data-testid="quality-report-card" data-disposition={report.disposition}>
-      <span data-testid="welder-display-name">{welderDisplayName}</span>
-      {onReanalyse && (
-        <button data-testid="reanalyse-btn" type="button" onClick={onReanalyse}>
-          Re-analyse
-        </button>
-      )}
-    </div>
-  ),
-}));
+jest.mock("@/components/analysis/AnalysisTimeline", () => {
+  const React = require("react") as typeof import("react");
+  return {
+    AnalysisTimeline: ({
+      sessionId,
+      streamTrigger,
+      onError,
+      onComplete,
+      onReanalyse,
+      welderDisplayName,
+    }: {
+      sessionId: string;
+      streamTrigger: number;
+      onError: (m: string) => void;
+      onComplete?: (r: typeof MOCK_REPORT) => void;
+      onReanalyse?: () => void;
+      welderDisplayName?: string | null;
+    }) => {
+      const [phase, setPhase] = React.useState<"stream" | "done">("stream");
+      React.useEffect(() => {
+        setPhase("stream");
+      }, [streamTrigger]);
+      return (
+        <div
+          data-testid="analysis-timeline"
+          data-session-id={sessionId}
+          data-stream-trigger={String(streamTrigger)}
+        >
+          {phase === "stream" ? (
+            <>
+              <button
+                data-testid="complete-stream-btn"
+                type="button"
+                onClick={() => {
+                  setPhase("done");
+                  onComplete?.({ ...MOCK_REPORT, session_id: sessionId });
+                }}
+              >
+                Complete Stream
+              </button>
+              <button
+                data-testid="error-stream-btn"
+                type="button"
+                onClick={() => onError("pipeline timeout")}
+              >
+                Error Stream
+              </button>
+            </>
+          ) : (
+            <div
+              data-testid="quality-report-card"
+              data-disposition={MOCK_REPORT.disposition}
+            >
+              <span data-testid="welder-display-name">{welderDisplayName}</span>
+              {onReanalyse && (
+                <button
+                  data-testid="reanalyse-btn"
+                  type="button"
+                  onClick={onReanalyse}
+                >
+                  Re-analyse
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      );
+    },
+  };
+});
 
 jest.mock("@/components/analysis/StatusBadge", () => ({
   StatusBadge: ({ disposition }: { disposition: string | null }) => (
@@ -248,10 +269,10 @@ describe("AnalysisPage", () => {
     fireEvent.click(screen.getByTestId("select-session-btn"));
 
     await waitFor(() => {
-      expect(screen.getByTestId("analysis-stream")).toBeInTheDocument();
+      expect(screen.getByTestId("analysis-timeline")).toBeInTheDocument();
     });
 
-    expect(screen.getByTestId("analysis-stream").dataset.sessionId).toBe(
+    expect(screen.getByTestId("analysis-timeline").dataset.sessionId).toBe(
       "mock-session-001",
     );
     expect(
@@ -271,10 +292,10 @@ describe("AnalysisPage", () => {
       ).toBeInTheDocument(),
     );
 
-    expect(screen.queryByTestId("analysis-stream")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("analysis-timeline")).not.toBeInTheDocument();
   });
 
-  it("clicking a session with an existing report shows the report directly", async () => {
+  it("clicking a session with an existing report shows timeline then report after stream completes", async () => {
     mockFetchWarpReport.mockResolvedValue({
       session_id: "mock-session-001",
       disposition: "CONDITIONAL",
@@ -297,13 +318,18 @@ describe("AnalysisPage", () => {
     fireEvent.click(screen.getByTestId("select-session-btn"));
 
     await waitFor(() => {
+      expect(screen.getByTestId("analysis-timeline")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByTestId("complete-stream-btn"));
+
+    await waitFor(() => {
       expect(screen.getByTestId("quality-report-card")).toBeInTheDocument();
     });
 
     expect(screen.getByTestId("quality-report-card").dataset.disposition).toBe(
-      "CONDITIONAL",
+      "PASS",
     );
-    expect(screen.queryByTestId("analysis-stream")).not.toBeInTheDocument();
   });
 
   it("SSE complete transitions from streaming to report and passes welderDisplayName", async () => {
@@ -313,7 +339,7 @@ describe("AnalysisPage", () => {
     fireEvent.click(screen.getByTestId("select-session-btn"));
 
     await waitFor(() =>
-      expect(screen.getByTestId("analysis-stream")).toBeInTheDocument(),
+      expect(screen.getByTestId("analysis-timeline")).toBeInTheDocument(),
     );
 
     fireEvent.click(screen.getByTestId("complete-stream-btn"));
@@ -328,7 +354,7 @@ describe("AnalysisPage", () => {
     expect(screen.getByTestId("welder-display-name").textContent).toBe(
       "Aluminium Expert 01",
     );
-    expect(screen.queryByTestId("analysis-stream")).not.toBeInTheDocument();
+    expect(screen.getByTestId("analysis-timeline")).toBeInTheDocument();
   });
 
   it("SSE error shows error banner and returns to empty state", async () => {
@@ -338,7 +364,7 @@ describe("AnalysisPage", () => {
     fireEvent.click(screen.getByTestId("select-session-btn"));
 
     await waitFor(() =>
-      expect(screen.getByTestId("analysis-stream")).toBeInTheDocument(),
+      expect(screen.getByTestId("analysis-timeline")).toBeInTheDocument(),
     );
 
     fireEvent.click(screen.getByTestId("error-stream-btn"));
@@ -350,7 +376,7 @@ describe("AnalysisPage", () => {
     expect(
       screen.getByText(/select a session to begin analysis/i),
     ).toBeInTheDocument();
-    expect(screen.queryByTestId("analysis-stream")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("analysis-timeline")).not.toBeInTheDocument();
   });
 
   it("Re-analyse button restarts the stream for the selected session", async () => {
@@ -360,7 +386,7 @@ describe("AnalysisPage", () => {
     fireEvent.click(screen.getByTestId("select-session-btn"));
 
     await waitFor(() =>
-      expect(screen.getByTestId("analysis-stream")).toBeInTheDocument(),
+      expect(screen.getByTestId("analysis-timeline")).toBeInTheDocument(),
     );
 
     fireEvent.click(screen.getByTestId("complete-stream-btn"));
@@ -372,7 +398,7 @@ describe("AnalysisPage", () => {
     fireEvent.click(screen.getByTestId("reanalyse-btn"));
 
     await waitFor(() =>
-      expect(screen.getByTestId("analysis-stream")).toBeInTheDocument(),
+      expect(screen.getByTestId("analysis-timeline")).toBeInTheDocument(),
     );
 
     expect(screen.queryByTestId("quality-report-card")).not.toBeInTheDocument();
@@ -400,7 +426,7 @@ describe("AnalysisPage", () => {
     fireEvent.click(screen.getByTestId("select-session-btn"));
 
     await waitFor(() =>
-      expect(screen.getByTestId("analysis-stream")).toBeInTheDocument(),
+      expect(screen.getByTestId("analysis-timeline")).toBeInTheDocument(),
     );
 
     fireEvent.click(screen.getByTestId("error-stream-btn"));
@@ -420,7 +446,7 @@ describe("AnalysisPage", () => {
 
     fireEvent.click(screen.getByTestId("select-session-btn"));
     await waitFor(() =>
-      expect(screen.getByTestId("analysis-stream")).toBeInTheDocument(),
+      expect(screen.getByTestId("analysis-timeline")).toBeInTheDocument(),
     );
 
     fireEvent.click(screen.getByTestId("error-stream-btn"));
@@ -433,10 +459,10 @@ describe("AnalysisPage", () => {
 
     fireEvent.click(retryBtn);
     await waitFor(() =>
-      expect(screen.getByTestId("analysis-stream")).toBeInTheDocument(),
+      expect(screen.getByTestId("analysis-timeline")).toBeInTheDocument(),
     );
 
-    expect(screen.getByTestId("analysis-stream").dataset.sessionId).toBe(
+    expect(screen.getByTestId("analysis-timeline").dataset.sessionId).toBe(
       "mock-session-001",
     );
 
@@ -471,16 +497,16 @@ describe("AnalysisPage", () => {
     fireEvent.click(screen.getByTestId("analyse-all-btn"));
 
     await waitFor(() =>
-      expect(screen.getByTestId("analysis-stream")).toBeInTheDocument(),
+      expect(screen.getByTestId("analysis-timeline")).toBeInTheDocument(),
     );
-    expect(screen.getByTestId("analysis-stream").dataset.sessionId).toBe(
+    expect(screen.getByTestId("analysis-timeline").dataset.sessionId).toBe(
       "mock-session-001",
     );
 
     fireEvent.click(screen.getByTestId("complete-stream-btn"));
 
     await waitFor(() => {
-      const stream = screen.getByTestId("analysis-stream");
+      const stream = screen.getByTestId("analysis-timeline");
       expect(stream.dataset.sessionId).toBe("mock-session-002");
     });
 

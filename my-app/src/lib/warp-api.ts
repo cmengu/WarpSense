@@ -1,9 +1,17 @@
 /**
- * WarpSense typed fetch helpers — call /api/warp/ proxy routes (same-origin).
- * streamAnalysis() returns the raw ReadableStream — caller parses SSE lines.
+ * WarpSense typed fetch helpers.
+ *
+ * Most calls use same-origin Next `/api/warp/*` Route Handlers (JSON proxies).
+ *
+ * streamAnalysis() is an exception: it POSTs directly to FastAPI
+ * (`NEXT_PUBLIC_API_URL` + `/api/sessions/{id}/analyse`) so the SSE body is not
+ * buffered by the Next.js proxy. Requires CORS (see backend CORS_ORIGINS).
+ * Still uses fetch + ReadableStream — backend route is POST; EventSource is GET-only.
+ *
  * fetchWarpHealth() never throws — returns both=false on network error.
  */
 import type { MockSession, WarpReport, WarpHealthResponse, WelderTrendPoint } from "@/types/warp-analysis";
+import { getBackendBaseUrl } from "@/lib/backend-base-url";
 
 export async function fetchMockSessions(): Promise<MockSession[]> {
   const res = await fetch("/api/warp/mock-sessions");
@@ -22,12 +30,15 @@ export async function fetchWarpReport(sessionId: string): Promise<WarpReport | n
 /**
  * Returns raw ReadableStream for SSE consumption.
  * Caller decodes lines and parses "data: {...}\n\n" format.
- * Never use EventSource — backend route is POST, EventSource is GET-only.
+ * Direct to FastAPI — avoids Next route-handler buffering on SSE.
  */
 export async function streamAnalysis(sessionId: string): Promise<ReadableStream<Uint8Array>> {
-  const res = await fetch(`/api/warp/sessions/${sessionId}/analyse`, {
+  const base = getBackendBaseUrl();
+  const url = `${base}/api/sessions/${encodeURIComponent(sessionId)}/analyse`;
+  const res = await fetch(url, {
     method: "POST",
     headers: { Accept: "text/event-stream" },
+    mode: "cors",
   });
   if (!res.ok || !res.body) throw new Error(`streamAnalysis: ${res.status}`);
   return res.body;

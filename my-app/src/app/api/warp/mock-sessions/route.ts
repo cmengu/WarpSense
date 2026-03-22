@@ -1,7 +1,9 @@
 /** GET /api/warp/mock-sessions — proxy to FastAPI GET /api/mock-sessions. */
 import { NextResponse } from "next/server";
 import type { MockSession } from "@/types/warp-analysis";
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+import { getServerBackendBaseUrl } from "@/lib/server-backend-base-url";
+
+const API_BASE = getServerBackendBaseUrl();
 export const dynamic = "force-dynamic";
 export async function GET(): Promise<NextResponse<MockSession[] | { detail: string }>> {
   try {

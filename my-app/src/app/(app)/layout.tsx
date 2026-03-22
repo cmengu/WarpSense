@@ -1,13 +1,12 @@
 /**
- * App layout — wraps children with AppNav.
+ * App layout — wraps children with AppSidebar.
  *
- * Grid: row 1 = nav (auto height), row 2 = remaining viewport (`1fr`).
- * The content row uses `min-h-0` so nested flex children can scroll correctly.
- * Route pages that need full below-nav height should use `h-full min-h-0 flex flex-col`
- * instead of `calc(100vh - <nav px>)`.
+ * Flex row: sidebar (fixed width) + content (flex-1, full height).
+ * h-dvh + overflow-hidden on the root gives both sidebar and content
+ * a bounded height so the analysis page's h-full children work correctly.
+ * Content div keeps overflow-y-auto so dashboard / scroll-heavy pages work.
  */
-
-import { AppNav } from '@/components/AppNav';
+import { AppSidebar } from "@/components/AppSidebar";
 
 export default function AppLayout({
   children,
@@ -15,9 +14,9 @@ export default function AppLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-dvh grid grid-rows-[auto_1fr]">
-      <AppNav />
-      <div className="min-h-0 flex h-full min-w-0 flex-col overflow-y-auto">
+    <div className="flex h-dvh w-full overflow-hidden bg-[var(--warp-bg)]">
+      <AppSidebar />
+      <div className="flex-1 min-w-0 min-h-0 flex flex-col overflow-y-auto">
         {children}
       </div>
     </div>
