@@ -151,7 +151,8 @@ export function QualityReportCard({
   onCompare,
 }: QualityReportCardProps) {
   const [copyFeedback, setCopyFeedback] = useState(false);
-  const [isPdfLoading, setIsPdfLoading] = useState(false);
+  const [isPdfLoading, setIsPdfLoading]   = useState(false);
+  const [acknowledged, setAcknowledged]   = useState<Set<number>>(new Set());
   const copyFeedbackTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const driverBars = useMemo(() => buildDriverBars(report), [report]);
@@ -168,6 +169,10 @@ export function QualityReportCard({
       }
     };
   }, []);
+
+  useEffect(() => {
+    setAcknowledged(new Set());
+  }, [report.session_id]);
 
   const handleCopySessionId = useCallback(async () => {
     try {
@@ -282,9 +287,33 @@ export function QualityReportCard({
           <p className="font-mono text-[9px] uppercase tracking-widest text-[var(--warp-text-muted)] mb-2">
             Corrective Actions
           </p>
-          <ol className="space-y-1 list-decimal list-inside font-mono text-[11px] text-[var(--warp-text)]">
+          {report.corrective_actions.length > 0 &&
+            acknowledged.size === report.corrective_actions.length && (
+              <div className="mb-2 flex items-center gap-1.5 font-mono text-[9px] text-green-400">
+                <span>●</span>
+                <span>All actions reviewed</span>
+              </div>
+            )}
+          <ol className="space-y-1.5 font-mono text-[11px] text-[var(--warp-text)]">
             {report.corrective_actions.map((action, index) => (
-              <li key={index}>{action}</li>
+              <li key={index} className="flex items-start gap-2">
+                <input
+                  type="checkbox"
+                  checked={acknowledged.has(index)}
+                  onChange={() =>
+                    setAcknowledged((prev) => {
+                      const next = new Set(prev);
+                      if (next.has(index)) next.delete(index);
+                      else next.add(index);
+                      return next;
+                    })
+                  }
+                  className="mt-0.5 shrink-0 accent-amber-400"
+                />
+                <span className={acknowledged.has(index) ? "line-through text-zinc-600" : ""}>
+                  {action}
+                </span>
+              </li>
             ))}
           </ol>
         </section>
