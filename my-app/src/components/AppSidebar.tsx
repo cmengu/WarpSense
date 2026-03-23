@@ -3,7 +3,7 @@
  * AppSidebar — collapsible left navigation for the (app) layout.
  * Replaces AppNav. Collapse state persisted in localStorage.
  *
- * Primary nav:  Analysis, Overview (was: Dashboard + Defects), AI Assist
+ * Primary nav:  Analysis, Overview (was: Dashboard + Defects), Compare → /compare/live
  * Footer nav:   Thresholds
  * Design tokens: --warp-* from globals.css. No new colours.
  */
@@ -14,7 +14,7 @@ import { usePathname } from "next/navigation";
 const PRIMARY_NAV = [
   { href: "/analysis",  label: "Analysis",  icon: "◈" },
   { href: "/dashboard", label: "Overview",  icon: "▦" },
-  { href: "/ai",        label: "AI Assist", icon: "◇" },
+  { href: "/compare/live", label: "Compare", icon: "⇄" },
 ] as const;
 
 const FOOTER_NAV = [

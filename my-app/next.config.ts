@@ -6,7 +6,15 @@ const nextConfig: NextConfig = {
     root: process.cwd(),
   },
   async redirects() {
-    return [{ source: "/seagull", destination: "/dashboard", permanent: false }];
+    return [
+      { source: "/seagull", destination: "/dashboard", permanent: false },
+      {
+        source: "/compare/live",
+        destination:
+          "/demo/sess_expert_aluminium_001_001/sess_novice_aluminium_001_001",
+        permanent: false,
+      },
+    ];
   },
   async headers() {
     return [
