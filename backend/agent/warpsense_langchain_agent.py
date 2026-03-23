@@ -81,7 +81,9 @@ class WarpSenseLangChainAgent:
             kb_path = chroma_path or str(_KB_PATH)
             client = chromadb.PersistentClient(path=kb_path)
         ef = embedding_functions.DefaultEmbeddingFunction()
-        self._collection = client.get_collection(name=collection_name, embedding_function=ef)
+        self._collection = client.get_collection(
+            name=collection_name, embedding_function=ef
+        )
 
         self._llm = ChatGroq(
             model=llm_model,
@@ -127,7 +129,9 @@ class WarpSenseLangChainAgent:
                 return f"Retrieval failed: {e}"
 
         @tool
-        def get_domain_context(domain: Literal["thermal", "geometry", "process"]) -> str:
+        def get_domain_context(
+            domain: Literal["thermal", "geometry", "process"],
+        ) -> str:
             """
             Get feature values and violations for the specified domain.
             domain: 'thermal' | 'geometry' | 'process'. Call get_domain_context(domain='thermal'),
@@ -142,7 +146,12 @@ class WarpSenseLangChainAgent:
             fv = features.to_vector()
             angle_note = ""
             if domain == "thermal":
-                feats = ["heat_diss_max_spike", "heat_diss_mean", "heat_input_min_rolling", "heat_input_drop_severity"]
+                feats = [
+                    "heat_diss_max_spike",
+                    "heat_diss_mean",
+                    "heat_input_min_rolling",
+                    "heat_input_drop_severity",
+                ]
                 triggered = thermal_triggered(features)
             elif domain == "geometry":
                 feats = ["angle_deviation_mean", "angle_max_drift_1s"]
@@ -153,7 +162,13 @@ class WarpSenseLangChainAgent:
                     f"Correct to {OPTIMAL_ANGLE_DEG:.0f} ± 5 degrees."
                 )
             else:
-                feats = ["voltage_cv", "amps_cv", "heat_input_cv", "arc_on_ratio", "heat_input_mean"]
+                feats = [
+                    "voltage_cv",
+                    "amps_cv",
+                    "heat_input_cv",
+                    "arc_on_ratio",
+                    "heat_input_mean",
+                ]
                 triggered = process_triggered(features)
             domain_feats = {f: fv.get(f) for f in feats}
             domain_viols = [v for v in violations if v.feature in domain_feats]
@@ -170,28 +185,32 @@ class WarpSenseLangChainAgent:
         return [retrieve_standards, get_domain_context]
 
     def _build_executor(self) -> AgentExecutor:
-        prompt = ChatPromptTemplate.from_messages([
-            ("system",
-             "You are WarpSenseAgent, a welding quality assessment AI.\n"
-             "Use the provided tools to gather domain context and standards, then produce a final JSON quality report.\n"
-             "You MUST call get_domain_context exactly three times: get_domain_context(domain='thermal'), "
-             "get_domain_context(domain='geometry'), get_domain_context(domain='process'). Pass the domain explicitly.\n"
-             "Then call retrieve_standards with targeted queries for each domain that has violations.\n"
-             "Your FINAL response must be a JSON object with EXACTLY these keys:\n"
-             '{"iso_5817_level": "B"|"C"|"D"|"BELOW_D", '
-             '"disposition": "PASS"|"CONDITIONAL"|"REWORK_REQUIRED", '
-             '"disposition_rationale": "One sentence.", '
-             '"root_cause": "2-3 sentences.", '
-             '"corrective_actions": ["action with numeric target"], '
-             '"standards_references": ["Source: section"]}\n'
-             "Rules: (1) Any LOF/LOP RISK feature → REWORK_REQUIRED. (2) MARGINAL only → CONDITIONAL. "
-             "(3) All GOOD → PASS. (4) corrective_actions must include specific numeric targets. "
-             "(5) Only cite standards from retrieved context.\n"
-             "Respond with ONLY the JSON object as your final answer."),
-            MessagesPlaceholder(variable_name="chat_history", optional=True),
-            ("human", "{input}"),
-            MessagesPlaceholder(variable_name="agent_scratchpad"),
-        ])
+        prompt = ChatPromptTemplate.from_messages(
+            [
+                (
+                    "system",
+                    "You are WarpSenseAgent, a welding quality assessment AI.\n"
+                    "Use the provided tools to gather domain context and standards, then produce a final JSON quality report.\n"
+                    "You MUST call get_domain_context exactly three times: get_domain_context(domain='thermal'), "
+                    "get_domain_context(domain='geometry'), get_domain_context(domain='process'). Pass the domain explicitly.\n"
+                    "Then call retrieve_standards with targeted queries for each domain that has violations.\n"
+                    "Your FINAL response must be a JSON object with EXACTLY these keys:\n"
+                    '{"iso_5817_level": "B"|"C"|"D"|"BELOW_D", '
+                    '"disposition": "PASS"|"CONDITIONAL"|"REWORK_REQUIRED", '
+                    '"disposition_rationale": "One sentence.", '
+                    '"root_cause": "2-3 sentences.", '
+                    '"corrective_actions": ["action with numeric target"], '
+                    '"standards_references": ["Source: section"]}\n'
+                    "Rules: (1) Any LOF/LOP RISK feature → REWORK_REQUIRED. (2) MARGINAL only → CONDITIONAL. "
+                    "(3) All GOOD → PASS. (4) corrective_actions must include specific numeric targets. "
+                    "(5) Only cite standards from retrieved context.\n"
+                    "Respond with ONLY the JSON object as your final answer.",
+                ),
+                MessagesPlaceholder(variable_name="chat_history", optional=True),
+                ("human", "{input}"),
+                MessagesPlaceholder(variable_name="agent_scratchpad"),
+            ]
+        )
 
         agent = create_tool_calling_agent(self._llm, self._tools, prompt)
         return AgentExecutor(
@@ -202,7 +221,12 @@ class WarpSenseLangChainAgent:
             max_iterations=10,
         )
 
-    def _parse_output(self, raw_output: str, prediction: WeldPrediction, violations: list[ThresholdViolation]) -> WeldQualityReport:
+    def _parse_output(
+        self,
+        raw_output: str,
+        prediction: WeldPrediction,
+        violations: list[ThresholdViolation],
+    ) -> WeldQualityReport:
         """Parse LLM JSON output into WeldQualityReport. Applies LOF/LOP safety override."""
         parsed = {}
         try:
@@ -218,20 +242,25 @@ class WarpSenseLangChainAgent:
                     parsed = {}
 
         if not parsed:
-            return self._fallback_report(prediction, violations, "LLM output unparseable")
+            return self._fallback_report(
+                prediction, violations, "LLM output unparseable"
+            )
 
         disposition = parsed.get("disposition", "CONDITIONAL")
 
         # LOF/LOP safety override: any RISK violation in LOF/LOP features → REWORK_REQUIRED
         lof_lop_risk = any(
-            v.severity == "RISK" and any(cat in ["LOF", "LOP"] for cat in v.defect_categories)
+            v.severity == "RISK"
+            and any(cat in ["LOF", "LOP"] for cat in v.defect_categories)
             for v in violations
         )
         if lof_lop_risk and disposition != "REWORK_REQUIRED":
             disposition = "REWORK_REQUIRED"
 
         iso_map = {"DEFECTIVE": "BELOW_D", "MARGINAL": "D", "GOOD": "C"}
-        iso_5817_level = parsed.get("iso_5817_level", iso_map.get(prediction.quality_class, "D"))
+        iso_5817_level = parsed.get(
+            "iso_5817_level", iso_map.get(prediction.quality_class, "D")
+        )
 
         return WeldQualityReport(
             session_id=prediction.session_id,
@@ -246,16 +275,24 @@ class WarpSenseLangChainAgent:
             standards_references=parsed.get("standards_references", []),
             retrieved_chunks_used=[],
             disposition=disposition,
-            disposition_rationale=parsed.get("disposition_rationale", f"{disposition} per LangChain agent."),
+            disposition_rationale=parsed.get(
+                "disposition_rationale", f"{disposition} per LangChain agent."
+            ),
             self_check_passed=False,
             self_check_notes="LangChain: no citation cross-check performed.",
             llm_raw_response=raw_output,
         )
 
-    def _fallback_report(self, prediction: WeldPrediction, violations: list[ThresholdViolation], error: str) -> WeldQualityReport:
+    def _fallback_report(
+        self,
+        prediction: WeldPrediction,
+        violations: list[ThresholdViolation],
+        error: str,
+    ) -> WeldQualityReport:
         """Deterministic fallback when LLM/agent fails. Applies safety override on LOF/LOP RISK."""
         lof_lop_risk = any(
-            v.severity == "RISK" and any(cat in ["LOF", "LOP"] for cat in v.defect_categories)
+            v.severity == "RISK"
+            and any(cat in ["LOF", "LOP"] for cat in v.defect_categories)
             for v in violations
         )
         disposition = "REWORK_REQUIRED" if lof_lop_risk else "CONDITIONAL"
@@ -269,7 +306,9 @@ class WarpSenseLangChainAgent:
             primary_defect_categories=[],
             threshold_violations=violations,
             root_cause=f"LangChain agent failed: {error}",
-            corrective_actions=["Review threshold violations. Manual inspection required."],
+            corrective_actions=[
+                "Review threshold violations. Manual inspection required."
+            ],
             standards_references=[],
             retrieved_chunks_used=[],
             disposition=disposition,
@@ -279,7 +318,9 @@ class WarpSenseLangChainAgent:
             llm_raw_response="",
         )
 
-    def assess(self, prediction: WeldPrediction, features: SessionFeatures) -> WeldQualityReport:
+    def assess(
+        self, prediction: WeldPrediction, features: SessionFeatures
+    ) -> WeldQualityReport:
         violations = compute_violations(features)
 
         # Load session context for tool closures (single-threaded)
@@ -290,7 +331,11 @@ class WarpSenseLangChainAgent:
                 f"Session: {prediction.session_id} | Class: {prediction.quality_class} ({prediction.confidence:.2f})\n"
                 f"Violations: {len(violations)} total\n"
                 + "\n".join(v.as_display_line() for v in violations[:5])
-                + (f"\n... and {len(violations) - 5} more" if len(violations) > 5 else "")
+                + (
+                    f"\n... and {len(violations) - 5} more"
+                    if len(violations) > 5
+                    else ""
+                )
             )
             result = self._agent_executor.invoke({"input": session_summary})
             raw_output = result.get("output", "")

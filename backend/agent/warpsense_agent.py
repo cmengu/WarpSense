@@ -190,8 +190,16 @@ class WeldQualityReport:
 
 
 def _render_report(r) -> str:
-    disposition_icon = {"PASS": "[PASS]", "CONDITIONAL": "[CONDITIONAL]", "REWORK_REQUIRED": "[REWORK]"}.get(r.disposition, "[?]")
-    quality_icon = {"GOOD": "[GOOD]", "MARGINAL": "[MARGINAL]", "DEFECTIVE": "[DEFECTIVE]"}.get(r.quality_class, "[?]")
+    disposition_icon = {
+        "PASS": "[PASS]",
+        "CONDITIONAL": "[CONDITIONAL]",
+        "REWORK_REQUIRED": "[REWORK]",
+    }.get(r.disposition, "[?]")
+    quality_icon = {
+        "GOOD": "[GOOD]",
+        "MARGINAL": "[MARGINAL]",
+        "DEFECTIVE": "[DEFECTIVE]",
+    }.get(r.quality_class, "[?]")
     lines = [
         "=" * 58,
         f"WARPSENSE QUALITY REPORT -- WELD SESSION {r.session_id}",
@@ -231,7 +239,9 @@ def _render_report(r) -> str:
     if not r.self_check_passed:
         lines.append(f"  Note: {r.self_check_notes}")
     lines.append("")
-    lines.append(f"Disposition:        {disposition_icon} {r.disposition.replace('_', ' ')}")
+    lines.append(
+        f"Disposition:        {disposition_icon} {r.disposition.replace('_', ' ')}"
+    )
     lines.append(f"  {r.disposition_rationale}")
     lines.append("=" * 58)
     return "\n".join(lines)
@@ -267,7 +277,9 @@ class WarpSenseAgent:
 
     # Stable public wrappers used by eval_prompts.py.
     # These keep eval code decoupled from private step method names.
-    def prepare_context(self, features: "SessionFeatures", prediction: "WeldPrediction") -> tuple:
+    def prepare_context(
+        self, features: "SessionFeatures", prediction: "WeldPrediction"
+    ) -> tuple:
         """
         Run Steps 1–3 and return (violations, chunks, defect_categories).
 
@@ -296,15 +308,25 @@ class WarpSenseAgent:
         self._log("[Agent] Step 2: Threshold check")
         violations = self._step2_threshold_check(features)
         self._log("[Agent] Step 3: Standards retrieval")
-        chunks = self._step3_retrieve_standards(prediction, features, defect_categories, violations)
+        chunks = self._step3_retrieve_standards(
+            prediction, features, defect_categories, violations
+        )
         self._log("[Agent] Step 4: LLM generation")
-        llm_output = self._step4_llm_generate(prediction, features, defect_categories, violations, chunks)
+        llm_output = self._step4_llm_generate(
+            prediction, features, defect_categories, violations, chunks
+        )
         self._log("[Agent] Step 5: Self-check")
         self_check_passed, self_check_notes = self._step5_self_check(llm_output, chunks)
         self._log("[Agent] Step 6: Assembling report")
         report = self._step6_assemble_report(
-            prediction, features, defect_categories, violations,
-            chunks, llm_output, self_check_passed, self_check_notes
+            prediction,
+            features,
+            defect_categories,
+            violations,
+            chunks,
+            llm_output,
+            self_check_passed,
+            self_check_notes,
         )
         self._log(f"[Agent] -- Assessment complete: {report.disposition} --\n")
         return report
@@ -313,17 +335,17 @@ class WarpSenseAgent:
         defects = set()
         feat_dict = features.to_vector()
         driver_feature_to_defect = {
-            "heat_diss_max_spike":      ["LOF", "POROSITY"],
-            "angle_deviation_mean":     ["LOF", "UNDERCUT"],
-            "heat_input_min_rolling":   ["LOF", "LOP"],
+            "heat_diss_max_spike": ["LOF", "POROSITY"],
+            "angle_deviation_mean": ["LOF", "UNDERCUT"],
+            "heat_input_min_rolling": ["LOF", "LOP"],
             "heat_input_drop_severity": ["LOF"],
-            "heat_input_cv":            ["LOF", "LOP"],
-            "amps_cv":                  ["LOF", "LOP"],
-            "voltage_cv":               ["POROSITY"],
-            "arc_on_ratio":             ["LOF"],
-            "heat_input_mean":          ["LOF", "LOP"],
-            "angle_max_drift_1s":       ["LOF"],
-            "heat_diss_mean":           ["LOF"],
+            "heat_input_cv": ["LOF", "LOP"],
+            "amps_cv": ["LOF", "LOP"],
+            "voltage_cv": ["POROSITY"],
+            "arc_on_ratio": ["LOF"],
+            "heat_input_mean": ["LOF", "LOP"],
+            "angle_max_drift_1s": ["LOF"],
+            "heat_diss_mean": ["LOF"],
         }
         for feat_name, _ in prediction.top_drivers:
             for cat in driver_feature_to_defect.get(feat_name, []):
@@ -363,44 +385,74 @@ class WarpSenseAgent:
             threshold_type = None
             if t["direction"] == "high_is_bad":
                 if val > t["marginal_max"]:
-                    severity, threshold_val, threshold_type = "RISK", t["marginal_max"], "max"
+                    severity, threshold_val, threshold_type = (
+                        "RISK",
+                        t["marginal_max"],
+                        "max",
+                    )
                 elif val > t["good_max"]:
-                    severity, threshold_val, threshold_type = "MARGINAL", t["good_max"], "max"
+                    severity, threshold_val, threshold_type = (
+                        "MARGINAL",
+                        t["good_max"],
+                        "max",
+                    )
             elif t["direction"] == "low_is_bad":
                 if val < t["marginal_min"]:
-                    severity, threshold_val, threshold_type = "RISK", t["marginal_min"], "min"
+                    severity, threshold_val, threshold_type = (
+                        "RISK",
+                        t["marginal_min"],
+                        "min",
+                    )
                 elif val < t["good_min"]:
-                    severity, threshold_val, threshold_type = "MARGINAL", t["good_min"], "min"
+                    severity, threshold_val, threshold_type = (
+                        "MARGINAL",
+                        t["good_min"],
+                        "min",
+                    )
             if severity:
-                violations.append(ThresholdViolation(
-                    feature=feat_name, value=val, threshold=threshold_val,
-                    threshold_type=threshold_type, severity=severity,
-                    unit=t.get("unit", ""), defect_categories=t.get("defect_map", []),
-                ))
-        violations.sort(key=lambda v: (
-            0 if v.severity == "RISK" else 1,
-            0 if v.feature in LOF_LOP_PRIMARY_FEATURES else 1,
-        ))
-        self._log(f"  -> {len(violations)} violations: "
-                  f"{sum(1 for v in violations if v.severity=='RISK')} RISK, "
-                  f"{sum(1 for v in violations if v.severity=='MARGINAL')} MARGINAL")
+                violations.append(
+                    ThresholdViolation(
+                        feature=feat_name,
+                        value=val,
+                        threshold=threshold_val,
+                        threshold_type=threshold_type,
+                        severity=severity,
+                        unit=t.get("unit", ""),
+                        defect_categories=t.get("defect_map", []),
+                    )
+                )
+        violations.sort(
+            key=lambda v: (
+                0 if v.severity == "RISK" else 1,
+                0 if v.feature in LOF_LOP_PRIMARY_FEATURES else 1,
+            )
+        )
+        self._log(
+            f"  -> {len(violations)} violations: "
+            f"{sum(1 for v in violations if v.severity == 'RISK')} RISK, "
+            f"{sum(1 for v in violations if v.severity == 'MARGINAL')} MARGINAL"
+        )
         return violations
 
-    def _step3_retrieve_standards(self, prediction, features, defect_categories, violations):
+    def _step3_retrieve_standards(
+        self, prediction, features, defect_categories, violations
+    ):
         queries = []
         cat_queries = {
-            "LOF":                "lack of fusion incomplete fusion acceptance criteria corrective action",
-            "LOP":                "incomplete root penetration corrective action acceptance criteria",
-            "THERMAL_INSTABILITY":"heat dissipation spike thermal instability corrective travel speed",
-            "UNDERCUT":           "undercut acceptance criteria corrective action torch angle current",
-            "POROSITY":           "porosity root cause corrective action shielding gas heat dissipation",
+            "LOF": "lack of fusion incomplete fusion acceptance criteria corrective action",
+            "LOP": "incomplete root penetration corrective action acceptance criteria",
+            "THERMAL_INSTABILITY": "heat dissipation spike thermal instability corrective travel speed",
+            "UNDERCUT": "undercut acceptance criteria corrective action torch angle current",
+            "POROSITY": "porosity root cause corrective action shielding gas heat dissipation",
         }
         for cat in defect_categories[:3]:
             q = cat_queries.get(cat)
             if q:
                 queries.append(q)
         for v in violations[:2]:
-            queries.append(f"{v.feature.replace('_', ' ')} {v.value:.1f} corrective action threshold")
+            queries.append(
+                f"{v.feature.replace('_', ' ')} {v.value:.1f} corrective action threshold"
+            )
         queries.append("marine shipyard LOF LOP sensor detection invisible inspection")
         seen = set()
         unique_queries = [q for q in queries if not (q in seen or seen.add(q))]
@@ -409,7 +461,8 @@ class WarpSenseAgent:
         for q in unique_queries[:5]:
             try:
                 results = self.collection.query(
-                    query_texts=[q], n_results=3,
+                    query_texts=[q],
+                    n_results=3,
                     include=["documents", "metadatas", "distances"],
                 )
                 for i, doc in enumerate(results["documents"][0]):
@@ -417,21 +470,28 @@ class WarpSenseAgent:
                     if chunk_id not in seen_ids:
                         seen_ids.add(chunk_id)
                         meta = results["metadatas"][0][i]
-                        all_chunks.append(StandardsChunk(
-                            chunk_id=chunk_id, text=doc,
-                            source=meta.get("source", "unknown"),
-                            section=meta.get("section", ""),
-                            score=round(1 - results["distances"][0][i], 4),
-                        ))
+                        all_chunks.append(
+                            StandardsChunk(
+                                chunk_id=chunk_id,
+                                text=doc,
+                                source=meta.get("source", "unknown"),
+                                section=meta.get("section", ""),
+                                score=round(1 - results["distances"][0][i], 4),
+                            )
+                        )
             except Exception as e:
                 self._log(f"  [WARN] KB query failed: {e}")
         all_chunks.sort(key=lambda c: c.score, reverse=True)
-        top_chunks = all_chunks[:self.n_chunks]
+        top_chunks = all_chunks[: self.n_chunks]
         if top_chunks:
-            self._log(f"  -> Retrieved {len(top_chunks)} chunks (top score: {top_chunks[0].score:.4f} from {top_chunks[0].source})")
+            self._log(
+                f"  -> Retrieved {len(top_chunks)} chunks (top score: {top_chunks[0].score:.4f} from {top_chunks[0].source})"
+            )
         return top_chunks
 
-    def _step4_llm_generate(self, prediction, features, defect_categories, violations, chunks):
+    def _step4_llm_generate(
+        self, prediction, features, defect_categories, violations, chunks
+    ):
         version = PROMPT_VERSIONS.get("WarpSenseAgent", "unknown")
         logger.info(
             "llm_call_start",
@@ -444,7 +504,7 @@ class WarpSenseAgent:
             f"  {name}: importance={imp:.3f}" for name, imp in prediction.top_drivers
         )
         chunks_text = "\n\n".join(
-            f"[CHUNK {i+1}] Source: {c.source} | {c.section}\n{c.text}"
+            f"[CHUNK {i + 1}] Source: {c.source} | {c.section}\n{c.text}"
             for i, c in enumerate(chunks)
         )
         feature_summary = "\n".join(f"  {k}: {v:.4f}" for k, v in feat_dict.items())
@@ -512,13 +572,24 @@ RULES:
 
     def _fallback_report(self, prediction, defect_categories, violations):
         has_risk = any(v.severity == "RISK" for v in violations)
-        lof_risk = any(v.feature in LOF_LOP_PRIMARY_FEATURES for v in violations if v.severity == "RISK")
+        lof_risk = any(
+            v.feature in LOF_LOP_PRIMARY_FEATURES
+            for v in violations
+            if v.severity == "RISK"
+        )
         return {
-            "iso_5817_level": "BELOW_D" if prediction.quality_class == "DEFECTIVE" else "D",
-            "disposition": "REWORK_REQUIRED" if lof_risk else ("CONDITIONAL" if has_risk else "PASS"),
+            "iso_5817_level": "BELOW_D"
+            if prediction.quality_class == "DEFECTIVE"
+            else "D",
+            "disposition": "REWORK_REQUIRED"
+            if lof_risk
+            else ("CONDITIONAL" if has_risk else "PASS"),
             "disposition_rationale": f"Classification: {prediction.quality_class} with {len(violations)} violations.",
             "root_cause": "LLM generation failed. Review threshold violations directly.",
-            "corrective_actions": ["Review threshold violations above", "Consult welding engineer"],
+            "corrective_actions": [
+                "Review threshold violations above",
+                "Consult welding engineer",
+            ],
             "standards_references": [],
         }
 
@@ -544,7 +615,11 @@ RULES:
             grounded = any(src in ref_lower for src in known_sources)
             if not grounded:
                 section_match = any(
-                    any(token in c.text.lower() for token in ref_lower.split() if len(token) > 4)
+                    any(
+                        token in c.text.lower()
+                        for token in ref_lower.split()
+                        if len(token) > 4
+                    )
                     for c in chunks
                 )
                 if not section_match:
@@ -556,10 +631,21 @@ RULES:
         self._log("  [SELF-CHECK] All citations grounded.")
         return True, "All citations verified."
 
-    def _step6_assemble_report(self, prediction, features, defect_categories, violations, chunks, llm_output, self_check_passed, self_check_notes):
+    def _step6_assemble_report(
+        self,
+        prediction,
+        features,
+        defect_categories,
+        violations,
+        chunks,
+        llm_output,
+        self_check_passed,
+        self_check_notes,
+    ):
         disposition = llm_output.get("disposition", "CONDITIONAL")
         lof_lop_risk = any(
-            v.severity == "RISK" and any(cat in ["LOF", "LOP"] for cat in v.defect_categories)
+            v.severity == "RISK"
+            and any(cat in ["LOF", "LOP"] for cat in v.defect_categories)
             for v in violations
         )
         if lof_lop_risk and disposition != "REWORK_REQUIRED":
@@ -590,3 +676,4 @@ RULES:
     def _log(self, msg):
         if self.verbose:
             logger.info(msg)
+
