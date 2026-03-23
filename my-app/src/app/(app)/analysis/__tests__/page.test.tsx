@@ -471,7 +471,8 @@ describe("AnalysisPage", () => {
 
   it("Analyse All advances queue to second session after first stream completes", async () => {
     mockFetchWarpReport.mockResolvedValue(null);
-    mockFetchMockSessions.mockResolvedValueOnce([
+    // Mount effect and Analyse All both call fetchMockSessions — use stable mock, not Once.
+    mockFetchMockSessions.mockResolvedValue([
       {
         session_id: "mock-session-001",
         welder_id: "expert_aluminium_001",

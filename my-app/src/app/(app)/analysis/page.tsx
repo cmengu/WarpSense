@@ -47,6 +47,7 @@ export default function AnalysisPage() {
   const [streamError, setStreamError]         = useState<string | null>(null);
   const [health, setHealth]                   = useState<WarpHealthResponse | null>(null);
   const [isAnalysing, setIsAnalysing]         = useState(false);
+  const [allSessions, setAllSessions]         = useState<MockSession[]>([]);
 
   const analyseQueueRef  = useRef<MockSession[]>([]);
   const selectCounterRef = useRef(0);
@@ -60,6 +61,12 @@ export default function AnalysisPage() {
     void poll();
     const id = setInterval(() => void poll(), HEALTH_POLL_MS);
     return () => { cancelled = true; clearInterval(id); };
+  }, []);
+
+  useEffect(() => {
+    fetchMockSessions()
+      .then(setAllSessions)
+      .catch(() => {});
   }, []);
 
   const startStream = useCallback((sessionId: string) => {
@@ -146,6 +153,14 @@ export default function AnalysisPage() {
     health.graph_initialised &&
     health.classifier_initialised;
 
+  const analysedSessions = allSessions.filter((s) => s.disposition !== null);
+  const kpiPassRate       = analysedSessions.length > 0
+    ? Math.round(
+        (analysedSessions.filter((s) => s.disposition === "PASS").length / analysedSessions.length) * 100,
+      )
+    : 0;
+  const kpiReworkCount = analysedSessions.filter((s) => s.disposition === "REWORK_REQUIRED").length;
+
   return (
     <div
       className="flex h-full min-h-0 w-full flex-col bg-[var(--warp-bg)]"
@@ -211,6 +226,23 @@ export default function AnalysisPage() {
       {health !== null && !healthOk && (
         <div className="shrink-0 border-b border-amber-900 bg-amber-950/40 px-4 py-2 font-mono text-[10px] text-amber-400">
           AI pipeline unavailable — analysis may not complete
+        </div>
+      )}
+
+      {analysedSessions.length > 0 && (
+        <div className="flex shrink-0 gap-6 border-b border-[var(--warp-border)] bg-[var(--warp-surface)] px-4 py-2">
+          <div>
+            <p className="font-mono text-[8px] uppercase tracking-widest text-[var(--warp-text-muted)]">Sessions Analysed</p>
+            <p className="font-mono text-[16px] text-[var(--warp-text)]">{analysedSessions.length}</p>
+          </div>
+          <div>
+            <p className="font-mono text-[8px] uppercase tracking-widest text-[var(--warp-text-muted)]">Pass Rate</p>
+            <p className="font-mono text-[16px] text-green-400">{kpiPassRate}%</p>
+          </div>
+          <div>
+            <p className="font-mono text-[8px] uppercase tracking-widest text-[var(--warp-text-muted)]">Rework Caught</p>
+            <p className="font-mono text-[16px] text-red-400">{kpiReworkCount}</p>
+          </div>
         </div>
       )}
 
