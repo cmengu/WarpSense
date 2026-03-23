@@ -2,21 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ThresholdViolation, WarpReport } from "@/types/warp-analysis";
+import { logWarn } from "@/lib/logger";
 import { StatusBadge } from "./StatusBadge";
-
-/** Maps internal feature variable names → short operational labels for supervisor-facing display. */
-const FEATURE_DISPLAY: Record<string, string> = {
-  heat_diss_max_spike:       "Peak heat dissipation",
-  heat_input_min_rolling:    "Min rolling heat input",
-  heat_input_drop_severity:  "Heat input drop",
-  angle_deviation_mean:      "Torch angle deviation",
-  angle_max_drift_1s:        "Torch angle drift (1 s)",
-  voltage_cv:                "Voltage stability",
-  amps_cv:                   "Current stability",
-  heat_input_cv:             "Heat input consistency",
-  arc_on_ratio:              "Arc continuity",
-  heat_input_mean:           "Average heat input",
-};
 
 /** Maps agent code-names → operational display labels. */
 const AGENT_DISPLAY: Record<string, string> = {
@@ -31,6 +18,8 @@ export interface QualityReportCardProps {
   welderDisplayName?: string | null;
   /** Wired in Phase UI-7 to start analysis again for the same session. */
   onReanalyse?: () => void;
+  /** Navigate to /compare pre-filled with this session as sessionA. */
+  onCompare?: () => void;
 }
 
 interface ParsedSpecialistRow {
@@ -158,6 +147,7 @@ export function QualityReportCard({
   report,
   welderDisplayName,
   onReanalyse,
+  onCompare,
 }: QualityReportCardProps) {
   const [copyFeedback, setCopyFeedback] = useState(false);
   const copyFeedbackTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -202,7 +192,7 @@ export function QualityReportCard({
 
   const handleExportPdf = useCallback(() => {
     // Phase UI-7 replaces this placeholder with a real export flow.
-    console.log("[QualityReportCard] Export PDF not implemented", report.session_id);
+    logWarn("[QualityReportCard]", "Export PDF not implemented", { sessionId: report.session_id });
   }, [report.session_id]);
 
   return (
@@ -251,7 +241,7 @@ export function QualityReportCard({
           </p>
           <ol className="space-y-1 list-decimal list-inside font-mono text-[11px] text-[var(--warp-text)]">
             {report.corrective_actions.map((action, index) => (
-              <li key={`${action}-${index}`}>{action}</li>
+              <li key={index}>{action}</li>
             ))}
           </ol>
         </section>
@@ -263,7 +253,7 @@ export function QualityReportCard({
           <div className="flex flex-wrap gap-1.5">
             {report.standards_references.map((ref, index) => (
               <button
-                key={`${ref}-${index}`}
+                key={index}
                 type="button"
                 onClick={() => void navigator?.clipboard?.writeText?.(ref).catch(() => {})}
                 className="font-mono text-[8px] uppercase tracking-widest border border-zinc-800 px-2 py-1 text-[var(--warp-text-muted)] hover:border-amber-400 hover:text-[var(--warp-amber)] transition-colors duration-100"
@@ -308,8 +298,8 @@ export function QualityReportCard({
 
           {specialistRows ? (
             <div className="space-y-2">
-              {specialistRows.map((row, index) => (
-                <details key={`${row.agent_name}-${index}`} className="border border-zinc-800 rounded">
+              {specialistRows.map((row) => (
+                <details key={row.agent_name} className="border border-zinc-800 rounded">
                   <summary className="cursor-pointer px-3 py-2 font-mono text-[10px] text-[var(--warp-text)] hover:bg-[var(--warp-surface-2)]">
                     {AGENT_DISPLAY[row.agent_name] ?? row.agent_name}
                     {row.disposition ? ` · ${row.disposition.replace("_", " ")}` : ""}
@@ -323,7 +313,7 @@ export function QualityReportCard({
                     {row.corrective_actions && row.corrective_actions.length > 0 ? (
                       <ul className="list-disc list-inside font-mono text-[10px] text-[var(--warp-text)] space-y-1">
                         {row.corrective_actions.map((action, actionIndex) => (
-                          <li key={`${action}-${actionIndex}`}>{action}</li>
+                          <li key={actionIndex}>{action}</li>
                         ))}
                       </ul>
                     ) : null}
@@ -402,6 +392,15 @@ export function QualityReportCard({
           className="font-mono text-[9px] uppercase tracking-widest px-2 py-0.5 border border-zinc-800 text-[var(--warp-text-muted)] hover:border-amber-400 hover:text-[var(--warp-amber)] transition-colors duration-100 disabled:opacity-30 disabled:cursor-not-allowed"
         >
           Re-analyse
+        </button>
+
+        <button
+          type="button"
+          onClick={() => onCompare?.()}
+          disabled={!onCompare}
+          className="font-mono text-[9px] uppercase tracking-widest px-2 py-0.5 border border-zinc-800 text-[var(--warp-text-muted)] hover:border-amber-400 hover:text-[var(--warp-amber)] transition-colors duration-100 disabled:opacity-30 disabled:cursor-not-allowed"
+        >
+          Compare
         </button>
       </div>
     </div>

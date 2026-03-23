@@ -215,7 +215,11 @@ class WarpSenseGraph:
 
         # Thermal agent
         _emit({"stage": "thermal_agent", "status": "running", "message": "Analysing heat profile"})
-        state.update(self._thermal_node(state))
+        try:
+            state.update(self._thermal_node(state))
+        except Exception:
+            _emit({"stage": "thermal_agent", "status": "done", "disposition": None})
+            raise
         _emit({
             "stage": "thermal_agent",
             "status": "done",
@@ -224,7 +228,11 @@ class WarpSenseGraph:
 
         # Geometry agent
         _emit({"stage": "geometry_agent", "status": "running", "message": "Checking torch angle"})
-        state.update(self._geometry_node(state))
+        try:
+            state.update(self._geometry_node(state))
+        except Exception:
+            _emit({"stage": "geometry_agent", "status": "done", "disposition": None})
+            raise
         _emit({
             "stage": "geometry_agent",
             "status": "done",
@@ -233,7 +241,11 @@ class WarpSenseGraph:
 
         # Process stability agent
         _emit({"stage": "process_agent", "status": "running", "message": "Evaluating arc stability"})
-        state.update(self._process_node(state))
+        try:
+            state.update(self._process_node(state))
+        except Exception:
+            _emit({"stage": "process_agent", "status": "done", "disposition": None})
+            raise
         _emit({
             "stage": "process_agent",
             "status": "done",

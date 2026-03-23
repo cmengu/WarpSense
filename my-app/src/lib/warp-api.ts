@@ -1,17 +1,17 @@
 /**
  * WarpSense typed fetch helpers.
  *
- * Most calls use same-origin Next `/api/warp/*` Route Handlers (JSON proxies).
+ * All calls use same-origin Next `/api/warp/*` Route Handlers.
  *
- * streamAnalysis() is an exception: it POSTs directly to FastAPI
- * (`NEXT_PUBLIC_API_URL` + `/api/sessions/{id}/analyse`) so the SSE body is not
- * buffered by the Next.js proxy. Requires CORS (see backend CORS_ORIGINS).
- * Still uses fetch + ReadableStream — backend route is POST; EventSource is GET-only.
+ * streamAnalysis() uses the `/api/warp/sessions/[id]/analyse` proxy route which
+ * pipes the FastAPI SSE body directly via `new Response(upstream.body)` with
+ * `X-Accel-Buffering: no` — no buffering occurs. Keeping it same-origin avoids
+ * CORS configuration requirements on the backend.
+ * Backend route is POST-only; EventSource (GET) does not apply.
  *
  * fetchWarpHealth() never throws — returns both=false on network error.
  */
 import type { MockSession, WarpReport, WarpHealthResponse, WelderTrendPoint } from "@/types/warp-analysis";
-import { getBackendBaseUrl } from "@/lib/backend-base-url";
 
 export async function fetchMockSessions(): Promise<MockSession[]> {
   const res = await fetch("/api/warp/mock-sessions");
@@ -30,15 +30,14 @@ export async function fetchWarpReport(sessionId: string): Promise<WarpReport | n
 /**
  * Returns raw ReadableStream for SSE consumption.
  * Caller decodes lines and parses "data: {...}\n\n" format.
- * Direct to FastAPI — avoids Next route-handler buffering on SSE.
+ * Routes through the same-origin Next.js proxy which pipes the upstream body
+ * directly with X-Accel-Buffering: no — no buffering occurs.
  */
 export async function streamAnalysis(sessionId: string): Promise<ReadableStream<Uint8Array>> {
-  const base = getBackendBaseUrl();
-  const url = `${base}/api/sessions/${encodeURIComponent(sessionId)}/analyse`;
+  const url = `/api/warp/sessions/${encodeURIComponent(sessionId)}/analyse`;
   const res = await fetch(url, {
     method: "POST",
     headers: { Accept: "text/event-stream" },
-    mode: "cors",
   });
   if (!res.ok || !res.body) throw new Error(`streamAnalysis: ${res.status}`);
   return res.body;

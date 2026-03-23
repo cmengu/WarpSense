@@ -107,6 +107,7 @@ async def get_report(
         "self_check_notes": report_model.self_check_notes,
         "agent_type": report_model.agent_type,
         "report_timestamp": report_model.report_timestamp.isoformat(),
+        "llm_raw_response": report_model.llm_raw_response,
     }
 
 

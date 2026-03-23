@@ -701,6 +701,7 @@ async def add_frames(
         }
     except Exception:
         db.rollback()
+        logger.exception("Frame ingestion internal error session_id=%s", session_id)
         # Sanitize: do not expose internal exception details to client
         return {
             "status": "failed",

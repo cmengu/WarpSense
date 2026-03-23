@@ -12,8 +12,10 @@
  *   onComplete     — optional; when the stream finishes with a report (e.g. Analyse All queue)
  *   onReanalyse    — optional; passed to QualityReportCard for in-report retry
  *   welderDisplayName — passed through to QualityReportCard
+ *   Compare button — navigates to /compare?sessionA={sessionId} (built inside this component).
  */
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import type {
   WarpReport,
   WarpSSEEvent,
@@ -64,6 +66,11 @@ export function AnalysisTimeline({
   onReanalyse,
   welderDisplayName,
 }: AnalysisTimelineProps) {
+  const router = useRouter();
+  const handleCompare = useCallback(() => {
+    router.push(`/compare?sessionA=${encodeURIComponent(sessionId)}`);
+  }, [router, sessionId]);
+
   const [phase, setPhase]           = useState<Phase>("streaming");
   const [progress, setProgress]     = useState(0);
   const [logLines, setLogLines]     = useState<string[]>([]);
@@ -280,6 +287,7 @@ export function AnalysisTimeline({
               report={report}
               welderDisplayName={welderDisplayName}
               onReanalyse={onReanalyse}
+              onCompare={handleCompare}
             />
           </div>
         )}

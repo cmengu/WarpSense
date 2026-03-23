@@ -4,10 +4,18 @@ import ReplayPage from '@/app/replay/[sessionId]/page';
 
 // CRITICAL: Loader-invoking dynamic mock — each dynamic() import gets its own mocked component.
 // Enables per-component mocks: TorchViz3D → torch-viz-3d-mock, HeatmapPlate3D → heatmap-plate-3d.
+// Wraps loader so React.lazy always receives { default: Component } regardless of whether
+// the original loader returns Promise<Component> or Promise<{ default: Component }>.
 jest.mock('next/dynamic', () => ({
   __esModule: true,
-  default: (loader: () => Promise<{ default: React.ComponentType<unknown> }>) => {
-    const Loaded = React.lazy(loader);
+  default: (loader: () => Promise<unknown>) => {
+    const normalizedLoader = () =>
+      loader().then((m) => {
+        if (typeof m === 'function') return { default: m };
+        const mod = m as Record<string, unknown>;
+        return { default: (mod.default ?? m) as React.ComponentType<unknown> };
+      });
+    const Loaded = React.lazy(normalizedLoader);
     return function DynamicWrapper(props: Record<string, unknown>) {
       return (
         <React.Suspense fallback={<div data-testid="dynamic-loading" />}>
@@ -26,6 +34,7 @@ jest.mock('@/components/welding/TorchWithHeatmap3D', () => ({
 // Mock api to avoid real API calls (fetchSession for replay, fetchScore for ScorePanel, fetchWarpRisk for WarpRiskGauge)
 jest.mock('@/lib/api', () => ({
   fetchSession: jest.fn(),
+  fetchAnnotations: jest.fn().mockResolvedValue([]),
   fetchScore: jest.fn().mockResolvedValue({
     total: 100,
     rules: [
@@ -92,6 +101,7 @@ describe('ReplayPage', () => {
     await waitFor(() => {
       expect(mockFetchSession).toHaveBeenCalledWith('test-session-123', {
         limit: 2000,
+        include_thermal: true,
       });
     });
   });
@@ -348,8 +358,11 @@ describe('ReplayPage', () => {
       expect(screen.getByText(/session replay: thermal-session/i)).toBeInTheDocument();
     });
 
-    const torchMocks = screen.getAllByTestId('torch-with-heatmap-3d');
-    expect(torchMocks).toHaveLength(2);
+    // currentTimestamp is set via useEffect after firstTimestamp resolves — wait for render
+    await waitFor(() => {
+      const torchMocks = screen.getAllByTestId('torch-with-heatmap-3d');
+      expect(torchMocks).toHaveLength(2);
+    });
   });
 
   /**

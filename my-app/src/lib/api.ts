@@ -537,7 +537,6 @@ export async function createAnnotation(
 
 /**
  * Fetch cross-session defect library with optional filters.
- * TODO: weld_type filter is supported by API but not yet exposed in defects page UI.
  * @throws Error if request fails.
  */
 export async function fetchDefectLibrary(params?: {

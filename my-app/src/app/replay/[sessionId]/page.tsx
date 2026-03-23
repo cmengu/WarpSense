@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, use, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
@@ -36,6 +36,7 @@ import { useFrameData } from '@/hooks/useFrameData';
 import { getFrameAtTimestamp, extractCenterTemperatureWithCarryForward } from '@/utils/frameUtils';
 import type { Session } from '@/types/session';
 import type { Annotation } from '@/types/annotation';
+import type { Frame } from '@/types/frame';
 
 // Dynamic import for TorchWithHeatmap3D — unified torch + thermal metal (replaces TorchViz3D + HeatmapPlate3D)
 // Per WEBGL_CONTEXT_LOSS.md: max 2 instances (see constants/webgl.ts)
@@ -116,7 +117,20 @@ function ReplayPageWithAsyncParams({
 }: {
   params: Promise<{ sessionId: string }>;
 }) {
-  const { sessionId } = use(params);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+
+  useEffect(() => {
+    void params.then(({ sessionId: id }) => setSessionId(id));
+  }, [params]);
+
+  if (!sessionId) {
+    return (
+      <div className="min-h-screen bg-zinc-50 dark:bg-black flex items-center justify-center">
+        <div className="text-sm text-zinc-500">Loading...</div>
+      </div>
+    );
+  }
+
   return (
     <Suspense
       fallback={
@@ -146,6 +160,10 @@ function ReplayPageInner({ sessionId }: { sessionId: string }) {
   const refreshFailedTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
     null
   );
+  const isMountedRef = useRef(true);
+  useEffect(() => {
+    return () => { isMountedRef.current = false; };
+  }, []);
 
   // Comparison session state (for side-by-side 3D visualization)
   const [comparisonSession, setComparisonSession] = useState<Session | null>(null);
@@ -406,10 +424,8 @@ function ReplayPageInner({ sessionId }: { sessionId: string }) {
 
   // Same-session warning: log when ?compare= equals current session (developer edge case)
   useEffect(() => {
-    if (isComparingWithSelf && typeof console?.warn === 'function') {
-      console.warn(
-        `ReplayPage: Comparing session with itself (${sessionId}). Consider using a different ?compare= value.`
-      );
+    if (isComparingWithSelf) {
+      logWarn('ReplayPage', `Comparing session with itself (${sessionId}). Consider using a different ?compare= value.`);
     }
   }, [isComparingWithSelf, sessionId]);
 
@@ -465,9 +481,10 @@ function ReplayPageInner({ sessionId }: { sessionId: string }) {
   const FETCH_TIMEOUT_MS = 10_000;
   useEffect(() => {
     let mounted = true;
-    const timeoutPromise = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('fetchWarpRisk timeout')), FETCH_TIMEOUT_MS)
-    );
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timeoutId = setTimeout(() => reject(new Error('fetchWarpRisk timeout')), FETCH_TIMEOUT_MS);
+    });
     Promise.race([fetchWarpRisk(sessionId), timeoutPromise])
       .then((r) => {
         if (mounted) setWarpRisk(r);
@@ -489,6 +506,7 @@ function ReplayPageInner({ sessionId }: { sessionId: string }) {
       });
     return () => {
       mounted = false;
+      clearTimeout(timeoutId);
     };
   }, [sessionId]);
 
@@ -496,8 +514,11 @@ function ReplayPageInner({ sessionId }: { sessionId: string }) {
   const handleAnnotationSaved = useCallback(() => {
     setAnnotationRefreshFailed(null);
     fetchAnnotations(sessionId)
-      .then((data) => setAnnotations(data))
+      .then((data) => {
+        if (isMountedRef.current) setAnnotations(data);
+      })
       .catch((err) => {
+        if (!isMountedRef.current) return;
         logWarn('ReplayPage', 'Failed to refresh annotations after save', {
           sessionId,
           error: err instanceof Error ? err.message : String(err),
@@ -652,276 +673,411 @@ function ReplayPageInner({ sessionId }: { sessionId: string }) {
         )}
 
         {firstTimestamp != null && lastTimestamp != null && lastTimestamp > firstTimestamp && (
-          <div className="mb-4 space-y-2 relative">
-            <div className="flex items-center gap-3 flex-wrap">
-              <button
-                type="button"
-                onClick={() => setIsPlaying((p) => !p)}
-                className="px-4 py-2 rounded-md bg-blue-500 text-white text-sm font-medium hover:bg-blue-600 disabled:opacity-50"
-                aria-label={isPlaying ? 'Pause playback' : 'Play playback'}
-              >
-                {isPlaying ? 'Pause' : 'Play'}
-              </button>
-              <label htmlFor="replay-slider" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                Timeline
-              </label>
-              {annotateMode && (
-                <button
-                  type="button"
-                  onClick={() =>
-                    setSelectedTimestampForAnnotation(
-                      currentTimestamp ?? firstTimestamp ?? 0
-                    )
-                  }
-                  className="px-3 py-1 text-xs rounded-md bg-cyan-600 text-white hover:bg-cyan-500"
-                >
-                  Add annotation at current position
-                </button>
-            )}
-            </div>
-            {annotationRefreshFailed && (
-              <p className="text-amber-600 dark:text-amber-400 text-xs">
-                {annotationRefreshFailed}
-              </p>
-            )}
-            <div className="relative max-w-2xl">
-              {sessionData?.frames && (
-                <TimelineMarkers
-                  items={microFeedback}
-                  frames={sessionData.frames}
-                  firstTimestamp={firstTimestamp}
-                  lastTimestamp={lastTimestamp}
-                  onFrameSelect={handleFrameSelect}
-                />
-              )}
-              {annotations.length > 0 && (
-                <AnnotationMarker
-                  annotations={annotations}
-                  firstTimestamp={firstTimestamp}
-                  lastTimestamp={lastTimestamp}
-                  onAnnotationClick={handleFrameSelect}
-                />
-              )}
-              <input
-                id="replay-slider"
-                type="range"
-                min={firstTimestamp}
-                max={lastTimestamp}
-                step={10}
-                value={currentTimestamp ?? firstTimestamp}
-                onChange={(e) => {
-                  setIsPlaying(false);
-                  const raw = e.target.value;
-                  const val = raw === '' ? currentTimestamp ?? firstTimestamp ?? 0 : Number(raw);
-                  setCurrentTimestamp(
-                    Number.isFinite(val)
-                      ? Math.max(
-                          firstTimestamp ?? 0,
-                          Math.min(lastTimestamp ?? 0, val)
-                        )
-                      : currentTimestamp ?? firstTimestamp ?? 0
-                  );
-                }}
-                className="w-full h-2 bg-zinc-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2"
-              />
-            </div>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">
-              {(currentTimestamp ?? firstTimestamp) / 1000} s
-            </p>
-            {annotateMode && selectedTimestampForAnnotation != null && (
-              <div className="absolute left-0 top-0 mt-2 z-10">
-                <AddAnnotationPanel
-                  sessionId={sessionId}
-                  selectedTimestampMs={selectedTimestampForAnnotation}
-                  onAnnotationSaved={handleAnnotationSaved}
-                  onClose={() => setSelectedTimestampForAnnotation(null)}
-                />
-              </div>
-            )}
-          </div>
+          <ReplayPlaybackControls
+            sessionId={sessionId}
+            firstTimestamp={firstTimestamp}
+            lastTimestamp={lastTimestamp}
+            currentTimestamp={currentTimestamp}
+            isPlaying={isPlaying}
+            annotateMode={annotateMode}
+            annotationRefreshFailed={annotationRefreshFailed}
+            microFeedback={microFeedback}
+            frames={sessionData?.frames ?? []}
+            annotations={annotations}
+            selectedTimestampForAnnotation={selectedTimestampForAnnotation}
+            onFrameSelect={handleFrameSelect}
+            onPlayToggle={() => setIsPlaying((p) => !p)}
+            onAnnotationPositionSelect={(ts) => setSelectedTimestampForAnnotation(ts)}
+            onAnnotationSaved={handleAnnotationSaved}
+            onAnnotationPanelClose={() => setSelectedTimestampForAnnotation(null)}
+          />
         )}
 
-        {/* 3D Torch Visualization Block — Side-by-side comparison (Expert | Novice) */}
-        {currentTimestamp != null && sessionData?.frames && (
-          <ErrorBoundary>
-            <div className="mb-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Left: Current Session (Expert) */}
-                <div>
-                  {(() => {
-                    const frame = getFrameAtTimestamp(sessionData.frames, currentTimestamp);
-                    const angle = frame?.angle_degrees ?? 45;
-                    const temp = extractCenterTemperatureWithCarryForward(
-                      sessionData.frames,
-                      currentTimestamp
-                    );
-                    return (
-                      <>
-                        <TorchWithHeatmap3D
-                          angle={angle}
-                          temp={temp}
-                          label={`Current Session (${sessionId})`}
-                          frames={frameData.thermal_frames}
-                          activeTimestamp={currentTimestamp}
-                          maxTemp={THERMAL_MAX_TEMP}
-                          minTemp={THERMAL_MIN_TEMP}
-                          colorSensitivity={THERMAL_COLOR_SENSITIVITY}
-                        />
-                        {/* Warp risk gauge */}
-                        {warpRisk && (
-                          <div className="mt-2">
-                            <WarpRiskGauge
-                              probability={warpRisk.probability}
-                              riskLevel={warpRisk.risk_level}
-                              modelAvailable={warpRisk.model_available}
-                            />
-                          </div>
-                        )}
-                        {/* Inline score display */}
-                        {primaryScore ? (
-                          <div className="mt-2 p-3 bg-white dark:bg-zinc-900 rounded border border-zinc-200 dark:border-zinc-800">
-                            <div className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
-                              Score: {primaryScore.total} / 100
-                            </div>
-                            <div className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
-                              {primaryScore.rules.filter((r) => r.passed).length} / 5 rules passed
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="mt-2 p-3 bg-zinc-50 dark:bg-zinc-900/50 rounded border border-zinc-200 dark:border-zinc-800">
-                            <div className="text-xs text-zinc-500 dark:text-zinc-400">
-                              Loading score...
-                            </div>
-                          </div>
-                        )}
-                      </>
-                    );
-                  })()}
-                </div>
+        <ReplayVisualization
+          sessionId={sessionId}
+          currentTimestamp={currentTimestamp}
+          frames={sessionData?.frames}
+          frameData={frameData}
+          comparisonSession={comparisonSession}
+          showComparison={showComparison}
+          comparisonFrameData={comparisonFrameData}
+          warpRisk={warpRisk}
+          primaryScore={primaryScore}
+          comparisonScore={comparisonScore}
+          effectiveComparisonId={effectiveComparisonId}
+          isComparingWithSelf={isComparingWithSelf}
+        />
 
-                {/* Right: Comparison Session (Novice) */}
-                {showComparison && comparisonSession?.frames ? (
-                  <div>
-                    {isComparingWithSelf && (
-                      <div className="mb-2 px-3 py-1.5 rounded bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 text-xs">
-                        Comparing with itself
-                      </div>
-                    )}
-                    {(() => {
-                      const frame = getFrameAtTimestamp(
-                        comparisonSession.frames,
-                        currentTimestamp
-                      );
-                      const angle = frame?.angle_degrees ?? 45;
-                      const temp = extractCenterTemperatureWithCarryForward(
-                        comparisonSession.frames,
-                        currentTimestamp
-                      );
-                      return (
-                        <>
-                          <TorchWithHeatmap3D
-                            angle={angle}
-                            temp={temp}
-                            label={`Comparison (${effectiveComparisonId ?? 'unknown'})`}
-                            frames={comparisonFrameData.thermal_frames}
-                            activeTimestamp={currentTimestamp}
-                            maxTemp={THERMAL_MAX_TEMP}
-                            minTemp={THERMAL_MIN_TEMP}
-                            colorSensitivity={THERMAL_COLOR_SENSITIVITY}
-                          />
-                          {/* Inline score display */}
-                          {comparisonScore ? (
-                            <div className="mt-2 p-3 bg-white dark:bg-zinc-900 rounded border border-zinc-200 dark:border-zinc-800">
-                              <div className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
-                                Score: {comparisonScore.total} / 100
-                              </div>
-                              <div className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
-                                {comparisonScore.rules.filter((r) => r.passed).length} / 5 rules
-                                passed
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="mt-2 p-3 bg-zinc-50 dark:bg-zinc-900/50 rounded border border-zinc-200 dark:border-zinc-800">
-                              <div className="text-xs text-zinc-500 dark:text-zinc-400">
-                                Loading score...
-                              </div>
-                            </div>
-                          )}
-                        </>
-                      );
-                    })()}
-                  </div>
-                ) : showComparison ? (
-                  <div className="flex items-center justify-center h-64 bg-zinc-50 dark:bg-zinc-900/50 rounded-lg border border-zinc-200 dark:border-zinc-800">
-                    <div className="text-sm text-zinc-500 dark:text-zinc-400">
-                      Comparison session not available
-                    </div>
-                  </div>
-                ) : null}
-              </div>
-            </div>
-          </ErrorBoundary>
-        )}
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          <ErrorBoundary
-            fallback={
-              <div className="min-h-[200px] flex items-center justify-center rounded-xl border-2 border-violet-400/40 bg-neutral-900 text-violet-400">
-                Heat map unavailable
-              </div>
-            }
-          >
-            {frameData.thermal_frames.length > 0 ? (
-              <div className="min-h-[200px] flex items-center justify-center rounded-xl border-2 border-blue-400/40 bg-neutral-900/50 text-blue-400/80 text-sm">
-                Thermal data shown in 3D view above
-              </div>
-            ) : (
-              <HeatMap
-                sessionId={sessionId}
-                data={heatmapData}
-                activeTimestamp={currentTimestamp}
-              />
-            )}
-          </ErrorBoundary>
-          <ErrorBoundary>
-            <TorchAngleGraph sessionId={sessionId} data={angleData} activeTimestamp={currentTimestamp} />
-          </ErrorBoundary>
-        </div>
-
-        {scoreFetchError && (
-          <p
-            className="text-amber-600 dark:text-amber-400 text-sm mb-2"
-            data-testid="score-fetch-error"
-          >
-            Score unavailable: {scoreFetchError}. Micro-feedback may use default
-            thresholds.
-          </p>
-        )}
-        <div className="mb-6">
-          <ErrorBoundary>
-            <ScorePanel sessionId={sessionId} />
-          </ErrorBoundary>
-        </div>
-
-        {sessionData != null && (
-          <div className="mb-6">
-            <h2 className="text-lg font-semibold text-zinc-800 dark:text-zinc-200 mb-3">
-              Frame-level feedback
-            </h2>
-            {microFeedback.length > 0 ? (
-              <FeedbackPanel
-                items={microFeedback}
-                frames={sessionData.frames ?? []}
-                onFrameSelect={handleFrameSelect}
-              />
-            ) : (
-              <p className="text-sm text-zinc-500 dark:text-zinc-400" data-testid="no-micro-feedback">
-                No frame-level feedback for this session
-              </p>
-            )}
-          </div>
-        )}
+        <ReplayPanels
+          sessionId={sessionId}
+          heatmapData={heatmapData}
+          angleData={angleData}
+          frameData={frameData}
+          currentTimestamp={currentTimestamp}
+          scoreFetchError={scoreFetchError}
+          microFeedback={microFeedback}
+          sessionData={sessionData}
+          onFrameSelect={handleFrameSelect}
+        />
       </div>
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// ReplayPlaybackControls
+// ---------------------------------------------------------------------------
+
+interface ReplayPlaybackControlsProps {
+  sessionId: string;
+  firstTimestamp: number;
+  lastTimestamp: number;
+  currentTimestamp: number | null;
+  isPlaying: boolean;
+  annotateMode: boolean;
+  annotationRefreshFailed: string | null;
+  microFeedback: ReturnType<typeof generateMicroFeedback>;
+  frames: Frame[];
+  annotations: Annotation[];
+  selectedTimestampForAnnotation: number | null;
+  onFrameSelect: (ts: number) => void;
+  onPlayToggle: () => void;
+  onAnnotationPositionSelect: (ts: number) => void;
+  onAnnotationSaved: () => void;
+  onAnnotationPanelClose: () => void;
+}
+
+function ReplayPlaybackControls({
+  sessionId,
+  firstTimestamp,
+  lastTimestamp,
+  currentTimestamp,
+  isPlaying,
+  annotateMode,
+  annotationRefreshFailed,
+  microFeedback,
+  frames,
+  annotations,
+  selectedTimestampForAnnotation,
+  onFrameSelect,
+  onPlayToggle,
+  onAnnotationPositionSelect,
+  onAnnotationSaved,
+  onAnnotationPanelClose,
+}: ReplayPlaybackControlsProps) {
+  return (
+    <div className="mb-4 space-y-2 relative">
+      <div className="flex items-center gap-3 flex-wrap">
+        <button
+          type="button"
+          onClick={onPlayToggle}
+          className="px-4 py-2 rounded-md bg-blue-500 text-white text-sm font-medium hover:bg-blue-600 disabled:opacity-50"
+          aria-label={isPlaying ? 'Pause playback' : 'Play playback'}
+        >
+          {isPlaying ? 'Pause' : 'Play'}
+        </button>
+        <label htmlFor="replay-slider" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+          Timeline
+        </label>
+        {annotateMode && (
+          <button
+            type="button"
+            onClick={() => onAnnotationPositionSelect(currentTimestamp ?? firstTimestamp)}
+            className="px-3 py-1 text-xs rounded-md bg-cyan-600 text-white hover:bg-cyan-500"
+          >
+            Add annotation at current position
+          </button>
+        )}
+      </div>
+      {annotationRefreshFailed && (
+        <p className="text-amber-600 dark:text-amber-400 text-xs">
+          {annotationRefreshFailed}
+        </p>
+      )}
+      <div className="relative max-w-2xl">
+        {frames.length > 0 && (
+          <TimelineMarkers
+            items={microFeedback}
+            frames={frames}
+            firstTimestamp={firstTimestamp}
+            lastTimestamp={lastTimestamp}
+            onFrameSelect={onFrameSelect}
+          />
+        )}
+        {annotations.length > 0 && (
+          <AnnotationMarker
+            annotations={annotations}
+            firstTimestamp={firstTimestamp}
+            lastTimestamp={lastTimestamp}
+            onAnnotationClick={onFrameSelect}
+          />
+        )}
+        <input
+          id="replay-slider"
+          type="range"
+          min={firstTimestamp}
+          max={lastTimestamp}
+          step={10}
+          value={currentTimestamp ?? firstTimestamp}
+          onChange={(e) => {
+            const raw = e.target.value;
+            const val = raw === '' ? currentTimestamp ?? firstTimestamp : Number(raw);
+            onFrameSelect(
+              Number.isFinite(val)
+                ? Math.max(firstTimestamp, Math.min(lastTimestamp, val))
+                : currentTimestamp ?? firstTimestamp
+            );
+          }}
+          className="w-full h-2 bg-zinc-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2"
+        />
+      </div>
+      <p className="text-xs text-zinc-500 dark:text-zinc-400">
+        {(currentTimestamp ?? firstTimestamp) / 1000} s
+      </p>
+      {annotateMode && selectedTimestampForAnnotation != null && (
+        <div className="absolute left-0 top-0 mt-2 z-10">
+          <AddAnnotationPanel
+            sessionId={sessionId}
+            selectedTimestampMs={selectedTimestampForAnnotation}
+            onAnnotationSaved={onAnnotationSaved}
+            onClose={onAnnotationPanelClose}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// ReplayVisualization — 3D side-by-side comparison block
+// ---------------------------------------------------------------------------
+
+interface ReplayVisualizationProps {
+  sessionId: string;
+  currentTimestamp: number | null;
+  frames: Frame[] | undefined;
+  frameData: ReturnType<typeof useFrameData>;
+  comparisonSession: Session | null;
+  showComparison: boolean;
+  comparisonFrameData: ReturnType<typeof useFrameData>;
+  warpRisk: WarpRiskResponse | null;
+  primaryScore: SessionScore | null;
+  comparisonScore: SessionScore | null;
+  effectiveComparisonId: string | undefined;
+  isComparingWithSelf: boolean;
+}
+
+function ReplayVisualization({
+  sessionId,
+  currentTimestamp,
+  frames,
+  frameData,
+  comparisonSession,
+  showComparison,
+  comparisonFrameData,
+  warpRisk,
+  primaryScore,
+  comparisonScore,
+  effectiveComparisonId,
+  isComparingWithSelf,
+}: ReplayVisualizationProps) {
+  if (currentTimestamp == null || !frames) return null;
+
+  const primaryFrame = getFrameAtTimestamp(frames, currentTimestamp);
+  const primaryAngle = primaryFrame?.angle_degrees ?? 45;
+  const primaryTemp = extractCenterTemperatureWithCarryForward(frames, currentTimestamp);
+
+  return (
+    <ErrorBoundary>
+      <div className="mb-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Left: Current Session */}
+          <div>
+            <TorchWithHeatmap3D
+              angle={primaryAngle}
+              temp={primaryTemp}
+              label={`Current Session (${sessionId})`}
+              frames={frameData.thermal_frames}
+              activeTimestamp={currentTimestamp}
+              maxTemp={THERMAL_MAX_TEMP}
+              minTemp={THERMAL_MIN_TEMP}
+              colorSensitivity={THERMAL_COLOR_SENSITIVITY}
+            />
+            {warpRisk && (
+              <div className="mt-2">
+                <WarpRiskGauge
+                  probability={warpRisk.probability}
+                  riskLevel={warpRisk.risk_level}
+                  modelAvailable={warpRisk.model_available}
+                />
+              </div>
+            )}
+            {primaryScore ? (
+              <div className="mt-2 p-3 bg-white dark:bg-zinc-900 rounded border border-zinc-200 dark:border-zinc-800">
+                <div className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
+                  Score: {primaryScore.total} / 100
+                </div>
+                <div className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
+                  {primaryScore.rules.filter((r) => r.passed).length} / 5 rules passed
+                </div>
+              </div>
+            ) : (
+              <div className="mt-2 p-3 bg-zinc-50 dark:bg-zinc-900/50 rounded border border-zinc-200 dark:border-zinc-800">
+                <div className="text-xs text-zinc-500 dark:text-zinc-400">
+                  Loading score...
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Right: Comparison Session */}
+          {showComparison && comparisonSession?.frames ? (
+            <div>
+              {isComparingWithSelf && (
+                <div className="mb-2 px-3 py-1.5 rounded bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 text-xs">
+                  Comparing with itself
+                </div>
+              )}
+              {(() => {
+                const frame = getFrameAtTimestamp(comparisonSession.frames, currentTimestamp);
+                const angle = frame?.angle_degrees ?? 45;
+                const temp = extractCenterTemperatureWithCarryForward(
+                  comparisonSession.frames,
+                  currentTimestamp
+                );
+                return (
+                  <>
+                    <TorchWithHeatmap3D
+                      angle={angle}
+                      temp={temp}
+                      label={`Comparison (${effectiveComparisonId ?? 'unknown'})`}
+                      frames={comparisonFrameData.thermal_frames}
+                      activeTimestamp={currentTimestamp}
+                      maxTemp={THERMAL_MAX_TEMP}
+                      minTemp={THERMAL_MIN_TEMP}
+                      colorSensitivity={THERMAL_COLOR_SENSITIVITY}
+                    />
+                    {comparisonScore ? (
+                      <div className="mt-2 p-3 bg-white dark:bg-zinc-900 rounded border border-zinc-200 dark:border-zinc-800">
+                        <div className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
+                          Score: {comparisonScore.total} / 100
+                        </div>
+                        <div className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
+                          {comparisonScore.rules.filter((r) => r.passed).length} / 5 rules
+                          passed
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="mt-2 p-3 bg-zinc-50 dark:bg-zinc-900/50 rounded border border-zinc-200 dark:border-zinc-800">
+                        <div className="text-xs text-zinc-500 dark:text-zinc-400">
+                          Loading score...
+                        </div>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
+            </div>
+          ) : showComparison ? (
+            <div className="flex items-center justify-center h-64 bg-zinc-50 dark:bg-zinc-900/50 rounded-lg border border-zinc-200 dark:border-zinc-800">
+              <div className="text-sm text-zinc-500 dark:text-zinc-400">
+                Comparison session not available
+              </div>
+            </div>
+          ) : null}
+        </div>
+      </div>
+    </ErrorBoundary>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// ReplayPanels — heatmap, angle graph, score, frame-level feedback
+// ---------------------------------------------------------------------------
+
+interface ReplayPanelsProps {
+  sessionId: string;
+  heatmapData: ReturnType<typeof extractHeatmapData> | null;
+  angleData: ReturnType<typeof extractAngleData> | null;
+  frameData: ReturnType<typeof useFrameData>;
+  currentTimestamp: number | null;
+  scoreFetchError: string | null;
+  microFeedback: ReturnType<typeof generateMicroFeedback>;
+  sessionData: Session | null;
+  onFrameSelect: (ts: number) => void;
+}
+
+function ReplayPanels({
+  sessionId,
+  heatmapData,
+  angleData,
+  frameData,
+  currentTimestamp,
+  scoreFetchError,
+  microFeedback,
+  sessionData,
+  onFrameSelect,
+}: ReplayPanelsProps) {
+  return (
+    <>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <ErrorBoundary
+          fallback={
+            <div className="min-h-[200px] flex items-center justify-center rounded-xl border-2 border-violet-400/40 bg-neutral-900 text-violet-400">
+              Heat map unavailable
+            </div>
+          }
+        >
+          {frameData.thermal_frames.length > 0 ? (
+            <div className="min-h-[200px] flex items-center justify-center rounded-xl border-2 border-blue-400/40 bg-neutral-900/50 text-blue-400/80 text-sm">
+              Thermal data shown in 3D view above
+            </div>
+          ) : (
+            <HeatMap
+              sessionId={sessionId}
+              data={heatmapData}
+              activeTimestamp={currentTimestamp}
+            />
+          )}
+        </ErrorBoundary>
+        <ErrorBoundary>
+          <TorchAngleGraph sessionId={sessionId} data={angleData} activeTimestamp={currentTimestamp} />
+        </ErrorBoundary>
+      </div>
+
+      {scoreFetchError && (
+        <p
+          className="text-amber-600 dark:text-amber-400 text-sm mb-2"
+          data-testid="score-fetch-error"
+        >
+          Score unavailable: {scoreFetchError}. Micro-feedback may use default
+          thresholds.
+        </p>
+      )}
+      <div className="mb-6">
+        <ErrorBoundary>
+          <ScorePanel sessionId={sessionId} />
+        </ErrorBoundary>
+      </div>
+
+      {sessionData != null && (
+        <div className="mb-6">
+          <h2 className="text-lg font-semibold text-zinc-800 dark:text-zinc-200 mb-3">
+            Frame-level feedback
+          </h2>
+          {microFeedback.length > 0 ? (
+            <FeedbackPanel
+              items={microFeedback}
+              frames={sessionData.frames ?? []}
+              onFrameSelect={onFrameSelect}
+            />
+          ) : (
+            <p className="text-sm text-zinc-500 dark:text-zinc-400" data-testid="no-micro-feedback">
+              No frame-level feedback for this session
+            </p>
+          )}
+        </div>
+      )}
+    </>
   );
 }

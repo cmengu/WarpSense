@@ -59,6 +59,8 @@ function SkeletonRows() {
   );
 }
 
+const PAGE_SIZE = 10;
+
 export function SessionList({
   onSessionSelect,
   selectedSessionId,
@@ -68,6 +70,7 @@ export function SessionList({
   const [sessions, setSessions] = useState<MockSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   useEffect(() => {
     let cancelled = false;
@@ -78,6 +81,8 @@ export function SessionList({
   }, []);
 
   const unanalysedCount = sessions.filter((s) => s.disposition === null).length;
+  const visibleSessions = sessions.slice(0, visibleCount);
+  const hasMore = visibleCount < sessions.length;
 
   return (
     <div className="flex flex-col min-h-[400px] h-full bg-[var(--warp-surface)]">
@@ -108,7 +113,7 @@ export function SessionList({
             Error: {error}
           </p>
         )}
-        {!loading && !error && sessions.map((session) => {
+        {!loading && !error && visibleSessions.map((session) => {
           const selected = session.session_id === selectedSessionId;
           return (
             <button
@@ -152,6 +157,17 @@ export function SessionList({
             </button>
           );
         })}
+        {!loading && !error && hasMore && (
+          <button
+            type="button"
+            onClick={() => setVisibleCount((n) => n + PAGE_SIZE)}
+            className="w-full px-3 py-2 font-mono text-[9px] uppercase tracking-widest
+              text-[var(--warp-text-muted)] hover:text-[var(--warp-amber)]
+              border-t border-zinc-900 transition-colors duration-100"
+          >
+            Load more ({sessions.length - visibleCount} remaining)
+          </button>
+        )}
       </div>
     </div>
   );

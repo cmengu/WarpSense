@@ -146,7 +146,6 @@ function Sparkline({
 }
 
 // ─── BEAD DIFF — STATIC PLACEHOLDER ──────────────────────────────────────────
-// TODO: wire to real bead-width derivation when API exists.
 // No dynamic data. No extractCenterTemperatureWithCarryForward here.
 function BeadDiffPlaceholder() {
   const ref = useRef<HTMLCanvasElement>(null);

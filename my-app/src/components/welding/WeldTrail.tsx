@@ -15,6 +15,7 @@ import * as THREE from 'three';
 import { extractCenterTemperature, isArcActive } from '@/utils/frameUtils';
 import { AL_TRAVEL_SPEED_BASE_MEAN } from '@/constants/aluminum';
 import { FRAME_INTERVAL_MS } from '@/constants/validation';
+import { logWarn, logError } from '@/lib/logger';
 import type { Frame } from '@/types/frame';
 
 const FRAME_DURATION_MIN = FRAME_INTERVAL_MS / 60000;
@@ -139,9 +140,7 @@ export function WeldTrail({
   const warnRef = useRef(false);
   const cb = useCallback(() => {
     if (!warnRef.current) {
-      console.warn(
-        '[WeldTrail] All frames have null travel_speed_mm_per_min; using timestamp-linear fallback'
-      );
+      logWarn('WeldTrail', 'All frames have null travel_speed_mm_per_min; using timestamp-linear fallback');
       warnRef.current = true;
     }
   }, []);
@@ -204,7 +203,7 @@ export function WeldTrail({
       positions.length > (posAttr.array as Float32Array).length ||
       colors.length > (colAttr.array as Float32Array).length
     ) {
-      console.error('[WeldTrail] positions overflow pre-allocated buffer');
+      logError('WeldTrail', new Error('positions overflow pre-allocated buffer'));
       return;
     }
 

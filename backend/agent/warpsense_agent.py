@@ -28,7 +28,7 @@ import os
 import re
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Literal, Optional
 
 from groq import Groq
 import chromadb
@@ -142,7 +142,7 @@ class ThresholdViolation:
     feature: str
     value: float
     threshold: float
-    threshold_type: str
+    threshold_type: Literal["max", "min"]
     severity: str
     unit: str
     defect_categories: list

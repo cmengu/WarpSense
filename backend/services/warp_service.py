@@ -299,6 +299,7 @@ async def analyse_session_stream(session_id: str, db: OrmSession) -> AsyncGenera
                     "self_check_passed":       report_model.self_check_passed,
                     "self_check_notes":        report_model.self_check_notes,
                     "report_timestamp":        report_model.report_timestamp.isoformat(),
+                    "llm_raw_response":        report_model.llm_raw_response,
                 },
             })
 
@@ -312,7 +313,7 @@ async def analyse_session_stream(session_id: str, db: OrmSession) -> AsyncGenera
         finally:
             queue.put_nowait(None)  # Sentinel — signals generator to stop
 
-    asyncio.create_task(_run_pipeline())
+    pipeline_task = asyncio.create_task(_run_pipeline())
 
     # Drain queue until sentinel, emitting SSE keepalive comments every 10 s.
     # Prevents Nginx proxy_read_timeout (default 60 s) from silently killing
@@ -321,20 +322,26 @@ async def analyse_session_stream(session_id: str, db: OrmSession) -> AsyncGenera
     loop = asyncio.get_running_loop()
     _deadline = loop.time() + 300.0
 
-    while True:
-        remaining = _deadline - loop.time()
-        if remaining <= 0:
-            break
-        try:
-            event = await asyncio.wait_for(
-                queue.get(), timeout=min(_KEEPALIVE_S, remaining)
-            )
-        except asyncio.TimeoutError:
-            if loop.time() >= _deadline:
+    try:
+        while True:
+            remaining = _deadline - loop.time()
+            if remaining <= 0:
                 break
-            # SSE comment — ignored by frontend parser; resets proxy idle timer.
-            yield ": keepalive\n\n"
-            continue
-        if event is None:
-            break
-        yield _sse(event)
+            try:
+                event = await asyncio.wait_for(
+                    queue.get(), timeout=min(_KEEPALIVE_S, remaining)
+                )
+            except asyncio.TimeoutError:
+                if loop.time() >= _deadline:
+                    break
+                # SSE comment — ignored by frontend parser; resets proxy idle timer.
+                yield ": keepalive\n\n"
+                continue
+            if event is None:
+                break
+            yield _sse(event)
+    finally:
+        # If the client disconnects before the pipeline finishes, cancel the
+        # background task so it does not continue DB writes on a closed session.
+        if not pipeline_task.done():
+            pipeline_task.cancel()
