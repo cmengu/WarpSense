@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ThresholdViolation, WarpReport } from "@/types/warp-analysis";
 import { logWarn } from "@/lib/logger";
+import { captureChartToBase64 } from "@/lib/pdf-chart-capture";
 import { StatusBadge } from "./StatusBadge";
 
 /** Maps agent code-names → operational display labels. */
@@ -150,6 +151,7 @@ export function QualityReportCard({
   onCompare,
 }: QualityReportCardProps) {
   const [copyFeedback, setCopyFeedback] = useState(false);
+  const [isPdfLoading, setIsPdfLoading] = useState(false);
   const copyFeedbackTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const driverBars = useMemo(() => buildDriverBars(report), [report]);
@@ -190,10 +192,51 @@ export function QualityReportCard({
     window.prompt("Copy session ID:", report.session_id);
   }, [report.session_id]);
 
-  const handleExportPdf = useCallback(() => {
-    // Phase UI-7 replaces this placeholder with a real export flow.
-    logWarn("[QualityReportCard]", "Export PDF not implemented", { sessionId: report.session_id });
-  }, [report.session_id]);
+  const handleExportPdf = useCallback(async () => {
+    if (isPdfLoading) return;
+    setIsPdfLoading(true);
+    try {
+      const chartDataUrl = await captureChartToBase64("welder-trend-chart");
+      const scoreTotal =
+        report.disposition === "PASS"         ? 1.0
+        : report.disposition === "CONDITIONAL" ? 0.5
+        : 0.0;
+      const payload = {
+        welder: { name: welderDisplayName ?? "Unknown" },
+        score:  { total: scoreTotal },
+        feedback: {
+          summary: report.root_cause,
+          feedback_items: report.corrective_actions.map((action, i) => ({
+            message:  action,
+            severity: i === 0 ? "high" : "medium",
+          })),
+        },
+        narrative:   report.disposition_rationale.slice(0, 2000),
+        chartDataUrl,
+        sessionDate: new Date(report.report_timestamp).toLocaleDateString("en-GB"),
+      };
+      const res = await fetch("/api/welder-report-pdf", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        logWarn("[QualityReportCard]", "PDF export failed", { status: res.status, sessionId: report.session_id });
+        return;
+      }
+      const blob = await res.blob();
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement("a");
+      a.href     = url;
+      a.download = `${report.session_id}-report.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      logWarn("[QualityReportCard]", "PDF export error", { error: String(err), sessionId: report.session_id });
+    } finally {
+      setIsPdfLoading(false);
+    }
+  }, [isPdfLoading, report, welderDisplayName]);
 
   return (
     <div className="flex flex-col min-h-[400px] h-full bg-[var(--warp-surface)] border border-zinc-900">
@@ -370,10 +413,11 @@ export function QualityReportCard({
       <div className="flex flex-wrap gap-2 px-4 py-3 border-t border-zinc-900 shrink-0">
         <button
           type="button"
-          onClick={handleExportPdf}
-          className="font-mono text-[9px] uppercase tracking-widest px-2 py-0.5 border border-zinc-800 text-[var(--warp-text-muted)] hover:border-amber-400 hover:text-[var(--warp-amber)] transition-colors duration-100"
+          onClick={() => { void handleExportPdf(); }}
+          disabled={isPdfLoading}
+          className="font-mono text-[9px] uppercase tracking-widest px-2 py-0.5 border border-zinc-800 text-[var(--warp-text-muted)] hover:border-amber-400 hover:text-[var(--warp-amber)] transition-colors duration-100 disabled:opacity-30 disabled:cursor-not-allowed"
         >
-          Export PDF
+          {isPdfLoading ? "Generating…" : "Export PDF"}
         </button>
 
         <button

@@ -227,7 +227,9 @@ export default function AnalysisPage() {
             />
           </div>
           {selectedSession && (
-            <WelderTrendChart welderId={selectedSession.welder_id} />
+            <div id="welder-trend-chart">
+              <WelderTrendChart welderId={selectedSession.welder_id} />
+            </div>
           )}
         </div>
 
