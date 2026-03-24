@@ -58,6 +58,7 @@ from routes.realtime import router as realtime_router
 from routes.thresholds import router as thresholds_router
 from routes.welders import router as welders_router
 from routes.warp_analysis import router as warp_analysis_router
+from routes.simulator import router as simulator_router
 from services.warp_service import init_warp_components
 
 from init_system import run as init_system_run
@@ -117,6 +118,7 @@ app.include_router(narratives.router)
 app.include_router(annotations_router)
 # WarpSense AI analysis: POST /api/sessions/{id}/analyse, GET /api/sessions/{id}/reports, GET /api/health/warp
 app.include_router(warp_analysis_router)
+app.include_router(simulator_router)
 app.include_router(sessions_router, prefix="/api")
 app.include_router(thresholds_router, prefix="/api")
 app.include_router(welders_router)

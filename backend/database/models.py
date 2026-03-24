@@ -219,6 +219,7 @@ class WeldQualityReportModel(Base):
     self_check_notes = Column(String, nullable=True)
     llm_raw_response = Column(String, nullable=True)
     agent_type = Column(String, nullable=False, default="langgraph")
+    rework_cost_usd = Column(Integer, nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False)
 
 

@@ -18,8 +18,10 @@ import logging
 import os
 from dataclasses import asdict
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import AsyncGenerator, Optional
 
+import joblib
 from sqlalchemy.orm import Session as OrmSession
 
 from database.models import SessionModel, WeldQualityReportModel
@@ -32,6 +34,14 @@ from features.session_feature_extractor import (
 from features.weld_classifier import WeldClassifier
 
 logger = logging.getLogger(__name__)
+
+_MODEL_PATH = Path(__file__).resolve().parent.parent / "ml_models" / "weld_classifier.joblib"
+
+_REWORK_COST_BY_DISPOSITION: dict[str, int] = {
+    "REWORK_REQUIRED": 4200,
+    "CONDITIONAL": 1800,
+    "PASS": 0,
+}
 
 _graph: Optional[WarpSenseGraph] = None
 _classifier: Optional[WeldClassifier] = None
@@ -54,10 +64,19 @@ def init_warp_components() -> None:
     logger.info("warp_service: initialising WarpSenseGraph...")
     _graph = WarpSenseGraph(verbose=False)
 
-    logger.info("warp_service: training WeldClassifier...")
-    dataset = generate_feature_dataset()
     clf = WeldClassifier()
-    clf.train(dataset)
+    if _MODEL_PATH.exists():
+        saved = joblib.load(_MODEL_PATH)
+        clf._model = saved["model"]
+        clf._classes = saved["classes"]
+        logger.info("warp_service: loaded classifier from %s", _MODEL_PATH)
+    else:
+        logger.info("warp_service: training WeldClassifier...")
+        dataset = generate_feature_dataset()
+        clf.train(dataset)
+        _MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
+        joblib.dump({"model": clf._model, "classes": clf._classes}, _MODEL_PATH)
+        logger.info("warp_service: trained and saved classifier to %s", _MODEL_PATH)
     _classifier = clf
 
     logger.info(
@@ -155,6 +174,7 @@ async def analyse_session(session_id: str, db: OrmSession) -> WeldQualityReportM
         self_check_notes=report.self_check_notes,
         llm_raw_response=getattr(report, "llm_raw_response", None),
         agent_type="langgraph",
+        rework_cost_usd=_REWORK_COST_BY_DISPOSITION.get(report.disposition, 0),
         created_at=datetime.now(timezone.utc),
     )
     db.add(report_model)
@@ -263,6 +283,7 @@ async def analyse_session_stream(session_id: str, db: OrmSession) -> AsyncGenera
                 self_check_notes=report.self_check_notes,
                 llm_raw_response=getattr(report, "llm_raw_response", None),
                 agent_type="langgraph",
+                rework_cost_usd=_REWORK_COST_BY_DISPOSITION.get(report.disposition, 0),
                 created_at=datetime.now(timezone.utc),
             )
             db.add(report_model)
@@ -300,6 +321,7 @@ async def analyse_session_stream(session_id: str, db: OrmSession) -> AsyncGenera
                     "self_check_notes":        report_model.self_check_notes,
                     "report_timestamp":        report_model.report_timestamp.isoformat(),
                     "llm_raw_response":        report_model.llm_raw_response,
+                    "rework_cost_usd":         report_model.rework_cost_usd,
                 },
             })
 

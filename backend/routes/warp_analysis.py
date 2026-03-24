@@ -108,6 +108,7 @@ async def get_report(
         "agent_type": report_model.agent_type,
         "report_timestamp": report_model.report_timestamp.isoformat(),
         "llm_raw_response": report_model.llm_raw_response,
+        "rework_cost_usd": report_model.rework_cost_usd,
     }
 
 
