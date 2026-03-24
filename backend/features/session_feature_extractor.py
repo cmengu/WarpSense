@@ -213,6 +213,7 @@ def generate_feature_dataset() -> List[SessionFeatures]:
     from data.mock_sessions import (
         _generate_stitch_expert_frames,
         _generate_continuous_novice_frames,
+        _generate_aluminium_parametric_frames,
     )
 
     def to_dicts(frames):
@@ -235,6 +236,21 @@ def generate_feature_dataset() -> List[SessionFeatures]:
         for i in range(n_sessions):
             session_id = f"sess_{arc_type}_{i+1:03d}"
             frames = generator_fn(i, 1500)
+            frames_as_dicts = to_dicts(frames)
+            features = extractor.extract(session_id, frames_as_dicts, label)
+            dataset.append(features)
+
+    # Parametric aluminum corpus — 5 quality profiles × 4 samples = 20 DEFECTIVE class samples
+    for arc_type, label in [
+        ("al_hot_clean", "GOOD"),
+        ("al_nominal", "GOOD"),
+        ("al_cold", "MARGINAL"),
+        ("al_angled", "MARGINAL"),
+        ("al_defective", "DEFECTIVE"),
+    ]:
+        for i in range(4):
+            session_id = f"sess_{arc_type}_{i+1:03d}"
+            frames = _generate_aluminium_parametric_frames(arc_type, i, 1500)
             frames_as_dicts = to_dicts(frames)
             features = extractor.extract(session_id, frames_as_dicts, label)
             dataset.append(features)

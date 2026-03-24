@@ -101,3 +101,15 @@ export interface SimulatorResult {
   rework_cost_usd: number;
   top_driver: string;
 }
+
+// Simulator closest-match
+export interface ClosestMatchResult {
+  session_id: string;
+  distance: number;
+  quality_class: string;
+  rework_cost_usd: number;
+  confidence: number;
+  matched_heat_input: number;
+  matched_angle_deviation: number;
+  matched_arc_ratio: number;
+}

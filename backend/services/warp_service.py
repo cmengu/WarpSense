@@ -29,6 +29,7 @@ from routes.sessions import get_session_frames_raw
 from agent.warpsense_graph import WarpSenseGraph
 from features.session_feature_extractor import (
     SessionFeatureExtractor,
+    SessionFeatures,
     generate_feature_dataset,
 )
 from features.weld_classifier import WeldClassifier
@@ -45,6 +46,7 @@ _REWORK_COST_BY_DISPOSITION: dict[str, int] = {
 
 _graph: Optional[WarpSenseGraph] = None
 _classifier: Optional[WeldClassifier] = None
+_al_feature_cache: dict[str, SessionFeatures] = {}
 
 
 def init_warp_components() -> None:
@@ -79,6 +81,8 @@ def init_warp_components() -> None:
         logger.info("warp_service: trained and saved classifier to %s", _MODEL_PATH)
     _classifier = clf
 
+    _build_al_feature_cache()
+
     logger.info(
         "warp_service: ready — graph=%s classifier=%s",
         type(_graph).__name__,
@@ -96,6 +100,57 @@ def get_classifier() -> WeldClassifier:
     if _classifier is None:
         init_warp_components()
     return _classifier
+
+
+def _build_al_feature_cache() -> None:
+    """
+    Build in-memory analytical feature approximations for all 100 parametric corpus sessions.
+    Uses direct parameter math — no frame generation, no DB reads.
+    Called from init_warp_components(). Safe to call multiple times (guarded).
+    """
+    global _al_feature_cache
+    if _al_feature_cache:
+        return
+
+    import random as _random
+
+    # Corpus definition — must match _AL_PARAM_CONFIG in mock_sessions.py
+    _CORPUS = [
+        ("al_hot_clean_001", "al_hot_clean", 6800.0, 2.0, 0.93, 20),
+        ("al_nominal_001", "al_nominal", 5500.0, 4.0, 0.88, 20),
+        ("al_cold_001", "al_cold", 3200.0, 8.0, 0.78, 20),
+        ("al_angled_001", "al_angled", 4800.0, 18.0, 0.72, 20),
+        ("al_defective_001", "al_defective", 2800.0, 24.0, 0.52, 20),
+    ]
+
+    cache: dict[str, SessionFeatures] = {}
+    for welder_id, arc_type, heat, angle_dev, arc_ratio, n_sessions in _CORPUS:
+        for i in range(n_sessions):
+            session_id = f"sess_{welder_id}_{i+1:03d}"
+            rng = _random.Random(i * 37 + abs(hash(arc_type)) % 997)
+            h = heat * (1.0 + rng.gauss(0, 0.025))
+            a = angle_dev * (1.0 + rng.gauss(0, 0.04))
+            r = max(0.40, min(1.00, arc_ratio + rng.gauss(0, 0.01)))
+            cache[session_id] = SessionFeatures(
+                session_id=session_id,
+                heat_input_mean=h,
+                heat_input_min_rolling=h * 0.87,
+                heat_input_drop_severity=180.0 * (1.0 + rng.gauss(0, 0.08)),
+                heat_input_cv=0.05 if arc_type in ("al_hot_clean", "al_nominal") else 0.11,
+                angle_deviation_mean=a,
+                angle_max_drift_1s=a * 1.8,
+                voltage_cv=0.03 if arc_type in ("al_hot_clean", "al_nominal") else 0.07,
+                amps_cv=0.04 if arc_type in ("al_hot_clean", "al_nominal") else 0.09,
+                heat_diss_mean=2.1,
+                heat_diss_max_spike=5.0,
+                arc_on_ratio=r,
+            )
+    _al_feature_cache = cache
+    logger.info("warp_service: al_feature_cache built — %d corpus sessions", len(cache))
+
+
+def get_al_feature_cache() -> dict[str, SessionFeatures]:
+    return _al_feature_cache
 
 
 # IMPORTANT: Do NOT re-implement frame queries here.

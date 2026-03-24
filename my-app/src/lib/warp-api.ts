@@ -18,6 +18,7 @@ import type {
   WelderTrendPoint,
   SimulatorInput,
   SimulatorResult,
+  ClosestMatchResult,
 } from "@/types/warp-analysis";
 
 export async function fetchMockSessions(): Promise<MockSession[]> {
@@ -80,4 +81,19 @@ export async function simulateWeld(input: SimulatorInput): Promise<SimulatorResu
   });
   if (!res.ok) throw new Error(`simulateWeld HTTP ${res.status}`);
   return res.json() as Promise<SimulatorResult>;
+}
+
+export async function getClosestMatch(
+  heat_input_level: number,
+  torch_angle_deviation: number,
+  arc_stability: number,
+): Promise<ClosestMatchResult> {
+  const params = new URLSearchParams({
+    heat_input_level: String(heat_input_level),
+    torch_angle_deviation: String(torch_angle_deviation),
+    arc_stability: String(arc_stability),
+  });
+  const res = await fetch(`/api/warp/simulator/closest-match?${params}`);
+  if (!res.ok) throw new Error(`getClosestMatch HTTP ${res.status}`);
+  return res.json() as Promise<ClosestMatchResult>;
 }

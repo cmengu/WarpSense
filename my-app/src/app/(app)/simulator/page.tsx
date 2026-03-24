@@ -1,8 +1,8 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { simulateWeld } from "@/lib/warp-api";
-import type { SimulatorResult } from "@/types/warp-analysis";
+import { simulateWeld, getClosestMatch } from "@/lib/warp-api";
+import type { SimulatorResult, ClosestMatchResult } from "@/types/warp-analysis";
 
 const COST_COLOR: Record<number, string> = {
   0: "text-green-400",
@@ -19,6 +19,7 @@ export default function SimulatorPage() {
   const [angleDeviation, setAngleDeviation] = useState(3);
   const [arcStability, setArcStability] = useState(0.92);
   const [result, setResult] = useState<SimulatorResult | null>(null);
+  const [matchResult, setMatchResult] = useState<ClosestMatchResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -26,6 +27,7 @@ export default function SimulatorPage() {
   async function runSimulation(hi: number, ad: number, ar: number) {
     setIsLoading(true);
     setError(null);
+    setMatchResult(null);
     try {
       const res = await simulateWeld({
         heat_input_level: hi,
@@ -33,6 +35,12 @@ export default function SimulatorPage() {
         arc_stability: ar,
       });
       setResult(res);
+      try {
+        const match = await getClosestMatch(hi, ad, ar);
+        setMatchResult(match);
+      } catch {
+        /* match card optional */
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Simulation failed");
     } finally {
@@ -198,6 +206,73 @@ export default function SimulatorPage() {
             <p className="text-sm font-mono text-zinc-300">
               {result.top_driver.replace(/_/g, " ")}
             </p>
+          </div>
+        </div>
+      )}
+
+      {matchResult && !isLoading && (
+        <div className="mt-4 border border-zinc-700 rounded-xl bg-zinc-900/60 p-5">
+          <p className="font-mono text-[9px] uppercase tracking-widest text-zinc-500 mb-3">
+            Closest Real Weld — from library of 100 aluminium sessions
+          </p>
+
+          <div className="flex items-start justify-between mb-4">
+            <div>
+              <p className="font-mono text-xs text-zinc-400">Session ID</p>
+              <p className="font-mono text-sm text-zinc-200 mt-0.5">{matchResult.session_id}</p>
+            </div>
+            <span
+              className={`px-2 py-1 rounded text-xs font-mono font-semibold ${
+                matchResult.quality_class === "GOOD"
+                  ? "bg-green-900/60 text-green-300"
+                  : matchResult.quality_class === "MARGINAL"
+                    ? "bg-amber-900/60 text-amber-300"
+                    : "bg-red-900/60 text-red-300"
+              }`}
+            >
+              {matchResult.quality_class}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-3 gap-3 mb-4 text-center">
+            <div className="bg-zinc-800/60 rounded-lg p-2">
+              <p className="font-mono text-[9px] text-zinc-500 uppercase mb-1">Heat Input</p>
+              <p className="font-mono text-xs text-zinc-200">{Math.round(matchResult.matched_heat_input).toLocaleString()}</p>
+              <p className="font-mono text-[9px] text-zinc-600">vs {heatInput.toLocaleString()}</p>
+            </div>
+            <div className="bg-zinc-800/60 rounded-lg p-2">
+              <p className="font-mono text-[9px] text-zinc-500 uppercase mb-1">Angle Dev</p>
+              <p className="font-mono text-xs text-zinc-200">{matchResult.matched_angle_deviation.toFixed(1)}°</p>
+              <p className="font-mono text-[9px] text-zinc-600">vs {angleDeviation.toFixed(1)}°</p>
+            </div>
+            <div className="bg-zinc-800/60 rounded-lg p-2">
+              <p className="font-mono text-[9px] text-zinc-500 uppercase mb-1">Arc Ratio</p>
+              <p className="font-mono text-xs text-zinc-200">{matchResult.matched_arc_ratio.toFixed(2)}</p>
+              <p className="font-mono text-[9px] text-zinc-600">vs {arcStability.toFixed(2)}</p>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-mono text-[9px] text-zinc-500 uppercase mb-0.5">Matched Rework Cost</p>
+              <p
+                className={`font-mono text-2xl font-bold tabular-nums ${
+                  matchResult.rework_cost_usd === 0
+                    ? "text-green-400"
+                    : matchResult.rework_cost_usd <= 1800
+                      ? "text-amber-400"
+                      : "text-red-400"
+                }`}
+              >
+                ${matchResult.rework_cost_usd.toLocaleString("en-US")}
+              </p>
+            </div>
+            <a
+              href={`/compare/${matchResult.session_id}/sess_expert_aluminium_001_001`}
+              className="px-3 py-2 bg-zinc-700 hover:bg-zinc-600 text-zinc-200 text-xs font-mono rounded-lg transition-colors"
+            >
+              View 3D comparison →
+            </a>
           </div>
         </div>
       )}
