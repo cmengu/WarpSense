@@ -11,7 +11,14 @@
  *
  * fetchWarpHealth() never throws — returns both=false on network error.
  */
-import type { MockSession, WarpReport, WarpHealthResponse, WelderTrendPoint } from "@/types/warp-analysis";
+import type {
+  MockSession,
+  WarpReport,
+  WarpHealthResponse,
+  WelderTrendPoint,
+  SimulatorInput,
+  SimulatorResult,
+} from "@/types/warp-analysis";
 
 export async function fetchMockSessions(): Promise<MockSession[]> {
   const res = await fetch("/api/warp/mock-sessions");
@@ -63,4 +70,14 @@ export async function fetchWelderTrend(welderId: string): Promise<WelderTrendPoi
   if (res.status === 404) return [];
   if (!res.ok) throw new Error(`fetchWelderTrend: ${res.status}`);
   return res.json() as Promise<WelderTrendPoint[]>;
+}
+
+export async function simulateWeld(input: SimulatorInput): Promise<SimulatorResult> {
+  const res = await fetch("/api/warp/simulator", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) throw new Error(`simulateWeld HTTP ${res.status}`);
+  return res.json() as Promise<SimulatorResult>;
 }

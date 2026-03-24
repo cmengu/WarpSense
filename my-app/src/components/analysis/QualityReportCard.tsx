@@ -271,6 +271,29 @@ export function QualityReportCard({
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-5">
+        {report.rework_cost_usd != null && (
+          <div className="px-4 pt-3 pb-1 border-b border-zinc-900">
+            <p className="font-mono text-[9px] uppercase tracking-widest text-zinc-500 mb-1">
+              Estimated Rework Cost
+            </p>
+            <p
+              className={`font-mono text-3xl font-bold tabular-nums ${
+                report.rework_cost_usd === 0
+                  ? "text-green-400"
+                  : report.rework_cost_usd <= 1800
+                    ? "text-amber-400"
+                    : "text-red-400"
+              }`}
+            >
+              ${report.rework_cost_usd.toLocaleString("en-US")}
+            </p>
+            {report.rework_cost_usd === 0 && (
+              <p className="font-mono text-[10px] text-green-600 mt-0.5">
+                No rework required — cost avoided
+              </p>
+            )}
+          </div>
+        )}
         <section>
           <p className="font-mono text-[9px] uppercase tracking-widest text-[var(--warp-text-muted)] mb-2">
             Root Cause

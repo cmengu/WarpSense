@@ -55,6 +55,7 @@ export interface WarpReport {
   retrieved_chunks_used?:    string[];
   agent_type?:               string;
   llm_raw_response?:         string | null;
+  rework_cost_usd?:          number;
 }
 
 // Specialist card state (analysis SSE consumer)
@@ -84,4 +85,19 @@ export interface WelderTrendPoint {
   weld_type:         string | null;
   disposition:       WarpDisposition;
   quality_score:     number;
+}
+
+// Weld Simulator
+export interface SimulatorInput {
+  heat_input_level: number;
+  torch_angle_deviation: number;
+  arc_stability: number;
+}
+
+export interface SimulatorResult {
+  defect_type: string;
+  quality_class: string;
+  confidence: number;
+  rework_cost_usd: number;
+  top_driver: string;
 }
