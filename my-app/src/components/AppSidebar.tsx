@@ -15,6 +15,7 @@ const PRIMARY_NAV = [
   { href: "/analysis",  label: "Analysis",  icon: "◈" },
   { href: "/dashboard", label: "Overview",  icon: "▦" },
   { href: "/compare/live", label: "Compare", icon: "⇄" },
+  { href: "/simulator", label: "Simulator", icon: "◎" },
 ] as const;
 
 const FOOTER_NAV = [
