@@ -598,6 +598,109 @@ def _generate_continuous_novice_frames(
 
     return frames
 
+
+# ---------------------------------------------------------------------------
+# Parametric aluminum generator — covers quality spectrum for corpus sessions
+# ---------------------------------------------------------------------------
+
+_AL_PARAM_CONFIG: dict[str, dict] = {
+    # heat_target: volts × amps (J/frame) for arc-on frames
+    # angle_mean: absolute work angle (°); deviation = |angle_mean - OPTIMAL_ANGLE_DEG(55°)|
+    # angle_sigma: per-frame noise σ (°)
+    # arc_on_count: arc-on frames per 250-frame stitch cycle (→ arc_on_ratio = arc_on_count/250)
+    "al_hot_clean":  {"heat_target": 6800.0, "angle_mean": 57.0, "angle_sigma": 0.8, "arc_on_count": 233},
+    "al_nominal":    {"heat_target": 5500.0, "angle_mean": 59.0, "angle_sigma": 1.0, "arc_on_count": 220},
+    "al_cold":       {"heat_target": 3200.0, "angle_mean": 63.0, "angle_sigma": 2.0, "arc_on_count": 195},
+    "al_angled":     {"heat_target": 4800.0, "angle_mean": 73.0, "angle_sigma": 4.0, "arc_on_count": 180},
+    "al_defective":  {"heat_target": 2800.0, "angle_mean": 79.0, "angle_sigma": 5.0, "arc_on_count": 130},
+}
+
+
+def _generate_aluminium_parametric_frames(
+    arc_type: str,
+    session_index: int,
+    num_frames: int = 1500,
+) -> List[Frame]:
+    """
+    Parametric aluminum frame generator for the 100-session quality corpus.
+    Covers the full (heat_input × angle_deviation × arc_on_ratio) space so
+    the simulator nearest-neighbor search has a match for every slider position.
+
+    Physics: uses the same _step_thermal_state as the existing aluminum generators.
+    Amps are unclamped (not limited to AL_AMPS_MIN–AL_AMPS_MAX) so heat_target can
+    reach 6800 J/frame — matching the simulator slider's upper range.
+
+    Does NOT modify global random state: uses random.Random(seed).
+    """
+    cfg = _AL_PARAM_CONFIG[arc_type]
+    heat_target: float = cfg["heat_target"]
+    angle_mean: float  = cfg["angle_mean"]
+    angle_sigma: float = cfg["angle_sigma"]
+    arc_on_count: int  = cfg["arc_on_count"]
+    cycle = 250
+
+    rng = random.Random(session_index * 173 + abs(hash(arc_type)) % 997)
+
+    # Derive amps from heat_target at nominal volts; unclamped — corpus spans 2800–6800 J/frame
+    target_volts = AL_VOLTS_NOMINAL  # 22.0
+    target_amps  = max(50.0, heat_target / target_volts)
+
+    thermal_state = _init_thermal_state(AL_AMBIENT_TEMP)
+    last_center: Optional[float] = None
+    angle = float(angle_mean) + rng.gauss(0.0, float(angle_sigma))
+    travel_speed = AL_TRAVEL_SPEED_NOMINAL
+
+    frames: List[Frame] = []
+    for i in range(num_frames):
+        arc_active = (i % cycle) < arc_on_count
+
+        if arc_active:
+            volts = max(0.0, target_volts + rng.gauss(0.0, AL_VOLTS_NOISE_NORMAL))
+            amps  = max(0.0, target_amps  * (1.0 + rng.gauss(0.0, 0.04)))
+        else:
+            volts = 0.0
+            amps  = 0.0
+
+        # Mean-reversion angle with noise; clamped to valid sensor range
+        angle += (angle_mean - angle) * 0.04 + rng.gauss(0.0, float(angle_sigma))
+        angle = max(20.0, min(85.0, angle))
+
+        travel_speed += rng.gauss(0.0, 5.0)
+        travel_speed = max(300.0, min(550.0, travel_speed))
+
+        thermal_state = _step_thermal_state(
+            thermal_state,
+            arc_active=arc_active,
+            angle_degrees=angle,
+            travel_speed_mm_per_min=travel_speed,
+            amps=amps  if arc_active else None,
+            volts=volts if arc_active else None,
+        )
+        new_center = thermal_state[10.0]["center"]
+        heat_diss = max(0.0, (last_center - new_center) / 0.01) if last_center is not None else 0.0
+        last_center = new_center
+
+        snapshots = _aluminum_state_to_snapshots(thermal_state)
+        heat_input_kj: Optional[float] = None
+        if arc_active and travel_speed > 0:
+            heat_input_kj = (amps * volts * 60.0) / (travel_speed * 1000.0)
+
+        frames.append(Frame(
+            timestamp_ms=i * 10,
+            volts=volts,
+            amps=amps,
+            angle_degrees=angle,
+            thermal_snapshots=snapshots,
+            heat_dissipation_rate_celsius_per_sec=heat_diss,
+            travel_speed_mm_per_min=travel_speed,
+            travel_angle_degrees=12.0,
+            ctwd_mm=15.0,
+            heat_input_kj_per_mm=heat_input_kj,
+        ))
+
+    return frames
+
+
 # Nominal operating point
 NOMINAL_AMPS = 150.0          # A  — typical MIG welding current for mild steel
 NOMINAL_VOLTS = 22.5          # V  — typical MIG arc voltage
@@ -783,6 +886,10 @@ def generate_frames_for_arc(
         num_frames = duration_ms // 10
         return _generate_continuous_novice_frames(session_index, num_frames), True
 
+    if arc_type in _AL_PARAM_CONFIG:
+        num_frames = duration_ms // 10
+        return _generate_aluminium_parametric_frames(arc_type, session_index, num_frames), True
+
     if arc_type == "fast_learner":
         get_angle = lambda t: _arc_angle_tight(t, session_index)
         get_amps = _arc_amps_stable
@@ -838,7 +945,7 @@ def generate_session_for_welder(
     """
     frames, disable = generate_frames_for_arc(arc_type, session_index, duration_ms)
 
-    is_aluminum_arc = arc_type in ("stitch_expert", "continuous_novice")
+    is_aluminum_arc = arc_type in ("stitch_expert", "continuous_novice") or arc_type in _AL_PARAM_CONFIG
 
     return Session(
         session_id=session_id,
