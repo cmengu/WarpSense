@@ -20,6 +20,12 @@ WELDER_ARCHETYPES = [
     {"welder_id": "expert-benchmark", "name": "Expert Benchmark", "arc": "consistent_expert", "sessions": 5, "base": 93, "delta": 0.5},
     {"welder_id": "expert_aluminium_001", "name": "Senior Welder A", "arc": "stitch_expert", "sessions": 4, "base": 85, "delta": 4},
     {"welder_id": "novice_aluminium_001", "name": "Trainee Welder B", "arc": "continuous_novice", "sessions": 6, "base": 48, "delta": -3},
+    # Parametric corpus — 100 sessions covering full quality spectrum for simulator closest-match
+    {"welder_id": "al_hot_clean_001",  "name": "Hot Expert",      "arc": "al_hot_clean",  "sessions": 20, "base": 92, "delta": 0},
+    {"welder_id": "al_nominal_001",    "name": "Nominal Expert",  "arc": "al_nominal",    "sessions": 20, "base": 87, "delta": 0},
+    {"welder_id": "al_cold_001",       "name": "Cold Marginal",   "arc": "al_cold",       "sessions": 20, "base": 55, "delta": 0},
+    {"welder_id": "al_angled_001",     "name": "Angled Marginal", "arc": "al_angled",     "sessions": 20, "base": 50, "delta": 0},
+    {"welder_id": "al_defective_001",  "name": "Defective",       "arc": "al_defective",  "sessions": 20, "base": 28, "delta": 0},
 ]
 
 
