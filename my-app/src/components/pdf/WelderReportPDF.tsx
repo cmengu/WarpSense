@@ -1,9 +1,9 @@
 /**
  * PDF layout component for welder session report.
+ * Supervisor/investor-grade rejection document.
  *
  * Uses @react-pdf/renderer — PDF-native components, no DOM or canvas capture.
  * Renders on server in Next.js API route.
- * Layout aligns with reference design: Letter size, WarpSense branding, compliance badges.
  */
 
 import {
@@ -12,11 +12,8 @@ import {
   View,
   Text,
   StyleSheet,
-  Image,
 } from "@react-pdf/renderer";
-import type { ReportSummary } from "@/types/report-summary";
 
-/** Reference palette from design spec. */
 const COLORS = {
   BG: "#0d0f1a",
   PANEL: "#141728",
@@ -40,10 +37,33 @@ function sanitizeText(str: string): string {
     .replace(/>/g, "›");
 }
 
-function formatTime(ms: number): string {
-  const minutes = Math.floor(ms / 60000);
-  const seconds = Math.floor((ms % 60000) / 1000);
-  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+/** Format dollar amount without relying on locale — safe for Node PDF renderer. */
+function formatCost(n: number): string {
+  return "$" + Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
+function dispositionColor(d: string | null | undefined): string {
+  if (d === "PASS") return COLORS.GREEN;
+  if (d === "CONDITIONAL") return COLORS.AMBER;
+  return COLORS.RED;
+}
+
+function dispositionLabel(d: string | null | undefined): string {
+  if (d === "PASS") return "PASS";
+  if (d === "CONDITIONAL") return "CONDITIONAL";
+  return "REWORK REQUIRED";
+}
+
+/**
+ * Map backend agent_name values (PascalCase, from specialists.py) to display labels.
+ * Actual values confirmed from backend/agent/specialists.py:
+ *   "ThermalAgent", "GeometryAgent", "ProcessStabilityAgent"
+ */
+function agentDisplayLabel(name: string): string {
+  if (name === "ThermalAgent") return "Thermal Analysis";
+  if (name === "GeometryAgent") return "Geometry Analysis";
+  if (name === "ProcessStabilityAgent") return "Process Analysis";
+  return sanitizeText(name);
 }
 
 const styles = StyleSheet.create({
@@ -56,39 +76,34 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    height: 88,
+    minHeight: 80,
     backgroundColor: COLORS.PANEL,
     marginHorizontal: -40,
     marginTop: -40,
     paddingHorizontal: 40,
     paddingTop: 16,
-    paddingBottom: 12,
+    paddingBottom: 14,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.BORDER,
   },
-  topBarLeft: { flex: 1 },
   logo: { fontSize: 14, color: COLORS.ACCENT, fontWeight: "bold", marginBottom: 2 },
   tagline: { fontSize: 8, color: COLORS.TEXT_SEC, marginBottom: 6 },
-  welderName: {
-    fontSize: 18,
-    color: COLORS.TEXT_PRI,
-    fontWeight: "bold",
-    marginBottom: 4,
-  },
+  welderName: { fontSize: 18, color: COLORS.TEXT_PRI, fontWeight: "bold", marginBottom: 4 },
   metaLine: { fontSize: 9, color: COLORS.TEXT_SEC },
   scoreCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    borderWidth: 3,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    borderWidth: 2,
     borderColor: COLORS.ACCENT,
     alignItems: "center",
     justifyContent: "center",
+    marginBottom: 6,
   },
-  scoreText: { fontSize: 22, color: COLORS.ACCENT, fontWeight: "bold" },
-  scoreDenom: { fontSize: 8, color: COLORS.TEXT_SEC },
+  scoreText: { fontSize: 18, color: COLORS.ACCENT, fontWeight: "bold" },
+  scoreDenom: { fontSize: 7, color: COLORS.TEXT_SEC },
   sectionTitle: {
-    fontSize: 10,
+    fontSize: 9,
     color: COLORS.TEXT_SEC,
     textTransform: "uppercase",
     letterSpacing: 2,
@@ -98,30 +113,10 @@ const styles = StyleSheet.create({
     marginTop: 16,
     padding: 14,
     backgroundColor: COLORS.PANEL,
-    borderRadius: 8,
+    borderRadius: 6,
     borderWidth: 1,
     borderColor: COLORS.BORDER,
   },
-  badge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
-    minWidth: 36,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  badgePass: { backgroundColor: COLORS.GREEN },
-  badgeFail: { backgroundColor: COLORS.RED },
-  badgeText: { fontSize: 8, color: "#fff", fontWeight: "bold" },
-  complianceRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 6,
-  },
-  complianceLabel: { fontSize: 9, color: COLORS.TEXT_SEC },
-  complianceDetail: { fontSize: 9, color: COLORS.TEXT_PRI, flex: 1, marginHorizontal: 8 },
-  feedbackItem: { flexDirection: "row", marginBottom: 8, paddingLeft: 4 },
   footer: {
     position: "absolute",
     bottom: 30,
@@ -129,7 +124,7 @@ const styles = StyleSheet.create({
     right: 40,
     borderTopWidth: 1,
     borderTopColor: COLORS.BORDER,
-    paddingTop: 12,
+    paddingTop: 10,
     flexDirection: "row",
     justifyContent: "space-between",
   },
@@ -147,25 +142,18 @@ export interface WelderReportPDFProps {
       suggestion?: string | null;
     }>;
   };
-  chartDataUrl?: string | null;
   narrative?: string | null;
-  certifications?: Array<{
-    name: string;
-    status: string;
-    qualifying_sessions: number;
-    sessions_required: number;
+  rework_cost_usd?: number | null;
+  disposition?: string | null;
+  agentInsights?: Array<{
+    agent_name: string;
+    disposition?: string;
+    root_cause?: string;
+    corrective_actions?: string[];
   }> | null;
-  reportSummary?: ReportSummary | null;
-  /** Optional session date for top-bar meta (e.g. "2/27/2026"). */
   sessionDate?: string | null;
-  /** Optional duration string (e.g. "4 min 12 sec") for top-bar meta. */
   duration?: string | null;
-  /** Optional station placeholder (e.g. "Station 4") for top-bar meta. */
   station?: string | null;
-}
-
-function isPngDataUrl(v: unknown): v is string {
-  return typeof v === "string" && v.startsWith("data:image/png");
 }
 
 export function toWelderName(v: unknown): string {
@@ -174,45 +162,25 @@ export function toWelderName(v: unknown): string {
   return "Unknown";
 }
 
-function severityToColor(severity: string): string {
-  const s = String(severity).toLowerCase();
-  if (s === "critical") return COLORS.RED;
-  if (s === "warning") return COLORS.AMBER;
-  if (s === "info") return COLORS.GREEN;
-  return COLORS.ACCENT;
-}
-
 export function WelderReportPDF({
   welder,
   score,
   feedback,
-  chartDataUrl,
   narrative,
-  certifications,
-  reportSummary,
+  rework_cost_usd,
+  disposition,
+  agentInsights,
   sessionDate,
   duration,
   station,
 }: WelderReportPDFProps) {
-  const rawItems = feedback?.feedback_items ?? [];
-  const validItems = rawItems.filter(
-    (
-      item
-    ): item is {
-      message: string;
-      severity: string;
-      suggestion?: string | null;
-    } =>
-      item != null &&
-      typeof item === "object" &&
-      typeof (item as { message?: unknown }).message === "string" &&
-      typeof (item as { severity?: unknown }).severity === "string"
-  );
-  const top3 = validItems.slice(0, 3);
   const welderName = sanitizeText(toWelderName(welder?.name ?? "Unknown"));
-  const totalScore = score?.total ?? 0;
-  const summary = sanitizeText(feedback?.summary ?? "");
-  const chartPng = isPngDataUrl(chartDataUrl) ? chartDataUrl : null;
+  const totalScore = Math.round(score?.total ?? 0);
+  const cost = rework_cost_usd ?? 0;
+  const costColor =
+    cost === 0 ? COLORS.GREEN : cost <= 1800 ? COLORS.AMBER : COLORS.RED;
+  const dispColor = dispositionColor(disposition);
+  const dispLabel = dispositionLabel(disposition);
 
   const metaParts: string[] = [];
   if (sessionDate) metaParts.push(sessionDate);
@@ -221,276 +189,225 @@ export function WelderReportPDF({
   const metaLine =
     metaParts.length > 0
       ? `Session Report · ${metaParts.join(" · ")}`
-      : "Session Report · —";
+      : "Session Report";
 
-  const coachText =
-    narrative && narrative.trim()
-      ? sanitizeText(narrative)
-      : summary || "—";
+  const rootCause = sanitizeText(feedback?.summary ?? "");
+  const rawRationale = narrative ?? "";
+  const rationale = sanitizeText(
+    rawRationale.slice(0, 400) + (rawRationale.length > 400 ? "…" : "")
+  );
+  const corrective = (feedback?.feedback_items ?? []).slice(0, 5);
+
+  /**
+   * Build insight map keyed by agent_name (PascalCase).
+   * AGENT_ORDER matches the canonical values from backend/agent/specialists.py:
+   *   for agent_name in ["ThermalAgent", "GeometryAgent", "ProcessStabilityAgent"]
+   */
+  const AGENT_ORDER = ["ThermalAgent", "GeometryAgent", "ProcessStabilityAgent"];
+  const insightMap: Record<string, { disposition?: string; root_cause?: string }> = {};
+  for (const row of agentInsights ?? []) {
+    insightMap[row.agent_name] = {
+      disposition: row.disposition,
+      root_cause: row.root_cause,
+    };
+  }
 
   return (
     <Document>
       <Page size="LETTER" style={styles.page}>
-        {/* TopBar: branding, operator, meta, score circle */}
+        {/* TOP BAR */}
         <View style={styles.topBar}>
-          <View style={styles.topBarLeft}>
+          <View style={{ flex: 1 }}>
             <Text style={styles.logo}>WARPSENSE</Text>
             <Text style={styles.tagline}>Quality Intelligence Platform</Text>
             <Text style={styles.welderName}>{welderName}</Text>
             <Text style={styles.metaLine}>{metaLine}</Text>
           </View>
-          <View style={styles.scoreCircle}>
-            <View style={{ alignItems: "center" }}>
+          <View style={{ alignItems: "center" }}>
+            <View style={styles.scoreCircle}>
               <Text style={styles.scoreText}>{totalScore}</Text>
               <Text style={styles.scoreDenom}>/ 100</Text>
             </View>
+            <View
+              style={{
+                paddingHorizontal: 8,
+                paddingVertical: 3,
+                borderRadius: 4,
+                backgroundColor: dispColor,
+                alignItems: "center",
+              }}
+            >
+              <Text style={{ fontSize: 7, color: "#fff", fontWeight: "bold" }}>
+                {dispLabel}
+              </Text>
+            </View>
           </View>
         </View>
 
-        {/* Compliance: PASS/FAIL badges */}
-        {reportSummary && (
-          <View style={styles.panel}>
-            <Text style={styles.sectionTitle}>Compliance</Text>
-            <View style={styles.complianceRow}>
-              <Text style={styles.complianceLabel}>Heat Input</Text>
-              <Text style={styles.complianceDetail}>
-                {reportSummary.heat_input_mean_kj_per_mm != null
-                  ? `${reportSummary.heat_input_mean_kj_per_mm.toFixed(2)} kJ/mm (WPS ${reportSummary.heat_input_wps_min}–${reportSummary.heat_input_wps_max})`
-                  : "—"}
-              </Text>
-              <View
-                style={[
-                  styles.badge,
-                  reportSummary.heat_input_compliant
-                    ? styles.badgePass
-                    : styles.badgeFail,
-                ]}
-              >
-                <Text style={styles.badgeText}>
-                  {reportSummary.heat_input_compliant ? "PASS" : "FAIL"}
-                </Text>
-              </View>
-            </View>
-            <View style={styles.complianceRow}>
-              <Text style={styles.complianceLabel}>Torch Angle</Text>
-              <Text style={styles.complianceDetail}>
-                {reportSummary.travel_angle_excursion_count === 0
-                  ? `Within ±${reportSummary.travel_angle_threshold_deg}°`
-                  : `${reportSummary.travel_angle_excursion_count} excursion(s)`}
-              </Text>
-              <View
-                style={[
-                  styles.badge,
-                  reportSummary.travel_angle_excursion_count === 0
-                    ? styles.badgePass
-                    : styles.badgeFail,
-                ]}
-              >
-                <Text style={styles.badgeText}>
-                  {reportSummary.travel_angle_excursion_count === 0
-                    ? "PASS"
-                    : "FAIL"}
-                </Text>
-              </View>
-            </View>
-            <View style={styles.complianceRow}>
-              <Text style={styles.complianceLabel}>Arc Termination</Text>
-              <Text style={styles.complianceDetail}>
-                {reportSummary.total_arc_terminations > 0
-                  ? `${reportSummary.crater_fill_rate_pct.toFixed(0)}% crater fill`
-                  : "No terminations"}
-              </Text>
-              <View
-                style={[
-                  styles.badge,
-                  reportSummary.total_arc_terminations === 0 ||
-                  reportSummary.crater_fill_rate_pct >= 100
-                    ? styles.badgePass
-                    : styles.badgeFail,
-                ]}
-              >
-                <Text style={styles.badgeText}>
-                  {reportSummary.total_arc_terminations === 0 ||
-                  reportSummary.crater_fill_rate_pct >= 100
-                    ? "PASS"
-                    : "FAIL"}
-                </Text>
-              </View>
-            </View>
-            {reportSummary.excursions.length > 0 && (
-              <View style={{ marginTop: 8 }}>
-                <Text
-                  style={{
-                    fontSize: 8,
-                    color: COLORS.TEXT_SEC,
-                    marginBottom: 4,
-                  }}
-                >
-                  Excursion Log
-                </Text>
-                {[...reportSummary.excursions]
-                  .sort((a, b) => a.timestamp_ms - b.timestamp_ms)
-                  .slice(0, 10)
-                  .map((e, i) => (
-                    <View
-                      key={`${e.timestamp_ms}-${e.defect_type}-${i}`}
-                      style={{
-                        flexDirection: "row",
-                        gap: 8,
-                        paddingVertical: 2,
-                        borderBottomWidth: 0.5,
-                        borderBottomColor: COLORS.BORDER,
-                      }}
-                    >
-                      <Text
-                        style={{
-                          color: COLORS.TEXT_SEC,
-                          minWidth: 36,
-                          fontSize: 8,
-                        }}
-                      >
-                        {formatTime(e.timestamp_ms)}
-                      </Text>
-                      <Text
-                        style={{ color: COLORS.TEXT_PRI, fontSize: 8 }}
-                      >
-                        {e.defect_type}
-                      </Text>
-                      {e.parameter_value != null && (
-                        <Text
-                          style={{ color: COLORS.TEXT_SEC, fontSize: 8 }}
-                        >
-                          {e.parameter_value}
-                        </Text>
-                      )}
-                      {e.notes && (
-                        <Text
-                          style={{
-                            color: COLORS.TEXT_SEC,
-                            flex: 1,
-                            fontSize: 8,
-                          }}
-                        >
-                          {sanitizeText(
-                            String(e.notes).slice(0, 60) +
-                              (String(e.notes).length > 60 ? "…" : "")
-                          )}
-                        </Text>
-                      )}
-                    </View>
-                  ))}
-              </View>
-            )}
-          </View>
-        )}
-
-        {/* Coach Feedback: narrative when present, else feedback.summary */}
-        <View style={[styles.panel, { marginTop: 16 }]}>
-          <Text style={styles.sectionTitle}>Coach Feedback</Text>
+        {/* HERO: REWORK COST */}
+        <View
+          style={{
+            marginTop: 24,
+            paddingVertical: 28,
+            alignItems: "center",
+            backgroundColor: COLORS.PANEL,
+            borderRadius: 6,
+            borderWidth: 2,
+            borderColor: costColor,
+          }}
+        >
           <Text
             style={{
-              fontSize: 10,
-              color: COLORS.TEXT_PRI,
-              lineHeight: 1.6,
+              fontSize: 9,
+              color: COLORS.TEXT_SEC,
+              textTransform: "uppercase",
+              letterSpacing: 2,
+              marginBottom: 10,
             }}
           >
-            {coachText}
+            Estimated Rework Cost
+          </Text>
+          <Text
+            style={{
+              fontSize: 64,
+              fontWeight: "bold",
+              color: costColor,
+              fontFamily: "Helvetica-Bold",
+            }}
+          >
+            {formatCost(cost)}
           </Text>
         </View>
 
-        {/* Score Trend */}
-        {chartPng && (
-          <View style={{ marginTop: 16, marginBottom: 16 }}>
-            <Text style={styles.sectionTitle}>Score Trend (Last 5 Sessions)</Text>
-            <Image src={chartPng} style={{ height: 120 }} />
-          </View>
-        )}
-
-        {/* Key Areas: severity→color mapping */}
-        <View style={{ marginTop: 16 }}>
-          <Text style={styles.sectionTitle}>Key Areas for Improvement</Text>
-          {top3.length > 0 ? (
-            top3.map((item, i) => {
-              const dotColor = severityToColor(item.severity);
-              return (
-                <View key={`fb-${i}`} style={styles.feedbackItem}>
-                  <View
-                    style={{
-                      width: 8,
-                      height: 8,
-                      borderRadius: 4,
-                      backgroundColor: dotColor,
-                      marginRight: 10,
-                      marginTop: 4,
-                    }}
-                  />
-                  <View style={{ flex: 1 }}>
-                    <Text
-                      style={{
-                        fontSize: 10,
-                        color: COLORS.TEXT_PRI,
-                        fontWeight: "bold",
-                      }}
-                    >
-                      {sanitizeText(item.message)}
-                    </Text>
-                    {item.suggestion && (
-                      <Text
-                        style={{
-                          fontSize: 9,
-                          color: COLORS.TEXT_SEC,
-                          marginTop: 2,
-                        }}
-                      >
-                        {sanitizeText(item.suggestion)}
-                      </Text>
-                    )}
-                  </View>
-                </View>
-              );
-            })
-          ) : (
-            <Text style={{ fontSize: 9, color: COLORS.TEXT_SEC }}>
-              No key areas identified.
+        {/* REJECTION SUMMARY */}
+        <View style={styles.panel}>
+          <Text style={styles.sectionTitle}>Rejection Summary</Text>
+          {rootCause !== "" && (
+            <Text
+              style={{
+                fontSize: 12,
+                color: COLORS.TEXT_PRI,
+                fontWeight: "bold",
+                marginBottom: rationale !== "" ? 8 : 0,
+              }}
+            >
+              {rootCause}
+            </Text>
+          )}
+          {rationale !== "" && (
+            <Text style={{ fontSize: 9, color: COLORS.TEXT_SEC, lineHeight: 1.5 }}>
+              {rationale}
             </Text>
           )}
         </View>
 
-        {/* Certifications */}
-        {certifications && certifications.length > 0 && (
-          <View style={[styles.panel, { marginTop: 16 }]}>
-            <Text style={styles.sectionTitle}>Certification Readiness</Text>
-            {certifications.map((c, i) => (
+        {/* 3 AGENT FINDINGS */}
+        <View style={{ marginTop: 16 }}>
+          <Text style={styles.sectionTitle}>Agent Findings</Text>
+          <View style={{ flexDirection: "row" }}>
+            {AGENT_ORDER.map((agentKey, idx) => {
+              const insight = insightMap[agentKey];
+              const agentDisp = insight?.disposition;
+              const rawRoot = insight?.root_cause ?? "";
+              const agentRoot =
+                rawRoot !== ""
+                  ? sanitizeText(
+                      rawRoot.slice(0, 120) + (rawRoot.length > 120 ? "…" : "")
+                    )
+                  : "—";
+              const agentDispColor = dispositionColor(agentDisp);
+              return (
+                <View
+                  key={agentKey}
+                  style={{
+                    flex: 1,
+                    backgroundColor: COLORS.PANEL,
+                    borderRadius: 6,
+                    borderWidth: 1,
+                    borderColor: COLORS.BORDER,
+                    padding: 10,
+                    marginRight: idx < 2 ? 8 : 0,
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 8,
+                      color: COLORS.TEXT_SEC,
+                      textTransform: "uppercase",
+                      letterSpacing: 1,
+                      marginBottom: 6,
+                    }}
+                  >
+                    {agentDisplayLabel(agentKey)}
+                  </Text>
+                  {agentDisp != null && (
+                    <View
+                      style={{
+                        paddingHorizontal: 6,
+                        paddingVertical: 2,
+                        borderRadius: 3,
+                        backgroundColor: agentDispColor,
+                        alignSelf: "flex-start",
+                        marginBottom: 6,
+                      }}
+                    >
+                      <Text
+                        style={{ fontSize: 7, color: "#fff", fontWeight: "bold" }}
+                      >
+                        {dispositionLabel(agentDisp)}
+                      </Text>
+                    </View>
+                  )}
+                  <Text
+                    style={{ fontSize: 8, color: COLORS.TEXT_PRI, lineHeight: 1.4 }}
+                  >
+                    {agentRoot}
+                  </Text>
+                </View>
+              );
+            })}
+          </View>
+        </View>
+
+        {/* CORRECTIVE ACTIONS */}
+        {corrective.length > 0 && (
+          <View style={styles.panel}>
+            <Text style={styles.sectionTitle}>Corrective Actions</Text>
+            {corrective.map((item, i) => (
               <View
-                key={`${sanitizeText(c.name)}-${i}`}
-                style={{
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                  paddingVertical: 3,
-                  borderBottomWidth: 0.5,
-                  borderBottomColor: COLORS.BORDER,
-                }}
+                key={`ca-${i}`}
+                style={{ flexDirection: "row", marginBottom: 6 }}
               >
-                <Text style={{ fontSize: 9, color: COLORS.TEXT_PRI }}>
-                  {sanitizeText(c.name)}
+                <Text
+                  style={{
+                    fontSize: 9,
+                    color: COLORS.ACCENT,
+                    fontWeight: "bold",
+                    minWidth: 18,
+                    marginRight: 6,
+                  }}
+                >
+                  {i + 1}.
                 </Text>
-                <Text style={{ fontSize: 9, color: COLORS.TEXT_SEC }}>
-                  {c.qualifying_sessions}/{c.sessions_required} ·{" "}
-                  {sanitizeText(c.status)}
+                <Text
+                  style={{
+                    fontSize: 9,
+                    color: COLORS.TEXT_PRI,
+                    flex: 1,
+                    lineHeight: 1.4,
+                  }}
+                >
+                  {sanitizeText(item.message)}
                 </Text>
               </View>
             ))}
           </View>
         )}
 
-        {/* Footer */}
+        {/* FOOTER */}
         <View style={styles.footer}>
-          <Text style={styles.footerText}>
-            WarpSense Quality Intelligence
-          </Text>
-          <Text style={styles.footerText}>
-            CONFIDENTIAL — Internal use only
-          </Text>
+          <Text style={styles.footerText}>WarpSense Quality Intelligence</Text>
+          <Text style={styles.footerText}>CONFIDENTIAL — Internal use only</Text>
         </View>
       </Page>
     </Document>
