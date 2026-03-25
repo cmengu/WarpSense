@@ -268,7 +268,7 @@ export default function SimulatorPage() {
               </p>
             </div>
             <a
-              href={`/compare/${matchResult.session_id}/sess_expert_aluminium_001_001`}
+              href="/demo/sess_expert_aluminium_001_001/sess_novice_aluminium_001_001"
               className="px-3 py-2 bg-zinc-700 hover:bg-zinc-600 text-zinc-200 text-xs font-mono rounded-lg transition-colors"
             >
               View 3D comparison →
