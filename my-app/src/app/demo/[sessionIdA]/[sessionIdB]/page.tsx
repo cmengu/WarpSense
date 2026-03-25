@@ -4,6 +4,7 @@ import { Suspense, use, useEffect, useMemo, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { fetchSession, fetchSessionAlerts, type AlertPayload } from '@/lib/api';
+import { MOCK_EXPERT_SCORE_VALUE, MOCK_NOVICE_SCORE_VALUE } from '@/lib/demo-config';
 import { getRuleLabel } from '@/lib/alert-labels';
 import { logWarn } from '@/lib/logger';
 import { FRAME_INTERVAL_MS } from '@/constants/validation';
@@ -776,10 +777,34 @@ export function DemoPageInner({
     [alertsB, floorTs]
   );
 
-  const wqiGap =
-    sessionA?.score_total != null && sessionB?.score_total != null
-      ? Math.abs(Math.round(sessionB.score_total - sessionA.score_total))
-      : null;
+  // Score fallback: use mock values when session not yet run through analysis pipeline
+  const scoreA = sessionA?.score_total ?? (sessionIdA.toLowerCase().includes('expert') ? MOCK_EXPERT_SCORE_VALUE : MOCK_NOVICE_SCORE_VALUE);
+  const scoreB = sessionB?.score_total ?? (sessionIdB.toLowerCase().includes('expert') ? MOCK_EXPERT_SCORE_VALUE : MOCK_NOVICE_SCORE_VALUE);
+  // Higher score always on right (green); lower score always on left (red)
+  const swap = scoreA > scoreB;
+  const leftScore = swap ? scoreB : scoreA;
+  const rightScore = swap ? scoreA : scoreB;
+  const leftId = swap ? sessionIdB : sessionIdA;
+  const rightId = swap ? sessionIdA : sessionIdB;
+  const leftSession = swap ? sessionB : sessionA;
+  const rightSession = swap ? sessionA : sessionB;
+  const leftAlerts = swap ? alertsB : alertsA;
+  const rightAlerts = swap ? alertsA : alertsB;
+  const leftAlertsError = swap ? alertsErrorB : alertsErrorA;
+  const rightAlertsError = swap ? alertsErrorA : alertsErrorB;
+  const leftFrame = swap ? currentFrameB : currentFrameA;
+  const rightFrame = swap ? currentFrameA : currentFrameB;
+  const leftTemp = swap ? currentTempB : currentTempA;
+  const rightTemp = swap ? currentTempA : currentTempB;
+  const leftHeatHist = swap ? bHeatHist : aHeatHist;
+  const rightHeatHist = swap ? aHeatHist : bHeatHist;
+  const leftAmpHist = swap ? bAmpHist : aAmpHist;
+  const rightAmpHist = swap ? aAmpHist : bAmpHist;
+  const leftAngleHist = swap ? bAngleHist : aAngleHist;
+  const rightAngleHist = swap ? aAngleHist : bAngleHist;
+  const leftFiredCount = swap ? firedCountB : firedCountA;
+  const rightFiredCount = swap ? firedCountA : firedCountB;
+  const wqiGap = Math.abs(Math.round(rightScore - leftScore));
   const noOverlap = !comparison || comparison.deltas.length === 0;
   const duration =
     firstTimestamp != null && lastTimestamp != null ? lastTimestamp - firstTimestamp : 0;
@@ -950,8 +975,8 @@ export function DemoPageInner({
             Parameter Comparison
           </div>
           <Sparkline
-            noviceHistory={aHeatHist}
-            expertHistory={bHeatHist}
+            noviceHistory={leftHeatHist}
+            expertHistory={rightHeatHist}
             specMin={0.55}
             specMax={0.8}
             dataMin={0.5}
@@ -960,8 +985,8 @@ export function DemoPageInner({
             unit="kJ/mm"
           />
           <Sparkline
-            noviceHistory={aAmpHist}
-            expertHistory={bAmpHist}
+            noviceHistory={leftAmpHist}
+            expertHistory={rightAmpHist}
             specMin={150}
             specMax={190}
             dataMin={130}
@@ -970,8 +995,8 @@ export function DemoPageInner({
             unit="A"
           />
           <Sparkline
-            noviceHistory={aAngleHist}
-            expertHistory={bAngleHist}
+            noviceHistory={leftAngleHist}
+            expertHistory={rightAngleHist}
             specMin={60}
             specMax={75}
             dataMin={55}
@@ -997,30 +1022,30 @@ export function DemoPageInner({
               [
                 [
                   'Heat',
-                  currentFrameA?.heat_input_kj_per_mm?.toFixed(2) ?? '--',
-                  currentFrameB?.heat_input_kj_per_mm?.toFixed(2) ?? '--',
+                  leftFrame?.heat_input_kj_per_mm?.toFixed(2) ?? '--',
+                  rightFrame?.heat_input_kj_per_mm?.toFixed(2) ?? '--',
                   'kJ/mm',
                 ],
                 [
                   'Amp',
-                  currentFrameA?.amps != null ? String(Math.round(currentFrameA.amps)) : '--',
-                  currentFrameB?.amps != null ? String(Math.round(currentFrameB.amps)) : '--',
+                  leftFrame?.amps != null ? String(Math.round(leftFrame.amps)) : '--',
+                  rightFrame?.amps != null ? String(Math.round(rightFrame.amps)) : '--',
                   'A',
                 ],
                 [
                   'Angle',
-                  currentFrameA?.angle_degrees != null
-                    ? String(Math.round(currentFrameA.angle_degrees))
+                  leftFrame?.angle_degrees != null
+                    ? String(Math.round(leftFrame.angle_degrees))
                     : '--',
-                  currentFrameB?.angle_degrees != null
-                    ? String(Math.round(currentFrameB.angle_degrees))
+                  rightFrame?.angle_degrees != null
+                    ? String(Math.round(rightFrame.angle_degrees))
                     : '--',
                   '°',
                 ],
                 [
                   'Temp',
-                  currentTempA != null ? String(Math.round(currentTempA)) : '--',
-                  currentTempB != null ? String(Math.round(currentTempB)) : '--',
+                  leftTemp != null ? String(Math.round(leftTemp)) : '--',
+                  rightTemp != null ? String(Math.round(rightTemp)) : '--',
                   '°C',
                 ],
               ] as [string, string, string, string][]
@@ -1095,7 +1120,7 @@ export function DemoPageInner({
               alignItems: 'flex-end',
             }}
           >
-            <WQIScore value={sessionA?.score_total} label="Session A" color={C.novice} />
+            <WQIScore value={leftScore} label={leftId} color={C.novice} />
             <div
               style={{
                 display: 'flex',
@@ -1124,11 +1149,11 @@ export function DemoPageInner({
                   letterSpacing: '-0.01em',
                 }}
               >
-                {wqiGap ?? '--'}
+                {wqiGap}
               </div>
               <div style={{ fontSize: 7, color: C.textDim, letterSpacing: '0.18em' }}>pts</div>
             </div>
-            <WQIScore value={sessionB?.score_total} label="Session B" color={C.expert} />
+            <WQIScore value={rightScore} label={rightId} color={C.expert} />
           </div>
 
           <div style={{ display: 'flex', gap: 16, alignItems: 'center', justifyContent: 'center' }}>
@@ -1161,9 +1186,9 @@ export function DemoPageInner({
                   <BeadDiffPlaceholder />
                 ) : (
                   <TorchWithHeatmap3D
-                    angle={currentFrameA?.angle_degrees ?? 67}
-                    temp={currentTempA ?? 300}
-                    frames={sessionA?.frames ?? []}
+                    angle={leftFrame?.angle_degrees ?? 67}
+                    temp={leftTemp ?? 300}
+                    frames={leftSession?.frames ?? []}
                     activeTimestamp={currentTimestamp}
                     label=""
                     labelPosition="inside"
@@ -1206,9 +1231,9 @@ export function DemoPageInner({
                   <BeadDiffPlaceholder />
                 ) : (
                   <TorchWithHeatmap3D
-                    angle={currentFrameB?.angle_degrees ?? 67}
-                    temp={currentTempB ?? 300}
-                    frames={sessionB?.frames ?? []}
+                    angle={rightFrame?.angle_degrees ?? 67}
+                    temp={rightTemp ?? 300}
+                    frames={rightSession?.frames ?? []}
                     activeTimestamp={currentTimestamp}
                     label=""
                     labelPosition="inside"
@@ -1380,20 +1405,20 @@ export function DemoPageInner({
                   fontFamily: FONT_DATA,
                   fontSize: 16,
                   fontWeight: 700,
-                  color: alertsErrorA ? C.amber : C.novice,
+                  color: leftAlertsError ? C.amber : C.novice,
                 }}
               >
-                A: {alertsErrorA ? '—' : firedCountA}
+                {leftId}: {leftAlertsError ? '—' : leftFiredCount}
               </span>
               <span
                 style={{
                   fontFamily: FONT_DATA,
                   fontSize: 16,
                   fontWeight: 700,
-                  color: alertsErrorB ? C.amber : C.expert,
+                  color: rightAlertsError ? C.amber : C.expert,
                 }}
               >
-                B: {alertsErrorB ? '—' : firedCountB}
+                {rightId}: {rightAlertsError ? '—' : rightFiredCount}
               </span>
             </div>
           </div>
@@ -1413,26 +1438,26 @@ export function DemoPageInner({
               }}
             >
               <AlertFeedColumn
-                alerts={alertsA}
+                alerts={leftAlerts}
                 currentTimestamp={floorTs}
                 onSeek={(ts) => {
                   setCurrentTimestamp(ts);
                   setIsPlaying(false);
                 }}
-                error={alertsErrorA}
-                label="Session A"
+                error={leftAlertsError}
+                label={leftId}
               />
             </div>
             <div style={{ padding: '10px 10px', overflowY: 'auto' }}>
               <AlertFeedColumn
-                alerts={alertsB}
+                alerts={rightAlerts}
                 currentTimestamp={floorTs}
                 onSeek={(ts) => {
                   setCurrentTimestamp(ts);
                   setIsPlaying(false);
                 }}
-                error={alertsErrorB}
-                label="Session B"
+                error={rightAlertsError}
+                label={rightId}
               />
             </div>
           </div>
