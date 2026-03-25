@@ -1,6 +1,6 @@
 # Score Display + Higher-Score-Right Ordering on Compare Pages
 
-**Overall Progress:** `0%` (0/3 steps done)
+**Overall Progress:** `100%` (3/3 steps done)
 
 ---
 

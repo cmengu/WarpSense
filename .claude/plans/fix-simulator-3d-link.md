@@ -1,6 +1,6 @@
 # Fix "View 3D Comparison" Link in Simulator
 
-**Overall Progress:** `0%` (0/1 steps done)
+**Overall Progress:** `100%` (1/1 steps done)
 
 ---
 

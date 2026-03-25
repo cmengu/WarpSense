@@ -134,7 +134,8 @@ def simulator_closest_match(
             best_dist = dist
             best_id = session_id
 
-    assert best_id is not None
+    if best_id is None:
+        raise HTTPException(status_code=503, detail="Feature cache is empty")
     matched = cache[best_id]
     pred = get_classifier().predict(matched)
     cost = _REWORK_COST.get(pred.quality_class, 0)
