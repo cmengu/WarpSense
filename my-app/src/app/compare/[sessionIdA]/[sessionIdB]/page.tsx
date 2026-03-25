@@ -159,6 +159,23 @@ export function ComparePageInner({
     [alertsB, floorTs]
   );
 
+  // Swap so higher score is always on the right column (only when both scores exist)
+  const scoreA = sessionA?.score_total ?? null;
+  const scoreB = sessionB?.score_total ?? null;
+  const swap = scoreA !== null && scoreB !== null && scoreA > scoreB;
+  const leftId = swap ? sessionIdB : sessionIdA;
+  const rightId = swap ? sessionIdA : sessionIdB;
+  const leftSession = swap ? sessionB : sessionA;
+  const rightSession = swap ? sessionA : sessionB;
+  const leftAlerts = swap ? alertsB : alertsA;
+  const rightAlerts = swap ? alertsA : alertsB;
+  const leftAlertsError = swap ? alertsErrorB : alertsErrorA;
+  const rightAlertsError = swap ? alertsErrorA : alertsErrorB;
+  const leftScore = swap ? scoreB : scoreA;
+  const rightScore = swap ? scoreA : scoreB;
+  const leftFlash = swap ? columnBCriticalFlash : columnACriticalFlash;
+  const rightFlash = swap ? columnACriticalFlash : columnBCriticalFlash;
+
   useEffect(() => {
     if (firstTimestamp != null && lastTimestamp != null) {
       setCurrentTimestamp((prev) => {
@@ -459,12 +476,26 @@ export function ComparePageInner({
           <ErrorBoundary>
             <div className="mb-6 grid grid-cols-1 lg:grid-cols-2 gap-8">
               <div>
+                <div className="flex items-center justify-between mb-2 px-1">
+                  <span className="font-mono text-xs text-zinc-400 truncate">{leftId}</span>
+                  {leftScore != null && (
+                    <span className="font-mono text-sm font-bold text-zinc-200 ml-2 shrink-0">
+                      {Math.round(leftScore)}
+                    </span>
+                  )}
+                </div>
                 <TorchWithHeatmap3D
-                  angle={getFrameAtTimestamp(sessionA.frames, currentTimestamp)?.angle_degrees ?? 45}
-                  temp={extractCenterTemperatureWithCarryForward(sessionA.frames, currentTimestamp)}
-                  label={`Session A (${sessionIdA})`}
+                  angle={
+                    getFrameAtTimestamp(leftSession?.frames ?? [], currentTimestamp)?.angle_degrees ??
+                    45
+                  }
+                  temp={extractCenterTemperatureWithCarryForward(
+                    leftSession?.frames ?? [],
+                    currentTimestamp
+                  )}
+                  label={leftId}
                   labelPosition="outside"
-                  frames={frameDataA.thermal_frames}
+                  frames={swap ? frameDataB.thermal_frames : frameDataA.thermal_frames}
                   activeTimestamp={currentTimestamp}
                   maxTemp={sharedMaxTemp}
                   minTemp={sharedMinTemp}
@@ -472,12 +503,26 @@ export function ComparePageInner({
                 />
               </div>
               <div>
+                <div className="flex items-center justify-between mb-2 px-1">
+                  <span className="font-mono text-xs text-zinc-400 truncate">{rightId}</span>
+                  {rightScore != null && (
+                    <span className="font-mono text-sm font-bold text-zinc-200 ml-2 shrink-0">
+                      {Math.round(rightScore)}
+                    </span>
+                  )}
+                </div>
                 <TorchWithHeatmap3D
-                  angle={getFrameAtTimestamp(sessionB.frames, currentTimestamp)?.angle_degrees ?? 45}
-                  temp={extractCenterTemperatureWithCarryForward(sessionB.frames, currentTimestamp)}
-                  label={`Session B (${sessionIdB})`}
+                  angle={
+                    getFrameAtTimestamp(rightSession?.frames ?? [], currentTimestamp)?.angle_degrees ??
+                    45
+                  }
+                  temp={extractCenterTemperatureWithCarryForward(
+                    rightSession?.frames ?? [],
+                    currentTimestamp
+                  )}
+                  label={rightId}
                   labelPosition="outside"
-                  frames={frameDataB.thermal_frames}
+                  frames={swap ? frameDataA.thermal_frames : frameDataB.thermal_frames}
                   activeTimestamp={currentTimestamp}
                   maxTemp={sharedMaxTemp}
                   minTemp={sharedMinTemp}
@@ -494,55 +539,55 @@ export function ComparePageInner({
           </h2>
           <div className="grid grid-cols-2 gap-4 mb-2">
             <div className="text-sm text-zinc-600 dark:text-zinc-400">
-              Session A: {alertsErrorA != null ? (
+              {leftId}: {leftAlertsError != null ? (
                 <span className="text-amber-600 dark:text-amber-500">Alerts unavailable</span>
               ) : (
-                `${firedAlertsA.length} alerts`
+                `${(swap ? firedAlertsB : firedAlertsA).length} alerts`
               )}
             </div>
             <div className="text-sm text-zinc-600 dark:text-zinc-400">
-              Session B: {alertsErrorB != null ? (
+              {rightId}: {rightAlertsError != null ? (
                 <span className="text-amber-600 dark:text-amber-500">Alerts unavailable</span>
               ) : (
-                `${firedAlertsB.length} alerts`
+                `${(swap ? firedAlertsA : firedAlertsB).length} alerts`
               )}
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div
               className={`rounded-lg border p-4 transition-all ${
-                columnACriticalFlash
+                leftFlash
                   ? 'ring-4 ring-red-500 bg-red-50 dark:bg-red-950/30 animate-pulse'
                   : 'border-zinc-200 dark:border-zinc-700'
               }`}
             >
               <AlertFeedColumn
-                alerts={alertsA}
+                alerts={leftAlerts}
                 currentTimestamp={floorTs}
                 onSeek={(ts) => {
                   setCurrentTimestamp(ts);
                   setIsPlaying(false);
                 }}
-                error={alertsErrorA}
-                label="Session A"
+                error={leftAlertsError}
+                label={leftId}
               />
             </div>
             <div
               className={`rounded-lg border p-4 transition-all ${
-                columnBCriticalFlash
+                rightFlash
                   ? 'ring-4 ring-red-500 bg-red-50 dark:bg-red-950/30 animate-pulse'
                   : 'border-zinc-200 dark:border-zinc-700'
               }`}
             >
               <AlertFeedColumn
-                alerts={alertsB}
+                alerts={rightAlerts}
                 currentTimestamp={floorTs}
                 onSeek={(ts) => {
                   setCurrentTimestamp(ts);
                   setIsPlaying(false);
                 }}
-                error={alertsErrorB}
-                label="Session B"
+                error={rightAlertsError}
+                label={rightId}
               />
             </div>
           </div>

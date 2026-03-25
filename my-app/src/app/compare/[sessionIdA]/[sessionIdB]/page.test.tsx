@@ -146,7 +146,7 @@ it('session A torch receives correct label', async () => {
   await waitFor(() => {
     const torches = screen.getAllByTestId('torch-3d');
     const labels = torches.map((el) => el.getAttribute('data-label'));
-    expect(labels).toContain(`Session A (${COMPARE_SESSION_ID_A})`);
+    expect(labels).toContain(COMPARE_SESSION_ID_A);
   });
 });
 
@@ -159,7 +159,7 @@ it('session B torch receives correct label', async () => {
   await waitFor(() => {
     const torches = screen.getAllByTestId('torch-3d');
     const labels = torches.map((el) => el.getAttribute('data-label'));
-    expect(labels).toContain(`Session B (${COMPARE_SESSION_ID_B})`);
+    expect(labels).toContain(COMPARE_SESSION_ID_B);
   });
 });
 
