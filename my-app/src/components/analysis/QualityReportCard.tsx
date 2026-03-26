@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ThresholdViolation, WarpReport } from "@/types/warp-analysis";
 import { logWarn } from "@/lib/logger";
-import { captureChartToBase64 } from "@/lib/pdf-chart-capture";
 import { StatusBadge } from "./StatusBadge";
 
 /** Maps agent code-names → operational display labels. */
@@ -201,11 +200,10 @@ export function QualityReportCard({
     if (isPdfLoading) return;
     setIsPdfLoading(true);
     try {
-      const chartDataUrl = await captureChartToBase64("welder-trend-chart");
       const scoreTotal =
-        report.disposition === "PASS"         ? 1.0
-        : report.disposition === "CONDITIONAL" ? 0.5
-        : 0.0;
+        report.disposition === "PASS"         ? 85
+        : report.disposition === "CONDITIONAL" ? 55
+        : 30;
       const payload = {
         welder: { name: welderDisplayName ?? "Unknown" },
         score:  { total: scoreTotal },
@@ -216,9 +214,11 @@ export function QualityReportCard({
             severity: i === 0 ? "high" : "medium",
           })),
         },
-        narrative:   report.disposition_rationale.slice(0, 2000),
-        chartDataUrl,
-        sessionDate: new Date(report.report_timestamp).toLocaleDateString("en-GB"),
+        narrative:       report.disposition_rationale.slice(0, 400),
+        rework_cost_usd:   report.rework_cost_usd ?? null,
+        disposition:       report.disposition,
+        agentInsights:     specialistRows ?? null,
+        sessionDate:       new Date(report.report_timestamp).toLocaleDateString("en-GB"),
       };
       const res = await fetch("/api/welder-report-pdf", {
         method:  "POST",
@@ -241,7 +241,7 @@ export function QualityReportCard({
     } finally {
       setIsPdfLoading(false);
     }
-  }, [isPdfLoading, report, welderDisplayName]);
+  }, [isPdfLoading, report, welderDisplayName, specialistRows]);
 
   return (
     <div className="flex flex-col min-h-[400px] h-full bg-[var(--warp-surface)] border border-zinc-900">
