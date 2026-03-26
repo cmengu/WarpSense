@@ -79,6 +79,7 @@ export function AnalysisTimeline({
   const [report, setReport]         = useState<WarpReport | null>(null);
 
   const readerRef          = useRef<ReadableStreamDefaultReader<Uint8Array> | null>(null);
+  const streamRef          = useRef<ReadableStream<Uint8Array> | null>(null);
   const onErrorRef         = useRef(onError);
   const onCompleteRef      = useRef(onComplete);
   const onCompleteFiredRef = useRef(false);
@@ -113,6 +114,7 @@ export function AnalysisTimeline({
       let reader: ReadableStreamDefaultReader<Uint8Array> | null = null;
       try {
         const stream = await streamAnalysis(sessionId);
+        streamRef.current = stream;
         if (cancelled) { stream.cancel().catch(() => {}); return; }
 
         reader = stream.getReader();
@@ -206,7 +208,8 @@ export function AnalysisTimeline({
 
     return () => {
       cancelled = true;
-      readerRef.current?.cancel();
+      streamRef.current?.cancel().catch(() => {});
+      streamRef.current = null;
       readerRef.current = null;
     };
   }, [sessionId, streamTrigger]);
