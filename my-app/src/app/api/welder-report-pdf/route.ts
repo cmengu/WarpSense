@@ -10,7 +10,7 @@ import { NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import React from "react";
 import { logError, logWarn } from "@/lib/logger";
-import { WelderReportPDF } from "@/components/pdf/WelderReportPDF";
+import { WelderReportPDF, type WelderReportPDFProps } from "@/components/pdf/WelderReportPDF";
 import type { SessionScore } from "@/lib/api";
 import type { ReportSummary } from "@/types/report-summary";
 
@@ -43,6 +43,17 @@ interface PDFRequestBody {
   duration?: string | null;
   /** Optional station placeholder (e.g. "Station 4") for top-bar meta. */
   station?: string | null;
+  /** Estimated rework cost in USD — drives the hero block in the PDF. */
+  rework_cost_usd?: number | null;
+  /** Weld disposition — PASS | CONDITIONAL | REWORK_REQUIRED. */
+  disposition?: string | null;
+  /** Per-agent parsed insights from llm_raw_response. */
+  agentInsights?: Array<{
+    agent_name: string;
+    disposition?: string;
+    root_cause?: string;
+    corrective_actions?: string[];
+  }> | null;
 }
 
 const MAX_FILENAME_LENGTH = 64;
@@ -255,7 +266,7 @@ export async function POST(request: Request) {
   }
 
   const welder = { name: welderName };
-  const score = { total, rules: body.score.rules ?? [] };
+  const score = { total };
   const feedback = {
     summary: body.feedback.summary ?? "",
     feedback_items,
@@ -275,15 +286,60 @@ export async function POST(request: Request) {
     station = body.station.slice(0, 128) || undefined;
   }
 
+  let rework_cost_usd: number | null = null;
+  if (
+    body.rework_cost_usd != null &&
+    typeof body.rework_cost_usd === "number" &&
+    Number.isFinite(body.rework_cost_usd) &&
+    body.rework_cost_usd >= 0
+  ) {
+    rework_cost_usd = body.rework_cost_usd;
+  }
+
+  let disposition: string | null = null;
+  if (body.disposition != null && typeof body.disposition === "string") {
+    disposition = body.disposition.slice(0, 32);
+  }
+
+  let agentInsights: WelderReportPDFProps["agentInsights"] = null;
+  if (Array.isArray(body.agentInsights)) {
+    agentInsights = body.agentInsights
+      .filter(
+        (r): r is { agent_name: string } =>
+          r != null &&
+          typeof r === "object" &&
+          typeof (r as Record<string, unknown>).agent_name === "string"
+      )
+      .map((r) => {
+        const obj = r as Record<string, unknown>;
+        return {
+          agent_name: String(obj.agent_name).slice(0, 64),
+          disposition:
+            typeof obj.disposition === "string"
+              ? obj.disposition.slice(0, 32)
+              : undefined,
+          root_cause:
+            typeof obj.root_cause === "string"
+              ? obj.root_cause.slice(0, 500)
+              : undefined,
+          corrective_actions: Array.isArray(obj.corrective_actions)
+            ? (obj.corrective_actions as unknown[]).filter(
+                (s): s is string => typeof s === "string"
+              )
+            : undefined,
+        };
+      });
+  }
+
   try {
     const pdfReact = React.createElement(WelderReportPDF, {
       welder,
       score,
       feedback,
-      chartDataUrl,
       narrative,
-      certifications,
-      reportSummary: reportSummary ?? undefined,
+      rework_cost_usd,
+      disposition,
+      agentInsights,
       sessionDate: sessionDate ?? undefined,
       duration: duration ?? undefined,
       station: station ?? undefined,
