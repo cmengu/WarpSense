@@ -22,7 +22,8 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 interface PDFRequestBody {
-  welder?: { name?: unknown };
+  panel?: { id?: unknown; name?: unknown };
+  welder_attribution?: string | null;
   score?: SessionScore | { total: number; rules?: unknown[] };
   feedback?: { summary?: string; feedback_items?: unknown[] };
   chartDataUrl?: unknown;
@@ -53,6 +54,9 @@ interface PDFRequestBody {
     disposition?: string;
     root_cause?: string;
     corrective_actions?: string[];
+    disposition_rationale?: string;
+    consequence?: string;
+    reject_label?: string;
   }> | null;
 }
 
@@ -63,12 +67,6 @@ const MAX_BODY_SIZE_BYTES = 5 * 1024 * 1024; // 5MB total
 function sanitizeFilename(name: string): string {
   const sanitized = String(name).replace(/[^a-zA-Z0-9_-]/g, "-");
   return sanitized.slice(0, MAX_FILENAME_LENGTH) || "welder";
-}
-
-function toWelderName(v: unknown): string {
-  if (typeof v === "string" && v.trim().length > 0) return v.trim();
-  if (typeof v === "number" || typeof v === "boolean") return String(v);
-  return "Unknown";
 }
 
 function isValidFeedbackItem(
@@ -130,13 +128,18 @@ export async function POST(request: Request) {
     );
   }
 
-  if (!body.welder || typeof body.welder !== "object") {
+  if (!body.panel || typeof body.panel !== "object") {
     return NextResponse.json(
-      { error: "Missing or invalid welder" },
+      { error: "Missing or invalid panel" },
       { status: 400 }
     );
   }
-  const welderName = toWelderName(body.welder.name);
+  const panelId   = String((body.panel as Record<string, unknown>).id   ?? "").slice(0, 64)  || "panel";
+  const panelName = String((body.panel as Record<string, unknown>).name ?? "").slice(0, 128) || "Panel";
+  const welderAttribution =
+    typeof body.welder_attribution === "string"
+      ? body.welder_attribution.slice(0, 256)
+      : null;
 
   if (!body.score || typeof body.score !== "object") {
     return NextResponse.json(
@@ -265,7 +268,6 @@ export async function POST(request: Request) {
     certifications = valid.length > 0 ? valid : null;
   }
 
-  const welder = { name: welderName };
   const score = { total };
   const feedback = {
     summary: body.feedback.summary ?? "",
@@ -327,13 +329,27 @@ export async function POST(request: Request) {
                 (s): s is string => typeof s === "string"
               )
             : undefined,
+          disposition_rationale:
+            typeof obj.disposition_rationale === "string"
+              ? obj.disposition_rationale.slice(0, 500)
+              : undefined,
+          consequence:
+            typeof obj.consequence === "string"
+              ? obj.consequence.slice(0, 500)
+              : undefined,
+          reject_label:
+            typeof obj.reject_label === "string"
+              ? obj.reject_label.slice(0, 64)
+              : undefined,
         };
       });
   }
 
   try {
     const pdfReact = React.createElement(WelderReportPDF, {
-      welder,
+      panelId,
+      panelName,
+      welderAttribution,
       score,
       feedback,
       narrative,
@@ -346,7 +362,7 @@ export async function POST(request: Request) {
     });
 
     const buffer = await renderToBuffer(toPdfDoc(pdfReact));
-    const filename = `${sanitizeFilename(welderName)}-warp-report.pdf`;
+    const filename = `${sanitizeFilename(panelId)}-warp-report.pdf`;
 
     return new Response(new Uint8Array(buffer), {
       status: 200,

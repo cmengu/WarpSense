@@ -183,6 +183,8 @@ async def analyse_session(session_id: str, db: OrmSession) -> WeldQualityReportM
 
     # Load frames using the existing proven helper (do NOT re-implement the query)
     frames = get_session_frames_raw(session_id, db, limit=1500)
+    if frames is None:
+        raise ValueError(f"Session {session_id} not found")
     if not frames:
         raise ValueError(f"Session {session_id} has no frames")
     # NOTE: Do NOT pre-check raw frame count here. `SessionFeatureExtractor.extract()`
@@ -294,6 +296,8 @@ async def analyse_session_stream(session_id: str, db: OrmSession) -> AsyncGenera
 
             # 2. Load frames (explicit limit=1500 — default is 50)
             frames = get_session_frames_raw(session_id, db, limit=1500)
+            if frames is None:
+                raise ValueError(f"Session {session_id} not found")
             if not frames:
                 raise ValueError(f"Session {session_id} has no frames")
 
@@ -396,7 +400,6 @@ async def analyse_session_stream(session_id: str, db: OrmSession) -> AsyncGenera
     # Prevents Nginx proxy_read_timeout (default 60 s) from silently killing
     # the connection during long Groq LLM calls.
     _KEEPALIVE_S = 10.0
-    loop = asyncio.get_running_loop()
     _deadline = loop.time() + 300.0
 
     try:

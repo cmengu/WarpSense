@@ -1,18 +1,19 @@
 """
-Output handler for alerts: console (print) or websocket (HTTP POST).
+Output handler for alerts: console (logger) or websocket (HTTP POST).
 """
 
 from __future__ import annotations
 
 import logging
+import os
 from typing import Literal
 
 from realtime.alert_models import AlertPayload
 
 logger = logging.getLogger(__name__)
 
-# Base URL for HTTP POST. Overridable for tests.
-ALERT_BASE_URL = "http://localhost:8000"
+# Base URL for HTTP POST. Reads BACKEND_URL env var; falls back to localhost for local dev.
+ALERT_BASE_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
 
 
 def handle_alert(
@@ -22,9 +23,12 @@ def handle_alert(
 ) -> None:
     """Emit alert to console or POST to /internal/alert."""
     if mode == "console":
-        print(
-            f"ALERT frame={payload.frame_index} rule={payload.rule_triggered} "
-            f"severity={payload.severity} correction={payload.correction}"
+        logger.info(
+            "ALERT frame=%s rule=%s severity=%s correction=%s",
+            payload.frame_index,
+            payload.rule_triggered,
+            payload.severity,
+            payload.correction,
         )
     elif mode == "websocket":
         import requests

@@ -34,7 +34,12 @@ export interface AnalysisTimelineProps {
   onComplete?: (report: WarpReport) => void;
   /** Wired to QualityReportCard so users can re-run analysis from the report panel. */
   onReanalyse?: () => void;
-  welderDisplayName: string | null;
+  /** Panel name (or welder name fallback) shown in the timeline header. */
+  displayContext: string | null;
+  /** Panel ID threaded to QualityReportCard for PDF export. */
+  panelId: string | null;
+  /** Panel name threaded to QualityReportCard for PDF export. */
+  panelName: string | null;
 }
 
 const AGENT_STAGES: AgentStage[] = ["thermal_agent", "geometry_agent", "process_agent"];
@@ -64,7 +69,9 @@ export function AnalysisTimeline({
   onError,
   onComplete,
   onReanalyse,
-  welderDisplayName,
+  displayContext,
+  panelId,
+  panelName,
 }: AnalysisTimelineProps) {
   const router = useRouter();
   const handleCompare = useCallback(() => {
@@ -288,7 +295,9 @@ export function AnalysisTimeline({
             <div className="border-t border-zinc-800 mx-4 mb-2" />
             <QualityReportCard
               report={report}
-              welderDisplayName={welderDisplayName}
+              welderDisplayName={displayContext}
+              panelId={panelId}
+              panelName={panelName}
               onReanalyse={onReanalyse}
               onCompare={handleCompare}
             />

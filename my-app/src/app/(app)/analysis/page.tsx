@@ -10,7 +10,7 @@
  * WelderTrendChart is loaded via next/dynamic (ssr:false) — Recharts uses DOM APIs
  * unavailable in Node. See LEARNING_LOG.md 2026-03-02.
  */
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import type {
   MockSession,
@@ -22,7 +22,8 @@ import {
   fetchWarpReport,
   fetchMockSessions,
 } from "@/lib/warp-api";
-import { SessionList } from "@/components/analysis/SessionList";
+import { groupSessionsByPanel, type WeldPanel } from "@/lib/panel-mapping";
+import { PanelList } from "@/components/analysis/PanelList";
 import { AnalysisTimeline } from "@/components/analysis/AnalysisTimeline";
 
 const WelderTrendChart = dynamic(
@@ -41,6 +42,7 @@ const HEALTH_POLL_MS = 30_000;
 
 export default function AnalysisPage() {
   const [selectedSession, setSelectedSession] = useState<MockSession | null>(null);
+  const [selectedPanel, setSelectedPanel]     = useState<WeldPanel | null>(null);
   const [viewState, setViewState]             = useState<ViewState>({ mode: "empty" });
   // Increment to re-trigger AnalysisTimeline's stream effect without unmounting.
   const [streamTrigger, setStreamTrigger]     = useState(0);
@@ -48,6 +50,10 @@ export default function AnalysisPage() {
   const [health, setHealth]                   = useState<WarpHealthResponse | null>(null);
   const [isAnalysing, setIsAnalysing]         = useState(false);
   const [allSessions, setAllSessions]         = useState<MockSession[]>([]);
+  const [loading, setLoading] = useState(true);
+  // Derive WeldPanel[] from allSessions whenever sessions change.
+  // groupSessionsByPanel is pure so useMemo avoids re-running on unrelated renders.
+  const panels = useMemo(() => groupSessionsByPanel(allSessions), [allSessions]);
 
   const analyseQueueRef  = useRef<MockSession[]>([]);
   const selectCounterRef = useRef(0);
@@ -64,9 +70,10 @@ export default function AnalysisPage() {
   }, []);
 
   useEffect(() => {
+    setLoading(true);
     fetchMockSessions()
-      .then(setAllSessions)
-      .catch(() => {});
+      .then((data) => { setAllSessions(data); setLoading(false); })
+      .catch(() => { setLoading(false); });
   }, []);
 
   const startStream = useCallback((sessionId: string) => {
@@ -111,12 +118,18 @@ export default function AnalysisPage() {
         const nextSession = queue[0];
         analyseQueueRef.current = queue.slice(1);
         setSelectedSession(nextSession);
+        // Keep selectedPanel in sync so the PDF export has the correct panel context.
+        setSelectedPanel(
+          (prev) =>
+            panels.find((p) => p.sessions.some((s) => s.session_id === nextSession.session_id)) ??
+            prev,
+        );
         startStream(nextSession.session_id);
       } else {
         setIsAnalysing(false);
       }
     },
-    [startStream],
+    [startStream, panels],
   );
 
   const handleStreamError = useCallback((message: string) => {
@@ -147,6 +160,20 @@ export default function AnalysisPage() {
     setIsAnalysing(true);
     startStream(first.session_id);
   }, [startStream]);
+
+  /**
+   * Called when user clicks a panel header in PanelList.
+   * Sets the selected panel and activates the first session via the existing
+   * handleSessionSelect so the fetchWarpReport pre-check always runs.
+   */
+  const handlePanelSelect = useCallback(
+    (panel: WeldPanel) => {
+      setSelectedPanel(panel);
+      const first = panel.sessions[0];
+      if (first) void handleSessionSelect(first);
+    },
+    [handleSessionSelect],
+  );
 
   const healthOk =
     health !== null &&
@@ -251,16 +278,25 @@ export default function AnalysisPage() {
       >
         <div className="flex w-[320px] shrink-0 flex-col overflow-hidden border-r border-[var(--warp-border)]">
           <div className="min-h-0 flex-1 overflow-hidden">
-            <SessionList
-              onSessionSelect={handleSessionSelect}
+            <PanelList
+              panels={panels}
+              selectedPanelId={selectedPanel?.panel_id ?? null}
               selectedSessionId={selectedSession?.session_id ?? null}
-              onAnalyseAll={handleAnalyseAll}
+              onPanelSelect={handlePanelSelect}
+              onSessionSelect={handleSessionSelect}
               isAnalysing={isAnalysing}
+              onAnalyseAll={handleAnalyseAll}
+              loading={loading}
             />
           </div>
           {selectedSession && (
             <div id="welder-trend-chart">
               <WelderTrendChart welderId={selectedSession.welder_id} />
+              {/* Label clarifies this chart tracks the selected session's welder,
+                  not the full panel — relevant when a panel has multiple welders. */}
+              <p className="font-mono text-[8px] text-[var(--warp-text-dim)] px-2 pb-1 truncate">
+                Trend: {selectedSession.welder_name}
+              </p>
             </div>
           )}
         </div>
@@ -270,7 +306,7 @@ export default function AnalysisPage() {
             <div className="flex h-full items-center justify-center">
               <div className="space-y-1 text-center">
                 <p className="font-mono text-[10px] uppercase tracking-widest text-[var(--warp-text-dim)]">
-                  Select a session to begin analysis
+                  Select a panel to begin analysis
                 </p>
                 <p className="font-mono text-[9px] text-zinc-700">
                   Or use Analyse All to run the full pipeline
@@ -287,7 +323,9 @@ export default function AnalysisPage() {
               onError={handleStreamError}
               onComplete={handleStreamComplete}
               onReanalyse={handleReanalyse}
-              welderDisplayName={selectedSession?.welder_name ?? null}
+              displayContext={selectedSession?.welder_name ?? null}
+              panelId={selectedPanel?.panel_id ?? null}
+              panelName={selectedPanel?.panel_name ?? null}
             />
           )}
         </div>

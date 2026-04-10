@@ -12,10 +12,55 @@ const AGENT_DISPLAY: Record<string, string> = {
   ProcessStabilityAgent:  "Arc Stability",
 };
 
+/**
+ * Deterministic consequence prose for each agent's rejection — Part 3 of the
+ * three-part humanised narrative in the PDF report.
+ * Keys match the PascalCase agent_name values from backend/agent/specialists.py.
+ */
+const CONSEQUENCE_BY_AGENT: Record<string, string> = {
+  ThermalAgent:
+    "Excessive or deficient heat input can cause grain coarsening in the heat-affected zone, " +
+    "reducing toughness and increasing the risk of HAZ cracking or underbead cracking under service loads.",
+  GeometryAgent:
+    "Geometric deviations such as undercut, overlap, or incorrect weld profile reduce the " +
+    "effective throat thickness, which can lead to premature fatigue failure or brittle fracture at the joint.",
+  ProcessStabilityAgent:
+    "Process instability — including arc interruptions, voltage fluctuations, or incorrect wire feed — " +
+    "can introduce porosity, lack of fusion, or incomplete penetration, compromising joint structural integrity.",
+};
+
+/**
+ * Deterministic rationale templates — Part 2 of the PDF narrative.
+ * Used because per-agent disposition_rationale is not available from the backend;
+ * WarpReport.disposition_rationale is report-level only.
+ */
+const RATIONALE_BY_AGENT: Record<string, string> = {
+  ThermalAgent:
+    "This heat excursion places the heat-affected zone outside WPS-specified bounds, " +
+    "indicating insufficient travel speed or pre-heat temperature control.",
+  GeometryAgent:
+    "The geometric deviation suggests torch angle drift or inconsistent standoff distance, " +
+    "resulting in a weld profile that does not meet dimensional acceptance criteria.",
+  ProcessStabilityAgent:
+    "The process anomaly reflects inconsistent arc behaviour, typically from parameter drift, " +
+    "contact tip wear, or shielding gas fluctuation.",
+};
+
+/** Short rejection labels for the visual badge in the PDF per-agent section. */
+const REJECT_LABEL_BY_AGENT: Record<string, string> = {
+  ThermalAgent:          "HEAT EXCEEDANCE",
+  GeometryAgent:         "GEOMETRY DEVIATION",
+  ProcessStabilityAgent: "PROCESS INSTABILITY",
+};
+
 export interface QualityReportCardProps {
   report: WarpReport;
   /** Wired in Phase UI-7 from selectedSession.welder_name. */
   welderDisplayName?: string | null;
+  /** Panel ID passed from AnalysisTimeline → page.tsx for PDF export. */
+  panelId?: string | null;
+  /** Panel name passed from AnalysisTimeline → page.tsx for PDF export. */
+  panelName?: string | null;
   /** Wired in Phase UI-7 to start analysis again for the same session. */
   onReanalyse?: () => void;
   /** Navigate to /compare pre-filled with this session as sessionA. */
@@ -146,6 +191,8 @@ function buildDriverBars(report: WarpReport): DriverBar[] {
 export function QualityReportCard({
   report,
   welderDisplayName,
+  panelId,
+  panelName,
   onReanalyse,
   onCompare,
 }: QualityReportCardProps) {
@@ -198,6 +245,14 @@ export function QualityReportCard({
 
   const handleExportPdf = useCallback(async () => {
     if (isPdfLoading) return;
+    // Guard: panelId/panelName should always be present at export time.
+    // If null, it means the prop threading from page.tsx → AnalysisTimeline → here
+    // is broken. Log a warning so the bug is visible in the console.
+    if (!panelId || !panelName) {
+      logWarn("[QualityReportCard]", "PDF export called without panel context — prop threading bug", {
+        sessionId: report.session_id,
+      });
+    }
     setIsPdfLoading(true);
     try {
       const scoreTotal =
@@ -205,7 +260,8 @@ export function QualityReportCard({
         : report.disposition === "CONDITIONAL" ? 55
         : 30;
       const payload = {
-        welder: { name: welderDisplayName ?? "Unknown" },
+        panel: { id: panelId ?? report.session_id, name: panelName ?? "Panel" },
+        welder_attribution: welderDisplayName ?? null,
         score:  { total: scoreTotal },
         feedback: {
           summary: report.root_cause,
@@ -217,7 +273,26 @@ export function QualityReportCard({
         narrative:       report.disposition_rationale.slice(0, 400),
         rework_cost_usd:   report.rework_cost_usd ?? null,
         disposition:       report.disposition,
-        agentInsights:     specialistRows ?? null,
+        agentInsights: (specialistRows ?? []).map((row) => ({
+          agent_name:   row.agent_name,
+          disposition:  row.disposition,
+          root_cause:   row.root_cause,
+          corrective_actions: row.corrective_actions,
+          // Three-part humanised narrative fields (Part 2 & 3) — deterministic
+          // templates keyed by agent name. Null for passing agents.
+          disposition_rationale:
+            row.disposition && row.disposition !== "PASS"
+              ? (RATIONALE_BY_AGENT[row.agent_name] ?? null)
+              : null,
+          consequence:
+            row.disposition && row.disposition !== "PASS"
+              ? (CONSEQUENCE_BY_AGENT[row.agent_name] ?? null)
+              : null,
+          reject_label:
+            row.disposition && row.disposition !== "PASS"
+              ? (REJECT_LABEL_BY_AGENT[row.agent_name] ?? null)
+              : null,
+        })),
         sessionDate:       new Date(report.report_timestamp).toLocaleDateString("en-GB"),
       };
       const res = await fetch("/api/welder-report-pdf", {
@@ -233,7 +308,7 @@ export function QualityReportCard({
       const url  = URL.createObjectURL(blob);
       const a    = document.createElement("a");
       a.href     = url;
-      a.download = `${report.session_id}-report.pdf`;
+      a.download = `${panelId ?? report.session_id}-report.pdf`;
       a.click();
       URL.revokeObjectURL(url);
     } catch (err) {
@@ -241,7 +316,7 @@ export function QualityReportCard({
     } finally {
       setIsPdfLoading(false);
     }
-  }, [isPdfLoading, report, welderDisplayName, specialistRows]);
+  }, [isPdfLoading, report, welderDisplayName, panelId, panelName, specialistRows]);
 
   return (
     <div className="flex flex-col min-h-[400px] h-full bg-[var(--warp-surface)] border border-zinc-900">

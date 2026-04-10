@@ -132,7 +132,9 @@ const styles = StyleSheet.create({
 });
 
 export interface WelderReportPDFProps {
-  welder: { name: string };
+  panelId: string;
+  panelName: string;
+  welderAttribution: string | null;
   score: { total: number };
   feedback: {
     summary: string;
@@ -150,6 +152,9 @@ export interface WelderReportPDFProps {
     disposition?: string;
     root_cause?: string;
     corrective_actions?: string[];
+    disposition_rationale?: string | null;
+    consequence?: string | null;
+    reject_label?: string | null;
   }> | null;
   sessionDate?: string | null;
   duration?: string | null;
@@ -163,7 +168,9 @@ export function toWelderName(v: unknown): string {
 }
 
 export function WelderReportPDF({
-  welder,
+  panelId: _panelId,
+  panelName,
+  welderAttribution,
   score,
   feedback,
   narrative,
@@ -174,7 +181,8 @@ export function WelderReportPDF({
   duration,
   station,
 }: WelderReportPDFProps) {
-  const welderName = sanitizeText(toWelderName(welder?.name ?? "Unknown"));
+  const displayPanelName = sanitizeText(panelName || "Panel");
+  const displayAttribution = welderAttribution ? sanitizeText(welderAttribution) : null;
   const totalScore = Math.round(score?.total ?? 0);
   const cost = rework_cost_usd ?? 0;
   const costColor =
@@ -191,24 +199,29 @@ export function WelderReportPDF({
       ? `Session Report · ${metaParts.join(" · ")}`
       : "Session Report";
 
-  const rootCause = sanitizeText(feedback?.summary ?? "");
-  const rawRationale = narrative ?? "";
-  const rationale = sanitizeText(
-    rawRationale.slice(0, 400) + (rawRationale.length > 400 ? "…" : "")
-  );
-  const corrective = (feedback?.feedback_items ?? []).slice(0, 5);
-
   /**
    * Build insight map keyed by agent_name (PascalCase).
    * AGENT_ORDER matches the canonical values from backend/agent/specialists.py:
    *   for agent_name in ["ThermalAgent", "GeometryAgent", "ProcessStabilityAgent"]
    */
   const AGENT_ORDER = ["ThermalAgent", "GeometryAgent", "ProcessStabilityAgent"];
-  const insightMap: Record<string, { disposition?: string; root_cause?: string }> = {};
+  interface PdfAgentInsight {
+    disposition?: string;
+    root_cause?: string;
+    disposition_rationale?: string | null;
+    consequence?: string | null;
+    reject_label?: string | null;
+    corrective_actions?: string[];
+  }
+  const insightMap: Record<string, PdfAgentInsight> = {};
   for (const row of agentInsights ?? []) {
     insightMap[row.agent_name] = {
-      disposition: row.disposition,
-      root_cause: row.root_cause,
+      disposition:           row.disposition,
+      root_cause:            row.root_cause,
+      disposition_rationale: row.disposition_rationale,
+      consequence:           row.consequence,
+      reject_label:          row.reject_label,
+      corrective_actions:    row.corrective_actions,
     };
   }
 
@@ -220,7 +233,12 @@ export function WelderReportPDF({
           <View style={{ flex: 1 }}>
             <Text style={styles.logo}>WARPSENSE</Text>
             <Text style={styles.tagline}>Quality Intelligence Platform</Text>
-            <Text style={styles.welderName}>{welderName}</Text>
+            <Text style={styles.welderName}>{displayPanelName}</Text>
+            {displayAttribution != null && (
+              <Text style={{ fontSize: 9, color: COLORS.TEXT_SEC, marginBottom: 2 }}>
+                Worked by: {displayAttribution}
+              </Text>
+            )}
             <Text style={styles.metaLine}>{metaLine}</Text>
           </View>
           <View style={{ alignItems: "center" }}>
@@ -244,165 +262,223 @@ export function WelderReportPDF({
           </View>
         </View>
 
-        {/* HERO: REWORK COST */}
-        <View
-          style={{
-            marginTop: 24,
-            paddingVertical: 28,
-            alignItems: "center",
-            backgroundColor: COLORS.PANEL,
-            borderRadius: 6,
-            borderWidth: 2,
-            borderColor: costColor,
-          }}
-        >
-          <Text
-            style={{
-              fontSize: 9,
-              color: COLORS.TEXT_SEC,
-              textTransform: "uppercase",
-              letterSpacing: 2,
-              marginBottom: 10,
-            }}
-          >
-            Estimated Rework Cost
-          </Text>
-          <Text
-            style={{
-              fontSize: 64,
-              fontWeight: "bold",
-              color: costColor,
-              fontFamily: "Helvetica-Bold",
-            }}
-          >
-            {formatCost(cost)}
-          </Text>
-        </View>
-
-        {/* REJECTION SUMMARY */}
-        <View style={styles.panel}>
-          <Text style={styles.sectionTitle}>Rejection Summary</Text>
-          {rootCause !== "" && (
-            <Text
-              style={{
-                fontSize: 12,
-                color: COLORS.TEXT_PRI,
-                fontWeight: "bold",
-                marginBottom: rationale !== "" ? 8 : 0,
-              }}
-            >
-              {rootCause}
+        {/* COMPACT REWORK COST — secondary to the score hero */}
+        {cost > 0 && (
+          <View style={{ marginTop: 8, flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <Text style={{ fontSize: 9, color: COLORS.TEXT_SEC, textTransform: "uppercase", letterSpacing: 1 }}>
+              Est. Rework Cost:
             </Text>
-          )}
-          {rationale !== "" && (
-            <Text style={{ fontSize: 9, color: COLORS.TEXT_SEC, lineHeight: 1.5 }}>
-              {rationale}
+            <Text style={{ fontSize: 11, color: costColor, fontWeight: "bold" }}>
+              {formatCost(cost)}
             </Text>
-          )}
-        </View>
+          </View>
+        )}
 
-        {/* 3 AGENT FINDINGS */}
+        {/* AGENT FINDINGS — stacked narrative blocks (one per agent) */}
         <View style={{ marginTop: 16 }}>
           <Text style={styles.sectionTitle}>Agent Findings</Text>
-          <View style={{ flexDirection: "row" }}>
-            {AGENT_ORDER.map((agentKey, idx) => {
-              const insight = insightMap[agentKey];
-              const agentDisp = insight?.disposition;
-              const rawRoot = insight?.root_cause ?? "";
-              const agentRoot =
-                rawRoot !== ""
-                  ? sanitizeText(
-                      rawRoot.slice(0, 120) + (rawRoot.length > 120 ? "…" : "")
-                    )
-                  : "—";
-              const agentDispColor = dispositionColor(agentDisp);
+          {AGENT_ORDER.map((agentKey) => {
+            const insight = insightMap[agentKey];
+            const agentDisp = insight?.disposition;
+            const isRejected = agentDisp != null && agentDisp !== "PASS";
+
+            if (!isRejected) {
+              // Passing agent — compact single row with green PASS badge
               return (
                 <View
                   key={agentKey}
                   style={{
-                    flex: 1,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    marginBottom: 6,
+                    padding: 6,
                     backgroundColor: COLORS.PANEL,
-                    borderRadius: 6,
+                    borderRadius: 4,
                     borderWidth: 1,
                     borderColor: COLORS.BORDER,
-                    padding: 10,
-                    marginRight: idx < 2 ? 8 : 0,
                   }}
                 >
+                  <View
+                    style={{
+                      paddingHorizontal: 6,
+                      paddingVertical: 2,
+                      borderRadius: 3,
+                      backgroundColor: COLORS.GREEN,
+                      marginRight: 8,
+                    }}
+                  >
+                    <Text style={{ fontSize: 7, color: "#fff", fontWeight: "bold" }}>
+                      PASS
+                    </Text>
+                  </View>
+                  <Text style={{ fontSize: 8, color: COLORS.TEXT_SEC }}>
+                    {agentDisplayLabel(agentKey)}
+                    {agentDisp == null ? " — pending" : ""}
+                  </Text>
+                </View>
+              );
+            }
+
+            // Rejected agent — full three-part narrative block
+            const rejectLabel = sanitizeText(insight?.reject_label ?? "REJECTED");
+            const rootCauseText = sanitizeText(insight?.root_cause ?? "");
+            const rationaleText = sanitizeText(insight?.disposition_rationale ?? "");
+            const consequenceText = sanitizeText(insight?.consequence ?? "");
+            const actions = insight?.corrective_actions ?? [];
+
+            return (
+              <View
+                key={agentKey}
+                style={{
+                  marginBottom: 12,
+                  backgroundColor: COLORS.PANEL,
+                  borderRadius: 6,
+                  borderWidth: 1,
+                  borderColor: COLORS.BORDER,
+                  padding: 12,
+                }}
+              >
+                {/* Header row: reject badge + agent label */}
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    marginBottom: 10,
+                  }}
+                >
+                  <View
+                    style={{
+                      paddingHorizontal: 6,
+                      paddingVertical: 2,
+                      borderRadius: 3,
+                      backgroundColor: COLORS.RED,
+                      marginRight: 8,
+                    }}
+                  >
+                    <Text style={{ fontSize: 7, color: "#fff", fontWeight: "bold" }}>
+                      {rejectLabel}
+                    </Text>
+                  </View>
                   <Text
                     style={{
-                      fontSize: 8,
+                      fontSize: 9,
                       color: COLORS.TEXT_SEC,
                       textTransform: "uppercase",
                       letterSpacing: 1,
-                      marginBottom: 6,
                     }}
                   >
                     {agentDisplayLabel(agentKey)}
                   </Text>
-                  {agentDisp != null && (
-                    <View
+                </View>
+
+                {/* Part 1 — What happened */}
+                {rootCauseText !== "" && (
+                  <View style={{ marginBottom: 8 }}>
+                    <Text
                       style={{
-                        paddingHorizontal: 6,
-                        paddingVertical: 2,
-                        borderRadius: 3,
-                        backgroundColor: agentDispColor,
-                        alignSelf: "flex-start",
-                        marginBottom: 6,
+                        fontSize: 7,
+                        color: COLORS.TEXT_SEC,
+                        textTransform: "uppercase",
+                        letterSpacing: 1,
+                        marginBottom: 3,
                       }}
                     >
-                      <Text
-                        style={{ fontSize: 7, color: "#fff", fontWeight: "bold" }}
-                      >
-                        {dispositionLabel(agentDisp)}
-                      </Text>
-                    </View>
-                  )}
-                  <Text
-                    style={{ fontSize: 8, color: COLORS.TEXT_PRI, lineHeight: 1.4 }}
-                  >
-                    {agentRoot}
-                  </Text>
-                </View>
-              );
-            })}
-          </View>
-        </View>
+                      What happened
+                    </Text>
+                    <Text style={{ fontSize: 9, color: COLORS.TEXT_PRI, lineHeight: 1.5 }}>
+                      {rootCauseText}
+                    </Text>
+                  </View>
+                )}
 
-        {/* CORRECTIVE ACTIONS */}
-        {corrective.length > 0 && (
-          <View style={styles.panel}>
-            <Text style={styles.sectionTitle}>Corrective Actions</Text>
-            {corrective.map((item, i) => (
-              <View
-                key={`ca-${i}`}
-                style={{ flexDirection: "row", marginBottom: 6 }}
-              >
-                <Text
-                  style={{
-                    fontSize: 9,
-                    color: COLORS.ACCENT,
-                    fontWeight: "bold",
-                    minWidth: 18,
-                    marginRight: 6,
-                  }}
-                >
-                  {i + 1}.
-                </Text>
-                <Text
-                  style={{
-                    fontSize: 9,
-                    color: COLORS.TEXT_PRI,
-                    flex: 1,
-                    lineHeight: 1.4,
-                  }}
-                >
-                  {sanitizeText(item.message)}
-                </Text>
+                {/* Part 2 — In the analysis */}
+                {rationaleText !== "" && (
+                  <View style={{ marginBottom: 8 }}>
+                    <Text
+                      style={{
+                        fontSize: 7,
+                        color: COLORS.TEXT_SEC,
+                        textTransform: "uppercase",
+                        letterSpacing: 1,
+                        marginBottom: 3,
+                      }}
+                    >
+                      In the analysis
+                    </Text>
+                    <Text style={{ fontSize: 9, color: COLORS.TEXT_PRI, lineHeight: 1.5 }}>
+                      {rationaleText}
+                    </Text>
+                  </View>
+                )}
+
+                {/* Part 3 — Potential weld risk */}
+                {consequenceText !== "" && (
+                  <View style={{ marginBottom: 8 }}>
+                    <Text
+                      style={{
+                        fontSize: 7,
+                        color: COLORS.TEXT_SEC,
+                        textTransform: "uppercase",
+                        letterSpacing: 1,
+                        marginBottom: 3,
+                      }}
+                    >
+                      Potential weld risk
+                    </Text>
+                    <Text style={{ fontSize: 9, color: COLORS.TEXT_SEC, lineHeight: 1.5 }}>
+                      {consequenceText}
+                    </Text>
+                  </View>
+                )}
+
+                {/* Corrective actions */}
+                {actions.length > 0 && (
+                  <View>
+                    <Text
+                      style={{
+                        fontSize: 7,
+                        color: COLORS.TEXT_SEC,
+                        textTransform: "uppercase",
+                        letterSpacing: 1,
+                        marginBottom: 4,
+                      }}
+                    >
+                      Corrective Actions
+                    </Text>
+                    {actions.map((action, i) => (
+                      <View
+                        key={`action-${agentKey}-${i}`}
+                        style={{ flexDirection: "row", marginBottom: 4 }}
+                      >
+                        <Text
+                          style={{
+                            fontSize: 9,
+                            color: COLORS.ACCENT,
+                            fontWeight: "bold",
+                            minWidth: 16,
+                            marginRight: 4,
+                          }}
+                        >
+                          {i + 1}.
+                        </Text>
+                        <Text
+                          style={{
+                            fontSize: 9,
+                            color: COLORS.TEXT_PRI,
+                            flex: 1,
+                            lineHeight: 1.4,
+                          }}
+                        >
+                          {sanitizeText(action)}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
               </View>
-            ))}
-          </View>
-        )}
+            );
+          })}
+        </View>
 
         {/* FOOTER */}
         <View style={styles.footer}>
