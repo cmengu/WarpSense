@@ -449,8 +449,15 @@ async def rescore_session(
     session_id: str,
     db: OrmSession = Depends(get_db),
 ):
-    """Recompute decomposed score, persist score_total. For backfill after scoring changes."""
-    # TODO: add auth guard before exposing to QA environment
+    """Recompute decomposed score, persist score_total. For backfill after scoring changes.
+
+    Restricted to non-production environments. Set ENV=production to block this endpoint.
+    """
+    if os.environ.get("ENV") == "production":
+        raise HTTPException(
+            status_code=403,
+            detail="Rescore endpoint is disabled in production. Use the backfill script.",
+        )
     session_model = (
         db.query(SessionModel)
         .options(joinedload(SessionModel.frames))
