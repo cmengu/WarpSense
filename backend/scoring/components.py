@@ -143,7 +143,8 @@ def calculate_defect_alert_component(
         )
         by_rule[rule] = by_rule.get(rule, 0) + 1
     has_critical = any(r in CRITICAL for r in by_rule)
-    score_val = 0.0 if has_critical else (1.0 - min(1.0, len(alerts) * 0.1))
+    valid_count = sum(by_rule.values())
+    score_val = 0.0 if has_critical else (1.0 - min(1.0, valid_count * 0.1))
     return ScoreComponent(
         name="defect_alerts",
         passed=not has_critical,
