@@ -19,8 +19,17 @@ REQUIRED_KEYS = (
 )
 
 
+_WEIGHT_KEYS = (
+    "arc_termination_weight",
+    "heat_input_weight",
+    "torch_angle_weight",
+    "defect_alert_weight",
+    "interpass_weight",
+)
+
+
 def load_scoring_config(config_path: str) -> dict:
-    """Load and validate scoring_config.json. Raises ValueError on missing keys."""
+    """Load and validate scoring_config.json. Raises ValueError on missing keys or invalid weights."""
     path = Path(config_path)
     if not path.is_absolute():
         backend = Path(__file__).resolve().parent.parent
@@ -31,4 +40,10 @@ def load_scoring_config(config_path: str) -> dict:
     for key in REQUIRED_KEYS:
         if data.get(key) is None:
             raise ValueError(f"scoring_config key {key!r} is null or missing in {path}")
+    weight_total = sum(data[k] for k in _WEIGHT_KEYS)
+    if abs(weight_total - 1.0) > 1e-6:
+        raise ValueError(
+            f"Component weights must sum to 1.0, got {weight_total:.6f} "
+            f"(keys: {', '.join(_WEIGHT_KEYS)})"
+        )
     return data
