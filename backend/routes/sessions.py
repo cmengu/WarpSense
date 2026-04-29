@@ -632,26 +632,27 @@ async def add_frames(
                     }
                 )
 
-            if last_timestamp is not None:
-                expected_first = last_timestamp + 10
-                if timestamps[0] != expected_first:
-                    errors.append(
-                        {
-                            "index": 0,
-                            "timestamp_ms": timestamps[0],
-                            "error": f"First frame must start at {expected_first}ms",
-                        }
-                    )
+            if not session_row.disable_sensor_continuity_checks:
+                if last_timestamp is not None:
+                    expected_first = last_timestamp + 10
+                    if timestamps[0] != expected_first:
+                        errors.append(
+                            {
+                                "index": 0,
+                                "timestamp_ms": timestamps[0],
+                                "error": f"First frame must start at {expected_first}ms",
+                            }
+                        )
 
-            for i in range(1, len(timestamps)):
-                if timestamps[i] - timestamps[i - 1] != 10:
-                    errors.append(
-                        {
-                            "index": i,
-                            "timestamp_ms": timestamps[i],
-                            "error": "Frames must be continuous at 10ms intervals",
-                        }
-                    )
+                for i in range(1, len(timestamps)):
+                    if timestamps[i] - timestamps[i - 1] != 10:
+                        errors.append(
+                            {
+                                "index": i,
+                                "timestamp_ms": timestamps[i],
+                                "error": "Frames must be continuous at 10ms intervals",
+                            }
+                        )
 
             if errors:
                 session_row.locked_until = None
