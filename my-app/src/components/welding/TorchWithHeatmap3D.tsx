@@ -18,7 +18,6 @@ import { Orbitron, JetBrains_Mono } from 'next/font/google';
 import { Canvas } from '@react-three/fiber';
 import {
   OrbitControls,
-  Environment,
   ContactShadows,
   PerspectiveCamera,
 } from '@react-three/drei';
@@ -172,7 +171,9 @@ function SceneContent({
         far={1}
       />
 
-      <Environment preset="city" />
+      {/* hemisphereLight provides sky/ground ambient gradient for PBR materials
+          without fetching any external HDR file (replaces Environment preset="city"). */}
+      <hemisphereLight args={['#b1e1ff', '#b97a20', 0.6]} />
     </>
   );
 }
