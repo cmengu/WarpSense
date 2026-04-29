@@ -23,6 +23,19 @@ from scoring.models import DecomposedSessionScore, ScoreComponent
 ALERT_CONFIG_PATH = "config/alert_thresholds.json"
 
 
+def _ns_asymmetry_from_frame(frame) -> float:
+    """North minus south temp_celsius at first thermal snapshot. Returns 0.0 if no thermal data."""
+    snapshots = getattr(frame, "thermal_snapshots", None) or []
+    if not snapshots:
+        return 0.0
+    readings = snapshots[0].readings
+    north = next((r.temp_celsius for r in readings if r.direction == "north"), None)
+    south = next((r.temp_celsius for r in readings if r.direction == "south"), None)
+    if north is None or south is None:
+        return 0.0
+    return float(north) - float(south)
+
+
 def _build_alerts_from_frames(
     frames: list,
     config_path: str = ALERT_CONFIG_PATH,
@@ -36,7 +49,7 @@ def _build_alerts_from_frames(
             timestamp_ms=getattr(f, "timestamp_ms", None),
             travel_angle_degrees=getattr(f, "travel_angle_degrees", None),
             travel_speed_mm_per_min=getattr(f, "travel_speed_mm_per_min", None),
-            ns_asymmetry=0.0,
+            ns_asymmetry=_ns_asymmetry_from_frame(f),
             volts=getattr(f, "volts", None),
             amps=getattr(f, "amps", None),
         )
