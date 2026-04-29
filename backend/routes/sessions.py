@@ -426,8 +426,6 @@ async def get_session_score(
         # In production: surface the failure explicitly so callers can detect degraded state.
         result["session_score"] = None
         result["session_score_error"] = True
-    # TODO Session 4: remove legacy total/rules, use session_score only.
-    # TODO Before Session 4: add mock WPS config (0.4–1.0) for test sessions or explicit annotation when expert mock (0.5–0.9) flags below WPS (0.9 floor); QA will otherwise see every expert failing heat_input.
     process_type = getattr(session_model, "process_type", None) or "mig"
     thresholds = get_thresholds(db, process_type)
     result["active_threshold_spec"] = {
