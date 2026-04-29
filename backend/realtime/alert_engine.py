@@ -177,7 +177,7 @@ class AlertEngine:
                         rule_triggered="rule3",
                         severity="critical",
                         message=f"Speed {frame.travel_speed_mm_per_min:.0f} mm/min — {drop:.1f}% drop (critical)",
-                        correction="Speed critical — increase to 420mm/min",
+                        correction=f"Speed dropped {drop:.1f}% — restore travel speed immediately",
                         timestamp_ms=now_ms,
                     )))
                     self._suppress_rule3_until = now_ms + self._suppression_ms
@@ -201,7 +201,7 @@ class AlertEngine:
                         rule_triggered="porosity",
                         severity="critical",
                         message="Porosity risk: drag angle and low speed",
-                        correction="Increase travel angle to push and speed to 250+ mm/min",
+                        correction=f"Increase travel angle to push and speed to {int(self._cfg['porosity_speed_max_mm_per_min'])}+ mm/min",
                         timestamp_ms=now_ms,
                     )))
                     self._suppress_porosity_until = now_ms + self._suppression_ms
