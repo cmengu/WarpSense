@@ -414,12 +414,18 @@ async def get_session_score(
         alerts = _build_alerts_from_frames(list(session.frames))
         decomposed = score_session_decomposed(list(session.frames), alerts, session_id)
         result["session_score"] = decomposed.model_dump()
+        result["session_score_error"] = False
     except Exception:
-        logger.exception("Decomposed score failed")
-        # Only suppress and return null in production; re-raise in dev/staging so failures are visible
+        logger.error(
+            "Decomposed score failed for session_id=%s — returning null session_score",
+            session_id,
+            exc_info=True,
+        )
         if os.environ.get("ENV") != "production":
             raise
+        # In production: surface the failure explicitly so callers can detect degraded state.
         result["session_score"] = None
+        result["session_score_error"] = True
     # TODO Session 4: remove legacy total/rules, use session_score only.
     # TODO Before Session 4: add mock WPS config (0.4–1.0) for test sessions or explicit annotation when expert mock (0.5–0.9) flags below WPS (0.9 floor); QA will otherwise see every expert failing heat_input.
     process_type = getattr(session_model, "process_type", None) or "mig"
