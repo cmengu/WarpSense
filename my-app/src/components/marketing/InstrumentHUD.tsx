@@ -31,8 +31,9 @@ export function InstrumentHUD() {
           if (e.isIntersecting) setActiveId(e.target.id);
         }
       },
-      // Active = whichever section is crossing the vertical centre band.
-      { rootMargin: '-45% 0px -45% 0px', threshold: 0 }
+      // Collapse the root to the viewport's vertical centre line, so exactly
+      // one (contiguous) section crosses it at a time — no ambiguous band.
+      { rootMargin: '-50% 0px -50% 0px', threshold: 0 }
     );
     els.forEach((el) => obs.observe(el));
     return () => obs.disconnect();

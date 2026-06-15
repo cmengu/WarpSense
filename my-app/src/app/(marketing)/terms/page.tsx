@@ -4,8 +4,8 @@
 import Link from 'next/link';
 
 export const metadata = {
-  title: 'Terms of Service — WeldVision',
-  description: 'WeldVision terms of service. Coming soon.',
+  title: 'Terms of Service — WarpSense',
+  description: 'WarpSense terms of service. Coming soon.',
 };
 
 export default function TermsPage() {

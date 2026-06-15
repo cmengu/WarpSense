@@ -24,7 +24,9 @@ export function HeatSpine() {
     damping: 22,
     mass: 0.4,
   });
-  const pathLength = reduce ? scrollYProgress : smooth;
+  // Reduced motion: render the trace fully drawn and static (no scroll-linked
+  // draw). Otherwise draw it in lockstep with scroll via the spring.
+  const pathLength = reduce ? 1 : smooth;
 
   return (
     <div
@@ -56,7 +58,7 @@ export function HeatSpine() {
           strokeLinejoin="round"
           vectorEffect="non-scaling-stroke"
           opacity={0.85}
-          initial={{ pathLength: 0 }}
+          initial={reduce ? false : { pathLength: 0 }}
           style={{ pathLength }}
         />
       </svg>
