@@ -1,11 +1,13 @@
 /**
- * Landing page — smoke test for investor presentation page.
+ * Landing page — smoke test for the WarpSense "Instrument" (V1) landing.
  *
- * Verifies key sections: Hero, Stats, Technology, Demo, Social Proof (generic
- * placeholders), CTA.
+ * Verifies the key sections render with their real, verbatim content and that
+ * the live-demo / contact CTAs point to the right targets. Content lives in
+ * lib/warpsense-content; sections use framer-motion <Reveal> (whileInView).
+ * IntersectionObserver is mocked in jest.setup.js, so revealed content is
+ * present in the DOM at initial opacity.
  *
  * Import from (marketing)/page; test file stays at landing/ for path simplicity.
- * Landing page uses CSS animations + useInView/useScrollParallax (no framer-motion).
  */
 
 import React from 'react';
@@ -13,98 +15,108 @@ import { render, screen } from '@testing-library/react';
 import LandingPage from '@/app/(marketing)/page';
 
 describe('LandingPage', () => {
-  it('renders hero heading with gradient text', () => {
+  it('renders the hero headline', () => {
     render(<LandingPage />);
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
-      /The Future of/i
+      /Weld defects caught before the\s*inspector\s*arrives/i
     );
-    expect(screen.getByText(/Industrial Training/)).toBeInTheDocument();
   });
 
-  it('renders hero subtext', () => {
+  it('renders the hero subtext', () => {
     render(<LandingPage />);
     expect(
-      screen.getByText(/Real-time thermal analytics and AI-powered feedback/i)
+      screen.getByText(/clip-on sensor system that monitors five structural parameters/i)
     ).toBeInTheDocument();
   });
 
-  it('renders stats section (87%, $2.4M, 94%)', () => {
+  it('renders the problem section', () => {
     render(<LandingPage />);
-    expect(screen.getByText('87%')).toBeInTheDocument();
-    expect(screen.getByText('$2.4M')).toBeInTheDocument();
-    expect(screen.getAllByText('94%').length).toBeGreaterThanOrEqual(1);
+    expect(
+      screen.getByText(/Quality control runs on eyes, after the metal has cooled/i)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/The expert workforce is disappearing/i)
+    ).toBeInTheDocument();
   });
 
-  it('renders technology section heading', () => {
+  it('renders the four how-it-works steps', () => {
     render(<LandingPage />);
-    expect(screen.getByText(/Precision meets simplicity/i)).toBeInTheDocument();
+    expect(screen.getByText(/^Clip on$/i)).toBeInTheDocument();
+    expect(screen.getByText(/Measure in real time/i)).toBeInTheDocument();
+    expect(screen.getByText(/Instant verdict/i)).toBeInTheDocument();
+    expect(screen.getByText(/See what X-ray misses/i)).toBeInTheDocument();
   });
 
-  it('renders four feature cards', () => {
+  it('renders the market tiers (TAM / SAM / SOM)', () => {
     render(<LandingPage />);
-    expect(screen.getByText(/Real-time Analysis/i)).toBeInTheDocument();
-    expect(screen.getByText(/AI-Powered Insights/i)).toBeInTheDocument();
-    expect(screen.getByText(/Enterprise Security/i)).toBeInTheDocument();
-    expect(screen.getByText(/Plug & Play Hardware/i)).toBeInTheDocument();
+    expect(screen.getByText('TAM')).toBeInTheDocument();
+    expect(screen.getByText('SAM')).toBeInTheDocument();
+    expect(screen.getByText('SOM')).toBeInTheDocument();
+    expect(screen.getByText(/\$4\.7/)).toBeInTheDocument();
   });
 
-  it('renders demo section with See it in action', () => {
+  it('renders the competitive-advantage (moat) section', () => {
     render(<LandingPage />);
-    expect(screen.getByText(/See it in action/i)).toBeInTheDocument();
-    expect(screen.getByText(/Interactive Demo/i)).toBeInTheDocument();
+    expect(screen.getByText(/Why No One Has Built This/i)).toBeInTheDocument();
+    expect(screen.getByText(/Hardware-agnostic by design/i)).toBeInTheDocument();
+    expect(screen.getByText(/Camera systems are blind/i)).toBeInTheDocument();
   });
 
-  it('renders Try Full Demo link to /dashboard', () => {
+  it('renders real validation quotes with named attribution', () => {
     render(<LandingPage />);
-    const link = screen.getByRole('link', { name: /Try Full Demo/i });
+    expect(
+      screen.getByText(/ten years for a welder to develop the judgment/i)
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Mr Tuck Wai/)).toBeInTheDocument();
+  });
+
+  it('renders the founding team', () => {
+    render(<LandingPage />);
+    expect(screen.getByText(/Ng Chen Meng/)).toBeInTheDocument();
+    expect(screen.getByText(/Yuan Yi Ning/)).toBeInTheDocument();
+  });
+
+  it('links the hero live-demo CTA to /dashboard', () => {
+    render(<LandingPage />);
+    const link = screen.getByRole('link', { name: /See the live demo/i });
     expect(link).toHaveAttribute('href', '/dashboard');
   });
 
-  it('renders social proof with generic placeholders', () => {
+  it('links the demo section CTA(s) to /dashboard', () => {
     render(<LandingPage />);
-    expect(screen.getByText(/Trusted by industry leaders/i)).toBeInTheDocument();
-    expect(screen.getByText(/Major US Shipyards/)).toBeInTheDocument();
-    expect(screen.getByText(/Defense Contractors/)).toBeInTheDocument();
-    expect(screen.getByText(/Fortune 500 Manufacturing/)).toBeInTheDocument();
-    expect(screen.getByText(/Heavy Industry Leaders/)).toBeInTheDocument();
+    const links = screen.getAllByRole('link', { name: /Open the live dashboard/i });
+    expect(links.length).toBeGreaterThanOrEqual(1);
+    links.forEach((l) => expect(l).toHaveAttribute('href', '/dashboard'));
   });
 
-  it('renders CTA section with Schedule Demo and Download Deck', () => {
+  it('renders the honest proof strip', () => {
     render(<LandingPage />);
     expect(
-      screen.getByText(/Ready to transform your training?/i)
+      screen.getByText('Active production shipyards')
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('link', { name: /Schedule a Demo/i })
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: /Download Deck/i })
+      screen.getByText('Structural parameters measured')
     ).toBeInTheDocument();
   });
 
-  it('links See Live Demo to /dashboard', () => {
+  it('renders the contact section with a Schedule a demo CTA', () => {
     render(<LandingPage />);
-    const link = screen.getByRole('link', { name: /See Live Demo/i });
-    expect(link).toHaveAttribute('href', '/dashboard');
+    expect(screen.getByText(/Talk to us/i)).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: /Schedule a demo/i })
+    ).toBeInTheDocument();
   });
 
-  it('links Request Demo to /dashboard (fallback when env unset)', () => {
-    render(<LandingPage />);
-    const links = screen.getAllByRole('link', { name: /Request Demo/i });
-    expect(links.length).toBeGreaterThan(0);
-    expect(links[0]).toHaveAttribute('href', '/dashboard');
-  });
-
-  it('renders footer with WarpSense', () => {
+  it('renders a footer with WarpSense and legal links', () => {
     render(<LandingPage />);
     expect(screen.getAllByText(/WarpSense/).length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText(/All rights reserved/)).toBeInTheDocument();
-  });
-
-  it('renders WarpSense branding in nav linking to /', () => {
-    render(<LandingPage />);
-    const navLinks = screen.getAllByText('WarpSense');
-    const homeLink = navLinks.find((el) => el.closest('a')?.getAttribute('href') === '/');
-    expect(homeLink || navLinks[0]).toBeTruthy();
+    expect(screen.getByRole('link', { name: /^Privacy$/i })).toHaveAttribute(
+      'href',
+      '/privacy'
+    );
+    expect(screen.getByRole('link', { name: /^Terms$/i })).toHaveAttribute(
+      'href',
+      '/terms'
+    );
   });
 });

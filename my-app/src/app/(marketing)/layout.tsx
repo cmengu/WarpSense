@@ -1,19 +1,26 @@
 /**
  * Marketing layout — no AppNav.
- * Used for landing page at / and future marketing routes (about, contact).
+ * Serves the WarpSense investor/customer landing at / and other marketing routes.
  */
 
 import type { Metadata } from 'next';
 
+const DESCRIPTION =
+  'WarpSense is a clip-on sensor system that monitors five structural parameters in real time during the weld — delivering a pass-or-flag verdict the moment the joint is finished, before any inspector walks over.';
+
 export const metadata: Metadata = {
-  title: 'WeldVision — The Future of Industrial Training',
-  description:
-    'Real-time thermal analytics and AI-powered feedback transforming skilled labor training in heavy industry. 87% training reduction, $2.4M savings per facility.',
+  title: 'WarpSense — AI-Powered Weld Intelligence',
+  description: DESCRIPTION,
   openGraph: {
-    title: 'WeldVision — The Future of Industrial Training',
-    description:
-      'Real-time thermal analytics and AI-powered feedback transforming skilled labor training in heavy industry.',
+    title: 'WarpSense — AI-Powered Weld Intelligence',
+    description: DESCRIPTION,
     type: 'website',
+    siteName: 'WarpSense',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'WarpSense — AI-Powered Weld Intelligence',
+    description: DESCRIPTION,
   },
 };
 
