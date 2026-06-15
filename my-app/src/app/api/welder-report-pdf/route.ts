@@ -1,18 +1,16 @@
 /**
  * POST /api/welder-report-pdf
  *
- * Accepts welder, score, feedback, optional chartDataUrl.
- * Returns application/pdf with Content-Disposition attachment.
- * Body limit 5MB; chartDataUrl limit 2MB; only data:image/png accepted.
+ * Accepts welder, score, feedback, and optional narrative + top-bar meta.
+ * Returns application/pdf with Content-Disposition attachment. Body limit 5MB.
  */
 
 import { NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import React from "react";
-import { logError, logWarn } from "@/lib/logger";
+import { logError } from "@/lib/logger";
 import { WelderReportPDF } from "@/components/pdf/WelderReportPDF";
 import type { SessionScore } from "@/lib/api";
-import type { ReportSummary } from "@/types/report-summary";
 
 /** WelderReportPDF returns <Document>; renderToBuffer expects Document root. Type assertion for TS. */
 const toPdfDoc = (el: React.ReactElement) =>
@@ -25,18 +23,10 @@ interface PDFRequestBody {
   welder?: { name?: unknown };
   score?: SessionScore | { total: number; rules?: unknown[] };
   feedback?: { summary?: string; feedback_items?: unknown[] };
+  /** Accepted for backward compatibility; the revamped PDF no longer renders a chart. */
   chartDataUrl?: unknown;
   /** Optional AI Coach narrative; max 2000 chars. PDF renders without if absent. */
   narrative?: string | null;
-  /** Optional report summary; PDF renders compliance section if present. Omit and log warning if absent. */
-  reportSummary?: unknown;
-  /** Optional certification readiness; PDF renders table section if present. */
-  certifications?: Array<{
-    name: string;
-    status: string;
-    qualifying_sessions: number;
-    sessions_required: number;
-  }> | null;
   /** Optional session date for top-bar meta (e.g. "2/27/2026"). */
   sessionDate?: string | null;
   /** Optional duration string (e.g. "4 min 12 sec") for top-bar meta. */
@@ -46,7 +36,6 @@ interface PDFRequestBody {
 }
 
 const MAX_FILENAME_LENGTH = 64;
-const MAX_CHART_DATA_URL_LENGTH = 2 * 1024 * 1024; // 2MB
 const MAX_BODY_SIZE_BYTES = 5 * 1024 * 1024; // 5MB total
 
 function sanitizeFilename(name: string): string {
@@ -165,22 +154,6 @@ export async function POST(request: Request) {
     );
   }
 
-  let chartDataUrl: string | null = null;
-  if (body.chartDataUrl != null && typeof body.chartDataUrl === "string") {
-    if (!body.chartDataUrl.startsWith("data:image/png")) {
-      chartDataUrl = null;
-    } else if (body.chartDataUrl.length > MAX_CHART_DATA_URL_LENGTH) {
-      return NextResponse.json(
-        {
-          error: `chartDataUrl exceeds max length (${MAX_CHART_DATA_URL_LENGTH} bytes)`,
-        },
-        { status: 400 }
-      );
-    } else {
-      chartDataUrl = body.chartDataUrl;
-    }
-  }
-
   /** Optional AI Coach narrative; validated max 2000 chars. Omit if invalid. */
   let narrative: string | null = null;
   if (
@@ -194,64 +167,6 @@ export async function POST(request: Request) {
       { error: "narrative exceeds max length (2000 chars)" },
       { status: 400 }
     );
-  }
-
-  /** Optional reportSummary; validate and pass to PDF. Log warning if absent. */
-  let reportSummary: ReportSummary | null = null;
-  if (body.reportSummary != null) {
-    const rs = body.reportSummary as Record<string, unknown>;
-    if (
-      rs &&
-      typeof rs === "object" &&
-      typeof rs.session_id === "string" &&
-      Array.isArray(rs.excursions)
-    ) {
-      reportSummary = body.reportSummary as ReportSummary;
-    }
-  } else {
-    logWarn(
-      "welder-report-pdf",
-      "reportSummary absent in PDF request — fetch may have failed"
-    );
-  }
-
-  /** Optional certifications; validate structure if provided. */
-  let certifications: PDFRequestBody["certifications"] = null;
-  if (body.certifications != null) {
-    if (!Array.isArray(body.certifications)) {
-      return NextResponse.json(
-        { error: "certifications must be an array" },
-        { status: 400 }
-      );
-    }
-    const valid: Array<{
-      name: string;
-      status: string;
-      qualifying_sessions: number;
-      sessions_required: number;
-    }> = [];
-    for (const c of body.certifications) {
-      if (
-        c &&
-        typeof c === "object" &&
-        typeof (c as { name?: unknown }).name === "string" &&
-        typeof (c as { status?: unknown }).status === "string" &&
-        typeof (c as { qualifying_sessions?: unknown }).qualifying_sessions ===
-          "number" &&
-        typeof (c as { sessions_required?: unknown }).sessions_required ===
-          "number"
-      ) {
-        valid.push({
-          name: (c as { name: string }).name,
-          status: (c as { status: string }).status,
-          qualifying_sessions: (c as { qualifying_sessions: number })
-            .qualifying_sessions,
-          sessions_required: (c as { sessions_required: number })
-            .sessions_required,
-        });
-      }
-    }
-    certifications = valid.length > 0 ? valid : null;
   }
 
   const welder = { name: welderName };
@@ -280,10 +195,7 @@ export async function POST(request: Request) {
       welder,
       score,
       feedback,
-      chartDataUrl,
       narrative,
-      certifications,
-      reportSummary: reportSummary ?? undefined,
       sessionDate: sessionDate ?? undefined,
       duration: duration ?? undefined,
       station: station ?? undefined,
