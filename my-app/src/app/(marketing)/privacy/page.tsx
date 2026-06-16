@@ -4,8 +4,8 @@
 import Link from 'next/link';
 
 export const metadata = {
-  title: 'Privacy Policy — WeldVision',
-  description: 'WeldVision privacy policy. Coming soon.',
+  title: 'Privacy Policy — WarpSense',
+  description: 'WarpSense privacy policy. Coming soon.',
 };
 
 export default function PrivacyPage() {

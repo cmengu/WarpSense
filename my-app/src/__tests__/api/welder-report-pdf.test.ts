@@ -63,8 +63,10 @@ describe("POST /api/welder-report-pdf", () => {
     expect(json.error).toMatch(/score\.total|number/i);
   });
 
-  it("returns 400 when chartDataUrl exceeds max length", async () => {
-    const big = "A".repeat(2 * 1024 * 1024 + 1);
+  it("returns 413 when the request body exceeds the 5MB limit", async () => {
+    // The revamped PDF no longer renders a chart, so chartDataUrl is accepted
+    // and ignored — but the 5MB total-body guard still applies.
+    const big = "A".repeat(5 * 1024 * 1024 + 1);
     const req = new Request("http://localhost/api/welder-report-pdf", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -74,9 +76,9 @@ describe("POST /api/welder-report-pdf", () => {
       }),
     });
     const res = await POST(req);
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(413);
     const json = await res.json();
-    expect(json.error).toMatch(/chartDataUrl|exceeds/i);
+    expect(json.error).toMatch(/exceeds max size/i);
   });
 
   it("accepts welder.name as object and coerces to Unknown", async () => {

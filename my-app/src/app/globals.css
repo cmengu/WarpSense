@@ -159,3 +159,22 @@ body {
     transform: translateY(0);
   }
 }
+
+/* ============================================================
+   WarpSense Marketing — "Instrument" (V1) design system tokens.
+   Namespaced --ws-* to avoid collision with --color-* / --warp-*.
+   Consumed via arbitrary Tailwind values, e.g. bg-[var(--ws-ink)].
+   ============================================================ */
+:root {
+  --ws-ink:      #0A0A0B;  /* base canvas */
+  --ws-panel:    #16181D;  /* raised panel */
+  --ws-panel-2:  #1C1F26;  /* secondary panel */
+  --ws-amber:    #E85D26;  /* singular accent — flat, sparing */
+  --ws-amber-hi: #FF6A32;  /* accent hover */
+  --ws-fg:       #ECEAE6;  /* primary text (warm off-white, never pure white) */
+  --ws-fg-2:     #9A9A94;  /* secondary text */
+  --ws-fg-3:     #5A5C60;  /* tertiary / chrome text */
+  --ws-line:     #23252B;  /* hairline divider */
+  --ws-line-2:   #2E3138;  /* stronger hairline */
+}
+
