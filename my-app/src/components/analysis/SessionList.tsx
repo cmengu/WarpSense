@@ -95,11 +95,7 @@ export function SessionList({
           type="button"
           onClick={onAnalyseAll}
           disabled={isAnalysing || unanalysedCount === 0 || !onAnalyseAll}
-          className="font-mono text-[9px] uppercase tracking-widest px-2 py-0.5
-            border border-zinc-800 text-[var(--warp-text-muted)]
-            hover:border-amber-400 hover:text-[var(--warp-amber)]
-            disabled:opacity-30 disabled:cursor-not-allowed
-            transition-colors duration-100"
+          className="font-mono text-[9px] uppercase tracking-widest px-2 py-0.5 border border-zinc-800 text-[var(--warp-text-muted)] hover:border-amber-400 hover:text-[var(--warp-amber)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors duration-100"
         >
           {isAnalysing ? "Running…" : `Analyse All (${unanalysedCount})`}
         </button>
@@ -161,9 +157,7 @@ export function SessionList({
           <button
             type="button"
             onClick={() => setVisibleCount((n) => n + PAGE_SIZE)}
-            className="w-full px-3 py-2 font-mono text-[9px] uppercase tracking-widest
-              text-[var(--warp-text-muted)] hover:text-[var(--warp-amber)]
-              border-t border-zinc-900 transition-colors duration-100"
+            className="w-full px-3 py-2 font-mono text-[9px] uppercase tracking-widest text-[var(--warp-text-muted)] hover:text-[var(--warp-amber)] border-t border-zinc-900 transition-colors duration-100"
           >
             Load more ({sessions.length - visibleCount} remaining)
           </button>
