@@ -76,3 +76,6 @@ coverage/
 
 # Vercel
 .vercel
+
+# Public datasets (downloaded, not committed)
+data/public/

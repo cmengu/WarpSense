@@ -5,7 +5,8 @@
 > from the ESP32 sensor stream — moment by moment, with calibrated uncertainty.
 >
 > **Status: PLANNING — blocked on Gate 0 (real data collection).**
-> Last critical review: 2026-06-11.
+> Last critical review: 2026-06-11. Architecture correction 2026-07-04
+> (controlled ODE — see §1 table and §6); ordered build plan now lives in `STEPS.md`.
 >
 > **Companion document:** `WORLD_MODEL_IMPLEMENTATION_REFERENCE.md` holds the complete
 > implementation reference (per-paper code snippets, architecture, file map, training
@@ -26,6 +27,7 @@ in this document by reordering the plan around hard go/no-go gates.
 | SERIOUS | The physics loss as drafted was decorative: penalising one latent dim for violating heat balance does not force the network to *use* that dim for thermal state — gradient descent routes real thermal info through the unconstrained dims and the constraint goes to zero without constraining anything. | Structured latent: `z = [z_phys(4) ‖ z_free(28)]`. The heat-dissipation channel is decoded **exclusively** from `z_phys` (architecturally separate head). Physics residual applies to `z_phys`. Thermal information is forced through the constrained block. |
 | SERIOUS | Fusion-depth validation gate was circular: model trained on Goldak output, validated against Goldak output. Passing proves the model inverts its own training data — nothing about real welds. | Gate 5: no millimetre figure is shown in any UI until validated against ≥10 physically sectioned coupons. Until then, qualitative risk bands only. |
 | SERIOUS | No boring baseline. A plain supervised GRU/1D-CNN on raw frames (3 days of work) might match the entire Latent-ODE/VQ-VAE apparatus. | Gate 3: world model must beat the GRU baseline on held-out synthetic data, or we ship the GRU and defer the world model. |
+| SERIOUS *(found 2026-07-04)* | The Neural ODE was drafted **autonomous**: `dz/dt = f_θ(z,t)`. Weld dynamics are *driven* by the welder's control inputs (V, I, angles, travel speed); an autonomous ODE forces `z₀` to memorise the entire future input sequence, and counterfactuals ("correct the angle at second 7") are architecturally impossible — you cannot intervene on an input the dynamics function never receives. | **Controlled ODE:** `dz/dt = f_θ(z, u(t), t)` where `u(t)` is the piecewise-linear interpolation of the 5 control channels. `u(t)` is exactly what the Gate 3 counterfactual explorer edits. Corrected in §6 below and in `STEPS.md` Step 7 (the working plan). |
 | MINOR | KL balancing (DreamerV3 trick) requires a *learned* prior; the Latent ODE uses fixed N(0,I) — nothing to balance. | Dropped. Keep symlog, free nats, percentile norm. |
 | MINOR | Dual-encoder incoherence: ODE-RNN (offline) and VQ-VAE tokenizer (streaming) produce incompatible latent spaces but were drawn feeding the same dynamics model. | MVP is post-session only (ODE-RNN). Streaming tokenizer is Phase 2, distilled from the trained world model (teacher–student), not co-trained. |
 | MINOR | `dopri5` through a 1,500-frame encode threatens the 500ms p95 latency gate. | Fixed-step `rk4` at inference; adaptive solver for training only. |
@@ -150,7 +152,11 @@ ODE-RNN Encoder (Rubanova 2019)
         │
   z_0 ~ N(μ₀, σ₀) ∈ R³²,  structured: z = [z_phys(4) ‖ z_free(28)]
         │
-Neural ODE dynamics  dz/dt = f_θ(z,t)   (Chen 2018, MLP 32→64→64→32 tanh)
+Controlled Neural ODE  dz/dt = f_θ(z, u(t), t)   (Chen 2018, MLP 32+5→64→64→32 tanh)
+  u(t) = interp(control channels: volts, amps, both angles, travel_speed)
+  ← [CORRECTED 2026-07-04] was autonomous f_θ(z,t) — see §1 table; u(t) is what
+    counterfactuals edit. Train with odeint_adjoint (constant memory over 1,500
+    steps); inference with fixed-step rk4.
   + physics residual on z_phys: dT/dt = Q/(ρ·cp·V) − k(T − T_amb)   (Raissi 2019)
         │
   z_t for all t ∈ [0, T]

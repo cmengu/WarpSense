@@ -7,7 +7,11 @@ FROM python:3.11-slim-bookworm
 WORKDIR /app
 
 COPY backend/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# build-essential provides gcc/g++ for source-only deps (pysqlite3, chroma-hnswlib)
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends build-essential \
+    && rm -rf /var/lib/apt/lists/* \
+    && pip install --no-cache-dir -r requirements.txt
 
 COPY backend/ .
 

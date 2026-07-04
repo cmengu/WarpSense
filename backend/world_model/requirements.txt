@@ -1,0 +1,7 @@
+# World-model dependencies (STEPS.md) — kept OUT of backend/requirements.txt
+# (the production freeze) until the world model integrates post-Gate 6.
+# Install into backend/venv:  pip install -r world_model/requirements.txt
+matplotlib>=3.8
+torch>=2.2          # CPU/MPS only locally (D8); full runs on Kaggle/Colab
+torchdiffeq>=0.2.4  # Neural ODE solvers (Chen 2018) — odeint / odeint_adjoint
+scikit-learn>=1.4   # Gate 1.5 oracle (HistGradientBoostingRegressor, GroupKFold)

@@ -118,24 +118,34 @@ entire take.
 
 **What it gives you:** the `torchdiffeq` library. The weld is a continuous physical
 process — there is no discrete "next frame"; the metal evolves between 10ms samples
-according to the heat equation. Neural ODEs model `dz/dt = f_θ(z, t)` directly.
+according to the heat equation. We model a **controlled** ODE,
+`dz/dt = f_θ(z, u(t), t)`, where `u(t)` is the interpolated control-channel input.
 
 **What you implement:**
 
 ```python
 # backend/world_model/architecture/odefunc.py
-from torchdiffeq import odeint            # the entire dependency from this paper
+from torchdiffeq import odeint, odeint_adjoint   # the entire dependency from this paper
 
 class WeldODEFunc(nn.Module):
-    # f_θ(z, t) — learned dynamics
-    # Architecture: MLP 32 → 64 → 64 → 32, tanh activations
-    # Training:  odeint(odefunc, z0, t_span, method='dopri5')   # adaptive RK, stiff-safe
-    # Inference: odeint(odefunc, z0, t_span, method='rk4')      # [CORRECTED] fixed-step
+    # f_θ(z, u(t), t) — learned dynamics DRIVEN by the control channels [CORRECTED]
+    # u(t) = piecewise-linear interp of controls[T,5] (V, I, both angles, travel speed)
+    # Architecture: MLP 32+5 → 64 → 64 → 32, tanh activations
+    # Training:  odeint_adjoint(odefunc, z0, t_span, method='dopri5')  # [CORRECTED] adjoint —
+    #            plain backprop through ~1,500 steps stores every intermediate state
+    # Inference: odeint(odefunc, z0, t_span, method='rk4')             # [CORRECTED] fixed-step
 ```
 
-**[CORRECTED]:** `dopri5` adaptive stepping through stiff thermal-spike dynamics can
-blow up function-evaluation counts and threatens the 500ms p95 latency gate. Use
-`dopri5` for training accuracy, fixed-step `rk4` at inference.
+**[CORRECTED — controlled, not autonomous]:** earlier drafts wrote `f_θ(z, t)`. Weld
+dynamics are driven by the welder's actions; an autonomous ODE would force `z₀` to
+memorise the entire future input sequence, and counterfactual intervention ("correct
+the angle at second 7") would be architecturally impossible — the dynamics never see
+the input being edited. `u(t)` is exactly what the counterfactual explorer modifies.
+
+**[CORRECTED — solver/memory]:** `dopri5` adaptive stepping through stiff
+thermal-spike dynamics can blow up function-evaluation counts and threatens the 500ms
+p95 latency gate — use fixed-step `rk4` at inference. For training, use
+`odeint_adjoint` (constant memory) rather than backprop through the solver.
 
 Install: `pip install torchdiffeq`.
 
@@ -356,10 +366,10 @@ Post-session analysis only. Streaming is Phase 2 (distilled tokenizer).
             structured: z = [z_phys(4) ‖ z_free(28)]      [CORRECTED]
                          │
               ┌──────────▼──────────┐
-              │  Neural ODE         │   (Chen 2018)
-              │  dz/dt = f_θ(z,t)   │
-              │  MLP 32→64→64→32    │
-              │  dopri5 train /     │
+              │  Controlled ODE     │   (Chen 2018)
+              │ dz/dt=f_θ(z,u(t),t) │   [CORRECTED] u(t) = interp of the 5
+              │  MLP 32+5→64→64→32  │   control channels — what counterfactuals edit
+              │  adjoint train /    │   [CORRECTED]
               │  rk4 inference      │   [CORRECTED]
               │                     │
               │  + physics residual │   (Raissi 2019)
