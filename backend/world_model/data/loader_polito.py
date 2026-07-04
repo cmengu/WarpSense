@@ -1,7 +1,7 @@
 """
-SmartData@Polito RSW loader (STEPS.md Step 1, D5) — real electrical dynamics
-for encoder pre-training (Gate 0.5). Spot welding, not our process: warm start
-only, modest expectations.
+loader_polito.py loads SmartData@Polito spot-welding CSVs into SessionTensor with volts/amps present and the other four channels masked for encoder warm-start (STEPS.md D5).
+
+Spot welding, not our process: warm start only, modest expectations.
 
 Format facts (verified against the CSVs on disk):
 - voltage.csv / current.csv / force.csv: one weld per row; first 3 columns are
@@ -18,6 +18,16 @@ Format facts (verified against the CSVs on disk):
 Channel mapping: Voltage → volts (ch 0), Current → amps (ch 1). Force has no
 slot in the 6-channel contract; it rides in meta["force"] for an optional
 pretrain-only extra stem. The other 4 channels are mask=False for every frame.
+
+For newcomers: this is the only REAL data in the repo today — 1,976 industrial
+spot welds from Politecnico di Torino. It's a different welding process and
+carries only 2 of our 6 channels, so it can't train the final model; its job
+is pre-training (Step 6): let the network learn what real electrical arc
+dynamics look like, then reuse those weights as a warm start. This is exactly
+why stems.py keys one encoder per channel NAME — a Polito session activates
+only the "volts" and "amps" stems, and precisely those weights transfer.
+The mask mechanism (schema.py) is what lets a 2-channel session flow through
+the same code as a 6-channel one.
 """
 
 from pathlib import Path

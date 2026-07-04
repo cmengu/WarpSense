@@ -1,5 +1,5 @@
 """
-Session-level splits (STEPS.md Step 1, D9).
+splits.py assigns sessions deterministically to train/val/test/ood by hashed session_id so metrics never leak autocorrelated frames from the same weld (STEPS.md D9).
 
 Rules this module enforces:
 - Split by SESSION, never by frame. Frames from one weld are radically
@@ -10,6 +10,23 @@ Rules this module enforces:
   an existing session between splits.
 - OOD holdout: for the Goldak corpus, whole parameter-space regions are
   reserved via a meta predicate and NEVER enter train/val/test.
+
+For newcomers — what "70/15/15" means and why it's done this way:
+  - 70% of sessions train the model, 15% (val) tune/monitor it during training,
+    15% (test) are held out and only scored at the end — data the model never
+    influenced, so the test number is an honest estimate of real performance.
+    The fractions live in config.SPLIT_FRACTIONS.
+  - We split whole SESSIONS, never individual frames. Frames within one weld
+    are nearly copies of their neighbours; if frames of the same weld landed in
+    both train and test, the model could "recognise" the weld instead of
+    generalising, and the metrics would look better than reality (leakage).
+  - Assignment works by hashing the session_id to a stable number in [0,1):
+    < 0.70 → train, 0.70–0.85 → val, else test. No randomness at call time, so
+    the same session lands in the same split on every machine, forever — even
+    as new sessions are added later.
+  - A fourth bucket, "ood" (out-of-distribution), lets a predicate reserve
+    whole parameter regions (e.g. extreme plate thickness in the simulated
+    corpus) out of train/val/test entirely, to test generalisation.
 """
 
 import hashlib

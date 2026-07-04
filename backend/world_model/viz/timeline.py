@@ -1,7 +1,8 @@
 """
-Dev visualization (STEPS.md Step 2, D10) — matplotlib timeline for any
-SessionTensor from any loader. Built EARLY so every artifact (mock, Polito,
-Goldak, real) gets eyeballed from Step 3 onward.
+timeline.py renders a SessionTensor as a stacked matplotlib timeline PNG with masked channels greyed out and optional model overlays like depth, z_phys, and risk bands (STEPS.md Step 2, D10).
+
+Built EARLY so every artifact (mock, Polito, Goldak, real) gets eyeballed from
+Step 3 onward.
 
 CLI:  python -m world_model.viz.timeline --source mock  --kind al_cold --index 0
       python -m world_model.viz.timeline --source polito --index 3
@@ -9,6 +10,14 @@ CLI:  python -m world_model.viz.timeline --source mock  --kind al_cold --index 0
 D10 hard rule reminder: this is a DEV tool. Risk bands only in any user-facing
 surface — no mm figures in any UI until Gate 5. The depth overlay here is for
 developer eyes on synthetic/validated data.
+
+For newcomers: this is Step 2, "build the eyes early". It draws the 6 sensor
+channels of any SessionTensor as stacked time plots (missing/masked spans
+greyed out, so absent data is visibly absent) and can overlay model outputs —
+predicted depth with a confidence band, the physics-latent traces, risk bands.
+Data bugs (wrong channel order, broken masks, insane scales) are obvious in a
+picture and invisible in a loss number, which is why this exists before any
+model does.
 """
 
 import argparse

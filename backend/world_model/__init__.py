@@ -1,1 +1,1 @@
-"""World model package (STEPS.md). Everything consumes SessionTensor and config.py."""
+"""Root package for the weld world-model pipeline — every module consumes SessionTensor and reads knobs from config.py."""

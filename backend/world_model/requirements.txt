@@ -1,3 +1,4 @@
+# requirements.txt lists world-model-only Python deps (matplotlib, torch, etc.) kept separate from the production backend freeze until post-Gate 6 integration.
 # World-model dependencies (STEPS.md) — kept OUT of backend/requirements.txt
 # (the production freeze) until the world model integrates post-Gate 6.
 # Install into backend/venv:  pip install -r world_model/requirements.txt

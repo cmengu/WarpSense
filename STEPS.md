@@ -246,7 +246,17 @@ Used from Step 3 onward to eyeball every artifact (mock vs Polito vs Goldak vs r
 
 ---
 
-### STEP 3 — GRU baseline + eval harness (build the bar first) ⬜
+### STEP 3 — GRU baseline + eval harness (build the bar first) ✅ (2026-07-04)
+
+> Implemented: `architecture/stems.py` (per-channel Conv1d stems keyed by name,
+> mask-aware MEAN, whole-channel dropout), `data/batch.py` (padding collation —
+> padding IS mask=False), `baselines/gru_baseline.py` (stems→GRU(16→64)→h_T→
+> quality+depth heads; normalizer stored as buffers, fit on train only),
+> `eval/eval_world_model.py` (macro-F1 harness + runs.csv logging, D11),
+> `training/train_gru.py` (CLI w/ --tiny). Tests: 6 in
+> `tests/test_world_model_step3.py`. Plumbing run (`--tiny`, 200 mock sessions,
+> 20 epochs, CPU ~2 min): test macro-F1 0.864, DEFECTIVE recall 1.0 — a
+> pipeline check per D4, NOT a result; rows in `experiments/runs.csv`.
 
 The boring baseline is the Gate 3 opponent — it must exist BEFORE the thing it measures.
 

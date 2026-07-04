@@ -1,10 +1,34 @@
 """
-SessionTensor — the canonical session representation (STEPS.md Step 1, D2/D3).
+schema.py defines SessionTensor — the canonical [T, 6] sensor array plus availability mask that every loader must produce and every model must consume (STEPS.md D2/D3).
 
 Every data source (mock, polito, esp32, goldak) maps into this; nothing
 downstream sees raw formats. The availability mask is carried end-to-end:
 masked entries hold 0.0 in x and False in mask — models must consume the mask,
 never infer missingness from zeros (0.0 is a legal sensor value).
+
+For newcomers — this is the first stage of the whole pipeline:
+
+    raw per-frame sensor readings (noisy, source-specific formats)
+        │  loader_mock / loader_polito / loader_esp32
+        ▼
+    SessionTensor  (one per weld session)          ← THIS FILE
+        │  splits.py  (70/15/15 train/val/test, by session)
+        ▼
+    batch.py collation → torch tensors → model
+
+A SessionTensor is three things:
+  x    [T, 6] float32 — T time frames × 6 sensor channels (volts, amps, torch
+       angle, travel angle, travel speed, heat dissipation). The time series.
+  mask [T, 6] bool    — which values are ACTUALLY present. Needed because 0.0
+       is a legal reading, so zeros can't mean "missing". Sensor absent →
+       x=0.0, mask=False. Carried end-to-end; models must respect it.
+  meta dict           — session_id, source, and labels when they exist
+       (quality class, fault bit, per-frame fusion depth).
+
+Why bother: every source (fake dev data, Polito CSVs, future real captures,
+future simulator output) has a different raw shape. Converting all of them
+into this one dataclass means every downstream module — splits, batching,
+models, eval, viz — is written exactly once.
 """
 
 from dataclasses import dataclass, field

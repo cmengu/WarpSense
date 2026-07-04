@@ -1,11 +1,18 @@
 """
-Mock loader — DEV/PLUMBING ONLY (D4). Any number computed on mock data is a
-pipeline check, never a result.
+loader_mock.py wraps mock_sessions generators into SessionTensor for pipeline testing only — any metric on this data is a wiring check, never a result (STEPS.md D4).
 
 Wraps the three generators in backend/data/mock_sessions.py and converts their
 Frame lists through the shared frames_to_session_tensor path. The generators are
 deterministic per session_index (isolated random.Random seeds), so a corpus is
 reproducible from (kind, index) alone.
+
+For newcomers: a "loader" turns one raw data source into SessionTensors (see
+data/schema.py for the pipeline diagram). This one wraps the FAKE data
+generators — useful because they emit all 6 channels and known quality labels,
+so the whole pipeline can be developed and tested on a laptop with no real
+welds. The catch: mock data is far cleaner than real arc signals, so a model
+can ace mock and fail on reality. Hence D4: any metric computed here is only
+proof the code runs end-to-end ("plumbing check"), never a reportable result.
 """
 
 from data.mock_sessions import (
