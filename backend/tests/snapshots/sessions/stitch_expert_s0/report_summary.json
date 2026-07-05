@@ -1,0 +1,131 @@
+{
+ "crater_fill_rate_pct": 100.0,
+ "defect_counts_by_type": {
+  "crater_crack": 6,
+  "rule3": 6
+ },
+ "excursions": [
+  {
+   "defect_type": "rule3",
+   "duration_ms": null,
+   "notes": "Speed 350 mm/min \u2014 14.4% drop (warning)",
+   "parameter_value": null,
+   "source": "alert",
+   "threshold_value": null,
+   "timestamp_ms": 2010
+  },
+  {
+   "defect_type": "crater_crack",
+   "duration_ms": null,
+   "notes": "Crater crack risk: abrupt arc termination",
+   "parameter_value": null,
+   "source": "alert",
+   "threshold_value": null,
+   "timestamp_ms": 2200
+  },
+  {
+   "defect_type": "rule3",
+   "duration_ms": null,
+   "notes": "Speed 350 mm/min \u2014 13.4% drop (warning)",
+   "parameter_value": null,
+   "source": "alert",
+   "threshold_value": null,
+   "timestamp_ms": 4510
+  },
+  {
+   "defect_type": "crater_crack",
+   "duration_ms": null,
+   "notes": "Crater crack risk: abrupt arc termination",
+   "parameter_value": null,
+   "source": "alert",
+   "threshold_value": null,
+   "timestamp_ms": 4700
+  },
+  {
+   "defect_type": "rule3",
+   "duration_ms": null,
+   "notes": "Speed 350 mm/min \u2014 16.7% drop (warning)",
+   "parameter_value": null,
+   "source": "alert",
+   "threshold_value": null,
+   "timestamp_ms": 7000
+  },
+  {
+   "defect_type": "crater_crack",
+   "duration_ms": null,
+   "notes": "Crater crack risk: abrupt arc termination",
+   "parameter_value": null,
+   "source": "alert",
+   "threshold_value": null,
+   "timestamp_ms": 7200
+  },
+  {
+   "defect_type": "rule3",
+   "duration_ms": null,
+   "notes": "Speed 350 mm/min \u2014 13.8% drop (warning)",
+   "parameter_value": null,
+   "source": "alert",
+   "threshold_value": null,
+   "timestamp_ms": 9500
+  },
+  {
+   "defect_type": "crater_crack",
+   "duration_ms": null,
+   "notes": "Crater crack risk: abrupt arc termination",
+   "parameter_value": null,
+   "source": "alert",
+   "threshold_value": null,
+   "timestamp_ms": 9700
+  },
+  {
+   "defect_type": "rule3",
+   "duration_ms": null,
+   "notes": "Speed 350 mm/min \u2014 13.1% drop (warning)",
+   "parameter_value": null,
+   "source": "alert",
+   "threshold_value": null,
+   "timestamp_ms": 12000
+  },
+  {
+   "defect_type": "crater_crack",
+   "duration_ms": null,
+   "notes": "Crater crack risk: abrupt arc termination",
+   "parameter_value": null,
+   "source": "alert",
+   "threshold_value": null,
+   "timestamp_ms": 12200
+  },
+  {
+   "defect_type": "rule3",
+   "duration_ms": null,
+   "notes": "Speed 350 mm/min \u2014 13.4% drop (warning)",
+   "parameter_value": null,
+   "source": "alert",
+   "threshold_value": null,
+   "timestamp_ms": 14500
+  },
+  {
+   "defect_type": "crater_crack",
+   "duration_ms": null,
+   "notes": "Crater crack risk: abrupt arc termination",
+   "parameter_value": null,
+   "source": "alert",
+   "threshold_value": null,
+   "timestamp_ms": 14700
+  }
+ ],
+ "generated_at": "__SCRUBBED__",
+ "heat_input_compliant": true,
+ "heat_input_max_kj_per_mm": 0.7872840459176181,
+ "heat_input_mean_kj_per_mm": 0.648807632757529,
+ "heat_input_min_kj_per_mm": 0.5220508362445092,
+ "heat_input_wps_max": 0.9,
+ "heat_input_wps_min": 0.5,
+ "no_crater_fill_count": 0,
+ "session_id": "stitch_expert_s0",
+ "total_arc_terminations": 6,
+ "total_defect_alerts": 12,
+ "travel_angle_excursion_count": 0,
+ "travel_angle_threshold_deg": 25.0,
+ "travel_angle_worst_case_deg": null
+}

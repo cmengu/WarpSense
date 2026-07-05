@@ -1,0 +1,24 @@
+{
+ "all_probabilities": {
+  "DEFECTIVE": 0.9986028378658953,
+  "GOOD": 0.0006659391806204983,
+  "MARGINAL": 0.0007312229534841296
+ },
+ "confidence": 0.9986028378658953,
+ "quality_class": "DEFECTIVE",
+ "session_id": "al_defective_s0",
+ "top_drivers": [
+  [
+   "angle_max_drift_1s",
+   0.6190976500764162
+  ],
+  [
+   "arc_on_ratio",
+   0.17869342474443398
+  ],
+  [
+   "heat_input_mean",
+   0.14216186302495676
+  ]
+ ]
+}

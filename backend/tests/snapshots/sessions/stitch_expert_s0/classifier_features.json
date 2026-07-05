@@ -1,0 +1,15 @@
+{
+ "amps_cv": 0.03345029121794988,
+ "angle_deviation_mean": 9.582129925348925,
+ "angle_max_drift_1s": 5.434342377513367,
+ "arc_on_ratio": 0.88,
+ "heat_diss_max_spike": 9.48460182406246,
+ "heat_diss_mean": 2.2924077469875646,
+ "heat_input_cv": 0.051699459907271095,
+ "heat_input_drop_severity": 9.087801602454874,
+ "heat_input_mean": 4216.139060843672,
+ "heat_input_min_rolling": 3870.650169217324,
+ "quality_label": null,
+ "session_id": "stitch_expert_s0",
+ "voltage_cv": 0.03825338178433811
+}

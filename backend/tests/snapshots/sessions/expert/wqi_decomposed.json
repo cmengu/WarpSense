@@ -1,0 +1,52 @@
+{
+ "alerts": [],
+ "score": {
+  "arc_on_frame_count": 1500,
+  "components": {
+   "arc_termination": {
+    "excursions": [],
+    "name": "arc_termination",
+    "passed": true,
+    "score": 1.0,
+    "summary": "0 abrupt arc terminations without crater fill"
+   },
+   "defect_alerts": {
+    "excursions": [],
+    "name": "defect_alerts",
+    "passed": true,
+    "score": 1.0,
+    "summary": "no defect alerts"
+   },
+   "heat_input": {
+    "excursions": [],
+    "name": "heat_input",
+    "passed": true,
+    "score": 1.0,
+    "summary": "0 heat input excursions vs WPS range 0.9\u20131.5 kJ/mm"
+   },
+   "interpass": {
+    "excursions": [],
+    "name": "interpass",
+    "passed": true,
+    "score": 1.0,
+    "summary": "0 interpass violations (< 45000ms gap). Timer proxy only."
+   },
+   "torch_angle": {
+    "excursions": [],
+    "name": "torch_angle",
+    "passed": true,
+    "score": 1.0,
+    "summary": "0 torch angle excursions (max 20.0\u00b0, no drag)"
+   }
+  },
+  "computed_at_ms": "__SCRUBBED__",
+  "frame_count": 1500,
+  "overall_score": 1.0,
+  "passed": true,
+  "session_id": "expert",
+  "wps_range_kj_per_mm": [
+   0.9,
+   1.5
+  ]
+ }
+}

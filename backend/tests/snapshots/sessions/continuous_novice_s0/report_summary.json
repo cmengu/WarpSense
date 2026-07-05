@@ -1,0 +1,766 @@
+{
+ "crater_fill_rate_pct": 0.0,
+ "defect_counts_by_type": {
+  "crater_crack": 3,
+  "lack_of_fusion_amps": 1,
+  "lack_of_fusion_speed": 5,
+  "oxide_inclusion": 4,
+  "porosity": 9,
+  "rule2": 15,
+  "rule3": 15
+ },
+ "excursions": [
+  {
+   "defect_type": "lack_of_fusion_amps",
+   "duration_ms": null,
+   "notes": "Lack of fusion risk: low current",
+   "parameter_value": null,
+   "source": "alert",
+   "threshold_value": null,
+   "timestamp_ms": 0
+  },
+  {
+   "defect_type": "rule2",
+   "duration_ms": null,
+   "notes": "Torch angle 5.4\u00b0 vs 12.0\u00b0 nominal (warning)",
+   "parameter_value": null,
+   "source": "alert",
+   "threshold_value": null,
+   "timestamp_ms": 40
+  },
+  {
+   "defect_type": "oxide_inclusion",
+   "duration_ms": null,
+   "notes": "Oxide inclusion risk: argon trailing (negative travel angle)",
+   "parameter_value": null,
+   "source": "alert",
+   "threshold_value": null,
+   "timestamp_ms": 80
+  },
+  {
+   "defect_type": "rule3",
+   "duration_ms": null,
+   "notes": "Speed 396 mm/min \u2014 17.0% drop (warning)",
+   "parameter_value": null,
+   "source": "alert",
+   "threshold_value": null,
+   "timestamp_ms": 200
+  },
+  {
+   "defect_type": "lack_of_fusion_speed",
+   "duration_ms": null,
+   "notes": "Lack of fusion risk: travel speed too high",
+   "parameter_value": null,
+   "source": "alert",
+   "threshold_value": null,
+   "timestamp_ms": 540
+  },
+  {
+   "defect_type": "rule2",
+   "duration_ms": null,
+   "notes": "Torch angle -0.3\u00b0 vs 12.0\u00b0 nominal (critical)",
+   "parameter_value": null,
+   "source": "alert",
+   "threshold_value": null,
+   "timestamp_ms": 1040
+  },
+  {
+   "defect_type": "rule3",
+   "duration_ms": null,
+   "notes": "Speed 267 mm/min \u2014 42.9% drop (critical)",
+   "parameter_value": null,
+   "source": "alert",
+   "threshold_value": null,
+   "timestamp_ms": 1200
+  },
+  {
+   "defect_type": "travel_angle_excursion",
+   "duration_ms": 140,
+   "notes": null,
+   "parameter_value": 35.7136301555624,
+   "source": "frame_derived",
+   "threshold_value": 25.0,
+   "timestamp_ms": 1260
+  },
+  {
+   "defect_type": "travel_angle_excursion",
+   "duration_ms": 180,
+   "notes": null,
+   "parameter_value": 41.833172970900264,
+   "source": "frame_derived",
+   "threshold_value": 25.0,
+   "timestamp_ms": 1430
+  },
+  {
+   "defect_type": "rule2",
+   "duration_ms": null,
+   "notes": "Torch angle 3.8\u00b0 vs 12.0\u00b0 nominal (critical)",
+   "parameter_value": null,
+   "source": "alert",
+   "threshold_value": null,
+   "timestamp_ms": 2150
+  },
+  {
+   "defect_type": "rule3",
+   "duration_ms": null,
+   "notes": "Speed 392 mm/min \u2014 17.5% drop (warning)",
+   "parameter_value": null,
+   "source": "alert",
+   "threshold_value": null,
+   "timestamp_ms": 2200
+  },
+  {
+   "defect_type": "oxide_inclusion",
+   "duration_ms": null,
+   "notes": "Oxide inclusion risk: argon trailing (negative travel angle)",
+   "parameter_value": null,
+   "source": "alert",
+   "threshold_value": null,
+   "timestamp_ms": 2830
+  },
+  {
+   "defect_type": "travel_angle_excursion",
+   "duration_ms": 20,
+   "notes": null,
+   "parameter_value": 27.6507663723654,
+   "source": "frame_derived",
+   "threshold_value": 25.0,
+   "timestamp_ms": 3070
+  },
+  {
+   "defect_type": "travel_angle_excursion",
+   "duration_ms": 20,
+   "notes": null,
+   "parameter_value": 27.736081879746898,
+   "source": "frame_derived",
+   "threshold_value": 25.0,
+   "timestamp_ms": 3120
+  },
+  {
+   "defect_type": "rule2",
+   "duration_ms": null,
+   "notes": "Torch angle -10.3\u00b0 vs 12.0\u00b0 nominal (critical)",
+   "parameter_value": null,
+   "source": "alert",
+   "threshold_value": null,
+   "timestamp_ms": 3150
+  },
+  {
+   "defect_type": "travel_angle_excursion",
+   "duration_ms": 70,
+   "notes": null,
+   "parameter_value": 29.783364677012543,
+   "source": "frame_derived",
+   "threshold_value": 25.0,
+   "timestamp_ms": 3160
+  },
+  {
+   "defect_type": "porosity",
+   "duration_ms": null,
+   "notes": "Porosity risk: drag angle and low speed",
+   "parameter_value": null,
+   "source": "alert",
+   "threshold_value": null,
+   "timestamp_ms": 3190
+  },
+  {
+   "defect_type": "rule3",
+   "duration_ms": null,
+   "notes": "Speed 225 mm/min \u2014 47.1% drop (critical)",
+   "parameter_value": null,
+   "source": "alert",
+   "threshold_value": null,
+   "timestamp_ms": 3200
+  },
+  {
+   "defect_type": "travel_angle_excursion",
+   "duration_ms": 20,
+   "notes": null,
+   "parameter_value": 26.755761111584967,
+   "source": "frame_derived",
+   "threshold_value": 25.0,
+   "timestamp_ms": 3390
+  },
+  {
+   "defect_type": "travel_angle_excursion",
+   "duration_ms": 60,
+   "notes": null,
+   "parameter_value": 29.77941739860086,
+   "source": "frame_derived",
+   "threshold_value": 25.0,
+   "timestamp_ms": 3670
+  },
+  {
+   "defect_type": "travel_angle_excursion",
+   "duration_ms": 570,
+   "notes": null,
+   "parameter_value": 42.0,
+   "source": "frame_derived",
+   "threshold_value": 25.0,
+   "timestamp_ms": 3760
+  },
+  {
+   "defect_type": "crater_crack",
+   "duration_ms": null,
+   "notes": "Crater crack risk: abrupt arc termination",
+   "parameter_value": null,
+   "source": "alert",
+   "threshold_value": null,
+   "timestamp_ms": 3800
+  },
+  {
+   "defect_type": "rule2",
+   "duration_ms": null,
+   "notes": "Torch angle -30.0\u00b0 vs 12.0\u00b0 nominal (critical)",
+   "parameter_value": null,
+   "source": "alert",
+   "threshold_value": null,
+   "timestamp_ms": 4150
+  },
+  {
+   "defect_type": "porosity",
+   "duration_ms": null,
+   "notes": "Porosity risk: drag angle and low speed",
+   "parameter_value": null,
+   "source": "alert",
+   "threshold_value": null,
+   "timestamp_ms": 4190
+  },
+  {
+   "defect_type": "rule3",
+   "duration_ms": null,
+   "notes": "Speed 202 mm/min \u2014 50.9% drop (critical)",
+   "parameter_value": null,
+   "source": "alert",
+   "threshold_value": null,
+   "timestamp_ms": 4200
+  },
+  {
+   "defect_type": "travel_angle_excursion",
+   "duration_ms": 10,
+   "notes": null,
+   "parameter_value": 26.041181474298845,
+   "source": "frame_derived",
+   "threshold_value": 25.0,
+   "timestamp_ms": 4390
+  },
+  {
+   "defect_type": "travel_angle_excursion",
+   "duration_ms": 0,
+   "notes": null,
+   "parameter_value": 27.199933580031047,
+   "source": "frame_derived",
+   "threshold_value": 25.0,
+   "timestamp_ms": 4420
+  },
+  {
+   "defect_type": "travel_angle_excursion",
+   "duration_ms": 10,
+   "notes": null,
+   "parameter_value": 27.23996213124181,
+   "source": "frame_derived",
+   "threshold_value": 25.0,
+   "timestamp_ms": 4440
+  },
+  {
+   "defect_type": "rule3",
+   "duration_ms": null,
+   "notes": "Speed 260 mm/min \u2014 35.9% drop (critical)",
+   "parameter_value": null,
+   "source": "alert",
+   "threshold_value": null,
+   "timestamp_ms": 5200
+  },
+  {
+   "defect_type": "rule2",
+   "duration_ms": null,
+   "notes": "Torch angle 4.0\u00b0 vs 12.0\u00b0 nominal (critical)",
+   "parameter_value": null,
+   "source": "alert",
+   "threshold_value": null,
+   "timestamp_ms": 5390
+  },
+  {
+   "defect_type": "oxide_inclusion",
+   "duration_ms": null,
+   "notes": "Oxide inclusion risk: argon trailing (negative travel angle)",
+   "parameter_value": null,
+   "source": "alert",
+   "threshold_value": null,
+   "timestamp_ms": 5450
+  },
+  {
+   "defect_type": "porosity",
+   "duration_ms": null,
+   "notes": "Porosity risk: drag angle and low speed",
+   "parameter_value": null,
+   "source": "alert",
+   "threshold_value": null,
+   "timestamp_ms": 6180
+  },
+  {
+   "defect_type": "rule3",
+   "duration_ms": null,
+   "notes": "Speed 225 mm/min \u2014 47.6% drop (critical)",
+   "parameter_value": null,
+   "source": "alert",
+   "threshold_value": null,
+   "timestamp_ms": 6200
+  },
+  {
+   "defect_type": "rule2",
+   "duration_ms": null,
+   "notes": "Torch angle 4.0\u00b0 vs 12.0\u00b0 nominal (critical)",
+   "parameter_value": null,
+   "source": "alert",
+   "threshold_value": null,
+   "timestamp_ms": 6400
+  },
+  {
+   "defect_type": "lack_of_fusion_speed",
+   "duration_ms": null,
+   "notes": "Lack of fusion risk: travel speed too high",
+   "parameter_value": null,
+   "source": "alert",
+   "threshold_value": null,
+   "timestamp_ms": 6410
+  },
+  {
+   "defect_type": "travel_angle_excursion",
+   "duration_ms": 40,
+   "notes": null,
+   "parameter_value": 29.262307346085446,
+   "source": "frame_derived",
+   "threshold_value": 25.0,
+   "timestamp_ms": 6880
+  },
+  {
+   "defect_type": "travel_angle_excursion",
+   "duration_ms": 50,
+   "notes": null,
+   "parameter_value": 28.592281882146523,
+   "source": "frame_derived",
+   "threshold_value": 25.0,
+   "timestamp_ms": 7070
+  },
+  {
+   "defect_type": "oxide_inclusion",
+   "duration_ms": null,
+   "notes": "Oxide inclusion risk: argon trailing (negative travel angle)",
+   "parameter_value": null,
+   "source": "alert",
+   "threshold_value": null,
+   "timestamp_ms": 7180
+  },
+  {
+   "defect_type": "rule2",
+   "duration_ms": null,
+   "notes": "Torch angle -5.9\u00b0 vs 12.0\u00b0 nominal (critical)",
+   "parameter_value": null,
+   "source": "alert",
+   "threshold_value": null,
+   "timestamp_ms": 7400
+  },
+  {
+   "defect_type": "lack_of_fusion_speed",
+   "duration_ms": null,
+   "notes": "Lack of fusion risk: travel speed too high",
+   "parameter_value": null,
+   "source": "alert",
+   "threshold_value": null,
+   "timestamp_ms": 7430
+  },
+  {
+   "defect_type": "travel_angle_excursion",
+   "duration_ms": 20,
+   "notes": null,
+   "parameter_value": 29.085380838629565,
+   "source": "frame_derived",
+   "threshold_value": 25.0,
+   "timestamp_ms": 7500
+  },
+  {
+   "defect_type": "rule3",
+   "duration_ms": null,
+   "notes": "Speed 437 mm/min \u2014 16.1% drop (warning)",
+   "parameter_value": null,
+   "source": "alert",
+   "threshold_value": null,
+   "timestamp_ms": 7530
+  },
+  {
+   "defect_type": "travel_angle_excursion",
+   "duration_ms": 30,
+   "notes": null,
+   "parameter_value": 27.00433100824091,
+   "source": "frame_derived",
+   "threshold_value": 25.0,
+   "timestamp_ms": 7540
+  },
+  {
+   "defect_type": "travel_angle_excursion",
+   "duration_ms": 0,
+   "notes": null,
+   "parameter_value": 25.01326543250711,
+   "source": "frame_derived",
+   "threshold_value": 25.0,
+   "timestamp_ms": 7590
+  },
+  {
+   "defect_type": "crater_crack",
+   "duration_ms": null,
+   "notes": "Crater crack risk: abrupt arc termination",
+   "parameter_value": null,
+   "source": "alert",
+   "threshold_value": null,
+   "timestamp_ms": 7600
+  },
+  {
+   "defect_type": "porosity",
+   "duration_ms": null,
+   "notes": "Porosity risk: drag angle and low speed",
+   "parameter_value": null,
+   "source": "alert",
+   "threshold_value": null,
+   "timestamp_ms": 7780
+  },
+  {
+   "defect_type": "travel_angle_excursion",
+   "duration_ms": 0,
+   "notes": null,
+   "parameter_value": 25.71093712837878,
+   "source": "frame_derived",
+   "threshold_value": 25.0,
+   "timestamp_ms": 8310
+  },
+  {
+   "defect_type": "rule2",
+   "duration_ms": null,
+   "notes": "Torch angle -1.3\u00b0 vs 12.0\u00b0 nominal (critical)",
+   "parameter_value": null,
+   "source": "alert",
+   "threshold_value": null,
+   "timestamp_ms": 8400
+  },
+  {
+   "defect_type": "travel_angle_excursion",
+   "duration_ms": 290,
+   "notes": null,
+   "parameter_value": 41.09822551143617,
+   "source": "frame_derived",
+   "threshold_value": 25.0,
+   "timestamp_ms": 8520
+  },
+  {
+   "defect_type": "rule3",
+   "duration_ms": null,
+   "notes": "Speed 200 mm/min \u2014 61.9% drop (critical)",
+   "parameter_value": null,
+   "source": "alert",
+   "threshold_value": null,
+   "timestamp_ms": 8530
+  },
+  {
+   "defect_type": "porosity",
+   "duration_ms": null,
+   "notes": "Porosity risk: drag angle and low speed",
+   "parameter_value": null,
+   "source": "alert",
+   "threshold_value": null,
+   "timestamp_ms": 8780
+  },
+  {
+   "defect_type": "travel_angle_excursion",
+   "duration_ms": 350,
+   "notes": null,
+   "parameter_value": 39.57888666832855,
+   "source": "frame_derived",
+   "threshold_value": 25.0,
+   "timestamp_ms": 8920
+  },
+  {
+   "defect_type": "travel_angle_excursion",
+   "duration_ms": 180,
+   "notes": null,
+   "parameter_value": 33.151878634872645,
+   "source": "frame_derived",
+   "threshold_value": 25.0,
+   "timestamp_ms": 9290
+  },
+  {
+   "defect_type": "rule2",
+   "duration_ms": null,
+   "notes": "Torch angle -18.3\u00b0 vs 12.0\u00b0 nominal (critical)",
+   "parameter_value": null,
+   "source": "alert",
+   "threshold_value": null,
+   "timestamp_ms": 9400
+  },
+  {
+   "defect_type": "rule3",
+   "duration_ms": null,
+   "notes": "Speed 327 mm/min \u2014 35.6% drop (critical)",
+   "parameter_value": null,
+   "source": "alert",
+   "threshold_value": null,
+   "timestamp_ms": 9530
+  },
+  {
+   "defect_type": "porosity",
+   "duration_ms": null,
+   "notes": "Porosity risk: drag angle and low speed",
+   "parameter_value": null,
+   "source": "alert",
+   "threshold_value": null,
+   "timestamp_ms": 9780
+  },
+  {
+   "defect_type": "rule2",
+   "duration_ms": null,
+   "notes": "Torch angle 23.3\u00b0 vs 12.0\u00b0 nominal (critical)",
+   "parameter_value": null,
+   "source": "alert",
+   "threshold_value": null,
+   "timestamp_ms": 10400
+  },
+  {
+   "defect_type": "travel_angle_excursion",
+   "duration_ms": 0,
+   "notes": null,
+   "parameter_value": 25.00466029637405,
+   "source": "frame_derived",
+   "threshold_value": 25.0,
+   "timestamp_ms": 10520
+  },
+  {
+   "defect_type": "rule3",
+   "duration_ms": null,
+   "notes": "Speed 337 mm/min \u2014 33.0% drop (critical)",
+   "parameter_value": null,
+   "source": "alert",
+   "threshold_value": null,
+   "timestamp_ms": 10530
+  },
+  {
+   "defect_type": "travel_angle_excursion",
+   "duration_ms": 90,
+   "notes": null,
+   "parameter_value": 29.318638257672077,
+   "source": "frame_derived",
+   "threshold_value": 25.0,
+   "timestamp_ms": 10550
+  },
+  {
+   "defect_type": "travel_angle_excursion",
+   "duration_ms": 20,
+   "notes": null,
+   "parameter_value": 28.647353868011905,
+   "source": "frame_derived",
+   "threshold_value": 25.0,
+   "timestamp_ms": 10690
+  },
+  {
+   "defect_type": "travel_angle_excursion",
+   "duration_ms": 30,
+   "notes": null,
+   "parameter_value": 27.323001736964024,
+   "source": "frame_derived",
+   "threshold_value": 25.0,
+   "timestamp_ms": 10730
+  },
+  {
+   "defect_type": "travel_angle_excursion",
+   "duration_ms": 10,
+   "notes": null,
+   "parameter_value": 27.474525903604324,
+   "source": "frame_derived",
+   "threshold_value": 25.0,
+   "timestamp_ms": 10800
+  },
+  {
+   "defect_type": "porosity",
+   "duration_ms": null,
+   "notes": "Porosity risk: drag angle and low speed",
+   "parameter_value": null,
+   "source": "alert",
+   "threshold_value": null,
+   "timestamp_ms": 11080
+  },
+  {
+   "defect_type": "crater_crack",
+   "duration_ms": null,
+   "notes": "Crater crack risk: abrupt arc termination",
+   "parameter_value": null,
+   "source": "alert",
+   "threshold_value": null,
+   "timestamp_ms": 11400
+  },
+  {
+   "defect_type": "rule3",
+   "duration_ms": null,
+   "notes": "Speed 200 mm/min \u2014 64.4% drop (critical)",
+   "parameter_value": null,
+   "source": "alert",
+   "threshold_value": null,
+   "timestamp_ms": 11530
+  },
+  {
+   "defect_type": "rule2",
+   "duration_ms": null,
+   "notes": "Torch angle 3.1\u00b0 vs 12.0\u00b0 nominal (critical)",
+   "parameter_value": null,
+   "source": "alert",
+   "threshold_value": null,
+   "timestamp_ms": 11740
+  },
+  {
+   "defect_type": "travel_angle_excursion",
+   "duration_ms": 40,
+   "notes": null,
+   "parameter_value": 29.131867094855878,
+   "source": "frame_derived",
+   "threshold_value": 25.0,
+   "timestamp_ms": 11840
+  },
+  {
+   "defect_type": "travel_angle_excursion",
+   "duration_ms": 10,
+   "notes": null,
+   "parameter_value": 27.300978311422007,
+   "source": "frame_derived",
+   "threshold_value": 25.0,
+   "timestamp_ms": 11920
+  },
+  {
+   "defect_type": "porosity",
+   "duration_ms": null,
+   "notes": "Porosity risk: drag angle and low speed",
+   "parameter_value": null,
+   "source": "alert",
+   "threshold_value": null,
+   "timestamp_ms": 12080
+  },
+  {
+   "defect_type": "rule3",
+   "duration_ms": null,
+   "notes": "Speed 386 mm/min \u2014 32.0% drop (critical)",
+   "parameter_value": null,
+   "source": "alert",
+   "threshold_value": null,
+   "timestamp_ms": 12530
+  },
+  {
+   "defect_type": "rule2",
+   "duration_ms": null,
+   "notes": "Torch angle -2.5\u00b0 vs 12.0\u00b0 nominal (critical)",
+   "parameter_value": null,
+   "source": "alert",
+   "threshold_value": null,
+   "timestamp_ms": 12740
+  },
+  {
+   "defect_type": "porosity",
+   "duration_ms": null,
+   "notes": "Porosity risk: drag angle and low speed",
+   "parameter_value": null,
+   "source": "alert",
+   "threshold_value": null,
+   "timestamp_ms": 13080
+  },
+  {
+   "defect_type": "travel_angle_excursion",
+   "duration_ms": 0,
+   "notes": null,
+   "parameter_value": 25.27754437853277,
+   "source": "frame_derived",
+   "threshold_value": 25.0,
+   "timestamp_ms": 13190
+  },
+  {
+   "defect_type": "travel_angle_excursion",
+   "duration_ms": 80,
+   "notes": null,
+   "parameter_value": 29.79229440426061,
+   "source": "frame_derived",
+   "threshold_value": 25.0,
+   "timestamp_ms": 13480
+  },
+  {
+   "defect_type": "rule3",
+   "duration_ms": null,
+   "notes": "Speed 375 mm/min \u2014 35.7% drop (critical)",
+   "parameter_value": null,
+   "source": "alert",
+   "threshold_value": null,
+   "timestamp_ms": 13530
+  },
+  {
+   "defect_type": "lack_of_fusion_speed",
+   "duration_ms": null,
+   "notes": "Lack of fusion risk: travel speed too high",
+   "parameter_value": null,
+   "source": "alert",
+   "threshold_value": null,
+   "timestamp_ms": 13590
+  },
+  {
+   "defect_type": "travel_angle_excursion",
+   "duration_ms": 0,
+   "notes": null,
+   "parameter_value": 25.005746120274797,
+   "source": "frame_derived",
+   "threshold_value": 25.0,
+   "timestamp_ms": 13600
+  },
+  {
+   "defect_type": "rule2",
+   "duration_ms": null,
+   "notes": "Torch angle 3.4\u00b0 vs 12.0\u00b0 nominal (critical)",
+   "parameter_value": null,
+   "source": "alert",
+   "threshold_value": null,
+   "timestamp_ms": 13740
+  },
+  {
+   "defect_type": "rule3",
+   "duration_ms": null,
+   "notes": "Speed 444 mm/min \u2014 17.6% drop (warning)",
+   "parameter_value": null,
+   "source": "alert",
+   "threshold_value": null,
+   "timestamp_ms": 14530
+  },
+  {
+   "defect_type": "rule2",
+   "duration_ms": null,
+   "notes": "Torch angle 26.5\u00b0 vs 12.0\u00b0 nominal (critical)",
+   "parameter_value": null,
+   "source": "alert",
+   "threshold_value": null,
+   "timestamp_ms": 14740
+  },
+  {
+   "defect_type": "lack_of_fusion_speed",
+   "duration_ms": null,
+   "notes": "Lack of fusion risk: travel speed too high",
+   "parameter_value": null,
+   "source": "alert",
+   "threshold_value": null,
+   "timestamp_ms": 14790
+  }
+ ],
+ "generated_at": "__SCRUBBED__",
+ "heat_input_compliant": true,
+ "heat_input_max_kj_per_mm": 1.3355425336075093,
+ "heat_input_mean_kj_per_mm": 0.7793505687039027,
+ "heat_input_min_kj_per_mm": 0.2662115183017801,
+ "heat_input_wps_max": 0.9,
+ "heat_input_wps_min": 0.5,
+ "no_crater_fill_count": 3,
+ "session_id": "continuous_novice_s0",
+ "total_arc_terminations": 3,
+ "total_defect_alerts": 52,
+ "travel_angle_excursion_count": 264,
+ "travel_angle_threshold_deg": 25.0,
+ "travel_angle_worst_case_deg": 42.0
+}

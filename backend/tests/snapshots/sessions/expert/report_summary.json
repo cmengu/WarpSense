@@ -1,0 +1,19 @@
+{
+ "crater_fill_rate_pct": 0.0,
+ "defect_counts_by_type": {},
+ "excursions": [],
+ "generated_at": "__SCRUBBED__",
+ "heat_input_compliant": false,
+ "heat_input_max_kj_per_mm": null,
+ "heat_input_mean_kj_per_mm": null,
+ "heat_input_min_kj_per_mm": null,
+ "heat_input_wps_max": 0.9,
+ "heat_input_wps_min": 0.5,
+ "no_crater_fill_count": 0,
+ "session_id": "expert",
+ "total_arc_terminations": 0,
+ "total_defect_alerts": 0,
+ "travel_angle_excursion_count": 0,
+ "travel_angle_threshold_deg": 25.0,
+ "travel_angle_worst_case_deg": null
+}

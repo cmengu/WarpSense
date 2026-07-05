@@ -1,0 +1,224 @@
+{
+ "canonical_sha256": "916478f7d228a9630088fa2e3c74674001e8431e3846df040f4f3a57cad3509d",
+ "frame_count": 1500,
+ "head": [
+  {
+   "amps": 145.0,
+   "angle_degrees": 49.456036800307174,
+   "arc_termination_type": null,
+   "ctwd_mm": null,
+   "has_thermal_data": true,
+   "heat_dissipation_rate_celsius_per_sec": null,
+   "heat_input_kj_per_mm": null,
+   "optional_sensors": null,
+   "thermal_snapshots": [
+    {
+     "distance_mm": 10.0,
+     "readings": [
+      {
+       "direction": "center",
+       "temp_celsius": 517.5782516393924
+      },
+      {
+       "direction": "north",
+       "temp_celsius": 500.94636204031394
+      },
+      {
+       "direction": "south",
+       "temp_celsius": 474.2101412384709
+      },
+      {
+       "direction": "east",
+       "temp_celsius": 557.5782516393924
+      },
+      {
+       "direction": "west",
+       "temp_celsius": 437.5782516393924
+      }
+     ]
+    },
+    {
+     "distance_mm": 20.0,
+     "readings": [
+      {
+       "direction": "center",
+       "temp_celsius": 377.5782516393924
+      },
+      {
+       "direction": "north",
+       "temp_celsius": 360.94636204031394
+      },
+      {
+       "direction": "south",
+       "temp_celsius": 334.2101412384709
+      },
+      {
+       "direction": "east",
+       "temp_celsius": 417.5782516393924
+      },
+      {
+       "direction": "west",
+       "temp_celsius": 297.5782516393924
+      }
+     ]
+    },
+    {
+     "distance_mm": 30.0,
+     "readings": [
+      {
+       "direction": "center",
+       "temp_celsius": 257.5782516393924
+      },
+      {
+       "direction": "north",
+       "temp_celsius": 240.94636204031394
+      },
+      {
+       "direction": "south",
+       "temp_celsius": 214.2101412384709
+      },
+      {
+       "direction": "east",
+       "temp_celsius": 297.5782516393924
+      },
+      {
+       "direction": "west",
+       "temp_celsius": 177.57825163939242
+      }
+     ]
+    },
+    {
+     "distance_mm": 40.0,
+     "readings": [
+      {
+       "direction": "center",
+       "temp_celsius": 167.57825163939242
+      },
+      {
+       "direction": "north",
+       "temp_celsius": 150.94636204031394
+      },
+      {
+       "direction": "south",
+       "temp_celsius": 124.2101412384709
+      },
+      {
+       "direction": "east",
+       "temp_celsius": 207.57825163939242
+      },
+      {
+       "direction": "west",
+       "temp_celsius": 87.57825163939242
+      }
+     ]
+    },
+    {
+     "distance_mm": 50.0,
+     "readings": [
+      {
+       "direction": "center",
+       "temp_celsius": 92.57825163939243
+      },
+      {
+       "direction": "north",
+       "temp_celsius": 75.94636204031396
+      },
+      {
+       "direction": "south",
+       "temp_celsius": 49.21014123847091
+      },
+      {
+       "direction": "east",
+       "temp_celsius": 132.57825163939242
+      },
+      {
+       "direction": "west",
+       "temp_celsius": 20.0
+      }
+     ]
+    }
+   ],
+   "timestamp_ms": 0,
+   "travel_angle_degrees": null,
+   "travel_speed_mm_per_min": null,
+   "volts": 22.719138307906306
+  },
+  {
+   "amps": 146.49998842608667,
+   "angle_degrees": 49.494294338483115,
+   "arc_termination_type": null,
+   "ctwd_mm": null,
+   "has_thermal_data": false,
+   "heat_dissipation_rate_celsius_per_sec": null,
+   "heat_input_kj_per_mm": null,
+   "optional_sensors": null,
+   "thermal_snapshots": [],
+   "timestamp_ms": 10,
+   "travel_angle_degrees": null,
+   "travel_speed_mm_per_min": null,
+   "volts": 22.73520296200865
+  },
+  {
+   "amps": 147.9999074125513,
+   "angle_degrees": 49.53199867728807,
+   "arc_termination_type": null,
+   "ctwd_mm": null,
+   "has_thermal_data": false,
+   "heat_dissipation_rate_celsius_per_sec": null,
+   "heat_input_kj_per_mm": null,
+   "optional_sensors": null,
+   "thermal_snapshots": [],
+   "timestamp_ms": 20,
+   "travel_angle_degrees": null,
+   "travel_speed_mm_per_min": null,
+   "volts": 22.751117033033456
+  }
+ ],
+ "tail": [
+  {
+   "amps": 142.27411243015632,
+   "angle_degrees": 60.46775863803913,
+   "arc_termination_type": null,
+   "ctwd_mm": null,
+   "has_thermal_data": false,
+   "heat_dissipation_rate_celsius_per_sec": null,
+   "heat_input_kj_per_mm": null,
+   "optional_sensors": null,
+   "thermal_snapshots": [],
+   "timestamp_ms": 14970,
+   "travel_angle_degrees": null,
+   "travel_speed_mm_per_min": null,
+   "volts": 18.165858584786264
+  },
+  {
+   "amps": 142.52031694467246,
+   "angle_degrees": 60.505762064334675,
+   "arc_termination_type": null,
+   "ctwd_mm": null,
+   "has_thermal_data": false,
+   "heat_dissipation_rate_celsius_per_sec": null,
+   "heat_input_kj_per_mm": null,
+   "optional_sensors": null,
+   "thermal_snapshots": [],
+   "timestamp_ms": 14980,
+   "travel_angle_degrees": null,
+   "travel_speed_mm_per_min": null,
+   "volts": 18.141866957633106
+  },
+  {
+   "amps": 142.76721024409304,
+   "angle_degrees": 60.54431703696436,
+   "arc_termination_type": null,
+   "ctwd_mm": null,
+   "has_thermal_data": false,
+   "heat_dissipation_rate_celsius_per_sec": null,
+   "heat_input_kj_per_mm": null,
+   "optional_sensors": null,
+   "thermal_snapshots": [],
+   "timestamp_ms": 14990,
+   "travel_angle_degrees": null,
+   "travel_speed_mm_per_min": null,
+   "volts": 18.117847466948856
+  }
+ ]
+}

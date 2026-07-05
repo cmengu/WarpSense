@@ -1,0 +1,854 @@
+{
+ "canonical_sha256": "6c44a28e56d90f7e76946f940c972b8f7f26a128a0f922db081d532b6804ac5a",
+ "frame_count": 1500,
+ "head": [
+  {
+   "amps": 127.7207421691901,
+   "angle_degrees": 71.47564097503529,
+   "arc_termination_type": null,
+   "ctwd_mm": 15.0,
+   "has_thermal_data": true,
+   "heat_dissipation_rate_celsius_per_sec": 0.0,
+   "heat_input_kj_per_mm": 0.41420221188470085,
+   "optional_sensors": null,
+   "thermal_snapshots": [
+    {
+     "distance_mm": 10.0,
+     "readings": [
+      {
+       "direction": "center",
+       "temp_celsius": 200.0
+      },
+      {
+       "direction": "north",
+       "temp_celsius": 26.861941250368066
+      },
+      {
+       "direction": "south",
+       "temp_celsius": 26.019339079314488
+      },
+      {
+       "direction": "east",
+       "temp_celsius": 25.009925941805605
+      },
+      {
+       "direction": "west",
+       "temp_celsius": 25.009925941805605
+      }
+     ]
+    },
+    {
+     "distance_mm": 20.0,
+     "readings": [
+      {
+       "direction": "center",
+       "temp_celsius": 25.0
+      },
+      {
+       "direction": "north",
+       "temp_celsius": 25.0
+      },
+      {
+       "direction": "south",
+       "temp_celsius": 25.0
+      },
+      {
+       "direction": "east",
+       "temp_celsius": 25.0
+      },
+      {
+       "direction": "west",
+       "temp_celsius": 25.0
+      }
+     ]
+    },
+    {
+     "distance_mm": 30.0,
+     "readings": [
+      {
+       "direction": "center",
+       "temp_celsius": 25.0
+      },
+      {
+       "direction": "north",
+       "temp_celsius": 25.0
+      },
+      {
+       "direction": "south",
+       "temp_celsius": 25.0
+      },
+      {
+       "direction": "east",
+       "temp_celsius": 25.0
+      },
+      {
+       "direction": "west",
+       "temp_celsius": 25.0
+      }
+     ]
+    },
+    {
+     "distance_mm": 40.0,
+     "readings": [
+      {
+       "direction": "center",
+       "temp_celsius": 25.0
+      },
+      {
+       "direction": "north",
+       "temp_celsius": 25.0
+      },
+      {
+       "direction": "south",
+       "temp_celsius": 25.0
+      },
+      {
+       "direction": "east",
+       "temp_celsius": 25.0
+      },
+      {
+       "direction": "west",
+       "temp_celsius": 25.0
+      }
+     ]
+    },
+    {
+     "distance_mm": 50.0,
+     "readings": [
+      {
+       "direction": "center",
+       "temp_celsius": 25.0
+      },
+      {
+       "direction": "north",
+       "temp_celsius": 25.0
+      },
+      {
+       "direction": "south",
+       "temp_celsius": 25.0
+      },
+      {
+       "direction": "east",
+       "temp_celsius": 25.0
+      },
+      {
+       "direction": "west",
+       "temp_celsius": 25.0
+      }
+     ]
+    }
+   ],
+   "timestamp_ms": 0,
+   "travel_angle_degrees": 12.0,
+   "travel_speed_mm_per_min": 400.5837816142878,
+   "volts": 21.651754389011742
+  },
+  {
+   "amps": 134.2518207796554,
+   "angle_degrees": 63.52173251234498,
+   "arc_termination_type": null,
+   "ctwd_mm": 15.0,
+   "has_thermal_data": true,
+   "heat_dissipation_rate_celsius_per_sec": 0.0,
+   "heat_input_kj_per_mm": 0.44363169613284503,
+   "optional_sensors": null,
+   "thermal_snapshots": [
+    {
+     "distance_mm": 10.0,
+     "readings": [
+      {
+       "direction": "center",
+       "temp_celsius": 200.0
+      },
+      {
+       "direction": "north",
+       "temp_celsius": 36.29555461869232
+      },
+      {
+       "direction": "south",
+       "temp_celsius": 34.61772840075603
+      },
+      {
+       "direction": "east",
+       "temp_celsius": 25.627199000010023
+      },
+      {
+       "direction": "west",
+       "temp_celsius": 25.627199000010023
+      }
+     ]
+    },
+    {
+     "distance_mm": 20.0,
+     "readings": [
+      {
+       "direction": "center",
+       "temp_celsius": 30.525889232079802
+      },
+      {
+       "direction": "north",
+       "temp_celsius": 25.337353595714113
+      },
+      {
+       "direction": "south",
+       "temp_celsius": 25.309231864113
+      },
+      {
+       "direction": "east",
+       "temp_celsius": 25.02236256305859
+      },
+      {
+       "direction": "west",
+       "temp_celsius": 25.02236256305859
+      }
+     ]
+    },
+    {
+     "distance_mm": 30.0,
+     "readings": [
+      {
+       "direction": "center",
+       "temp_celsius": 25.0
+      },
+      {
+       "direction": "north",
+       "temp_celsius": 25.0
+      },
+      {
+       "direction": "south",
+       "temp_celsius": 25.0
+      },
+      {
+       "direction": "east",
+       "temp_celsius": 25.0
+      },
+      {
+       "direction": "west",
+       "temp_celsius": 25.0
+      }
+     ]
+    },
+    {
+     "distance_mm": 40.0,
+     "readings": [
+      {
+       "direction": "center",
+       "temp_celsius": 25.0
+      },
+      {
+       "direction": "north",
+       "temp_celsius": 25.0
+      },
+      {
+       "direction": "south",
+       "temp_celsius": 25.0
+      },
+      {
+       "direction": "east",
+       "temp_celsius": 25.0
+      },
+      {
+       "direction": "west",
+       "temp_celsius": 25.0
+      }
+     ]
+    },
+    {
+     "distance_mm": 50.0,
+     "readings": [
+      {
+       "direction": "center",
+       "temp_celsius": 25.0
+      },
+      {
+       "direction": "north",
+       "temp_celsius": 25.0
+      },
+      {
+       "direction": "south",
+       "temp_celsius": 25.0
+      },
+      {
+       "direction": "east",
+       "temp_celsius": 25.0
+      },
+      {
+       "direction": "west",
+       "temp_celsius": 25.0
+      }
+     ]
+    }
+   ],
+   "timestamp_ms": 10,
+   "travel_angle_degrees": 12.0,
+   "travel_speed_mm_per_min": 396.35677665742594,
+   "volts": 21.82917992981732
+  },
+  {
+   "amps": 131.74239018030548,
+   "angle_degrees": 70.8349404295514,
+   "arc_termination_type": null,
+   "ctwd_mm": 15.0,
+   "has_thermal_data": true,
+   "heat_dissipation_rate_celsius_per_sec": 0.0,
+   "heat_input_kj_per_mm": 0.42238278398055173,
+   "optional_sensors": null,
+   "thermal_snapshots": [
+    {
+     "distance_mm": 10.0,
+     "readings": [
+      {
+       "direction": "center",
+       "temp_celsius": 200.0
+      },
+      {
+       "direction": "north",
+       "temp_celsius": 44.90072642713807
+      },
+      {
+       "direction": "south",
+       "temp_celsius": 42.49662081202132
+      },
+      {
+       "direction": "east",
+       "temp_celsius": 26.22079751936667
+      },
+      {
+       "direction": "west",
+       "temp_celsius": 26.22079751936667
+      }
+     ]
+    },
+    {
+     "distance_mm": 20.0,
+     "readings": [
+      {
+       "direction": "center",
+       "temp_celsius": 35.214170247152374
+      },
+      {
+       "direction": "north",
+       "temp_celsius": 26.182281886565534
+      },
+      {
+       "direction": "south",
+       "temp_celsius": 26.101345815795366
+      },
+      {
+       "direction": "east",
+       "temp_celsius": 25.08302120996543
+      },
+      {
+       "direction": "west",
+       "temp_celsius": 25.08302120996543
+      }
+     ]
+    },
+    {
+     "distance_mm": 30.0,
+     "readings": [
+      {
+       "direction": "center",
+       "temp_celsius": 25.17536760883724
+      },
+      {
+       "direction": "north",
+       "temp_celsius": 25.019949350498052
+      },
+      {
+       "direction": "south",
+       "temp_celsius": 25.019010791572608
+      },
+      {
+       "direction": "east",
+       "temp_celsius": 25.00147391986625
+      },
+      {
+       "direction": "west",
+       "temp_celsius": 25.00147391986625
+      }
+     ]
+    },
+    {
+     "distance_mm": 40.0,
+     "readings": [
+      {
+       "direction": "center",
+       "temp_celsius": 25.0
+      },
+      {
+       "direction": "north",
+       "temp_celsius": 25.0
+      },
+      {
+       "direction": "south",
+       "temp_celsius": 25.0
+      },
+      {
+       "direction": "east",
+       "temp_celsius": 25.0
+      },
+      {
+       "direction": "west",
+       "temp_celsius": 25.0
+      }
+     ]
+    },
+    {
+     "distance_mm": 50.0,
+     "readings": [
+      {
+       "direction": "center",
+       "temp_celsius": 25.0
+      },
+      {
+       "direction": "north",
+       "temp_celsius": 25.0
+      },
+      {
+       "direction": "south",
+       "temp_celsius": 25.0
+      },
+      {
+       "direction": "east",
+       "temp_celsius": 25.0
+      },
+      {
+       "direction": "west",
+       "temp_celsius": 25.0
+      }
+     ]
+    }
+   ],
+   "timestamp_ms": 20,
+   "travel_angle_degrees": 12.0,
+   "travel_speed_mm_per_min": 406.3742518176358,
+   "volts": 21.71478843241332
+  }
+ ],
+ "tail": [
+  {
+   "amps": 0.0,
+   "angle_degrees": 84.59327661503875,
+   "arc_termination_type": null,
+   "ctwd_mm": 15.0,
+   "has_thermal_data": true,
+   "heat_dissipation_rate_celsius_per_sec": 0.0,
+   "heat_input_kj_per_mm": null,
+   "optional_sensors": null,
+   "thermal_snapshots": [
+    {
+     "distance_mm": 10.0,
+     "readings": [
+      {
+       "direction": "center",
+       "temp_celsius": 180.0
+      },
+      {
+       "direction": "north",
+       "temp_celsius": 165.84076065573373
+      },
+      {
+       "direction": "south",
+       "temp_celsius": 165.82102739913796
+      },
+      {
+       "direction": "east",
+       "temp_celsius": 122.07328988814079
+      },
+      {
+       "direction": "west",
+       "temp_celsius": 122.07328988814079
+      }
+     ]
+    },
+    {
+     "distance_mm": 20.0,
+     "readings": [
+      {
+       "direction": "center",
+       "temp_celsius": 153.67893138980529
+      },
+      {
+       "direction": "north",
+       "temp_celsius": 152.98410544696742
+      },
+      {
+       "direction": "south",
+       "temp_celsius": 152.96609796830705
+      },
+      {
+       "direction": "east",
+       "temp_celsius": 119.38989600384883
+      },
+      {
+       "direction": "west",
+       "temp_celsius": 119.38989600384883
+      }
+     ]
+    },
+    {
+     "distance_mm": 30.0,
+     "readings": [
+      {
+       "direction": "center",
+       "temp_celsius": 140.97347708595032
+      },
+      {
+       "direction": "north",
+       "temp_celsius": 141.96944847155478
+      },
+      {
+       "direction": "south",
+       "temp_celsius": 141.9541935495762
+      },
+      {
+       "direction": "east",
+       "temp_celsius": 116.20140612954395
+      },
+      {
+       "direction": "west",
+       "temp_celsius": 116.20140612954395
+      }
+     ]
+    },
+    {
+     "distance_mm": 40.0,
+     "readings": [
+      {
+       "direction": "center",
+       "temp_celsius": 133.52121331153407
+      },
+      {
+       "direction": "north",
+       "temp_celsius": 134.5822863425775
+      },
+      {
+       "direction": "south",
+       "temp_celsius": 134.5697350830572
+      },
+      {
+       "direction": "east",
+       "temp_celsius": 113.53652253685743
+      },
+      {
+       "direction": "west",
+       "temp_celsius": 113.53652253685743
+      }
+     ]
+    },
+    {
+     "distance_mm": 50.0,
+     "readings": [
+      {
+       "direction": "center",
+       "temp_celsius": 129.8709819070632
+      },
+      {
+       "direction": "north",
+       "temp_celsius": 130.86046045508988
+      },
+      {
+       "direction": "south",
+       "temp_celsius": 130.8495558585663
+      },
+      {
+       "direction": "east",
+       "temp_celsius": 112.03144124907767
+      },
+      {
+       "direction": "west",
+       "temp_celsius": 112.03144124907767
+      }
+     ]
+    }
+   ],
+   "timestamp_ms": 14970,
+   "travel_angle_degrees": 12.0,
+   "travel_speed_mm_per_min": 404.9908859466816,
+   "volts": 0.0
+  },
+  {
+   "amps": 0.0,
+   "angle_degrees": 79.18803636794887,
+   "arc_termination_type": null,
+   "ctwd_mm": 15.0,
+   "has_thermal_data": true,
+   "heat_dissipation_rate_celsius_per_sec": 0.0,
+   "heat_input_kj_per_mm": null,
+   "optional_sensors": null,
+   "thermal_snapshots": [
+    {
+     "distance_mm": 10.0,
+     "readings": [
+      {
+       "direction": "center",
+       "temp_celsius": 180.0
+      },
+      {
+       "direction": "north",
+       "temp_celsius": 165.7952269372474
+      },
+      {
+       "direction": "south",
+       "temp_celsius": 165.77646754268983
+      },
+      {
+       "direction": "east",
+       "temp_celsius": 122.03915151821043
+      },
+      {
+       "direction": "west",
+       "temp_celsius": 122.03915151821043
+      }
+     ]
+    },
+    {
+     "distance_mm": 20.0,
+     "readings": [
+      {
+       "direction": "center",
+       "temp_celsius": 153.61140155919728
+      },
+      {
+       "direction": "north",
+       "temp_celsius": 152.90623841888063
+      },
+      {
+       "direction": "south",
+       "temp_celsius": 152.88910134107263
+      },
+      {
+       "direction": "east",
+       "temp_celsius": 119.35569122501353
+      },
+      {
+       "direction": "west",
+       "temp_celsius": 119.35569122501353
+      }
+     ]
+    },
+    {
+     "distance_mm": 30.0,
+     "readings": [
+      {
+       "direction": "center",
+       "temp_celsius": 140.88752549628487
+      },
+      {
+       "direction": "north",
+       "temp_celsius": 141.87857132070428
+      },
+      {
+       "direction": "south",
+       "temp_celsius": 141.86402309105245
+      },
+      {
+       "direction": "east",
+       "temp_celsius": 116.17254347086019
+      },
+      {
+       "direction": "west",
+       "temp_celsius": 116.17254347086019
+      }
+     ]
+    },
+    {
+     "distance_mm": 40.0,
+     "readings": [
+      {
+       "direction": "center",
+       "temp_celsius": 133.44132199495857
+      },
+      {
+       "direction": "north",
+       "temp_celsius": 134.49854556085344
+      },
+      {
+       "direction": "south",
+       "temp_celsius": 134.48654181047914
+      },
+      {
+       "direction": "east",
+       "temp_celsius": 113.51641933516822
+      },
+      {
+       "direction": "west",
+       "temp_celsius": 113.51641933516822
+      }
+     ]
+    },
+    {
+     "distance_mm": 50.0,
+     "readings": [
+      {
+       "direction": "center",
+       "temp_celsius": 129.80110221721807
+      },
+      {
+       "direction": "north",
+       "temp_celsius": 130.7871659375822
+      },
+      {
+       "direction": "south",
+       "temp_celsius": 130.77671271158562
+      },
+      {
+       "direction": "east",
+       "temp_celsius": 112.01788881183927
+      },
+      {
+       "direction": "west",
+       "temp_celsius": 112.01788881183927
+      }
+     ]
+    }
+   ],
+   "timestamp_ms": 14980,
+   "travel_angle_degrees": 12.0,
+   "travel_speed_mm_per_min": 398.89682925527507,
+   "volts": 0.0
+  },
+  {
+   "amps": 0.0,
+   "angle_degrees": 85.0,
+   "arc_termination_type": null,
+   "ctwd_mm": 15.0,
+   "has_thermal_data": true,
+   "heat_dissipation_rate_celsius_per_sec": 0.0,
+   "heat_input_kj_per_mm": null,
+   "optional_sensors": null,
+   "thermal_snapshots": [
+    {
+     "distance_mm": 10.0,
+     "readings": [
+      {
+       "direction": "center",
+       "temp_celsius": 180.0
+      },
+      {
+       "direction": "north",
+       "temp_celsius": 165.75062214343865
+      },
+      {
+       "direction": "south",
+       "temp_celsius": 165.7327879390673
+      },
+      {
+       "direction": "east",
+       "temp_celsius": 122.00517626115378
+      },
+      {
+       "direction": "west",
+       "temp_celsius": 122.00517626115378
+      }
+     ]
+    },
+    {
+     "distance_mm": 20.0,
+     "readings": [
+      {
+       "direction": "center",
+       "temp_celsius": 153.54493419299598
+      },
+      {
+       "direction": "north",
+       "temp_celsius": 152.82967480536033
+      },
+      {
+       "direction": "south",
+       "temp_celsius": 152.81336570277043
+      },
+      {
+       "direction": "east",
+       "temp_celsius": 119.32161247556773
+      },
+      {
+       "direction": "west",
+       "temp_celsius": 119.32161247556773
+      }
+     ]
+    },
+    {
+     "distance_mm": 30.0,
+     "readings": [
+      {
+       "direction": "center",
+       "temp_celsius": 140.8025390317716
+      },
+      {
+       "direction": "north",
+       "temp_celsius": 141.78876269111652
+      },
+      {
+       "direction": "south",
+       "temp_celsius": 141.77488849133275
+      },
+      {
+       "direction": "east",
+       "temp_celsius": 116.14364097184284
+      },
+      {
+       "direction": "west",
+       "temp_celsius": 116.14364097184284
+      }
+     ]
+    },
+    {
+     "distance_mm": 40.0,
+     "readings": [
+      {
+       "direction": "center",
+       "temp_celsius": 133.36179363435355
+      },
+      {
+       "direction": "north",
+       "temp_celsius": 134.41522003773517
+      },
+      {
+       "direction": "south",
+       "temp_celsius": 134.40374047839202
+      },
+      {
+       "direction": "east",
+       "temp_celsius": 113.49605496064271
+      },
+      {
+       "direction": "west",
+       "temp_celsius": 113.49605496064271
+      }
+     ]
+    },
+    {
+     "distance_mm": 50.0,
+     "readings": [
+      {
+       "direction": "center",
+       "temp_celsius": 129.7310954761511
+      },
+      {
+       "direction": "north",
+       "temp_celsius": 130.71377041130324
+      },
+      {
+       "direction": "south",
+       "temp_celsius": 130.70375080618484
+      },
+      {
+       "direction": "east",
+       "temp_celsius": 112.0039248610593
+      },
+      {
+       "direction": "west",
+       "temp_celsius": 112.0039248610593
+      }
+     ]
+    }
+   ],
+   "timestamp_ms": 14990,
+   "travel_angle_degrees": 12.0,
+   "travel_speed_mm_per_min": 401.6665967965164,
+   "volts": 0.0
+  }
+ ]
+}

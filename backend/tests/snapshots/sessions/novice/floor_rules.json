@@ -1,0 +1,41 @@
+{
+ "max_wqi": null,
+ "mean_wqi": null,
+ "median_wqi": null,
+ "min_wqi": null,
+ "rules": [
+  {
+   "actual_value": 12.117661889754057,
+   "passed": false,
+   "rule_id": "amps_stability",
+   "threshold": 5.0
+  },
+  {
+   "actual_value": 20.789296314222383,
+   "passed": false,
+   "rule_id": "angle_consistency",
+   "threshold": 5.0
+  },
+  {
+   "actual_value": 56.86613042926842,
+   "passed": true,
+   "rule_id": "thermal_symmetry",
+   "threshold": 60.0
+  },
+  {
+   "actual_value": 38.06664075449182,
+   "passed": true,
+   "rule_id": "heat_diss_consistency",
+   "threshold": 80.0
+  },
+  {
+   "actual_value": 5.955396147502373,
+   "passed": false,
+   "rule_id": "volts_stability",
+   "threshold": 1.0
+  }
+ ],
+ "total": 40,
+ "wqi_timeline": null,
+ "wqi_trend": null
+}

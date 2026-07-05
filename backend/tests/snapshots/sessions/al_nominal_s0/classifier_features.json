@@ -1,0 +1,15 @@
+{
+ "amps_cv": 0.04097800403044135,
+ "angle_deviation_mean": 4.4343173710236,
+ "angle_max_drift_1s": 17.747899559193904,
+ "arc_on_ratio": 0.88,
+ "heat_diss_max_spike": 15.85225339030254,
+ "heat_diss_mean": 1.6183554386120587,
+ "heat_input_cv": 0.042431103451012954,
+ "heat_input_drop_severity": 13.802603380207074,
+ "heat_input_mean": 5504.557624197354,
+ "heat_input_min_rolling": 5418.211311749471,
+ "quality_label": null,
+ "session_id": "al_nominal_s0",
+ "voltage_cv": 0.013471926849776631
+}

@@ -1,0 +1,25 @@
+{
+ "artifact_sha256": {
+  "config/alert_thresholds.json": "5721cd421778c9ee30f414928ae7d9be5ffe3a83ed33178b079e8a854e0775ab",
+  "config/report_thresholds.json": "0bb84a3b55a074ff9db91264dee9c30fa75fe4acede771f7bca4a2d10d245c60",
+  "config/scoring_config.json": "2af878c8382a3223738b7e327b4558a021fdbb2f33181ccf6e9fdaff6233c97d",
+  "ml_models/weld_classifier.joblib": "1d5d2616373c944029c796ff5f73c9b57c178ec2b56021e4bc83e1666684b2f1"
+ },
+ "packages": {
+  "joblib": "1.5.3",
+  "numpy": "1.26.4",
+  "pandas": "3.0.1",
+  "pydantic": "2.12.5",
+  "scikit-learn": "1.4.2"
+ },
+ "python": "3.12.5",
+ "pythonhashseed": "0",
+ "scrub_keys": [
+  "completed_at",
+  "computed_at_ms",
+  "generated_at",
+  "start_time"
+ ],
+ "snapshot_file_count": 76,
+ "spec_version": 1
+}

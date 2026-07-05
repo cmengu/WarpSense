@@ -1,0 +1,41 @@
+{
+ "features": {
+  "amps_cv": 0.05,
+  "angle_deviation_mean": 4.0,
+  "angle_max_drift_1s": 6.0,
+  "arc_on_ratio": 0.93,
+  "heat_diss_max_spike": 41.0,
+  "heat_diss_mean": 1.2,
+  "heat_input_cv": 0.07,
+  "heat_input_drop_severity": 7.0,
+  "heat_input_mean": 5200.0,
+  "heat_input_min_rolling": 4200.0,
+  "quality_label": "MARGINAL",
+  "session_id": "TC_021",
+  "voltage_cv": 0.05
+ },
+ "prediction": {
+  "all_probabilities": {
+   "DEFECTIVE": 0.0002266639616239501,
+   "GOOD": 0.9991605298174645,
+   "MARGINAL": 0.0006128062209115443
+  },
+  "confidence": 0.9991605298174645,
+  "quality_class": "GOOD",
+  "session_id": "TC_021",
+  "top_drivers": [
+   [
+    "angle_max_drift_1s",
+    0.6190976500764162
+   ],
+   [
+    "arc_on_ratio",
+    0.17869342474443398
+   ],
+   [
+    "heat_input_mean",
+    0.14216186302495676
+   ]
+  ]
+ }
+}

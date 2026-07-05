@@ -1,0 +1,10 @@
+{
+ "amps_stddev": 81.8666222227512,
+ "angle_max_deviation": 26.35465493666581,
+ "cyclogram_area": 9.5273,
+ "heat_diss_stddev": 81.93035050217077,
+ "north_south_delta_avg": 4.493326680053315,
+ "porosity_event_count": 0,
+ "travel_speed_stddev": 67.64646448267912,
+ "volts_range": 23.06259158602872
+}

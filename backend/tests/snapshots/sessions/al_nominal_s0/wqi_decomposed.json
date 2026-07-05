@@ -1,0 +1,650 @@
+{
+ "alerts": [
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Reduce travel speed or current",
+   "frame_index": 201,
+   "message": "Undercut risk: high current and high speed",
+   "rule_triggered": "undercut",
+   "severity": "critical",
+   "timestamp_ms": 2010.0
+  },
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Use controlled ramp-down at bead end",
+   "frame_index": 220,
+   "message": "Crater crack risk: abrupt arc termination",
+   "rule_triggered": "crater_crack",
+   "severity": "critical",
+   "timestamp_ms": 2200.0
+  },
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Reduce speed below 520 mm/min",
+   "frame_index": 291,
+   "message": "Lack of fusion risk: travel speed too high",
+   "rule_triggered": "lack_of_fusion_speed",
+   "severity": "critical",
+   "timestamp_ms": 2910.0
+  },
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Reduce travel speed or current",
+   "frame_index": 301,
+   "message": "Undercut risk: high current and high speed",
+   "rule_triggered": "undercut",
+   "severity": "critical",
+   "timestamp_ms": 3010.0
+  },
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Use controlled ramp-down at bead end",
+   "frame_index": 470,
+   "message": "Crater crack risk: abrupt arc termination",
+   "rule_triggered": "crater_crack",
+   "severity": "critical",
+   "timestamp_ms": 4700.0
+  },
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Reduce travel speed or current",
+   "frame_index": 507,
+   "message": "Undercut risk: high current and high speed",
+   "rule_triggered": "undercut",
+   "severity": "critical",
+   "timestamp_ms": 5070.0
+  },
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Reduce travel speed or current",
+   "frame_index": 716,
+   "message": "Undercut risk: high current and high speed",
+   "rule_triggered": "undercut",
+   "severity": "critical",
+   "timestamp_ms": 7160.0
+  },
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Use controlled ramp-down at bead end",
+   "frame_index": 720,
+   "message": "Crater crack risk: abrupt arc termination",
+   "rule_triggered": "crater_crack",
+   "severity": "critical",
+   "timestamp_ms": 7200.0
+  },
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Reduce speed below 520 mm/min",
+   "frame_index": 721,
+   "message": "Lack of fusion risk: travel speed too high",
+   "rule_triggered": "lack_of_fusion_speed",
+   "severity": "critical",
+   "timestamp_ms": 7210.0
+  },
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Reduce travel speed or current",
+   "frame_index": 816,
+   "message": "Undercut risk: high current and high speed",
+   "rule_triggered": "undercut",
+   "severity": "critical",
+   "timestamp_ms": 8160.0
+  },
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Reduce speed below 520 mm/min",
+   "frame_index": 848,
+   "message": "Lack of fusion risk: travel speed too high",
+   "rule_triggered": "lack_of_fusion_speed",
+   "severity": "critical",
+   "timestamp_ms": 8480.0
+  },
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Reduce travel speed or current",
+   "frame_index": 916,
+   "message": "Undercut risk: high current and high speed",
+   "rule_triggered": "undercut",
+   "severity": "critical",
+   "timestamp_ms": 9160.0
+  },
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Reduce speed below 520 mm/min",
+   "frame_index": 948,
+   "message": "Lack of fusion risk: travel speed too high",
+   "rule_triggered": "lack_of_fusion_speed",
+   "severity": "critical",
+   "timestamp_ms": 9480.0
+  },
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Use controlled ramp-down at bead end",
+   "frame_index": 970,
+   "message": "Crater crack risk: abrupt arc termination",
+   "rule_triggered": "crater_crack",
+   "severity": "critical",
+   "timestamp_ms": 9700.0
+  },
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Use controlled ramp-down at bead end",
+   "frame_index": 1220,
+   "message": "Crater crack risk: abrupt arc termination",
+   "rule_triggered": "crater_crack",
+   "severity": "critical",
+   "timestamp_ms": 12200.0
+  },
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Use controlled ramp-down at bead end",
+   "frame_index": 1470,
+   "message": "Crater crack risk: abrupt arc termination",
+   "rule_triggered": "crater_crack",
+   "severity": "critical",
+   "timestamp_ms": 14700.0
+  }
+ ],
+ "score": {
+  "arc_on_frame_count": 1320,
+  "components": {
+   "arc_termination": {
+    "excursions": [],
+    "name": "arc_termination",
+    "passed": true,
+    "score": 1.0,
+    "summary": "0 abrupt arc terminations without crater fill"
+   },
+   "defect_alerts": {
+    "excursions": [
+     {
+      "duration_ms": 0.0,
+      "parameter": "undercut",
+      "threshold": 0.0,
+      "timestamp_ms": 2010.0,
+      "value": 1.0
+     },
+     {
+      "duration_ms": 0.0,
+      "parameter": "crater_crack",
+      "threshold": 0.0,
+      "timestamp_ms": 2200.0,
+      "value": 1.0
+     },
+     {
+      "duration_ms": 0.0,
+      "parameter": "lack_of_fusion_speed",
+      "threshold": 0.0,
+      "timestamp_ms": 2910.0,
+      "value": 1.0
+     },
+     {
+      "duration_ms": 0.0,
+      "parameter": "undercut",
+      "threshold": 0.0,
+      "timestamp_ms": 3010.0,
+      "value": 1.0
+     },
+     {
+      "duration_ms": 0.0,
+      "parameter": "crater_crack",
+      "threshold": 0.0,
+      "timestamp_ms": 4700.0,
+      "value": 1.0
+     },
+     {
+      "duration_ms": 0.0,
+      "parameter": "undercut",
+      "threshold": 0.0,
+      "timestamp_ms": 5070.0,
+      "value": 1.0
+     },
+     {
+      "duration_ms": 0.0,
+      "parameter": "undercut",
+      "threshold": 0.0,
+      "timestamp_ms": 7160.0,
+      "value": 1.0
+     },
+     {
+      "duration_ms": 0.0,
+      "parameter": "crater_crack",
+      "threshold": 0.0,
+      "timestamp_ms": 7200.0,
+      "value": 1.0
+     },
+     {
+      "duration_ms": 0.0,
+      "parameter": "lack_of_fusion_speed",
+      "threshold": 0.0,
+      "timestamp_ms": 7210.0,
+      "value": 1.0
+     },
+     {
+      "duration_ms": 0.0,
+      "parameter": "undercut",
+      "threshold": 0.0,
+      "timestamp_ms": 8160.0,
+      "value": 1.0
+     },
+     {
+      "duration_ms": 0.0,
+      "parameter": "lack_of_fusion_speed",
+      "threshold": 0.0,
+      "timestamp_ms": 8480.0,
+      "value": 1.0
+     },
+     {
+      "duration_ms": 0.0,
+      "parameter": "undercut",
+      "threshold": 0.0,
+      "timestamp_ms": 9160.0,
+      "value": 1.0
+     },
+     {
+      "duration_ms": 0.0,
+      "parameter": "lack_of_fusion_speed",
+      "threshold": 0.0,
+      "timestamp_ms": 9480.0,
+      "value": 1.0
+     },
+     {
+      "duration_ms": 0.0,
+      "parameter": "crater_crack",
+      "threshold": 0.0,
+      "timestamp_ms": 9700.0,
+      "value": 1.0
+     },
+     {
+      "duration_ms": 0.0,
+      "parameter": "crater_crack",
+      "threshold": 0.0,
+      "timestamp_ms": 12200.0,
+      "value": 1.0
+     },
+     {
+      "duration_ms": 0.0,
+      "parameter": "crater_crack",
+      "threshold": 0.0,
+      "timestamp_ms": 14700.0,
+      "value": 1.0
+     }
+    ],
+    "name": "defect_alerts",
+    "passed": false,
+    "score": 0.0,
+    "summary": "defects: {'undercut': 6, 'crater_crack': 6, 'lack_of_fusion_speed': 4}"
+   },
+   "heat_input": {
+    "excursions": [
+     {
+      "duration_ms": 140.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 0.0,
+      "value": 0.8258372057524666
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 150.0,
+      "value": 0.8137012888742559
+     },
+     {
+      "duration_ms": 20.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 180.0,
+      "value": 0.8800052441334244
+     },
+     {
+      "duration_ms": 90.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 210.0,
+      "value": 0.8869617465642595
+     },
+     {
+      "duration_ms": 10380.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 310.0,
+      "value": 0.8428047220964417
+     },
+     {
+      "duration_ms": 200.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 10700.0,
+      "value": 0.8160892996152075
+     },
+     {
+      "duration_ms": 20.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 10910.0,
+      "value": 0.8770139659133038
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 10990.0,
+      "value": 0.8933581989755756
+     },
+     {
+      "duration_ms": 40.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 11040.0,
+      "value": 0.8582662291473245
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 11220.0,
+      "value": 0.8487859391766858
+     },
+     {
+      "duration_ms": 30.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 11280.0,
+      "value": 0.8598500819846194
+     },
+     {
+      "duration_ms": 30.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 11320.0,
+      "value": 0.8784359053171347
+     },
+     {
+      "duration_ms": 20.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 11370.0,
+      "value": 0.8924734879337656
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 11810.0,
+      "value": 0.8989441422705636
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 11980.0,
+      "value": 0.8836888281215002
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 12050.0,
+      "value": 0.8879065492293937
+     },
+     {
+      "duration_ms": 300.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 12200.0,
+      "value": 0.0
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 13190.0,
+      "value": 0.8260890137962441
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 13220.0,
+      "value": 0.8543221763557267
+     },
+     {
+      "duration_ms": 20.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 13240.0,
+      "value": 0.8776948634639142
+     },
+     {
+      "duration_ms": 40.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 13270.0,
+      "value": 0.8179351289841416
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 13330.0,
+      "value": 0.8511750770244362
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 13370.0,
+      "value": 0.8340629691504959
+     },
+     {
+      "duration_ms": 20.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 13390.0,
+      "value": 0.8619739000805205
+     },
+     {
+      "duration_ms": 440.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 13440.0,
+      "value": 0.8505243426489646
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 13890.0,
+      "value": 0.825944181951434
+     },
+     {
+      "duration_ms": 40.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 13950.0,
+      "value": 0.8864771955399261
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 14020.0,
+      "value": 0.8527959733958993
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 14040.0,
+      "value": 0.7640664104421365
+     },
+     {
+      "duration_ms": 30.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 14090.0,
+      "value": 0.868374098794398
+     },
+     {
+      "duration_ms": 20.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 14150.0,
+      "value": 0.884537386115395
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 14180.0,
+      "value": 0.8629244805617181
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 14210.0,
+      "value": 0.8983211745296042
+     },
+     {
+      "duration_ms": 30.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 14260.0,
+      "value": 0.8817773633851083
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 14300.0,
+      "value": 0.8385705162318241
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 14330.0,
+      "value": 0.8950387345424722
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 14430.0,
+      "value": 0.8747885724106813
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 14580.0,
+      "value": 0.8897464680313559
+     },
+     {
+      "duration_ms": 30.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 14630.0,
+      "value": 0.8962535688459359
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 14670.0,
+      "value": 0.8874256274559796
+     },
+     {
+      "duration_ms": 290.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 14700.0,
+      "value": 0.0
+     }
+    ],
+    "name": "heat_input",
+    "passed": false,
+    "score": 0.727,
+    "summary": "41 heat input excursions vs WPS range 0.9\u20131.5 kJ/mm"
+   },
+   "interpass": {
+    "excursions": [
+     {
+      "duration_ms": 10.0,
+      "parameter": "interpass_gap_ms",
+      "threshold": 45000.0,
+      "timestamp_ms": 2490.0,
+      "value": 10.0
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "interpass_gap_ms",
+      "threshold": 45000.0,
+      "timestamp_ms": 4990.0,
+      "value": 10.0
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "interpass_gap_ms",
+      "threshold": 45000.0,
+      "timestamp_ms": 7490.0,
+      "value": 10.0
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "interpass_gap_ms",
+      "threshold": 45000.0,
+      "timestamp_ms": 9990.0,
+      "value": 10.0
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "interpass_gap_ms",
+      "threshold": 45000.0,
+      "timestamp_ms": 12490.0,
+      "value": 10.0
+     }
+    ],
+    "name": "interpass",
+    "passed": false,
+    "score": 0.0,
+    "summary": "5 interpass violations (< 45000ms gap). Timer proxy only."
+   },
+   "torch_angle": {
+    "excursions": [],
+    "name": "torch_angle",
+    "passed": true,
+    "score": 1.0,
+    "summary": "0 torch angle excursions (max 20.0\u00b0, no drag)"
+   }
+  },
+  "computed_at_ms": "__SCRUBBED__",
+  "frame_count": 1500,
+  "overall_score": 0.754,
+  "passed": false,
+  "session_id": "al_nominal_s0",
+  "wps_range_kj_per_mm": [
+   0.9,
+   1.5
+  ]
+ }
+}

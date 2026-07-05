@@ -1,0 +1,1964 @@
+{
+ "alerts": [
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Increase current to 140+ A",
+   "frame_index": 0,
+   "message": "Lack of fusion risk: low current",
+   "rule_triggered": "lack_of_fusion_amps",
+   "severity": "critical",
+   "timestamp_ms": 0.0
+  },
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Travel angle too shallow \u2014 increase to 12\u00b0",
+   "frame_index": 4,
+   "message": "Torch angle 5.4\u00b0 vs 12.0\u00b0 nominal (warning)",
+   "rule_triggered": "rule2",
+   "severity": "warning",
+   "timestamp_ms": 40.0
+  },
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Maintain push angle; avoid dragging torch",
+   "frame_index": 8,
+   "message": "Oxide inclusion risk: argon trailing (negative travel angle)",
+   "rule_triggered": "oxide_inclusion",
+   "severity": "warning",
+   "timestamp_ms": 80.0
+  },
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Slowing down \u2014 maintain pace",
+   "frame_index": 20,
+   "message": "Speed 396 mm/min \u2014 17.0% drop (warning)",
+   "rule_triggered": "rule3",
+   "severity": "warning",
+   "timestamp_ms": 200.0
+  },
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Reduce speed below 520 mm/min",
+   "frame_index": 54,
+   "message": "Lack of fusion risk: travel speed too high",
+   "rule_triggered": "lack_of_fusion_speed",
+   "severity": "critical",
+   "timestamp_ms": 540.0
+  },
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Travel angle too shallow \u2014 increase to 12\u00b0",
+   "frame_index": 104,
+   "message": "Torch angle -0.3\u00b0 vs 12.0\u00b0 nominal (critical)",
+   "rule_triggered": "rule2",
+   "severity": "critical",
+   "timestamp_ms": 1040.0
+  },
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Speed critical \u2014 increase to 420mm/min",
+   "frame_index": 120,
+   "message": "Speed 267 mm/min \u2014 42.9% drop (critical)",
+   "rule_triggered": "rule3",
+   "severity": "critical",
+   "timestamp_ms": 1200.0
+  },
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Travel angle too shallow \u2014 increase to 12\u00b0",
+   "frame_index": 215,
+   "message": "Torch angle 3.8\u00b0 vs 12.0\u00b0 nominal (critical)",
+   "rule_triggered": "rule2",
+   "severity": "critical",
+   "timestamp_ms": 2150.0
+  },
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Slowing down \u2014 maintain pace",
+   "frame_index": 220,
+   "message": "Speed 392 mm/min \u2014 17.5% drop (warning)",
+   "rule_triggered": "rule3",
+   "severity": "warning",
+   "timestamp_ms": 2200.0
+  },
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Maintain push angle; avoid dragging torch",
+   "frame_index": 283,
+   "message": "Oxide inclusion risk: argon trailing (negative travel angle)",
+   "rule_triggered": "oxide_inclusion",
+   "severity": "warning",
+   "timestamp_ms": 2830.0
+  },
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Travel angle too shallow \u2014 increase to 12\u00b0",
+   "frame_index": 315,
+   "message": "Torch angle -10.3\u00b0 vs 12.0\u00b0 nominal (critical)",
+   "rule_triggered": "rule2",
+   "severity": "critical",
+   "timestamp_ms": 3150.0
+  },
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Increase travel angle to push and speed to 250+ mm/min",
+   "frame_index": 319,
+   "message": "Porosity risk: drag angle and low speed",
+   "rule_triggered": "porosity",
+   "severity": "critical",
+   "timestamp_ms": 3190.0
+  },
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Speed critical \u2014 increase to 420mm/min",
+   "frame_index": 320,
+   "message": "Speed 225 mm/min \u2014 47.1% drop (critical)",
+   "rule_triggered": "rule3",
+   "severity": "critical",
+   "timestamp_ms": 3200.0
+  },
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Use controlled ramp-down at bead end",
+   "frame_index": 380,
+   "message": "Crater crack risk: abrupt arc termination",
+   "rule_triggered": "crater_crack",
+   "severity": "critical",
+   "timestamp_ms": 3800.0
+  },
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Travel angle too shallow \u2014 increase to 12\u00b0",
+   "frame_index": 415,
+   "message": "Torch angle -30.0\u00b0 vs 12.0\u00b0 nominal (critical)",
+   "rule_triggered": "rule2",
+   "severity": "critical",
+   "timestamp_ms": 4150.0
+  },
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Increase travel angle to push and speed to 250+ mm/min",
+   "frame_index": 419,
+   "message": "Porosity risk: drag angle and low speed",
+   "rule_triggered": "porosity",
+   "severity": "critical",
+   "timestamp_ms": 4190.0
+  },
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Speed critical \u2014 increase to 420mm/min",
+   "frame_index": 420,
+   "message": "Speed 202 mm/min \u2014 50.9% drop (critical)",
+   "rule_triggered": "rule3",
+   "severity": "critical",
+   "timestamp_ms": 4200.0
+  },
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Speed critical \u2014 increase to 420mm/min",
+   "frame_index": 520,
+   "message": "Speed 260 mm/min \u2014 35.9% drop (critical)",
+   "rule_triggered": "rule3",
+   "severity": "critical",
+   "timestamp_ms": 5200.0
+  },
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Travel angle too shallow \u2014 increase to 12\u00b0",
+   "frame_index": 539,
+   "message": "Torch angle 4.0\u00b0 vs 12.0\u00b0 nominal (critical)",
+   "rule_triggered": "rule2",
+   "severity": "critical",
+   "timestamp_ms": 5390.0
+  },
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Maintain push angle; avoid dragging torch",
+   "frame_index": 545,
+   "message": "Oxide inclusion risk: argon trailing (negative travel angle)",
+   "rule_triggered": "oxide_inclusion",
+   "severity": "warning",
+   "timestamp_ms": 5450.0
+  },
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Increase travel angle to push and speed to 250+ mm/min",
+   "frame_index": 618,
+   "message": "Porosity risk: drag angle and low speed",
+   "rule_triggered": "porosity",
+   "severity": "critical",
+   "timestamp_ms": 6180.0
+  },
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Speed critical \u2014 increase to 420mm/min",
+   "frame_index": 620,
+   "message": "Speed 225 mm/min \u2014 47.6% drop (critical)",
+   "rule_triggered": "rule3",
+   "severity": "critical",
+   "timestamp_ms": 6200.0
+  },
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Travel angle too shallow \u2014 increase to 12\u00b0",
+   "frame_index": 640,
+   "message": "Torch angle 4.0\u00b0 vs 12.0\u00b0 nominal (critical)",
+   "rule_triggered": "rule2",
+   "severity": "critical",
+   "timestamp_ms": 6400.0
+  },
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Reduce speed below 520 mm/min",
+   "frame_index": 641,
+   "message": "Lack of fusion risk: travel speed too high",
+   "rule_triggered": "lack_of_fusion_speed",
+   "severity": "critical",
+   "timestamp_ms": 6410.0
+  },
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Maintain push angle; avoid dragging torch",
+   "frame_index": 718,
+   "message": "Oxide inclusion risk: argon trailing (negative travel angle)",
+   "rule_triggered": "oxide_inclusion",
+   "severity": "warning",
+   "timestamp_ms": 7180.0
+  },
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Travel angle too shallow \u2014 increase to 12\u00b0",
+   "frame_index": 740,
+   "message": "Torch angle -5.9\u00b0 vs 12.0\u00b0 nominal (critical)",
+   "rule_triggered": "rule2",
+   "severity": "critical",
+   "timestamp_ms": 7400.0
+  },
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Reduce speed below 520 mm/min",
+   "frame_index": 743,
+   "message": "Lack of fusion risk: travel speed too high",
+   "rule_triggered": "lack_of_fusion_speed",
+   "severity": "critical",
+   "timestamp_ms": 7430.0
+  },
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Slowing down \u2014 maintain pace",
+   "frame_index": 753,
+   "message": "Speed 437 mm/min \u2014 16.1% drop (warning)",
+   "rule_triggered": "rule3",
+   "severity": "warning",
+   "timestamp_ms": 7530.0
+  },
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Use controlled ramp-down at bead end",
+   "frame_index": 760,
+   "message": "Crater crack risk: abrupt arc termination",
+   "rule_triggered": "crater_crack",
+   "severity": "critical",
+   "timestamp_ms": 7600.0
+  },
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Increase travel angle to push and speed to 250+ mm/min",
+   "frame_index": 778,
+   "message": "Porosity risk: drag angle and low speed",
+   "rule_triggered": "porosity",
+   "severity": "critical",
+   "timestamp_ms": 7780.0
+  },
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Travel angle too shallow \u2014 increase to 12\u00b0",
+   "frame_index": 840,
+   "message": "Torch angle -1.3\u00b0 vs 12.0\u00b0 nominal (critical)",
+   "rule_triggered": "rule2",
+   "severity": "critical",
+   "timestamp_ms": 8400.0
+  },
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Speed critical \u2014 increase to 420mm/min",
+   "frame_index": 853,
+   "message": "Speed 200 mm/min \u2014 61.9% drop (critical)",
+   "rule_triggered": "rule3",
+   "severity": "critical",
+   "timestamp_ms": 8530.0
+  },
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Increase travel angle to push and speed to 250+ mm/min",
+   "frame_index": 878,
+   "message": "Porosity risk: drag angle and low speed",
+   "rule_triggered": "porosity",
+   "severity": "critical",
+   "timestamp_ms": 8780.0
+  },
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Travel angle too shallow \u2014 increase to 12\u00b0",
+   "frame_index": 940,
+   "message": "Torch angle -18.3\u00b0 vs 12.0\u00b0 nominal (critical)",
+   "rule_triggered": "rule2",
+   "severity": "critical",
+   "timestamp_ms": 9400.0
+  },
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Speed critical \u2014 increase to 420mm/min",
+   "frame_index": 953,
+   "message": "Speed 327 mm/min \u2014 35.6% drop (critical)",
+   "rule_triggered": "rule3",
+   "severity": "critical",
+   "timestamp_ms": 9530.0
+  },
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Increase travel angle to push and speed to 250+ mm/min",
+   "frame_index": 978,
+   "message": "Porosity risk: drag angle and low speed",
+   "rule_triggered": "porosity",
+   "severity": "critical",
+   "timestamp_ms": 9780.0
+  },
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Travel angle too steep \u2014 reduce to 12\u00b0",
+   "frame_index": 1040,
+   "message": "Torch angle 23.3\u00b0 vs 12.0\u00b0 nominal (critical)",
+   "rule_triggered": "rule2",
+   "severity": "critical",
+   "timestamp_ms": 10400.0
+  },
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Speed critical \u2014 increase to 420mm/min",
+   "frame_index": 1053,
+   "message": "Speed 337 mm/min \u2014 33.0% drop (critical)",
+   "rule_triggered": "rule3",
+   "severity": "critical",
+   "timestamp_ms": 10530.0
+  },
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Increase travel angle to push and speed to 250+ mm/min",
+   "frame_index": 1108,
+   "message": "Porosity risk: drag angle and low speed",
+   "rule_triggered": "porosity",
+   "severity": "critical",
+   "timestamp_ms": 11080.0
+  },
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Use controlled ramp-down at bead end",
+   "frame_index": 1140,
+   "message": "Crater crack risk: abrupt arc termination",
+   "rule_triggered": "crater_crack",
+   "severity": "critical",
+   "timestamp_ms": 11400.0
+  },
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Speed critical \u2014 increase to 420mm/min",
+   "frame_index": 1153,
+   "message": "Speed 200 mm/min \u2014 64.4% drop (critical)",
+   "rule_triggered": "rule3",
+   "severity": "critical",
+   "timestamp_ms": 11530.0
+  },
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Travel angle too shallow \u2014 increase to 12\u00b0",
+   "frame_index": 1174,
+   "message": "Torch angle 3.1\u00b0 vs 12.0\u00b0 nominal (critical)",
+   "rule_triggered": "rule2",
+   "severity": "critical",
+   "timestamp_ms": 11740.0
+  },
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Increase travel angle to push and speed to 250+ mm/min",
+   "frame_index": 1208,
+   "message": "Porosity risk: drag angle and low speed",
+   "rule_triggered": "porosity",
+   "severity": "critical",
+   "timestamp_ms": 12080.0
+  },
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Speed critical \u2014 increase to 420mm/min",
+   "frame_index": 1253,
+   "message": "Speed 386 mm/min \u2014 32.0% drop (critical)",
+   "rule_triggered": "rule3",
+   "severity": "critical",
+   "timestamp_ms": 12530.0
+  },
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Travel angle too shallow \u2014 increase to 12\u00b0",
+   "frame_index": 1274,
+   "message": "Torch angle -2.5\u00b0 vs 12.0\u00b0 nominal (critical)",
+   "rule_triggered": "rule2",
+   "severity": "critical",
+   "timestamp_ms": 12740.0
+  },
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Increase travel angle to push and speed to 250+ mm/min",
+   "frame_index": 1308,
+   "message": "Porosity risk: drag angle and low speed",
+   "rule_triggered": "porosity",
+   "severity": "critical",
+   "timestamp_ms": 13080.0
+  },
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Speed critical \u2014 increase to 420mm/min",
+   "frame_index": 1353,
+   "message": "Speed 375 mm/min \u2014 35.7% drop (critical)",
+   "rule_triggered": "rule3",
+   "severity": "critical",
+   "timestamp_ms": 13530.0
+  },
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Reduce speed below 520 mm/min",
+   "frame_index": 1359,
+   "message": "Lack of fusion risk: travel speed too high",
+   "rule_triggered": "lack_of_fusion_speed",
+   "severity": "critical",
+   "timestamp_ms": 13590.0
+  },
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Travel angle too shallow \u2014 increase to 12\u00b0",
+   "frame_index": 1374,
+   "message": "Torch angle 3.4\u00b0 vs 12.0\u00b0 nominal (critical)",
+   "rule_triggered": "rule2",
+   "severity": "critical",
+   "timestamp_ms": 13740.0
+  },
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Slowing down \u2014 maintain pace",
+   "frame_index": 1453,
+   "message": "Speed 444 mm/min \u2014 17.6% drop (warning)",
+   "rule_triggered": "rule3",
+   "severity": "warning",
+   "timestamp_ms": 14530.0
+  },
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Travel angle too steep \u2014 reduce to 12\u00b0",
+   "frame_index": 1474,
+   "message": "Torch angle 26.5\u00b0 vs 12.0\u00b0 nominal (critical)",
+   "rule_triggered": "rule2",
+   "severity": "critical",
+   "timestamp_ms": 14740.0
+  },
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Reduce speed below 520 mm/min",
+   "frame_index": 1479,
+   "message": "Lack of fusion risk: travel speed too high",
+   "rule_triggered": "lack_of_fusion_speed",
+   "severity": "critical",
+   "timestamp_ms": 14790.0
+  }
+ ],
+ "score": {
+  "arc_on_frame_count": 1452,
+  "components": {
+   "arc_termination": {
+    "excursions": [
+     {
+      "duration_ms": 0.0,
+      "parameter": "arc_termination_type",
+      "threshold": 0.0,
+      "timestamp_ms": 3790.0,
+      "value": 0.0
+     },
+     {
+      "duration_ms": 0.0,
+      "parameter": "arc_termination_type",
+      "threshold": 0.0,
+      "timestamp_ms": 7590.0,
+      "value": 0.0
+     },
+     {
+      "duration_ms": 0.0,
+      "parameter": "arc_termination_type",
+      "threshold": 0.0,
+      "timestamp_ms": 11390.0,
+      "value": 0.0
+     }
+    ],
+    "name": "arc_termination",
+    "passed": false,
+    "score": 0.25,
+    "summary": "3 abrupt arc terminations without crater fill"
+   },
+   "defect_alerts": {
+    "excursions": [
+     {
+      "duration_ms": 0.0,
+      "parameter": "lack_of_fusion_amps",
+      "threshold": 0.0,
+      "timestamp_ms": 0.0,
+      "value": 1.0
+     },
+     {
+      "duration_ms": 0.0,
+      "parameter": "rule2",
+      "threshold": 0.0,
+      "timestamp_ms": 40.0,
+      "value": 1.0
+     },
+     {
+      "duration_ms": 0.0,
+      "parameter": "oxide_inclusion",
+      "threshold": 0.0,
+      "timestamp_ms": 80.0,
+      "value": 1.0
+     },
+     {
+      "duration_ms": 0.0,
+      "parameter": "rule3",
+      "threshold": 0.0,
+      "timestamp_ms": 200.0,
+      "value": 1.0
+     },
+     {
+      "duration_ms": 0.0,
+      "parameter": "lack_of_fusion_speed",
+      "threshold": 0.0,
+      "timestamp_ms": 540.0,
+      "value": 1.0
+     },
+     {
+      "duration_ms": 0.0,
+      "parameter": "rule2",
+      "threshold": 0.0,
+      "timestamp_ms": 1040.0,
+      "value": 1.0
+     },
+     {
+      "duration_ms": 0.0,
+      "parameter": "rule3",
+      "threshold": 0.0,
+      "timestamp_ms": 1200.0,
+      "value": 1.0
+     },
+     {
+      "duration_ms": 0.0,
+      "parameter": "rule2",
+      "threshold": 0.0,
+      "timestamp_ms": 2150.0,
+      "value": 1.0
+     },
+     {
+      "duration_ms": 0.0,
+      "parameter": "rule3",
+      "threshold": 0.0,
+      "timestamp_ms": 2200.0,
+      "value": 1.0
+     },
+     {
+      "duration_ms": 0.0,
+      "parameter": "oxide_inclusion",
+      "threshold": 0.0,
+      "timestamp_ms": 2830.0,
+      "value": 1.0
+     },
+     {
+      "duration_ms": 0.0,
+      "parameter": "rule2",
+      "threshold": 0.0,
+      "timestamp_ms": 3150.0,
+      "value": 1.0
+     },
+     {
+      "duration_ms": 0.0,
+      "parameter": "porosity",
+      "threshold": 0.0,
+      "timestamp_ms": 3190.0,
+      "value": 1.0
+     },
+     {
+      "duration_ms": 0.0,
+      "parameter": "rule3",
+      "threshold": 0.0,
+      "timestamp_ms": 3200.0,
+      "value": 1.0
+     },
+     {
+      "duration_ms": 0.0,
+      "parameter": "crater_crack",
+      "threshold": 0.0,
+      "timestamp_ms": 3800.0,
+      "value": 1.0
+     },
+     {
+      "duration_ms": 0.0,
+      "parameter": "rule2",
+      "threshold": 0.0,
+      "timestamp_ms": 4150.0,
+      "value": 1.0
+     },
+     {
+      "duration_ms": 0.0,
+      "parameter": "porosity",
+      "threshold": 0.0,
+      "timestamp_ms": 4190.0,
+      "value": 1.0
+     },
+     {
+      "duration_ms": 0.0,
+      "parameter": "rule3",
+      "threshold": 0.0,
+      "timestamp_ms": 4200.0,
+      "value": 1.0
+     },
+     {
+      "duration_ms": 0.0,
+      "parameter": "rule3",
+      "threshold": 0.0,
+      "timestamp_ms": 5200.0,
+      "value": 1.0
+     },
+     {
+      "duration_ms": 0.0,
+      "parameter": "rule2",
+      "threshold": 0.0,
+      "timestamp_ms": 5390.0,
+      "value": 1.0
+     },
+     {
+      "duration_ms": 0.0,
+      "parameter": "oxide_inclusion",
+      "threshold": 0.0,
+      "timestamp_ms": 5450.0,
+      "value": 1.0
+     },
+     {
+      "duration_ms": 0.0,
+      "parameter": "porosity",
+      "threshold": 0.0,
+      "timestamp_ms": 6180.0,
+      "value": 1.0
+     },
+     {
+      "duration_ms": 0.0,
+      "parameter": "rule3",
+      "threshold": 0.0,
+      "timestamp_ms": 6200.0,
+      "value": 1.0
+     },
+     {
+      "duration_ms": 0.0,
+      "parameter": "rule2",
+      "threshold": 0.0,
+      "timestamp_ms": 6400.0,
+      "value": 1.0
+     },
+     {
+      "duration_ms": 0.0,
+      "parameter": "lack_of_fusion_speed",
+      "threshold": 0.0,
+      "timestamp_ms": 6410.0,
+      "value": 1.0
+     },
+     {
+      "duration_ms": 0.0,
+      "parameter": "oxide_inclusion",
+      "threshold": 0.0,
+      "timestamp_ms": 7180.0,
+      "value": 1.0
+     },
+     {
+      "duration_ms": 0.0,
+      "parameter": "rule2",
+      "threshold": 0.0,
+      "timestamp_ms": 7400.0,
+      "value": 1.0
+     },
+     {
+      "duration_ms": 0.0,
+      "parameter": "lack_of_fusion_speed",
+      "threshold": 0.0,
+      "timestamp_ms": 7430.0,
+      "value": 1.0
+     },
+     {
+      "duration_ms": 0.0,
+      "parameter": "rule3",
+      "threshold": 0.0,
+      "timestamp_ms": 7530.0,
+      "value": 1.0
+     },
+     {
+      "duration_ms": 0.0,
+      "parameter": "crater_crack",
+      "threshold": 0.0,
+      "timestamp_ms": 7600.0,
+      "value": 1.0
+     },
+     {
+      "duration_ms": 0.0,
+      "parameter": "porosity",
+      "threshold": 0.0,
+      "timestamp_ms": 7780.0,
+      "value": 1.0
+     },
+     {
+      "duration_ms": 0.0,
+      "parameter": "rule2",
+      "threshold": 0.0,
+      "timestamp_ms": 8400.0,
+      "value": 1.0
+     },
+     {
+      "duration_ms": 0.0,
+      "parameter": "rule3",
+      "threshold": 0.0,
+      "timestamp_ms": 8530.0,
+      "value": 1.0
+     },
+     {
+      "duration_ms": 0.0,
+      "parameter": "porosity",
+      "threshold": 0.0,
+      "timestamp_ms": 8780.0,
+      "value": 1.0
+     },
+     {
+      "duration_ms": 0.0,
+      "parameter": "rule2",
+      "threshold": 0.0,
+      "timestamp_ms": 9400.0,
+      "value": 1.0
+     },
+     {
+      "duration_ms": 0.0,
+      "parameter": "rule3",
+      "threshold": 0.0,
+      "timestamp_ms": 9530.0,
+      "value": 1.0
+     },
+     {
+      "duration_ms": 0.0,
+      "parameter": "porosity",
+      "threshold": 0.0,
+      "timestamp_ms": 9780.0,
+      "value": 1.0
+     },
+     {
+      "duration_ms": 0.0,
+      "parameter": "rule2",
+      "threshold": 0.0,
+      "timestamp_ms": 10400.0,
+      "value": 1.0
+     },
+     {
+      "duration_ms": 0.0,
+      "parameter": "rule3",
+      "threshold": 0.0,
+      "timestamp_ms": 10530.0,
+      "value": 1.0
+     },
+     {
+      "duration_ms": 0.0,
+      "parameter": "porosity",
+      "threshold": 0.0,
+      "timestamp_ms": 11080.0,
+      "value": 1.0
+     },
+     {
+      "duration_ms": 0.0,
+      "parameter": "crater_crack",
+      "threshold": 0.0,
+      "timestamp_ms": 11400.0,
+      "value": 1.0
+     },
+     {
+      "duration_ms": 0.0,
+      "parameter": "rule3",
+      "threshold": 0.0,
+      "timestamp_ms": 11530.0,
+      "value": 1.0
+     },
+     {
+      "duration_ms": 0.0,
+      "parameter": "rule2",
+      "threshold": 0.0,
+      "timestamp_ms": 11740.0,
+      "value": 1.0
+     },
+     {
+      "duration_ms": 0.0,
+      "parameter": "porosity",
+      "threshold": 0.0,
+      "timestamp_ms": 12080.0,
+      "value": 1.0
+     },
+     {
+      "duration_ms": 0.0,
+      "parameter": "rule3",
+      "threshold": 0.0,
+      "timestamp_ms": 12530.0,
+      "value": 1.0
+     },
+     {
+      "duration_ms": 0.0,
+      "parameter": "rule2",
+      "threshold": 0.0,
+      "timestamp_ms": 12740.0,
+      "value": 1.0
+     },
+     {
+      "duration_ms": 0.0,
+      "parameter": "porosity",
+      "threshold": 0.0,
+      "timestamp_ms": 13080.0,
+      "value": 1.0
+     },
+     {
+      "duration_ms": 0.0,
+      "parameter": "rule3",
+      "threshold": 0.0,
+      "timestamp_ms": 13530.0,
+      "value": 1.0
+     },
+     {
+      "duration_ms": 0.0,
+      "parameter": "lack_of_fusion_speed",
+      "threshold": 0.0,
+      "timestamp_ms": 13590.0,
+      "value": 1.0
+     },
+     {
+      "duration_ms": 0.0,
+      "parameter": "rule2",
+      "threshold": 0.0,
+      "timestamp_ms": 13740.0,
+      "value": 1.0
+     },
+     {
+      "duration_ms": 0.0,
+      "parameter": "rule3",
+      "threshold": 0.0,
+      "timestamp_ms": 14530.0,
+      "value": 1.0
+     },
+     {
+      "duration_ms": 0.0,
+      "parameter": "rule2",
+      "threshold": 0.0,
+      "timestamp_ms": 14740.0,
+      "value": 1.0
+     },
+     {
+      "duration_ms": 0.0,
+      "parameter": "lack_of_fusion_speed",
+      "threshold": 0.0,
+      "timestamp_ms": 14790.0,
+      "value": 1.0
+     }
+    ],
+    "name": "defect_alerts",
+    "passed": false,
+    "score": 0.0,
+    "summary": "defects: {'lack_of_fusion_amps': 1, 'rule2': 15, 'oxide_inclusion': 4, 'rule3': 15, 'lack_of_fusion_speed': 5, 'porosity': 9, 'crater_crack': 3}"
+   },
+   "heat_input": {
+    "excursions": [
+     {
+      "duration_ms": 990.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 0.0,
+      "value": 0.0
+     },
+     {
+      "duration_ms": 30.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 1000.0,
+      "value": 0.8161697210458198
+     },
+     {
+      "duration_ms": 60.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 1050.0,
+      "value": 0.8469630222207086
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 1170.0,
+      "value": 0.8201036185509039
+     },
+     {
+      "duration_ms": 180.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 1200.0,
+      "value": 0.8871484726226819
+     },
+     {
+      "duration_ms": 70.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 1400.0,
+      "value": 0.7934564646724523
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 1480.0,
+      "value": 0.8860697579731247
+     },
+     {
+      "duration_ms": 20.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 1540.0,
+      "value": 0.8678175392530167
+     },
+     {
+      "duration_ms": 40.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 1590.0,
+      "value": 0.7948578833923231
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 1640.0,
+      "value": 0.8785272191137911
+     },
+     {
+      "duration_ms": 40.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 1680.0,
+      "value": 0.7104161446820035
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 1730.0,
+      "value": 0.8878322695070577
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 1830.0,
+      "value": 0.8707113951821419
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 1950.0,
+      "value": 0.8691747581637708
+     },
+     {
+      "duration_ms": 150.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 1970.0,
+      "value": 0.8643427132791539
+     },
+     {
+      "duration_ms": 220.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 2140.0,
+      "value": 0.8134023147148062
+     },
+     {
+      "duration_ms": 40.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 2390.0,
+      "value": 0.7873456108799852
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 2570.0,
+      "value": 0.8263876235862867
+     },
+     {
+      "duration_ms": 50.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 2610.0,
+      "value": 0.8415972868436599
+     },
+     {
+      "duration_ms": 510.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 2690.0,
+      "value": 0.7817431527583948
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 3240.0,
+      "value": 0.8650099324419007
+     },
+     {
+      "duration_ms": 20.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 3290.0,
+      "value": 0.8861165148159047
+     },
+     {
+      "duration_ms": 140.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 3380.0,
+      "value": 0.8160332721341788
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 3560.0,
+      "value": 0.8013669278756703
+     },
+     {
+      "duration_ms": 20.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 3600.0,
+      "value": 0.8683635923201902
+     },
+     {
+      "duration_ms": 30.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 3650.0,
+      "value": 0.8825038598845211
+     },
+     {
+      "duration_ms": 180.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 3790.0,
+      "value": 0.8747245962170378
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 3980.0,
+      "value": 0.8405313449507726
+     },
+     {
+      "duration_ms": 90.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 4000.0,
+      "value": 0.6863585012535391
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 4120.0,
+      "value": 0.8806362012765225
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 4140.0,
+      "value": 0.8708697346761275
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 4280.0,
+      "value": 0.8658946999316316
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 4360.0,
+      "value": 0.8756148004104516
+     },
+     {
+      "duration_ms": 50.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 4380.0,
+      "value": 0.7356025936275163
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 4450.0,
+      "value": 0.89880492424941
+     },
+     {
+      "duration_ms": 30.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 4490.0,
+      "value": 0.8903257463729024
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 4530.0,
+      "value": 0.7707747269887035
+     },
+     {
+      "duration_ms": 70.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 4550.0,
+      "value": 0.8339858062864246
+     },
+     {
+      "duration_ms": 270.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 4630.0,
+      "value": 0.7431240534313495
+     },
+     {
+      "duration_ms": 30.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 4940.0,
+      "value": 0.8619996055051761
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 5030.0,
+      "value": 0.8710485799779298
+     },
+     {
+      "duration_ms": 70.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 5160.0,
+      "value": 0.7853289491802818
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 5240.0,
+      "value": 0.8456158404379239
+     },
+     {
+      "duration_ms": 20.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 5280.0,
+      "value": 0.8802751046254308
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 5340.0,
+      "value": 0.865938225760824
+     },
+     {
+      "duration_ms": 630.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 5390.0,
+      "value": 0.5127587204664303
+     },
+     {
+      "duration_ms": 30.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 6030.0,
+      "value": 0.7507522905127281
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 6070.0,
+      "value": 0.8665335320822443
+     },
+     {
+      "duration_ms": 60.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 6120.0,
+      "value": 0.8239112440525761
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 6200.0,
+      "value": 0.8174755043040458
+     },
+     {
+      "duration_ms": 1510.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 6290.0,
+      "value": 0.8360646195014532
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 7830.0,
+      "value": 0.8530189092506113
+     },
+     {
+      "duration_ms": 20.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 7900.0,
+      "value": 0.7950085317595857
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 7930.0,
+      "value": 0.8417808790850843
+     },
+     {
+      "duration_ms": 20.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 7960.0,
+      "value": 0.842604276465015
+     },
+     {
+      "duration_ms": 20.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 7990.0,
+      "value": 0.8007322455935845
+     },
+     {
+      "duration_ms": 50.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 8020.0,
+      "value": 0.8347575622614033
+     },
+     {
+      "duration_ms": 20.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 8090.0,
+      "value": 0.877470004241365
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 8190.0,
+      "value": 0.8939207716561839
+     },
+     {
+      "duration_ms": 60.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 8220.0,
+      "value": 0.839970083169341
+     },
+     {
+      "duration_ms": 70.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 8300.0,
+      "value": 0.8999074869107091
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 8470.0,
+      "value": 0.8570145937046305
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 8500.0,
+      "value": 0.8383670366068703
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 8630.0,
+      "value": 0.8968215691650863
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 8720.0,
+      "value": 0.8990000687246492
+     },
+     {
+      "duration_ms": 20.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 8740.0,
+      "value": 0.8528582897272342
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 8770.0,
+      "value": 0.8470701130965821
+     },
+     {
+      "duration_ms": 50.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 8790.0,
+      "value": 0.8923961182000054
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 8990.0,
+      "value": 0.8959582240801292
+     },
+     {
+      "duration_ms": 20.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 9220.0,
+      "value": 0.872810164800793
+     },
+     {
+      "duration_ms": 20.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 9310.0,
+      "value": 0.8780968502326991
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 9370.0,
+      "value": 0.8522769343233453
+     },
+     {
+      "duration_ms": 150.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 9510.0,
+      "value": 0.6262223341855372
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 9920.0,
+      "value": 0.8998067195640443
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 9940.0,
+      "value": 0.7614431130347105
+     },
+     {
+      "duration_ms": 20.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 10110.0,
+      "value": 0.8960136383988808
+     },
+     {
+      "duration_ms": 20.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 10310.0,
+      "value": 0.8268211581685551
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 10350.0,
+      "value": 0.8935257865139066
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 10410.0,
+      "value": 0.8523629866051783
+     },
+     {
+      "duration_ms": 280.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 10430.0,
+      "value": 0.8943150612489107
+     },
+     {
+      "duration_ms": 40.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 10720.0,
+      "value": 0.8812729458063552
+     },
+     {
+      "duration_ms": 70.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 10850.0,
+      "value": 0.8450785984651652
+     },
+     {
+      "duration_ms": 20.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 11130.0,
+      "value": 0.89269475932176
+     },
+     {
+      "duration_ms": 20.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 11160.0,
+      "value": 0.8451826070545978
+     },
+     {
+      "duration_ms": 40.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 11230.0,
+      "value": 0.8603289117564885
+     },
+     {
+      "duration_ms": 120.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 11400.0,
+      "value": 0.0
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 11590.0,
+      "value": 0.895436466632083
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 11650.0,
+      "value": 0.8444723555603956
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 11910.0,
+      "value": 0.7940473754165299
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 11930.0,
+      "value": 0.8787746822889244
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 11950.0,
+      "value": 0.7957769689782228
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 11980.0,
+      "value": 0.8195446448426418
+     },
+     {
+      "duration_ms": 80.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 12000.0,
+      "value": 0.8218719506642536
+     },
+     {
+      "duration_ms": 40.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 12180.0,
+      "value": 0.8616463808983909
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 12230.0,
+      "value": 0.8466363077006757
+     },
+     {
+      "duration_ms": 570.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 12360.0,
+      "value": 0.8747822587022762
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 12980.0,
+      "value": 0.8956256012461008
+     },
+     {
+      "duration_ms": 1280.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 13090.0,
+      "value": 0.6224235633069587
+     },
+     {
+      "duration_ms": 40.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 14390.0,
+      "value": 0.7431560377518929
+     },
+     {
+      "duration_ms": 550.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 14440.0,
+      "value": 0.8989522757005688
+     }
+    ],
+    "name": "heat_input",
+    "passed": false,
+    "score": 0.333,
+    "summary": "100 heat input excursions vs WPS range 0.9\u20131.5 kJ/mm"
+   },
+   "interpass": {
+    "excursions": [
+     {
+      "duration_ms": 10.0,
+      "parameter": "interpass_gap_ms",
+      "threshold": 45000.0,
+      "timestamp_ms": 3910.0,
+      "value": 10.0
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "interpass_gap_ms",
+      "threshold": 45000.0,
+      "timestamp_ms": 7710.0,
+      "value": 10.0
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "interpass_gap_ms",
+      "threshold": 45000.0,
+      "timestamp_ms": 11510.0,
+      "value": 10.0
+     }
+    ],
+    "name": "interpass",
+    "passed": false,
+    "score": 0.1,
+    "summary": "3 interpass violations (< 45000ms gap). Timer proxy only."
+   },
+   "torch_angle": {
+    "excursions": [
+     {
+      "duration_ms": 120.0,
+      "parameter": "travel_angle_degrees",
+      "threshold": 0.0,
+      "timestamp_ms": 80.0,
+      "value": -5.071004233129003
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "travel_angle_degrees",
+      "threshold": 0.0,
+      "timestamp_ms": 210.0,
+      "value": -0.1652296311720658
+     },
+     {
+      "duration_ms": 90.0,
+      "parameter": "travel_angle_degrees",
+      "threshold": 0.0,
+      "timestamp_ms": 230.0,
+      "value": -2.0951544423413564
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "travel_angle_degrees",
+      "threshold": 0.0,
+      "timestamp_ms": 330.0,
+      "value": -0.5034578357407533
+     },
+     {
+      "duration_ms": 20.0,
+      "parameter": "travel_angle_degrees",
+      "threshold": 0.0,
+      "timestamp_ms": 350.0,
+      "value": -2.1203038744646245
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "travel_angle_degrees",
+      "threshold": 0.0,
+      "timestamp_ms": 400.0,
+      "value": -0.09691806786563184
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "travel_angle_degrees",
+      "threshold": 0.0,
+      "timestamp_ms": 440.0,
+      "value": -0.751141051543708
+     },
+     {
+      "duration_ms": 40.0,
+      "parameter": "travel_angle_degrees",
+      "threshold": 0.0,
+      "timestamp_ms": 460.0,
+      "value": -0.2917828444494946
+     },
+     {
+      "duration_ms": 150.0,
+      "parameter": "travel_angle_degrees",
+      "threshold": 20.0,
+      "timestamp_ms": 690.0,
+      "value": 21.230884165791487
+     },
+     {
+      "duration_ms": 90.0,
+      "parameter": "travel_angle_degrees",
+      "threshold": 0.0,
+      "timestamp_ms": 970.0,
+      "value": -1.0135946119172328
+     },
+     {
+      "duration_ms": 580.0,
+      "parameter": "travel_angle_degrees",
+      "threshold": 0.0,
+      "timestamp_ms": 1170.0,
+      "value": -4.744056402224853
+     },
+     {
+      "duration_ms": 20.0,
+      "parameter": "travel_angle_degrees",
+      "threshold": 20.0,
+      "timestamp_ms": 1870.0,
+      "value": 20.155477348217843
+     },
+     {
+      "duration_ms": 30.0,
+      "parameter": "travel_angle_degrees",
+      "threshold": 20.0,
+      "timestamp_ms": 1900.0,
+      "value": 23.676534917886343
+     },
+     {
+      "duration_ms": 140.0,
+      "parameter": "travel_angle_degrees",
+      "threshold": 20.0,
+      "timestamp_ms": 2340.0,
+      "value": 23.230265424721367
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "travel_angle_degrees",
+      "threshold": 0.0,
+      "timestamp_ms": 2830.0,
+      "value": -0.731373471995725
+     },
+     {
+      "duration_ms": 1770.0,
+      "parameter": "travel_angle_degrees",
+      "threshold": 0.0,
+      "timestamp_ms": 2850.0,
+      "value": -0.47143892336038207
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "travel_angle_degrees",
+      "threshold": 20.0,
+      "timestamp_ms": 5020.0,
+      "value": 21.00751378756762
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "travel_angle_degrees",
+      "threshold": 0.0,
+      "timestamp_ms": 5450.0,
+      "value": -0.13878092593854818
+     },
+     {
+      "duration_ms": 40.0,
+      "parameter": "travel_angle_degrees",
+      "threshold": 0.0,
+      "timestamp_ms": 5470.0,
+      "value": -0.09937138812764434
+     },
+     {
+      "duration_ms": 20.0,
+      "parameter": "travel_angle_degrees",
+      "threshold": 0.0,
+      "timestamp_ms": 6180.0,
+      "value": -1.1491610338134306
+     },
+     {
+      "duration_ms": 30.0,
+      "parameter": "travel_angle_degrees",
+      "threshold": 0.0,
+      "timestamp_ms": 6330.0,
+      "value": -0.638062082707427
+     },
+     {
+      "duration_ms": 1180.0,
+      "parameter": "travel_angle_degrees",
+      "threshold": 0.0,
+      "timestamp_ms": 6670.0,
+      "value": -1.5549833719517903
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "travel_angle_degrees",
+      "threshold": 0.0,
+      "timestamp_ms": 7890.0,
+      "value": -0.002313016323517547
+     },
+     {
+      "duration_ms": 1760.0,
+      "parameter": "travel_angle_degrees",
+      "threshold": 0.0,
+      "timestamp_ms": 8080.0,
+      "value": -0.3658450118534322
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "travel_angle_degrees",
+      "threshold": 0.0,
+      "timestamp_ms": 9870.0,
+      "value": -0.27053884268632566
+     },
+     {
+      "duration_ms": 20.0,
+      "parameter": "travel_angle_degrees",
+      "threshold": 20.0,
+      "timestamp_ms": 10280.0,
+      "value": 22.048186920002678
+     },
+     {
+      "duration_ms": 540.0,
+      "parameter": "travel_angle_degrees",
+      "threshold": 20.0,
+      "timestamp_ms": 10380.0,
+      "value": 22.46048620252478
+     },
+     {
+      "duration_ms": 180.0,
+      "parameter": "travel_angle_degrees",
+      "threshold": 0.0,
+      "timestamp_ms": 11080.0,
+      "value": -3.640681652744206
+     },
+     {
+      "duration_ms": 40.0,
+      "parameter": "travel_angle_degrees",
+      "threshold": 0.0,
+      "timestamp_ms": 11330.0,
+      "value": -1.0280310072640888
+     },
+     {
+      "duration_ms": 230.0,
+      "parameter": "travel_angle_degrees",
+      "threshold": 0.0,
+      "timestamp_ms": 11750.0,
+      "value": -1.8045508785387776
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "travel_angle_degrees",
+      "threshold": 0.0,
+      "timestamp_ms": 11990.0,
+      "value": -1.255503141166204
+     },
+     {
+      "duration_ms": 40.0,
+      "parameter": "travel_angle_degrees",
+      "threshold": 0.0,
+      "timestamp_ms": 12020.0,
+      "value": -0.3733735307985788
+     },
+     {
+      "duration_ms": 20.0,
+      "parameter": "travel_angle_degrees",
+      "threshold": 0.0,
+      "timestamp_ms": 12080.0,
+      "value": -0.22476532898416068
+     },
+     {
+      "duration_ms": 80.0,
+      "parameter": "travel_angle_degrees",
+      "threshold": 0.0,
+      "timestamp_ms": 12200.0,
+      "value": -9.713636302091691
+     },
+     {
+      "duration_ms": 110.0,
+      "parameter": "travel_angle_degrees",
+      "threshold": 0.0,
+      "timestamp_ms": 12640.0,
+      "value": -2.1890721437231915
+     },
+     {
+      "duration_ms": 140.0,
+      "parameter": "travel_angle_degrees",
+      "threshold": 0.0,
+      "timestamp_ms": 12760.0,
+      "value": -0.9446015638326899
+     },
+     {
+      "duration_ms": 300.0,
+      "parameter": "travel_angle_degrees",
+      "threshold": 0.0,
+      "timestamp_ms": 13050.0,
+      "value": -2.508307716673978
+     },
+     {
+      "duration_ms": 330.0,
+      "parameter": "travel_angle_degrees",
+      "threshold": 0.0,
+      "timestamp_ms": 13380.0,
+      "value": -1.0970247021541626
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "travel_angle_degrees",
+      "threshold": 20.0,
+      "timestamp_ms": 14180.0,
+      "value": 20.58415304356197
+     },
+     {
+      "duration_ms": 380.0,
+      "parameter": "travel_angle_degrees",
+      "threshold": 20.0,
+      "timestamp_ms": 14610.0,
+      "value": 22.359856375750386
+     }
+    ],
+    "name": "torch_angle",
+    "passed": false,
+    "score": 0.0,
+    "summary": "40 torch angle excursions (max 20.0\u00b0, no drag)"
+   }
+  },
+  "computed_at_ms": "__SCRUBBED__",
+  "frame_count": 1500,
+  "overall_score": 0.184,
+  "passed": false,
+  "session_id": "continuous_novice_s0",
+  "wps_range_kj_per_mm": [
+   0.9,
+   1.5
+  ]
+ }
+}

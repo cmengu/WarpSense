@@ -1,0 +1,15 @@
+{
+ "amps_cv": 0.007788795400149071,
+ "angle_deviation_mean": 10.001282071921171,
+ "angle_max_drift_1s": 1.1600330150784686,
+ "arc_on_ratio": 1.0,
+ "heat_diss_max_spike": 3.1834767829656774,
+ "heat_diss_mean": 0.09068329388288286,
+ "heat_input_cv": 0.010149509296635566,
+ "heat_input_drop_severity": 0.9348075906932536,
+ "heat_input_mean": 3416.8906450363497,
+ "heat_input_min_rolling": 3346.9536766707465,
+ "quality_label": null,
+ "session_id": "expert",
+ "voltage_cv": 0.004087623679278096
+}
