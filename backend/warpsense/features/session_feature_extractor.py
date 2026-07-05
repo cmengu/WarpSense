@@ -17,7 +17,10 @@ import pandas as pd
 from dataclasses import dataclass, asdict
 from typing import List, Optional
 
-WINDOW_1S = 100          # 100 frames × 10ms = 1 second
+from warpsense.signal.arc import df_arc_mask
+from warpsense.signal.windows import WINDOW_1S_FRAMES
+
+WINDOW_1S = WINDOW_1S_FRAMES  # 100 frames × 10ms = 1 second
 OPTIMAL_ANGLE_DEG = 55.0  # Optimal work angle for aluminum MIG
 
 
@@ -125,7 +128,7 @@ class SessionFeatureExtractor:
         total_frames = len(df)
 
         # Arc-on filter: exclude dead arc frames (startup noise, inter-stitch gaps)
-        arc_on = df[(df["volts"] > 5) & (df["amps"] > 5)].copy().reset_index(drop=True)
+        arc_on = df[df_arc_mask(df)].copy().reset_index(drop=True)
 
         if len(arc_on) < WINDOW_1S:
             raise ValueError(
