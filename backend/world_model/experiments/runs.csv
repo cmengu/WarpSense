@@ -4,3 +4,4 @@ timestamp_utc,model,config_hash,seed,split,note,n,quality_f1_macro,fusion_mae_mm
 2026-07-04T01:56:21+00:00,gru_baseline,bdad13674af4,1337,val,epoch=15 mock/plumbing tiny,37,0.9188,,{"GOOD": 1.0; "MARGINAL": 0.8571428571428571; "DEFECTIVE": 1.0}
 2026-07-04T01:56:38+00:00,gru_baseline,bdad13674af4,1337,val,epoch=20 mock/plumbing tiny,37,0.9188,,{"GOOD": 1.0; "MARGINAL": 0.8571428571428571; "DEFECTIVE": 1.0}
 2026-07-04T01:56:39+00:00,gru_baseline,70651f879d66,1337,test,mock/plumbing final,28,0.8643,,{"GOOD": 1.0; "MARGINAL": 0.7333333333333333; "DEFECTIVE": 1.0}
+2026-07-04T23:53:14+00:00,oracle_ceiling_gbdt,79e1952a6301,1337,groupkfold,gate1.5 PASS,29000,,0.1094,{}
