@@ -17,6 +17,7 @@ import numpy as np
 
 from warpsense.contracts.frame import Frame
 from warpsense.contracts.session import Session
+from warpsense.signal.arc import is_arc_on
 from warpsense.signal.stats import population_std, sample_std, value_range
 from warpsense.signal.thermal import north_south_mean_delta
 from warpsense.signal.windows import POROSITY_WINDOW_FRAMES
@@ -74,7 +75,7 @@ def extract_features_for_frames(
     travel_speed_stddev = population_std(travel_speeds)
 
     # Cyclogram area — arc-on frames only
-    arc_frames = [f for f in frames if f.volts and f.volts > 1.0 and f.amps]
+    arc_frames = [f for f in frames if is_arc_on(f.volts, f.amps)]
     cyclogram_area = _compute_cyclogram_area(
         [f.volts for f in arc_frames],
         [f.amps for f in arc_frames],

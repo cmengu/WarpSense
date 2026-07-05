@@ -19,6 +19,7 @@ from warpsense.floor.components import (
 from warpsense.floor.config import load_scoring_config
 from warpsense.floor.heat_input import calculate_heat_input_component
 from warpsense.floor.models import DecomposedSessionScore, ScoreComponent
+from warpsense.signal.arc import is_arc_on
 
 ALERT_CONFIG_PATH = "config/alert_thresholds.json"
 
@@ -59,7 +60,7 @@ def score_session_decomposed(
     arc_on = sum(
         1
         for f in frames
-        if getattr(f, "amps", None) is not None and getattr(f, "amps", 0) > 1.0
+        if is_arc_on(getattr(f, "volts", None), getattr(f, "amps", None))
     )
     heat = calculate_heat_input_component(frames, cfg)
     torch = calculate_torch_angle_component(frames, cfg)

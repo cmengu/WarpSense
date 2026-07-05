@@ -7,6 +7,7 @@ from typing import Dict, List, Optional
 
 from warpsense.realtime.alert_models import AlertPayload
 from warpsense.floor.models import ExcursionEvent, ScoreComponent
+from warpsense.signal.arc import is_arc_on
 
 _logger = logging.getLogger(__name__)
 
@@ -164,9 +165,10 @@ def calculate_interpass_component(frames: list, cfg: dict) -> ScoreComponent:
     prev_arc_off_ms: Optional[float] = None
 
     for frame in frames:
+        volts = getattr(frame, "volts", None)
         amps = getattr(frame, "amps", None)
         ts = getattr(frame, "timestamp_ms", 0)
-        arc_on = amps is not None and amps > 1.0
+        arc_on = is_arc_on(volts, amps)
         if arc_on:
             if prev_arc_off_ms is not None and prev_arc_on_ms is not None:
                 gap = ts - prev_arc_off_ms
