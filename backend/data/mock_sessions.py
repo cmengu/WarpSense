@@ -40,6 +40,7 @@ WHAT THIS MEANS FOR COMPARISON
 
 import math
 import random
+import zlib
 from datetime import datetime, timezone
 from typing import Callable, Dict, List, Optional, Tuple
 
@@ -639,7 +640,7 @@ def _generate_aluminium_parametric_frames(
     arc_on_count: int  = cfg["arc_on_count"]
     cycle = 250
 
-    rng = random.Random(session_index * 173 + abs(hash(arc_type)) % 997)
+    rng = random.Random(session_index * 173 + zlib.crc32(arc_type.encode()) % 997)
 
     # Derive amps from heat_target at nominal volts; unclamped — corpus spans 2800–6800 J/frame
     target_volts = AL_VOLTS_NOMINAL  # 22.0

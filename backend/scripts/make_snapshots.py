@@ -27,9 +27,9 @@ and manifest.json             package versions + sha256 of the model artifact
                               "same environment?"
 
 Determinism contract:
-  - PYTHONHASHSEED must be 0: _generate_aluminium_parametric_frames seeds its
-    RNG from hash(arc_type), which Python randomizes per process. The CLI
-    re-execs itself with PYTHONHASHSEED=0; importers must arrange it themselves.
+  - PYTHONHASHSEED is pinned to 0 as a guard. Generator seeding became
+    hash-independent (zlib.crc32) in PR 2; the pin stays so any future
+    hash(...)-derived nondeterminism fails loudly here instead of drifting.
   - Volatile wall-clock fields are scrubbed by key name (SCRUB_KEYS below).
   - Floats are serialized at full repr precision; NaN/Inf become strings.
 
@@ -78,9 +78,9 @@ HASHED_ARTIFACTS = (
 def _require_fixed_hashseed() -> None:
     if os.environ.get("PYTHONHASHSEED") != "0" or sys.flags.hash_randomization:
         raise RuntimeError(
-            "Snapshots require PYTHONHASHSEED=0 (aluminium generators seed from "
-            "hash(arc_type)). Run via the CLI, which re-execs itself, or export "
-            "PYTHONHASHSEED=0 before starting Python."
+            "Snapshots require PYTHONHASHSEED=0 (precautionary determinism guard). "
+            "Run via the CLI, which re-execs itself, or export PYTHONHASHSEED=0 "
+            "before starting Python."
         )
 
 
