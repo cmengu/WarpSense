@@ -9,11 +9,11 @@ import pytest
 from fastapi.testclient import TestClient
 
 from main import app
-from routes.sessions import get_db
+from warpsense.api.sessions import get_db
 
 
 def _get_db():
-    from database.connection import SessionLocal
+    from warpsense.db.connection import SessionLocal
 
     db = SessionLocal()
     try:
@@ -39,7 +39,7 @@ def client(db_session):
 @pytest.fixture
 def db_session():
     """Create a DB session for the test."""
-    from database.connection import SessionLocal
+    from warpsense.db.connection import SessionLocal
 
     db = SessionLocal()
     try:
@@ -76,7 +76,7 @@ def test_post_and_get_annotations(client, db_session):
     """POST creates annotation, GET returns list.
     Requires sess_novice_001 in DB — run seed script before this test.
     """
-    from database.models import SessionModel
+    from warpsense.db.models import SessionModel
     from sqlalchemy import inspect
 
     session = (

@@ -44,22 +44,22 @@ def _require_project_venv_if_present() -> None:
 
 _require_project_venv_if_present()
 
-from database.connection import check_db_connectivity
-from routes.ai import router as ai_router
-from routes.aggregate import router as aggregate_router
-from routes.annotations import router as annotations_router
-from routes.dashboard import router as dashboard_router
-from routes.dev import router as dev_router
-from routes import narratives
-from routes.predictions import router as predictions_router
-from routes.sessions import router as sessions_router
-from routes.sites import router as sites_router
-from routes.realtime import router as realtime_router
-from routes.thresholds import router as thresholds_router
-from routes.welders import router as welders_router
-from routes.warp_analysis import router as warp_analysis_router
-from routes.simulator import router as simulator_router
-from services.warp_service import init_warp_components
+from warpsense.db.connection import check_db_connectivity
+from warpsense.api.ai import router as ai_router
+from warpsense.api.aggregate import router as aggregate_router
+from warpsense.api.annotations import router as annotations_router
+from warpsense.api.dashboard import router as dashboard_router
+from warpsense.api.dev import router as dev_router
+from warpsense.api import narratives
+from warpsense.api.predictions import router as predictions_router
+from warpsense.api.sessions import router as sessions_router
+from warpsense.api.sites import router as sites_router
+from warpsense.api.realtime import router as realtime_router
+from warpsense.api.thresholds import router as thresholds_router
+from warpsense.api.welders import router as welders_router
+from warpsense.api.warp_analysis import router as warp_analysis_router
+from warpsense.api.simulator import router as simulator_router
+from warpsense.services.warp_service import init_warp_components
 
 from init_system import run as init_system_run
 

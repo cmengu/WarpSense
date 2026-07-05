@@ -21,7 +21,7 @@ If FAIL: Wrong field names → run validate_frame_fields.py; check f.amps, f.ang
 import pytest
 
 from data.mock_sessions import generate_expert_session, generate_novice_session
-from features.extractor import extract_features, extract_features_for_frames
+from warpsense.features.extractor import extract_features, extract_features_for_frames
 
 
 FEATURE_KEYS = frozenset({
@@ -110,7 +110,7 @@ class TestExtractFeaturesEdgeCases:
         """Empty session yields all zeros."""
         from datetime import datetime, timezone
 
-        from models.session import Session, SessionStatus
+        from warpsense.contracts.session import Session, SessionStatus
 
         empty = Session(
             session_id="empty",
@@ -139,8 +139,8 @@ class TestExtractFeaturesEdgeCases:
         """Single-frame session yields 0 for *_stddev (stdev needs len>1)."""
         from datetime import datetime, timezone
 
-        from models.frame import Frame
-        from models.session import Session, SessionStatus
+        from warpsense.contracts.frame import Frame
+        from warpsense.contracts.session import Session, SessionStatus
 
         single = Session(
             session_id="single",

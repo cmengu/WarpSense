@@ -16,12 +16,12 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from database.base import Base
-from database.models import SessionModel, FrameModel, WeldThresholdModel
+from warpsense.db.base import Base
+from warpsense.db.models import SessionModel, FrameModel, WeldThresholdModel
 from data.mock_sessions import generate_expert_session
 from main import app
-from routes import thresholds as thresholds_routes
-from routes import sessions as sessions_routes
+from warpsense.api import thresholds as thresholds_routes
+from warpsense.api import sessions as sessions_routes
 
 
 @pytest.fixture

@@ -11,8 +11,8 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from models.scoring import ScoreRule, SessionScore
-from models.session import Session, SessionStatus
+from warpsense.contracts.scoring import ScoreRule, SessionScore
+from warpsense.contracts.session import Session, SessionStatus
 
 
 def test_score_rule_structure():

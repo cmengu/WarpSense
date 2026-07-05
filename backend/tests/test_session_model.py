@@ -17,9 +17,9 @@ from pydantic import ValidationError
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from models.frame import Frame
-from models.session import Session, SessionStatus
-from models.thermal import TemperaturePoint, ThermalSnapshot
+from warpsense.contracts.frame import Frame
+from warpsense.contracts.session import Session, SessionStatus
+from warpsense.contracts.thermal import TemperaturePoint, ThermalSnapshot
 
 
 def _readings_with_center() -> list[TemperaturePoint]:

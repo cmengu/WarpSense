@@ -15,12 +15,12 @@ from sqlalchemy.orm import sessionmaker
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from database.base import Base
-from database.models import SessionModel
-from models.frame import Frame
-from models.session import Session
-from models.thermal import TemperaturePoint, ThermalSnapshot
-from services.thermal_service import calculate_heat_dissipation, get_previous_frame
+from warpsense.db.base import Base
+from warpsense.db.models import SessionModel
+from warpsense.contracts.frame import Frame
+from warpsense.contracts.session import Session
+from warpsense.contracts.thermal import TemperaturePoint, ThermalSnapshot
+from warpsense.services.thermal_service import calculate_heat_dissipation, get_previous_frame
 
 
 def _readings_with_center(temp_celsius: float) -> list[TemperaturePoint]:

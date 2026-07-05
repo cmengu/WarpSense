@@ -15,12 +15,12 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from database.base import Base
-from database.models import SessionModel, WeldThresholdModel
+from warpsense.db.base import Base
+from warpsense.db.models import SessionModel, WeldThresholdModel
 from data.mock_sessions import generate_expert_session
-from features.extractor import extract_features
-from scoring.rule_based import score_session
-from services.threshold_service import get_thresholds, invalidate_cache
+from warpsense.features.extractor import extract_features
+from warpsense.floor.rule_based import score_session
+from warpsense.services.threshold_service import get_thresholds, invalidate_cache
 
 
 @pytest.fixture

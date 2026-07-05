@@ -15,9 +15,9 @@ import sys
 import time
 
 from data.mock_sessions import _generate_continuous_novice_frames, _generate_stitch_expert_frames
-from realtime.alert_engine import AlertEngine
-from realtime.alert_models import AlertPayload, FrameInput
-from realtime.output_handler import handle_alert
+from warpsense.realtime.alert_engine import AlertEngine
+from warpsense.realtime.alert_models import AlertPayload, FrameInput
+from warpsense.realtime.output_handler import handle_alert
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

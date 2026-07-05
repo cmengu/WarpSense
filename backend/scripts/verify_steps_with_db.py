@@ -28,8 +28,8 @@ def main() -> int:
     # Create schema and seed
     from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker
-    from database.base import Base
-    from database.models import SessionModel
+    from warpsense.db.base import Base
+    from warpsense.db.models import SessionModel
     from data.mock_sessions import generate_expert_session, generate_novice_session
 
     if DB_FILE.exists():

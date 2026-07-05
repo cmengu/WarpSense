@@ -9,8 +9,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 def test_no_circular_import():
     """Import routes.sessions, schemas.shared, models in sequence without circular import."""
-    import routes.sessions  # noqa: F401
-    import schemas.shared  # noqa: F401
-    from models import WeldMetric  # noqa: F401
-    from schemas.shared import MetricScore, make_metric_score  # noqa: F401
+    import warpsense.api.sessions  # noqa: F401
+    import warpsense.contracts.schemas.shared  # noqa: F401
+    from warpsense.contracts import WeldMetric  # noqa: F401
+    from warpsense.contracts.schemas.shared import MetricScore, make_metric_score  # noqa: F401
     # If we get here without ImportError, no circular import

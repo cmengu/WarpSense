@@ -25,9 +25,9 @@ _ROOT = Path(__file__).resolve().parent
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
-from features.session_feature_extractor import generate_feature_dataset, SessionFeatures
-from features.weld_classifier import WeldClassifier
-from agent.warpsense_agent import WarpSenseAgent
+from warpsense.features.session_feature_extractor import generate_feature_dataset, SessionFeatures
+from warpsense.classifier.weld_classifier import WeldClassifier
+from warpsense.agents.warpsense_agent import WarpSenseAgent
 
 
 def ensure_kb_exists(force_rebuild=False):
@@ -37,7 +37,7 @@ def ensure_kb_exists(force_rebuild=False):
         return
     print("[Runner] Building knowledge base...")
     try:
-        from knowledge.build_welding_kb import build_knowledge_base
+        from warpsense.agents.knowledge.build_welding_kb import build_knowledge_base
         build_knowledge_base(persist=True, verbose=True)
     except ImportError as e:
         print(f"[Runner] ERROR: {e}")

@@ -11,10 +11,10 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from models.frame import Frame
-from models.session import Session, SessionStatus
-from models.scoring import ScoreRule, SessionScore
-from models.thermal import TemperaturePoint, ThermalSnapshot
+from warpsense.contracts.frame import Frame
+from warpsense.contracts.session import Session, SessionStatus
+from warpsense.contracts.scoring import ScoreRule, SessionScore
+from warpsense.contracts.thermal import TemperaturePoint, ThermalSnapshot
 
 
 def _readings(temp=400.0):
@@ -57,7 +57,7 @@ def test_session_wqi_model_copy():
 
 def test_session_wqi_to_from_pydantic():
     """Step 4: to_pydantic and from_pydantic map wqi columns."""
-    from database.models import SessionModel
+    from warpsense.db.models import SessionModel
     from data.mock_sessions import generate_expert_session
 
     # from_pydantic: Session with wqi_timeline -> SessionModel

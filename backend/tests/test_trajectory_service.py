@@ -4,14 +4,14 @@ from datetime import datetime, timezone
 import pytest
 from unittest.mock import MagicMock, patch
 
-from services.trajectory_service import (
+from warpsense.services.trajectory_service import (
     get_welder_trajectory,
     _extract_metric_scores,
     _compute_projection,
     RULE_TO_METRIC,
 )
-from models.scoring import SessionScore, ScoreRule
-from schemas.trajectory import TrajectoryPoint, WelderTrajectory
+from warpsense.contracts.scoring import SessionScore, ScoreRule
+from warpsense.contracts.schemas.trajectory import TrajectoryPoint, WelderTrajectory
 
 
 def test_rule_to_metric_keys_match_rule_based():
@@ -33,8 +33,8 @@ def _check_rule_based_deps():
     (e.g. cd backend && pytest, or pytest backend/tests).
     """
     try:
-        from scoring.rule_based import score_session
-        from features.extractor import extract_features
+        from warpsense.floor.rule_based import score_session
+        from warpsense.features.extractor import extract_features
         from data.mock_sessions import generate_expert_session
     except ImportError as e:
         pytest.fail(
@@ -44,8 +44,8 @@ def _check_rule_based_deps():
 
 def test_rule_ids_from_score_session_match_rule_to_metric(_check_rule_based_deps):
     """rule_ids from score_session must be covered by RULE_TO_METRIC."""
-    from scoring.rule_based import score_session
-    from features.extractor import extract_features
+    from warpsense.floor.rule_based import score_session
+    from warpsense.features.extractor import extract_features
     from data.mock_sessions import generate_expert_session
 
     session = generate_expert_session(session_id="sess_test")
@@ -144,7 +144,7 @@ def test_compute_projection_ascending_scores_yield_positive_slope():
     assert slope > 0, "Ascending scores must yield positive slope"
 
 
-@patch("services.trajectory_service.get_session_score")
+@patch("warpsense.services.trajectory_service.get_session_score")
 def test_nan_score_total_skips_session(mock_get_score):
     """get_session_score returning total=NaN must skip session, not propagate."""
     mock_get_score.return_value = MagicMock(total=float("nan"), rules=[])
@@ -161,7 +161,7 @@ def test_nan_score_total_skips_session(mock_get_score):
     assert result.skipped_sessions_count == 1
 
 
-@patch("services.trajectory_service.get_session_score")
+@patch("warpsense.services.trajectory_service.get_session_score")
 def test_null_start_time_skips_session(mock_get_score):
     """Session with start_time=None must skip, not pass None to TrajectoryPoint."""
     mock_get_score.return_value = MagicMock(total=75.0, rules=[])

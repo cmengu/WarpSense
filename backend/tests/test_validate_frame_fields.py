@@ -12,7 +12,7 @@ If FAIL: Assertion error indicates wrong field names — fix models/frame.py.
 
 import pytest
 
-from models.frame import Frame
+from warpsense.contracts.frame import Frame
 from scripts.validate_frame_fields import (
     PROHIBITED_KEYS,
     REQUIRED_KEYS,

@@ -12,9 +12,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from models.frame import Frame
-from models.thermal import ThermalSnapshot, TemperaturePoint
-from features.warp_features import extract_features, extract_asymmetry
+from warpsense.contracts.frame import Frame
+from warpsense.contracts.thermal import ThermalSnapshot, TemperaturePoint
+from warpsense.features.warp_features import extract_features, extract_asymmetry
 
 
 def _make_frame_with_thermal(timestamp_ms: int = 0) -> dict:
@@ -119,8 +119,8 @@ def test_db_frame_data_shape_matches_model_dump():
         pytest.skip("DATABASE_URL not set")
 
     try:
-        from database.connection import SessionLocal
-        from database.models import FrameModel, SessionModel
+        from warpsense.db.connection import SessionLocal
+        from warpsense.db.models import FrameModel, SessionModel
     except ImportError:
         if in_ci:
             pytest.fail("database module not available; fix imports for CI")

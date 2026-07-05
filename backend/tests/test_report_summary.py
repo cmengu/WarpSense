@@ -10,9 +10,9 @@ Tests compute_report_summary with synthetic frames and alerts:
 
 import pytest
 
-from models.frame import Frame
-from realtime.alert_models import AlertPayload
-from scoring.report_summary import (
+from warpsense.contracts.frame import Frame
+from warpsense.realtime.alert_models import AlertPayload
+from warpsense.floor.report_summary import (
     ExcursionEntry,
     ReportSummary,
     compute_report_summary,

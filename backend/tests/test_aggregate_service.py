@@ -14,9 +14,9 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from database.base import Base
-from database.models import SessionModel
-from services.aggregate_service import get_aggregate_kpis
+from warpsense.db.base import Base
+from warpsense.db.models import SessionModel
+from warpsense.services.aggregate_service import get_aggregate_kpis
 
 
 @pytest.fixture

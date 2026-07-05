@@ -7,7 +7,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from models import (
+from warpsense.contracts import (
     DashboardData,
     Frame,
     FrameDelta,

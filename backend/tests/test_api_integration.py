@@ -27,10 +27,10 @@ if HAS_SQLALCHEMY:
 
     from fastapi.testclient import TestClient
 
-    from database.base import Base
-    from database.models import FrameModel, SessionModel
+    from warpsense.db.base import Base
+    from warpsense.db.models import FrameModel, SessionModel
     from main import app
-    from routes import sessions as sessions_routes
+    from warpsense.api import sessions as sessions_routes
 
 if not HAS_SQLALCHEMY:
     # Placeholder so pytest collects something when SQLAlchemy is missing

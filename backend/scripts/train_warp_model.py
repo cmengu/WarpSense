@@ -8,7 +8,7 @@ skl2onnx output for Pipeline(StandardScaler, LogisticRegression):
 Usage:
   python -m backend.scripts.train_warp_model \\
     --input data/training_data.csv \\
-    --output backend/models/warp_model.onnx
+    --output backend/warpsense/classifier/warp_model.onnx
 """
 import argparse
 import csv
@@ -30,7 +30,7 @@ import skl2onnx
 from skl2onnx import convert_sklearn
 from skl2onnx.common.data_types import FloatTensorType
 
-from features.warp_features import FEATURE_COLS
+from warpsense.features.warp_features import FEATURE_COLS
 
 SKL2ONNX_MIN = "1.16.0"
 ONNXRUNTIME_MIN = "1.17.0"
@@ -48,7 +48,7 @@ def _parse_version(v: str) -> tuple:
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", default="data/training_data.csv")
-    parser.add_argument("--output", default="backend/models/warp_model.onnx")
+    parser.add_argument("--output", default="backend/warpsense/classifier/warp_model.onnx")
     args = parser.parse_args()
 
     if _parse_version(skl2onnx.__version__) < _parse_version(SKL2ONNX_MIN):

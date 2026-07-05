@@ -12,7 +12,7 @@ sys.path.insert(0, str(backend_dir))
 
 from sqlalchemy import text
 
-from database.connection import SessionLocal
+from warpsense.db.connection import SessionLocal
 
 
 def main():

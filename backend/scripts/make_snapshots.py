@@ -14,7 +14,7 @@ What is captured (per corpus archetype):
   floor_rules.json            scoring/rule_based.score_session      (sessions only)
   floor_windowed.json         scoring/rule_based.score_frames_windowed (sessions only)
   classifier_features.json    features/session_feature_extractor (the 11)
-  classifier_prediction.json  WeldClassifier.predict via ml_models/weld_classifier.joblib
+  classifier_prediction.json  WeldClassifier.predict via warpsense/classifier/weld_classifier.joblib
   warp_features.json          features/warp_features (the 8) on the last-50 window
   warp_risk.json              services/prediction_service.predict_warp_risk
   wqi_decomposed.json         scoring/scorer alerts + decomposed WQI (per component)
@@ -68,10 +68,10 @@ SCRUB_KEYS = frozenset({"start_time", "completed_at", "computed_at_ms", "generat
 SCRUBBED = "__SCRUBBED__"
 
 HASHED_ARTIFACTS = (
-    "ml_models/weld_classifier.joblib",
-    "config/scoring_config.json",
-    "config/alert_thresholds.json",
-    "config/report_thresholds.json",
+    "warpsense/classifier/weld_classifier.joblib",
+    "warpsense/config/scoring_config.json",
+    "warpsense/config/alert_thresholds.json",
+    "warpsense/config/report_thresholds.json",
 )
 
 
@@ -143,9 +143,9 @@ def _sha256_file(path: Path) -> str:
 
 def _load_classifier():
     import joblib
-    from features.weld_classifier import WeldClassifier
+    from warpsense.classifier.weld_classifier import WeldClassifier
 
-    saved = joblib.load(BACKEND / "ml_models" / "weld_classifier.joblib")
+    saved = joblib.load(BACKEND / "warpsense" / "classifier" / "weld_classifier.joblib")
     clf = WeldClassifier()
     clf._model = saved["model"]
     clf._classes = saved["classes"]
@@ -179,15 +179,15 @@ def build_snapshots() -> dict[str, str]:
     """Return {relative_path: canonical_json_text} for the whole snapshot tree."""
     _require_fixed_hashseed()
 
-    from eval.eval_scenarios import SCENARIOS
-    from features.extractor import extract_features_for_frames
-    from features.session_feature_extractor import SessionFeatureExtractor
-    from features.warp_features import extract_features as warp_extract_features
-    from features.warp_features import features_to_array
-    from scoring.report_summary import compute_report_summary
-    from scoring.rule_based import score_frames_windowed, score_session
-    from scoring.scorer import _build_alerts_from_frames, score_session_decomposed
-    from services.prediction_service import predict_warp_risk
+    from evals.eval_scenarios import SCENARIOS
+    from warpsense.features.extractor import extract_features_for_frames
+    from warpsense.features.session_feature_extractor import SessionFeatureExtractor
+    from warpsense.features.warp_features import extract_features as warp_extract_features
+    from warpsense.features.warp_features import features_to_array
+    from warpsense.floor.report_summary import compute_report_summary
+    from warpsense.floor.rule_based import score_frames_windowed, score_session
+    from warpsense.floor.scorer import _build_alerts_from_frames, score_session_decomposed
+    from warpsense.services.prediction_service import predict_warp_risk
 
     clf = _load_classifier()
     extractor = SessionFeatureExtractor()

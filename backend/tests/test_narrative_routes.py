@@ -10,12 +10,12 @@ import pytest
 from fastapi.testclient import TestClient
 
 from main import app
-from routes.sessions import get_db
+from warpsense.api.sessions import get_db
 
 
 def _override_get_db():
     """Yield a DB session for tests."""
-    from database.connection import SessionLocal
+    from warpsense.db.connection import SessionLocal
 
     db = SessionLocal()
     try:
@@ -40,7 +40,7 @@ def client(db_session):
 @pytest.fixture
 def db_session():
     """Create a DB session for the test."""
-    from database.connection import SessionLocal
+    from warpsense.db.connection import SessionLocal
 
     db = SessionLocal()
     try:
@@ -77,7 +77,7 @@ def test_post_narrative_503_when_api_key_missing(client, db_session):
     Verification: Missing ANTHROPIC_API_KEY returns 503 (not 500).
     """
     # Ensure sess_novice_001 exists (seed creates it)
-    from database.models import SessionModel
+    from warpsense.db.models import SessionModel
 
     session = db_session.query(SessionModel).filter_by(session_id="sess_novice_001").first()
     if not session:
@@ -105,8 +105,8 @@ def test_post_narrative_200_with_mock(db_session):
     """
     from datetime import datetime, timezone
 
-    from database.models import SessionModel
-    from schemas.narrative import NarrativeResponse
+    from warpsense.db.models import SessionModel
+    from warpsense.contracts.schemas.narrative import NarrativeResponse
 
     session = db_session.query(SessionModel).filter_by(session_id="sess_novice_001").first()
     if not session:
@@ -132,7 +132,7 @@ def test_post_narrative_200_with_mock(db_session):
 
     try:
         with patch(
-            "routes.narratives.get_or_generate_narrative",
+            "warpsense.api.narratives.get_or_generate_narrative",
             return_value=mock_response,
         ):
             client = TestClient(app)
