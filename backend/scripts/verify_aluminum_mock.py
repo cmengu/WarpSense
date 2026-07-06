@@ -126,7 +126,7 @@ def main() -> None:
     assert novice_max > 20.0, f"FAIL: novice N-S asymmetry never exceeded 20°C: {novice_max:.1f}°C"
     assert novice_max > expert_95 * 2.0, "FAIL: expert and novice sessions look too similar"
 
-    # --- Thermal floor at arc-active frames (ISSUE_WELD_POOL_TEMP_39C) ---
+    # --- Thermal floor at arc-active frames (docs/issues/ISSUE_WELD_POOL_TEMP_39C.md) ---
     FLOOR_C = 200.0
     for f in expert_frames:
         if f.volts and f.volts > 1.0 and f.amps and f.amps > 1.0:

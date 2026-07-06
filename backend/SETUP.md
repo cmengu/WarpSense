@@ -8,14 +8,14 @@
 
 ### Option 1: Automated Setup Script
 ```bash
-cd /Users/ngchenmeng/test/backend
+cd backend
 ./setup.sh
 ```
 
 ### Option 2: Manual Setup
 ```bash
 # 1. Navigate to backend directory
-cd /Users/ngchenmeng/test/backend
+cd backend
 
 # 2. Activate virtual environment
 source venv/bin/activate  # On Windows: venv\Scripts\activate
@@ -101,7 +101,7 @@ NEXT_PUBLIC_API_URL=http://localhost:8001
 If you see import errors:
 ```bash
 # Make sure you're in the backend directory
-cd /Users/ngchenmeng/test/backend
+cd backend
 
 # Activate virtual environment
 source venv/bin/activate

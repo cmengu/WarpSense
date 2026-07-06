@@ -7,7 +7,7 @@
  * Keep max (default 2) in sync with src/constants/webgl.ts MAX_TORCHVIZ3D_PER_PAGE.
  *
  * @see src/constants/webgl.ts
- * @see documentation/WEBGL_CONTEXT_LOSS.md
+ * @see docs/errors/WEBGL_CONTEXT_LOSS.md
  */
 
 module.exports = {
@@ -20,7 +20,7 @@ module.exports = {
     schema: [{ type: 'integer', minimum: 1 }],
     messages: {
       exceed:
-        'Page has {{count}} 3D Canvas instances (TorchViz3D/TorchWithHeatmap3D). Max {{max}} allowed. See constants/webgl.ts and documentation/WEBGL_CONTEXT_LOSS.md.',
+        'Page has {{count}} 3D Canvas instances (TorchViz3D/TorchWithHeatmap3D). Max {{max}} allowed. See constants/webgl.ts and docs/errors/WEBGL_CONTEXT_LOSS.md.',
     },
   },
   create(context) {

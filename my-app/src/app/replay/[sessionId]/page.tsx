@@ -39,7 +39,7 @@ import type { Annotation } from '@/types/annotation';
 import type { Frame } from '@/types/frame';
 
 // Dynamic import for TorchWithHeatmap3D — unified torch + thermal metal (replaces TorchViz3D + HeatmapPlate3D)
-// Per WEBGL_CONTEXT_LOSS.md: max 2 instances (see constants/webgl.ts)
+// Per docs/errors/WEBGL_CONTEXT_LOSS.md: max 2 instances (see constants/webgl.ts)
 const WarpRiskGauge = dynamic(
   () =>
     import('@/components/welding/WarpRiskGauge').then((m) => m.WarpRiskGauge),

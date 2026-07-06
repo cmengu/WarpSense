@@ -184,10 +184,10 @@ const TorchViz3D = dynamic(
 
 **AI Prompting Guidance:**
 When implementing 3D / React Three Fiber features:
-> "Use at most 1–2 Canvas instances per page. Browsers limit WebGL contexts (~8–16 per tab). Add webglcontextlost listeners and show a 'Refresh to restore' overlay. See documentation/WEBGL_CONTEXT_LOSS.md and @LEARNING_LOG.md."
+> "Use at most 1–2 Canvas instances per page. Browsers limit WebGL contexts (~8–16 per tab). Add webglcontextlost listeners and show a 'Refresh to restore' overlay. See docs/errors/WEBGL_CONTEXT_LOSS.md and @LEARNING_LOG.md."
 
 **Good Prompt Example:**
-> "Add a TorchViz3D 3D component to the compare page. Follow LEARNING_LOG.md WebGL patterns: single Canvas per view, context-loss overlay, loading fallback. Check documentation/WEBGL_CONTEXT_LOSS.md."
+> "Add a TorchViz3D 3D component to the compare page. Follow LEARNING_LOG.md WebGL patterns: single Canvas per view, context-loss overlay, loading fallback. Check docs/errors/WEBGL_CONTEXT_LOSS.md."
 
 **Warning Signs:**
 - White or blank 3D canvas → likely context loss
@@ -196,7 +196,7 @@ When implementing 3D / React Three Fiber features:
 - Multiple Canvas components in same route → high risk of hitting limit
 
 **Related:**
-- `documentation/WEBGL_CONTEXT_LOSS.md` — Full error reference and fix examples
+- `docs/errors/WEBGL_CONTEXT_LOSS.md` — Full error reference and fix examples
 
 ---
 
@@ -221,7 +221,7 @@ Hardened TorchViz3D overlay for visibility (z-[100], isolate), added demo instan
 
 **References:**
 - `.cursor/plans/webgl-context-loss-project-wide-plan.md`
-- `documentation/WEBGL_CONTEXT_LOSS.md`
+- `docs/errors/WEBGL_CONTEXT_LOSS.md`
 
 ---
 
