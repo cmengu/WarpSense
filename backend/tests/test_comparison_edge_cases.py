@@ -12,10 +12,10 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from models.frame import Frame
-from models.session import Session
-from models.thermal import TemperaturePoint, ThermalSnapshot
-from services.comparison_service import compare_sessions
+from warpsense.contracts.frame import Frame
+from warpsense.contracts.session import Session
+from warpsense.contracts.thermal import TemperaturePoint, ThermalSnapshot
+from warpsense.services.comparison_service import compare_sessions
 
 
 def _readings(temp_celsius=400.0):

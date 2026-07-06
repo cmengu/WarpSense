@@ -20,8 +20,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 def check1_alert_thresholds() -> bool:
     """alert_thresholds.json exists, parses, no nulls, AlertEngine init OK."""
     try:
-        from realtime.alert_engine import AlertEngine, load_thresholds
-        cfg_path = Path(__file__).resolve().parent.parent / "config" / "alert_thresholds.json"
+        from warpsense.realtime.alert_engine import AlertEngine, load_thresholds
+        cfg_path = Path(__file__).resolve().parent.parent / "warpsense" / "config" / "alert_thresholds.json"
         if not cfg_path.exists():
             print("FAIL [1] alert_thresholds.json not found")
             return False

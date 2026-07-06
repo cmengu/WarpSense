@@ -8,8 +8,8 @@ if str(_backend) not in sys.path:
 
 from datetime import datetime, timezone
 
-from database.models import SessionModel
-from models.session import Session
+from warpsense.db.models import SessionModel
+from warpsense.contracts.session import Session
 
 
 def test_from_pydantic_sets_team_id_none():

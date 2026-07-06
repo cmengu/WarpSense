@@ -26,10 +26,10 @@ if str(_backend) not in sys.path:
 import pytest
 
 from data.mock_sessions import generate_expert_session, generate_novice_session
-from features.extractor import extract_features, extract_features_for_frames
-from models.thresholds import WeldTypeThresholds
-from scoring.rule_based import score_frames_windowed, score_session
-from services.threshold_service import ALUMINUM_THRESHOLDS
+from warpsense.features.extractor import extract_features, extract_features_for_frames
+from warpsense.contracts.thresholds import WeldTypeThresholds
+from warpsense.floor.rule_based import score_frames_windowed, score_session
+from warpsense.services.threshold_service import ALUMINUM_THRESHOLDS
 
 
 class TestScoreSessionStep9:
@@ -154,7 +154,7 @@ class TestScoreFramesWindowed:
         # First window: extract features and score via score_session
         w = frames[:50]
         f = extract_features_for_frames(w, thresholds.angle_target_degrees)
-        from models.session import Session
+        from warpsense.contracts.session import Session
         from datetime import datetime, timezone
         dummy = Session(
             session_id="__window__",

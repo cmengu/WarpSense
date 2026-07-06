@@ -16,7 +16,7 @@ from pydantic import ValidationError
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from models.comparison import FrameDelta, ThermalDelta, TemperatureDelta
+from warpsense.contracts.comparison import FrameDelta, ThermalDelta, TemperatureDelta
 
 
 def _thermal_delta() -> ThermalDelta:

@@ -17,8 +17,8 @@ if _DEMO_DIR not in sys.path:
     sys.path.insert(0, _DEMO_DIR)
 
 try:
-    from warp_tools import WARP_TOOLS
-    from function_gemma import generate_hybrid
+    from edge.warp_tools import WARP_TOOLS
+    from edge.function_gemma import generate_hybrid
 except Exception as e:
     print("Cactus not available — run Step 1 first.")
     print(f"Error: {e}")

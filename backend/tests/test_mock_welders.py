@@ -8,9 +8,9 @@ from data.mock_sessions import (
     generate_frames_for_arc,
     generate_session_for_welder,
 )
-from models.session import Session
-from features.extractor import extract_features
-from scoring.rule_based import score_session
+from warpsense.contracts.session import Session
+from warpsense.features.extractor import extract_features
+from warpsense.floor.rule_based import score_session
 
 
 def test_welder_archetypes_has_12():

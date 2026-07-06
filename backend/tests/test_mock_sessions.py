@@ -34,8 +34,8 @@ from data.mock_sessions import (
     generate_thermal_snapshots,
     novice_angle,
 )
-from models.session import Session
-from services.comparison_service import compare_sessions
+from warpsense.contracts.session import Session
+from warpsense.services.comparison_service import compare_sessions
 
 
 # ---------------------------------------------------------------------------

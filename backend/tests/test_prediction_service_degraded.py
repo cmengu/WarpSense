@@ -13,7 +13,7 @@ if str(_backend) not in sys.path:
 
 def test_degraded_mode_when_onnx_missing():
     """When ONNX file does not exist, predict_warp_risk returns model_available=False."""
-    import services.prediction_service as ps
+    import warpsense.services.prediction_service as ps
 
     # Clear cached session so _get_session re-evaluates
     ps._session = None

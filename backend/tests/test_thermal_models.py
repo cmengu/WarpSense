@@ -20,7 +20,7 @@ from pydantic import ValidationError
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from models.thermal import TemperaturePoint, ThermalSnapshot
+from warpsense.contracts.thermal import TemperaturePoint, ThermalSnapshot
 
 
 def _make_reading(direction: str = "center", temp_celsius: float = 1000.0) -> TemperaturePoint:

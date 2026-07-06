@@ -285,7 +285,22 @@ random-channel-dropout training works (drop each channel p=0.15).
 
 ---
 
-### STEP 4 — Goldak simulator (aluminium) ⬜
+### STEP 4 — Goldak simulator (aluminium) ✅ (2026-07-05)
+
+> Implemented in `backend/world_model/simulator/{goldak.py, weld_sim.py}`;
+> tests in `backend/tests/test_world_model_step4.py` (9 passing).
+> `goldak.py`: double-ellipsoid `power_density` (verified: integrates to
+> η·V·I over the workpiece half-space) + `fusion_zone_depth` via bisection on
+> the Rosenthal thick-plate solution (Al 6061 constants; nominal 22 V/130 A/
+> 250 mm·min⁻¹ → ~3.2 mm, plausible). `weld_sim.py`: `simulate_session` emits
+> x[T,6] + clean `meta["fusion_depth_mm"][T]`; quasi-steady depth chased
+> through a first-order lag (τ=0.5 s) so restarts dip (the Rosenthal
+> transient limitation, papered over pending Gate 1); lumped pool temperature
+> supplies heat_diss; cos-angle power penalty; sensor noise on readout only.
+> `sample_params(seed)` gives deterministic domain randomisation for
+> Steps 5/10. Viz: `--source goldak` renders with depth_true overlay —
+> eyeballed: depth ↑ with I, ↓ with speed, dips at stitch restarts.
+> C_THERMAL/K_COOLING remain placeholders until Gate 1 calibration.
 
 ```python
 # simulator/goldak.py
@@ -309,7 +324,20 @@ dips at stitch restarts); unit tests assert those three directions of change.
 
 ---
 
-### STEP 5 — Gate 1.5: observability-ceiling test ⬜  ← 2 days that can save 4 months
+### STEP 5 — Gate 1.5: observability-ceiling test ✅ PASS (2026-07-05)
+
+> Implemented in `eval/probes.py` (make_windows + oracle_ceiling + CLI w/
+> --tiny); tests in `tests/test_world_model_step5.py` (3 passing: window
+> alignment contract, session grouping, oracle-beats-mean sanity).
+> **Full run: 1000 sessions → 29,000 windows, 5-fold GroupKFold-by-session
+> HistGBR → ceiling MAE 0.109 ± 0.014 mm vs 1.0 mm threshold → PASS**
+> (mean-predictor baseline 0.660 mm, so the sensors carry ~6× signal over
+> chance). Recorded in `experiments/gate_status.md` + runs.csv row.
+> Caveats: (a) pre-Gate-1 simulator — provisional until coupon calibration;
+> (b) likely optimistic — sim depth is a deterministic lagged function of the
+> sensed controls with no hidden material variation; real welds have
+> unsensed state (fit-up, contamination, wire quality). The 9× margin under
+> threshold is the buffer against that optimism. Green light for Steps 6–8.
 
 Inside the simulator, where depth is KNOWN: how well can the 6 channels possibly
 recover it? This bounds the entire project before architecture commitment.

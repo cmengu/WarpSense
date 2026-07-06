@@ -24,10 +24,10 @@ _backend = Path(__file__).resolve().parent.parent
 if str(_backend) not in __import__("sys").path:
     __import__("sys").path.insert(0, str(_backend))
 
-from database.base import Base
-from database.models import SessionModel, WeldQualityReportModel
+from warpsense.db.base import Base
+from warpsense.db.models import SessionModel, WeldQualityReportModel
 from main import app
-from routes import sessions
+from warpsense.api import sessions
 
 
 # ---------- Unit tests (no TestClient) ----------
@@ -35,7 +35,7 @@ from routes import sessions
 
 def test_clamp_quality_trend_days():
     """_clamp_quality_trend_days bounds negative/zero to 1, >90 to 90."""
-    from routes.welders import _clamp_quality_trend_days
+    from warpsense.api.welders import _clamp_quality_trend_days
 
     assert _clamp_quality_trend_days(-5) == 1
     assert _clamp_quality_trend_days(0) == 1
@@ -51,7 +51,7 @@ def test_warp_analysis_routes_registered():
     source = main_path.read_text()
     assert "warp_analysis_router" in source
     assert "include_router(warp_analysis_router)" in source
-    warp_routes = Path(__file__).resolve().parent.parent / "routes" / "warp_analysis.py"
+    warp_routes = Path(__file__).resolve().parent.parent / "warpsense" / "api" / "warp_analysis.py"
     wr = warp_routes.read_text()
     assert "/api/sessions/{session_id}/analyse" in wr
     assert "/api/health/warp" in wr
@@ -59,7 +59,7 @@ def test_warp_analysis_routes_registered():
 
 def test_quality_trend_route_registered():
     """Quality-trend route exists in welders."""
-    welders_path = Path(__file__).resolve().parent.parent / "routes" / "welders.py"
+    welders_path = Path(__file__).resolve().parent.parent / "warpsense" / "api" / "welders.py"
     source = welders_path.read_text()
     assert "quality-trend" in source
     assert "_clamp_quality_trend_days" in source
@@ -188,7 +188,7 @@ def test_post_analyse_404_when_session_not_found(client, db_session):
     assert "not found" in r.json()["detail"].lower()
 
 
-@patch("routes.warp_analysis.analyse_session", new_callable=AsyncMock)
+@patch("warpsense.api.warp_analysis.analyse_session", new_callable=AsyncMock)
 def test_post_analyse_200_when_mocked(mock_analyse, client, db_session):
     """POST /api/sessions/{id}/analyse returns 200 with report when mocked."""
     db_session.add(_make_session("sess-analysed"))
@@ -219,7 +219,7 @@ def test_post_analyse_200_when_mocked(mock_analyse, client, db_session):
     mock_analyse.assert_awaited_once()
 
 
-@patch("routes.warp_analysis.analyse_session", new_callable=AsyncMock)
+@patch("warpsense.api.warp_analysis.analyse_session", new_callable=AsyncMock)
 def test_post_analyse_400_when_value_error(mock_analyse, client):
     """POST /api/sessions/{id}/analyse returns 400 when analyse_session raises ValueError (e.g. no frames)."""
     mock_analyse.side_effect = ValueError("Session sess-bad has no frames")

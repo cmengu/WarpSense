@@ -16,11 +16,11 @@ try:
     from sqlalchemy.orm import sessionmaker
     from sqlalchemy.pool import StaticPool
 
-    from database.base import Base
-    from database.models import SessionModel
+    from warpsense.db.base import Base
+    from warpsense.db.models import SessionModel
     from fastapi.testclient import TestClient
     from main import app
-    from routes import dev as dev_routes
+    from warpsense.api import dev as dev_routes
 
     HAS_DEPS = True
 except ImportError:

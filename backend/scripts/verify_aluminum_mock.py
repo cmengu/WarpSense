@@ -23,11 +23,11 @@ from data.mock_sessions import (
     _init_thermal_state,
     _step_thermal_state,
 )
-from features.extractor import extract_features
-from models.frame import Frame
-from models.session import Session
-from models.session import SessionStatus
-from models.thermal import ThermalSnapshot
+from warpsense.features.extractor import extract_features
+from warpsense.contracts.frame import Frame
+from warpsense.contracts.session import Session
+from warpsense.contracts.session import SessionStatus
+from warpsense.contracts.thermal import ThermalSnapshot
 
 
 def _north_south_delta(snapshot: ThermalSnapshot) -> float:

@@ -30,10 +30,10 @@ except ImportError:
 
 if HAS_BENCHMARK:
     from datetime import datetime, timezone
-    from models.frame import Frame
-    from models.session import Session, SessionStatus
-    from models.thermal import TemperaturePoint, ThermalSnapshot
-    from services.comparison_service import compare_sessions
+    from warpsense.contracts.frame import Frame
+    from warpsense.contracts.session import Session, SessionStatus
+    from warpsense.contracts.thermal import TemperaturePoint, ThermalSnapshot
+    from warpsense.services.comparison_service import compare_sessions
     from data.mock_sessions import generate_expert_session, generate_novice_session
 
 if not HAS_BENCHMARK:

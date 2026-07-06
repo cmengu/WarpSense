@@ -11,9 +11,9 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from models.frame import Frame
-from models.thermal import TemperaturePoint, ThermalSnapshot
-from services.thermal_service import calculate_heat_dissipation
+from warpsense.contracts.frame import Frame
+from warpsense.contracts.thermal import TemperaturePoint, ThermalSnapshot
+from warpsense.services.thermal_service import calculate_heat_dissipation
 
 
 def _readings(center_temp: float):

@@ -29,8 +29,8 @@ sys.path.insert(0, str(backend_dir))
 
 from data.mock_welders import WELDER_ARCHETYPES
 from data.mock_sessions import generate_session_for_welder
-from database.connection import SessionLocal
-from database.models import SessionModel
+from warpsense.db.connection import SessionLocal
+from warpsense.db.models import SessionModel
 
 
 def _seed_demo_site(db) -> bool:
@@ -72,7 +72,7 @@ def _seed_demo_site(db) -> bool:
         )
         return False
 
-    from models.site import Site, Team
+    from warpsense.contracts.site import Site, Team
 
     if db.query(Site).filter_by(id="site_demo_001").first():
         return True
@@ -147,7 +147,7 @@ SEED_DRILLS = [
 
 def _seed_drills(db) -> None:
     """Seed drills table if not already populated. Idempotent."""
-    from models.coaching import Drill
+    from warpsense.contracts.coaching import Drill
 
     if db.query(Drill).count() >= len(SEED_DRILLS):
         return
@@ -158,7 +158,7 @@ def _seed_drills(db) -> None:
 
 def _seed_cert_standards(db) -> None:
     """Seed cert_standards table if not already populated. Idempotent."""
-    from models.certification import CertStandard
+    from warpsense.contracts.certification import CertStandard
 
     STANDARDS = [
         {
@@ -239,7 +239,7 @@ def main() -> int:
                         "_seed_demo_site skipped (schema not ready); site_demo_001 may be missing."
                     )
                     sys.exit(1)
-                from models.site import Site
+                from warpsense.contracts.site import Site
 
                 site = db.query(Site).filter_by(id="site_demo_001").first()
                 if site is None:
@@ -281,7 +281,7 @@ def main() -> int:
             )
             sys.exit(1)
 
-        from models.site import Site
+        from warpsense.contracts.site import Site
 
         site = db.query(Site).filter_by(id="site_demo_001").first()
         if site is None:

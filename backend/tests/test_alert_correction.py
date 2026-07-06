@@ -7,13 +7,13 @@ Threshold-adjacent values are derived from TEST_CFG, never hardcoded.
 
 from pathlib import Path
 
-from realtime.alert_engine import load_thresholds
-from realtime.alert_models import AlertPayload
-from services.alert_service import _enrich_alerts_with_correction
+from warpsense.realtime.alert_engine import load_thresholds
+from warpsense.realtime.alert_models import AlertPayload
+from warpsense.services.alert_service import _enrich_alerts_with_correction
 
-# Path from backend/tests/ to backend/config/
+# Path from backend/tests/ to backend/warpsense/config/
 TEST_CFG = load_thresholds(
-    str(Path(__file__).resolve().parent.parent / "config" / "alert_thresholds.json")
+    str(Path(__file__).resolve().parent.parent / "warpsense" / "config" / "alert_thresholds.json")
 )
 
 # Derived from TEST_CFG

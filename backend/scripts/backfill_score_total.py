@@ -14,11 +14,11 @@ sys.path.insert(0, str(backend_dir))
 
 from sqlalchemy.orm import joinedload
 
-from database.connection import SessionLocal
-from database.models import SessionModel
-from features.extractor import extract_features
-from scoring.rule_based import score_session
-from services.threshold_service import get_thresholds
+from warpsense.db.connection import SessionLocal
+from warpsense.db.models import SessionModel
+from warpsense.features.extractor import extract_features
+from warpsense.floor.rule_based import score_session
+from warpsense.services.threshold_service import get_thresholds
 
 BATCH_SIZE = 10
 

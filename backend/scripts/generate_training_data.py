@@ -27,7 +27,7 @@ if str(backend_dir) not in sys.path:
 
 from data.mock_sessions import generate_session_for_welder
 from data.mock_welders import WELDER_ARCHETYPES
-from features.warp_features import extract_asymmetry, extract_features, FEATURE_COLS
+from warpsense.features.warp_features import extract_asymmetry, extract_features, FEATURE_COLS
 
 WINDOW_SIZE = 50
 LOOKAHEAD_FRAMES = 30

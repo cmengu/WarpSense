@@ -6,11 +6,11 @@ Called from main.py lifespan (not HTTP). Uses direct imports and DB session.
 import logging
 from typing import List
 
-from database.connection import SessionLocal
-from database.models import SessionModel
-from knowledge.build_welding_kb import build_knowledge_base, kb_is_ready
-from models.session import SessionStatus
-from routes.dev import run_seed_mock_sessions
+from warpsense.db.connection import SessionLocal
+from warpsense.db.models import SessionModel
+from warpsense.agents.knowledge.build_welding_kb import build_knowledge_base, kb_is_ready
+from warpsense.contracts.session import SessionStatus
+from warpsense.api.dev import run_seed_mock_sessions
 
 logger = logging.getLogger(__name__)
 

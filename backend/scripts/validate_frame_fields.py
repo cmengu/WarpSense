@@ -20,7 +20,7 @@ _backend_dir = Path(__file__).resolve().parent.parent
 if str(_backend_dir) not in sys.path:
     sys.path.insert(0, str(_backend_dir))
 
-from models.frame import Frame
+from warpsense.contracts.frame import Frame
 
 
 REQUIRED_KEYS = frozenset({"angle_degrees", "amps", "has_thermal_data"})
@@ -53,8 +53,8 @@ def validate_frame_keys(frame: Frame) -> None:
 def main() -> int:
     """Load first session with frames from DB; validate first frame; exit 0 if pass."""
     try:
-        from database.connection import SessionLocal
-        from database.models import FrameModel, SessionModel
+        from warpsense.db.connection import SessionLocal
+        from warpsense.db.models import FrameModel, SessionModel
         from sqlalchemy.orm import joinedload
     except ImportError as e:
         print(f"Import error: {e}", file=sys.stderr)

@@ -35,7 +35,7 @@ def _patch_warp_init_for_testclient(monkeypatch):
     except ImportError:
         pass
     try:
-        import services.warp_service as ws
+        import warpsense.services.warp_service as ws
         monkeypatch.setattr(ws, "init_warp_components", _noop_init)
     except ImportError:
         pass

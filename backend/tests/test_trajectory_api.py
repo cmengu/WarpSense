@@ -11,11 +11,11 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from fastapi.testclient import TestClient
 
 from main import app
-from schemas.trajectory import WelderTrajectory, TrajectoryPoint
+from warpsense.contracts.schemas.trajectory import WelderTrajectory, TrajectoryPoint
 
 
 @patch("main.check_db_connectivity", return_value=True)
-@patch("routes.welders.get_welder_trajectory")
+@patch("warpsense.api.welders.get_welder_trajectory")
 def test_trajectory_returns_welder_trajectory_shape(mock_get_trajectory, mock_check_db):
     """GET /api/welders/{id}/trajectory returns welder_id, points, trend_slope, projected_next_score."""
     mock_get_trajectory.return_value = WelderTrajectory(
@@ -44,7 +44,7 @@ def test_trajectory_returns_welder_trajectory_shape(mock_get_trajectory, mock_ch
 
 
 @patch("main.check_db_connectivity", return_value=True)
-@patch("routes.welders.get_welder_trajectory")
+@patch("warpsense.api.welders.get_welder_trajectory")
 def test_trajectory_empty_welder_returns_empty_points(mock_get_trajectory, mock_check_db):
     """Welder with no complete sessions returns points:[], null trend/projection."""
     mock_get_trajectory.return_value = WelderTrajectory(

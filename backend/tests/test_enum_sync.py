@@ -5,7 +5,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from models.shared_enums import WeldMetric
+from warpsense.contracts.shared_enums import WeldMetric
 
 
 def test_weld_metrics_match_frontend():

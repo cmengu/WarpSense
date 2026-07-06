@@ -28,9 +28,9 @@ import sys
 sys.path.insert(0, str(Path('backend').resolve()))
 
 from main import app
-from database.base import Base
-from database.models import FrameModel, SessionModel
-from routes import sessions as sessions_routes
+from warpsense.db.base import Base
+from warpsense.db.models import FrameModel, SessionModel
+from warpsense.api import sessions as sessions_routes
 
 # ---------- Fixtures ----------
 

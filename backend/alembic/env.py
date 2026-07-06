@@ -34,8 +34,8 @@ config.set_main_option("sqlalchemy.url", database_url)
 
 # add your model's MetaData object here
 # for 'autogenerate' support
-from database.base import Base  # noqa: E402
-import database.models  # noqa: F401,E402
+from warpsense.db.base import Base  # noqa: E402
+import warpsense.db.models  # noqa: F401,E402
 
 target_metadata = Base.metadata
 

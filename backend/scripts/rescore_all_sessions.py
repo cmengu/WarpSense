@@ -9,9 +9,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from sqlalchemy.orm import joinedload
 
-from database.connection import SessionLocal
-from database.models import SessionModel
-from scoring.scorer import score_session_decomposed, _build_alerts_from_frames
+from warpsense.db.connection import SessionLocal
+from warpsense.db.models import SessionModel
+from warpsense.floor.scorer import score_session_decomposed, _build_alerts_from_frames
 
 
 def main():

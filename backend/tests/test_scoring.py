@@ -4,15 +4,15 @@ import pytest
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
-from realtime.alert_models import AlertPayload
-from scoring.components import (
+from warpsense.realtime.alert_models import AlertPayload
+from warpsense.floor.components import (
     calculate_arc_termination_component,
     calculate_defect_alert_component,
     calculate_interpass_component,
     calculate_torch_angle_component,
 )
-from scoring.heat_input import calculate_heat_input_component
-from scoring.scorer import score_session_decomposed, _build_alerts_from_frames
+from warpsense.floor.heat_input import calculate_heat_input_component
+from warpsense.floor.scorer import score_session_decomposed, _build_alerts_from_frames
 
 
 def test_heat_input_in_range_no_excursions():

@@ -34,8 +34,8 @@ def ok(msg: str) -> None:
 def check_cactus_import() -> bool:
     """Cactus import or stub — demo must run either way."""
     try:
-        from function_gemma import generate_hybrid
-        from warp_tools import WARP_TOOLS
+        from edge.function_gemma import generate_hybrid
+        from edge.warp_tools import WARP_TOOLS
         # Quick smoke test
         r = generate_hybrid([{"role": "user", "content": "voltage 28V"}], WARP_TOOLS)
         if "source" in r:

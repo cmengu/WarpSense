@@ -7,9 +7,9 @@ from __future__ import annotations
 import time
 import pytest
 
-from realtime.alert_engine import AlertEngine, load_thresholds
-from realtime.alert_models import FrameInput
-from realtime.frame_buffer import SpeedFrameBuffer
+from warpsense.realtime.alert_engine import AlertEngine, load_thresholds
+from warpsense.realtime.alert_models import FrameInput
+from warpsense.realtime.frame_buffer import SpeedFrameBuffer
 
 
 def test_load_thresholds_missing_raises() -> None:

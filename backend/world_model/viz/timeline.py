@@ -126,20 +126,25 @@ def plot_session(st: SessionTensor, extra: dict | None = None,
 
 def main():
     p = argparse.ArgumentParser(description="Render a SessionTensor timeline PNG")
-    p.add_argument("--source", choices=["mock", "polito"], required=True)
+    p.add_argument("--source", choices=["mock", "polito", "goldak"], required=True)
     p.add_argument("--kind", default="stitch_expert",
                    help="mock only: stitch_expert | continuous_novice | al_* parametric")
     p.add_argument("--index", type=int, default=0)
     p.add_argument("--out-dir", type=Path, default=PLOTS_DIR)
     args = p.parse_args()
 
+    extra = None
     if args.source == "mock":
         from world_model.data.loader_mock import load_mock_session
         st = load_mock_session(args.kind, args.index)
+    elif args.source == "goldak":
+        from world_model.simulator.weld_sim import sample_params, simulate_session
+        st = simulate_session(sample_params(args.index))
+        extra = {"depth_true": st.meta["fusion_depth_mm"]}  # dev-only overlay (D10)
     else:
         from world_model.data.loader_polito import load_polito_sessions
         st = load_polito_sessions(limit=args.index + 1)[args.index]
-    print(plot_session(st, out_dir=args.out_dir))
+    print(plot_session(st, extra=extra, out_dir=args.out_dir))
 
 
 if __name__ == "__main__":

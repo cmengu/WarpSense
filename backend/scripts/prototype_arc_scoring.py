@@ -22,10 +22,10 @@ backend = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(backend))
 
 from data.mock_sessions import generate_session_for_welder
-from database.connection import SessionLocal
-from features.extractor import extract_features
-from scoring.rule_based import score_session
-from services.threshold_service import get_thresholds
+from warpsense.db.connection import SessionLocal
+from warpsense.features.extractor import extract_features
+from warpsense.floor.rule_based import score_session
+from warpsense.services.threshold_service import get_thresholds
 
 # Explicit pass bands: arc -> (session_idx, min_score, max_score)
 # base ± 15 for session 0; target ± 15 for session 4

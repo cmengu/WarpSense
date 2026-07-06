@@ -125,7 +125,7 @@ def main() -> None:
         print("WARN: Some values outside reference range. Review before --write.")
 
     if args.write and all_ok:
-        config_dir = Path(__file__).resolve().parent.parent / "config"
+        config_dir = Path(__file__).resolve().parent.parent / "warpsense" / "config"
         config_dir.mkdir(exist_ok=True)
         out_path = config_dir / "alert_thresholds.json"
         payload = {

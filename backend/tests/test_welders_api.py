@@ -9,7 +9,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from fastapi.testclient import TestClient
 
 from main import app
-from schemas.benchmark import MetricBenchmark, WelderBenchmarks
+from warpsense.contracts.schemas.benchmark import MetricBenchmark, WelderBenchmarks
 
 
 @patch("main.check_db_connectivity", return_value=True)
@@ -24,7 +24,7 @@ def test_welders_health(mock_check_db):
 
 
 @patch("main.check_db_connectivity", return_value=True)
-@patch("routes.welders.get_welder_benchmarks")
+@patch("warpsense.api.welders.get_welder_benchmarks")
 def test_benchmarks_returns_welder_benchmarks_shape(mock_get_benchmarks, mock_check_db):
     """GET /api/welders/{id}/benchmarks returns welder_id, population_size, metrics, overall_percentile."""
     mock_get_benchmarks.return_value = WelderBenchmarks(

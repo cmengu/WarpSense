@@ -15,9 +15,9 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from main import app
-from database.base import Base
-from database.models import SessionModel
-from routes.sessions import get_db
+from warpsense.db.base import Base
+from warpsense.db.models import SessionModel
+from warpsense.api.sessions import get_db
 
 
 @pytest.fixture

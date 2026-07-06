@@ -7,10 +7,10 @@ is present without relying on weld_classifier.joblib or a running server.
 
 import pytest
 
-from features.session_feature_extractor import generate_feature_dataset
-from features.weld_classifier import WeldClassifier
-from routes.simulator import simulator_closest_match
-import services.warp_service as warp_service
+from warpsense.features.session_feature_extractor import generate_feature_dataset
+from warpsense.classifier.weld_classifier import WeldClassifier
+from warpsense.api.simulator import simulator_closest_match
+import warpsense.services.warp_service as warp_service
 
 
 @pytest.fixture
@@ -24,7 +24,7 @@ def test_closest_match_bad_weld_defective_corpus(trained_classifier, monkeypatch
     monkeypatch.setattr(warp_service, "_al_feature_cache", {})
     warp_service._build_al_feature_cache()
     monkeypatch.setattr(
-        "routes.simulator.get_classifier", lambda: trained_classifier
+        "warpsense.api.simulator.get_classifier", lambda: trained_classifier
     )
 
     r = simulator_closest_match(
@@ -42,7 +42,7 @@ def test_closest_match_good_weld_hot_or_nominal(trained_classifier, monkeypatch)
     monkeypatch.setattr(warp_service, "_al_feature_cache", {})
     warp_service._build_al_feature_cache()
     monkeypatch.setattr(
-        "routes.simulator.get_classifier", lambda: trained_classifier
+        "warpsense.api.simulator.get_classifier", lambda: trained_classifier
     )
 
     r = simulator_closest_match(

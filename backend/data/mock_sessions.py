@@ -43,9 +43,9 @@ import random
 from datetime import datetime, timezone
 from typing import Callable, Dict, List, Optional, Tuple
 
-from models.frame import Frame
-from models.session import Session, SessionStatus
-from models.thermal import TemperaturePoint, ThermalSnapshot
+from warpsense.contracts.frame import Frame
+from warpsense.contracts.session import Session, SessionStatus
+from warpsense.contracts.thermal import TemperaturePoint, ThermalSnapshot
 
 # ---------------------------------------------------------------------------
 # Sensor configuration
