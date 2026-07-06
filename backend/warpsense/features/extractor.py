@@ -11,13 +11,16 @@ NOT torch_angle_degrees or frame_type (deprecated).
 """
 
 import math
-import statistics
 from typing import List, Dict, Any
 
 import numpy as np
 
 from warpsense.contracts.frame import Frame
 from warpsense.contracts.session import Session
+from warpsense.signal.arc import is_arc_on
+from warpsense.signal.stats import population_std, sample_std, value_range
+from warpsense.signal.thermal import north_south_mean_delta
+from warpsense.signal.windows import POROSITY_WINDOW_FRAMES
 
 # Porosity window voltage σ threshold — calibrated via Step 8 (30-session calibration).
 # Source: Step 8 output confirmed 0.8 separates expert/novice voltage variance windows.
@@ -29,8 +32,8 @@ def _compute_cyclogram_area(volts: list, amps: list) -> float:
     """Ellipse area of V-I scatter. Expert: small. Novice: large. π×σ_v×σ_a×sqrt(1-r²)"""
     if len(volts) < 10 or len(amps) < 10:
         return 0.0
-    v_std = float(np.std(volts))
-    a_std = float(np.std(amps))
+    v_std = population_std(volts)
+    a_std = population_std(amps)
     if v_std == 0.0 or a_std == 0.0:
         return 0.0
     r_val = float(np.corrcoef(volts, amps)[0, 1])
@@ -48,17 +51,6 @@ def extract_features_for_frames(
     """
     amps = [f.amps for f in frames if f.amps is not None]
     angles = [f.angle_degrees for f in frames if f.angle_degrees is not None]
-    thermal_frames = [f for f in frames if f.has_thermal_data]
-
-    north_temps: List[float] = []
-    south_temps: List[float] = []
-    for f in thermal_frames:
-        for snap in f.thermal_snapshots:
-            for r in snap.readings:
-                if r.direction == "north":
-                    north_temps.append(r.temp_celsius)
-                elif r.direction == "south":
-                    south_temps.append(r.temp_celsius)
 
     heat_diss = [
         f.heat_dissipation_rate_celsius_per_sec
@@ -67,27 +59,23 @@ def extract_features_for_frames(
     ]
     volts = [f.volts for f in frames if f.volts is not None]
 
-    amps_stddev = statistics.stdev(amps) if len(amps) > 1 else 0.0
+    amps_stddev = sample_std(amps)
     angle_max_deviation = (
         max(abs(a - angle_target_deg) for a in angles) if angles else 0.0
     )
-    north_south_delta_avg = (
-        abs(statistics.mean(north_temps) - statistics.mean(south_temps))
-        if north_temps and south_temps
-        else 0.0
-    )
-    heat_diss_stddev = statistics.stdev(heat_diss) if len(heat_diss) > 1 else 0.0
-    volts_range = max(volts) - min(volts) if volts else 0.0
+    north_south_delta_avg = north_south_mean_delta(frames)
+    heat_diss_stddev = sample_std(heat_diss)
+    volts_range = value_range(volts)
 
     # Travel speed stddev
     travel_speeds = [
         f.travel_speed_mm_per_min for f in frames
         if f.travel_speed_mm_per_min is not None
     ]
-    travel_speed_stddev = float(np.std(travel_speeds)) if len(travel_speeds) > 1 else 0.0
+    travel_speed_stddev = population_std(travel_speeds)
 
     # Cyclogram area — arc-on frames only
-    arc_frames = [f for f in frames if f.volts and f.volts > 1.0 and f.amps]
+    arc_frames = [f for f in frames if is_arc_on(f.volts, f.amps)]
     cyclogram_area = _compute_cyclogram_area(
         [f.volts for f in arc_frames],
         [f.amps for f in arc_frames],
@@ -95,11 +83,11 @@ def extract_features_for_frames(
 
     # Porosity event count — rolling 30-frame windows; threshold from Step 8 calibration
     porosity_event_count = 0
-    window_size = 30
+    window_size = POROSITY_WINDOW_FRAMES
     if len(arc_frames) >= window_size:
         for idx in range(0, len(arc_frames) - window_size, window_size):
             w = [f.volts for f in arc_frames[idx : idx + window_size] if f.volts]
-            if len(w) >= window_size // 2 and float(np.std(w)) > POROSITY_SIGMA_THRESHOLD:
+            if len(w) >= window_size // 2 and population_std(w) > POROSITY_SIGMA_THRESHOLD:
                 porosity_event_count += 1
 
     return {

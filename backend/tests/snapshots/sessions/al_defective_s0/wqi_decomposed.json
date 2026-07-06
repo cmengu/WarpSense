@@ -366,7 +366,7 @@
       "parameter": "heat_input_kj_per_mm",
       "threshold": 0.9,
       "timestamp_ms": 0.0,
-      "value": 0.41420221188470085
+      "value": 0.404051696737335
      }
     ],
     "name": "heat_input",

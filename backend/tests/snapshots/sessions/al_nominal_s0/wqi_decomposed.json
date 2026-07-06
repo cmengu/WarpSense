@@ -3,12 +3,12 @@
   {
    "corrected": false,
    "corrected_in_seconds": null,
-   "correction": "Reduce travel speed or current",
-   "frame_index": 201,
-   "message": "Undercut risk: high current and high speed",
-   "rule_triggered": "undercut",
-   "severity": "critical",
-   "timestamp_ms": 2010.0
+   "correction": "Slowing down \u2014 maintain pace",
+   "frame_index": 205,
+   "message": "Speed 373 mm/min \u2014 13.1% drop (warning)",
+   "rule_triggered": "rule3",
+   "severity": "warning",
+   "timestamp_ms": 2050.0
   },
   {
    "corrected": false,
@@ -23,22 +23,22 @@
   {
    "corrected": false,
    "corrected_in_seconds": null,
-   "correction": "Reduce speed below 520 mm/min",
-   "frame_index": 291,
-   "message": "Lack of fusion risk: travel speed too high",
-   "rule_triggered": "lack_of_fusion_speed",
+   "correction": "Speed critical \u2014 increase to 420mm/min",
+   "frame_index": 305,
+   "message": "Speed 347 mm/min \u2014 19.9% drop (critical)",
+   "rule_triggered": "rule3",
    "severity": "critical",
-   "timestamp_ms": 2910.0
+   "timestamp_ms": 3050.0
   },
   {
    "corrected": false,
    "corrected_in_seconds": null,
-   "correction": "Reduce travel speed or current",
-   "frame_index": 301,
-   "message": "Undercut risk: high current and high speed",
-   "rule_triggered": "undercut",
+   "correction": "Speed critical \u2014 increase to 420mm/min",
+   "frame_index": 405,
+   "message": "Speed 325 mm/min \u2014 24.4% drop (critical)",
+   "rule_triggered": "rule3",
    "severity": "critical",
-   "timestamp_ms": 3010.0
+   "timestamp_ms": 4050.0
   },
   {
    "corrected": false,
@@ -53,22 +53,32 @@
   {
    "corrected": false,
    "corrected_in_seconds": null,
-   "correction": "Reduce travel speed or current",
-   "frame_index": 507,
-   "message": "Undercut risk: high current and high speed",
-   "rule_triggered": "undercut",
+   "correction": "Speed critical \u2014 increase to 420mm/min",
+   "frame_index": 505,
+   "message": "Speed 350 mm/min \u2014 18.3% drop (critical)",
+   "rule_triggered": "rule3",
    "severity": "critical",
-   "timestamp_ms": 5070.0
+   "timestamp_ms": 5050.0
   },
   {
    "corrected": false,
    "corrected_in_seconds": null,
-   "correction": "Reduce travel speed or current",
-   "frame_index": 716,
-   "message": "Undercut risk: high current and high speed",
-   "rule_triggered": "undercut",
+   "correction": "Speed critical \u2014 increase to 420mm/min",
+   "frame_index": 605,
+   "message": "Speed 311 mm/min \u2014 25.0% drop (critical)",
+   "rule_triggered": "rule3",
    "severity": "critical",
-   "timestamp_ms": 7160.0
+   "timestamp_ms": 6050.0
+  },
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Speed critical \u2014 increase to 420mm/min",
+   "frame_index": 705,
+   "message": "Speed 314 mm/min \u2014 22.1% drop (critical)",
+   "rule_triggered": "rule3",
+   "severity": "critical",
+   "timestamp_ms": 7050.0
   },
   {
    "corrected": false,
@@ -79,56 +89,6 @@
    "rule_triggered": "crater_crack",
    "severity": "critical",
    "timestamp_ms": 7200.0
-  },
-  {
-   "corrected": false,
-   "corrected_in_seconds": null,
-   "correction": "Reduce speed below 520 mm/min",
-   "frame_index": 721,
-   "message": "Lack of fusion risk: travel speed too high",
-   "rule_triggered": "lack_of_fusion_speed",
-   "severity": "critical",
-   "timestamp_ms": 7210.0
-  },
-  {
-   "corrected": false,
-   "corrected_in_seconds": null,
-   "correction": "Reduce travel speed or current",
-   "frame_index": 816,
-   "message": "Undercut risk: high current and high speed",
-   "rule_triggered": "undercut",
-   "severity": "critical",
-   "timestamp_ms": 8160.0
-  },
-  {
-   "corrected": false,
-   "corrected_in_seconds": null,
-   "correction": "Reduce speed below 520 mm/min",
-   "frame_index": 848,
-   "message": "Lack of fusion risk: travel speed too high",
-   "rule_triggered": "lack_of_fusion_speed",
-   "severity": "critical",
-   "timestamp_ms": 8480.0
-  },
-  {
-   "corrected": false,
-   "corrected_in_seconds": null,
-   "correction": "Reduce travel speed or current",
-   "frame_index": 916,
-   "message": "Undercut risk: high current and high speed",
-   "rule_triggered": "undercut",
-   "severity": "critical",
-   "timestamp_ms": 9160.0
-  },
-  {
-   "corrected": false,
-   "corrected_in_seconds": null,
-   "correction": "Reduce speed below 520 mm/min",
-   "frame_index": 948,
-   "message": "Lack of fusion risk: travel speed too high",
-   "rule_triggered": "lack_of_fusion_speed",
-   "severity": "critical",
-   "timestamp_ms": 9480.0
   },
   {
    "corrected": false,
@@ -149,6 +109,16 @@
    "rule_triggered": "crater_crack",
    "severity": "critical",
    "timestamp_ms": 12200.0
+  },
+  {
+   "corrected": false,
+   "corrected_in_seconds": null,
+   "correction": "Reduce travel speed or current",
+   "frame_index": 1355,
+   "message": "Undercut risk: high current and high speed",
+   "rule_triggered": "undercut",
+   "severity": "critical",
+   "timestamp_ms": 13550.0
   },
   {
    "corrected": false,
@@ -175,9 +145,9 @@
     "excursions": [
      {
       "duration_ms": 0.0,
-      "parameter": "undercut",
+      "parameter": "rule3",
       "threshold": 0.0,
-      "timestamp_ms": 2010.0,
+      "timestamp_ms": 2050.0,
       "value": 1.0
      },
      {
@@ -189,16 +159,16 @@
      },
      {
       "duration_ms": 0.0,
-      "parameter": "lack_of_fusion_speed",
+      "parameter": "rule3",
       "threshold": 0.0,
-      "timestamp_ms": 2910.0,
+      "timestamp_ms": 3050.0,
       "value": 1.0
      },
      {
       "duration_ms": 0.0,
-      "parameter": "undercut",
+      "parameter": "rule3",
       "threshold": 0.0,
-      "timestamp_ms": 3010.0,
+      "timestamp_ms": 4050.0,
       "value": 1.0
      },
      {
@@ -210,16 +180,23 @@
      },
      {
       "duration_ms": 0.0,
-      "parameter": "undercut",
+      "parameter": "rule3",
       "threshold": 0.0,
-      "timestamp_ms": 5070.0,
+      "timestamp_ms": 5050.0,
       "value": 1.0
      },
      {
       "duration_ms": 0.0,
-      "parameter": "undercut",
+      "parameter": "rule3",
       "threshold": 0.0,
-      "timestamp_ms": 7160.0,
+      "timestamp_ms": 6050.0,
+      "value": 1.0
+     },
+     {
+      "duration_ms": 0.0,
+      "parameter": "rule3",
+      "threshold": 0.0,
+      "timestamp_ms": 7050.0,
       "value": 1.0
      },
      {
@@ -227,41 +204,6 @@
       "parameter": "crater_crack",
       "threshold": 0.0,
       "timestamp_ms": 7200.0,
-      "value": 1.0
-     },
-     {
-      "duration_ms": 0.0,
-      "parameter": "lack_of_fusion_speed",
-      "threshold": 0.0,
-      "timestamp_ms": 7210.0,
-      "value": 1.0
-     },
-     {
-      "duration_ms": 0.0,
-      "parameter": "undercut",
-      "threshold": 0.0,
-      "timestamp_ms": 8160.0,
-      "value": 1.0
-     },
-     {
-      "duration_ms": 0.0,
-      "parameter": "lack_of_fusion_speed",
-      "threshold": 0.0,
-      "timestamp_ms": 8480.0,
-      "value": 1.0
-     },
-     {
-      "duration_ms": 0.0,
-      "parameter": "undercut",
-      "threshold": 0.0,
-      "timestamp_ms": 9160.0,
-      "value": 1.0
-     },
-     {
-      "duration_ms": 0.0,
-      "parameter": "lack_of_fusion_speed",
-      "threshold": 0.0,
-      "timestamp_ms": 9480.0,
       "value": 1.0
      },
      {
@@ -280,6 +222,13 @@
      },
      {
       "duration_ms": 0.0,
+      "parameter": "undercut",
+      "threshold": 0.0,
+      "timestamp_ms": 13550.0,
+      "value": 1.0
+     },
+     {
+      "duration_ms": 0.0,
       "parameter": "crater_crack",
       "threshold": 0.0,
       "timestamp_ms": 14700.0,
@@ -289,302 +238,610 @@
     "name": "defect_alerts",
     "passed": false,
     "score": 0.0,
-    "summary": "defects: {'undercut': 6, 'crater_crack': 6, 'lack_of_fusion_speed': 4}"
+    "summary": "defects: {'rule3': 6, 'crater_crack': 6, 'undercut': 1}"
    },
    "heat_input": {
     "excursions": [
      {
-      "duration_ms": 140.0,
+      "duration_ms": 1070.0,
       "parameter": "heat_input_kj_per_mm",
       "threshold": 0.9,
       "timestamp_ms": 0.0,
-      "value": 0.8258372057524666
-     },
-     {
-      "duration_ms": 10.0,
-      "parameter": "heat_input_kj_per_mm",
-      "threshold": 0.9,
-      "timestamp_ms": 150.0,
-      "value": 0.8137012888742559
-     },
-     {
-      "duration_ms": 20.0,
-      "parameter": "heat_input_kj_per_mm",
-      "threshold": 0.9,
-      "timestamp_ms": 180.0,
-      "value": 0.8800052441334244
-     },
-     {
-      "duration_ms": 90.0,
-      "parameter": "heat_input_kj_per_mm",
-      "threshold": 0.9,
-      "timestamp_ms": 210.0,
-      "value": 0.8869617465642595
-     },
-     {
-      "duration_ms": 10380.0,
-      "parameter": "heat_input_kj_per_mm",
-      "threshold": 0.9,
-      "timestamp_ms": 310.0,
-      "value": 0.8428047220964417
-     },
-     {
-      "duration_ms": 200.0,
-      "parameter": "heat_input_kj_per_mm",
-      "threshold": 0.9,
-      "timestamp_ms": 10700.0,
-      "value": 0.8160892996152075
-     },
-     {
-      "duration_ms": 20.0,
-      "parameter": "heat_input_kj_per_mm",
-      "threshold": 0.9,
-      "timestamp_ms": 10910.0,
-      "value": 0.8770139659133038
-     },
-     {
-      "duration_ms": 10.0,
-      "parameter": "heat_input_kj_per_mm",
-      "threshold": 0.9,
-      "timestamp_ms": 10990.0,
-      "value": 0.8933581989755756
+      "value": 0.8500416023027032
      },
      {
       "duration_ms": 40.0,
       "parameter": "heat_input_kj_per_mm",
       "threshold": 0.9,
-      "timestamp_ms": 11040.0,
-      "value": 0.8582662291473245
+      "timestamp_ms": 1080.0,
+      "value": 0.8289908331105176
+     },
+     {
+      "duration_ms": 950.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 1130.0,
+      "value": 0.7941879630795418
+     },
+     {
+      "duration_ms": 50.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 2110.0,
+      "value": 0.872823985341393
+     },
+     {
+      "duration_ms": 320.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 2180.0,
+      "value": 0.8418278333738561
      },
      {
       "duration_ms": 10.0,
       "parameter": "heat_input_kj_per_mm",
       "threshold": 0.9,
-      "timestamp_ms": 11220.0,
-      "value": 0.8487859391766858
+      "timestamp_ms": 3030.0,
+      "value": 0.8786455168725488
      },
      {
-      "duration_ms": 30.0,
+      "duration_ms": 10.0,
       "parameter": "heat_input_kj_per_mm",
       "threshold": 0.9,
-      "timestamp_ms": 11280.0,
-      "value": 0.8598500819846194
-     },
-     {
-      "duration_ms": 30.0,
-      "parameter": "heat_input_kj_per_mm",
-      "threshold": 0.9,
-      "timestamp_ms": 11320.0,
-      "value": 0.8784359053171347
+      "timestamp_ms": 3360.0,
+      "value": 0.8823276080111268
      },
      {
       "duration_ms": 20.0,
       "parameter": "heat_input_kj_per_mm",
       "threshold": 0.9,
-      "timestamp_ms": 11370.0,
-      "value": 0.8924734879337656
+      "timestamp_ms": 4370.0,
+      "value": 0.8672774997174395
+     },
+     {
+      "duration_ms": 20.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 4570.0,
+      "value": 0.8796573100757478
+     },
+     {
+      "duration_ms": 20.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 4610.0,
+      "value": 0.8648162133808833
+     },
+     {
+      "duration_ms": 310.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 4700.0,
+      "value": 0.0
      },
      {
       "duration_ms": 10.0,
       "parameter": "heat_input_kj_per_mm",
       "threshold": 0.9,
-      "timestamp_ms": 11810.0,
-      "value": 0.8989441422705636
+      "timestamp_ms": 5050.0,
+      "value": 0.8924452418492342
      },
      {
       "duration_ms": 10.0,
       "parameter": "heat_input_kj_per_mm",
       "threshold": 0.9,
-      "timestamp_ms": 11980.0,
-      "value": 0.8836888281215002
+      "timestamp_ms": 5070.0,
+      "value": 0.8780570961946687
      },
      {
       "duration_ms": 10.0,
       "parameter": "heat_input_kj_per_mm",
       "threshold": 0.9,
-      "timestamp_ms": 12050.0,
-      "value": 0.8879065492293937
+      "timestamp_ms": 5120.0,
+      "value": 0.8795880345306555
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 5280.0,
+      "value": 0.8168900465957563
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 5340.0,
+      "value": 0.8962633562923541
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 5610.0,
+      "value": 0.8753552427387068
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 5630.0,
+      "value": 0.8510999090864484
+     },
+     {
+      "duration_ms": 70.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 5650.0,
+      "value": 0.8384805753037737
+     },
+     {
+      "duration_ms": 40.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 5730.0,
+      "value": 0.8974483131112387
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 5780.0,
+      "value": 0.8482994709517947
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 5810.0,
+      "value": 0.8924807291808343
      },
      {
       "duration_ms": 300.0,
       "parameter": "heat_input_kj_per_mm",
       "threshold": 0.9,
-      "timestamp_ms": 12200.0,
+      "timestamp_ms": 7200.0,
       "value": 0.0
      },
      {
       "duration_ms": 10.0,
       "parameter": "heat_input_kj_per_mm",
       "threshold": 0.9,
-      "timestamp_ms": 13190.0,
-      "value": 0.8260890137962441
+      "timestamp_ms": 7510.0,
+      "value": 0.8644888598036529
      },
      {
       "duration_ms": 10.0,
       "parameter": "heat_input_kj_per_mm",
       "threshold": 0.9,
-      "timestamp_ms": 13220.0,
-      "value": 0.8543221763557267
+      "timestamp_ms": 7570.0,
+      "value": 0.8900024427653344
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 7590.0,
+      "value": 0.8885879000447483
      },
      {
       "duration_ms": 20.0,
       "parameter": "heat_input_kj_per_mm",
       "threshold": 0.9,
-      "timestamp_ms": 13240.0,
-      "value": 0.8776948634639142
+      "timestamp_ms": 7620.0,
+      "value": 0.8946549649361507
+     },
+     {
+      "duration_ms": 20.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 7650.0,
+      "value": 0.8821813598919539
+     },
+     {
+      "duration_ms": 30.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 7700.0,
+      "value": 0.8856001349514915
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 7740.0,
+      "value": 0.879067881607655
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 7760.0,
+      "value": 0.8551275712249253
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 7820.0,
+      "value": 0.875592711807382
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 7850.0,
+      "value": 0.8576370292006043
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 7890.0,
+      "value": 0.8442038042602023
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 7960.0,
+      "value": 0.8901656285569423
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 8120.0,
+      "value": 0.8992803732907728
+     },
+     {
+      "duration_ms": 280.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 8140.0,
+      "value": 0.8276945650429236
      },
      {
       "duration_ms": 40.0,
       "parameter": "heat_input_kj_per_mm",
       "threshold": 0.9,
-      "timestamp_ms": 13270.0,
-      "value": 0.8179351289841416
-     },
-     {
-      "duration_ms": 10.0,
-      "parameter": "heat_input_kj_per_mm",
-      "threshold": 0.9,
-      "timestamp_ms": 13330.0,
-      "value": 0.8511750770244362
-     },
-     {
-      "duration_ms": 10.0,
-      "parameter": "heat_input_kj_per_mm",
-      "threshold": 0.9,
-      "timestamp_ms": 13370.0,
-      "value": 0.8340629691504959
-     },
-     {
-      "duration_ms": 20.0,
-      "parameter": "heat_input_kj_per_mm",
-      "threshold": 0.9,
-      "timestamp_ms": 13390.0,
-      "value": 0.8619739000805205
-     },
-     {
-      "duration_ms": 440.0,
-      "parameter": "heat_input_kj_per_mm",
-      "threshold": 0.9,
-      "timestamp_ms": 13440.0,
-      "value": 0.8505243426489646
-     },
-     {
-      "duration_ms": 10.0,
-      "parameter": "heat_input_kj_per_mm",
-      "threshold": 0.9,
-      "timestamp_ms": 13890.0,
-      "value": 0.825944181951434
+      "timestamp_ms": 8430.0,
+      "value": 0.8591463971862745
      },
      {
       "duration_ms": 40.0,
       "parameter": "heat_input_kj_per_mm",
       "threshold": 0.9,
-      "timestamp_ms": 13950.0,
-      "value": 0.8864771955399261
+      "timestamp_ms": 8480.0,
+      "value": 0.8783554631681678
      },
      {
       "duration_ms": 10.0,
       "parameter": "heat_input_kj_per_mm",
       "threshold": 0.9,
-      "timestamp_ms": 14020.0,
-      "value": 0.8527959733958993
+      "timestamp_ms": 8560.0,
+      "value": 0.8817932423091961
      },
      {
       "duration_ms": 10.0,
       "parameter": "heat_input_kj_per_mm",
       "threshold": 0.9,
-      "timestamp_ms": 14040.0,
-      "value": 0.7640664104421365
-     },
-     {
-      "duration_ms": 30.0,
-      "parameter": "heat_input_kj_per_mm",
-      "threshold": 0.9,
-      "timestamp_ms": 14090.0,
-      "value": 0.868374098794398
+      "timestamp_ms": 8580.0,
+      "value": 0.8982791545661365
      },
      {
       "duration_ms": 20.0,
       "parameter": "heat_input_kj_per_mm",
       "threshold": 0.9,
-      "timestamp_ms": 14150.0,
-      "value": 0.884537386115395
+      "timestamp_ms": 8640.0,
+      "value": 0.8625681211535321
      },
      {
       "duration_ms": 10.0,
       "parameter": "heat_input_kj_per_mm",
       "threshold": 0.9,
-      "timestamp_ms": 14180.0,
-      "value": 0.8629244805617181
+      "timestamp_ms": 8680.0,
+      "value": 0.8765780642143418
+     },
+     {
+      "duration_ms": 70.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 8700.0,
+      "value": 0.883173763078431
+     },
+     {
+      "duration_ms": 20.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 8820.0,
+      "value": 0.8470422014632611
      },
      {
       "duration_ms": 10.0,
       "parameter": "heat_input_kj_per_mm",
       "threshold": 0.9,
-      "timestamp_ms": 14210.0,
-      "value": 0.8983211745296042
-     },
-     {
-      "duration_ms": 30.0,
-      "parameter": "heat_input_kj_per_mm",
-      "threshold": 0.9,
-      "timestamp_ms": 14260.0,
-      "value": 0.8817773633851083
+      "timestamp_ms": 8870.0,
+      "value": 0.8165577885703834
      },
      {
       "duration_ms": 10.0,
       "parameter": "heat_input_kj_per_mm",
       "threshold": 0.9,
-      "timestamp_ms": 14300.0,
-      "value": 0.8385705162318241
+      "timestamp_ms": 8890.0,
+      "value": 0.847066154928268
+     },
+     {
+      "duration_ms": 20.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 8910.0,
+      "value": 0.8656645431149698
+     },
+     {
+      "duration_ms": 20.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 8950.0,
+      "value": 0.8711185659552629
      },
      {
       "duration_ms": 10.0,
       "parameter": "heat_input_kj_per_mm",
       "threshold": 0.9,
-      "timestamp_ms": 14330.0,
-      "value": 0.8950387345424722
+      "timestamp_ms": 8980.0,
+      "value": 0.8992291030928002
      },
      {
       "duration_ms": 10.0,
       "parameter": "heat_input_kj_per_mm",
       "threshold": 0.9,
-      "timestamp_ms": 14430.0,
-      "value": 0.8747885724106813
+      "timestamp_ms": 9000.0,
+      "value": 0.8767678180785824
+     },
+     {
+      "duration_ms": 20.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 9320.0,
+      "value": 0.8862188714720045
      },
      {
       "duration_ms": 10.0,
       "parameter": "heat_input_kj_per_mm",
       "threshold": 0.9,
-      "timestamp_ms": 14580.0,
-      "value": 0.8897464680313559
-     },
-     {
-      "duration_ms": 30.0,
-      "parameter": "heat_input_kj_per_mm",
-      "threshold": 0.9,
-      "timestamp_ms": 14630.0,
-      "value": 0.8962535688459359
+      "timestamp_ms": 9380.0,
+      "value": 0.8867488029195789
      },
      {
       "duration_ms": 10.0,
       "parameter": "heat_input_kj_per_mm",
       "threshold": 0.9,
-      "timestamp_ms": 14670.0,
-      "value": 0.8874256274559796
+      "timestamp_ms": 9470.0,
+      "value": 0.8887904709405638
      },
      {
-      "duration_ms": 290.0,
+      "duration_ms": 370.0,
       "parameter": "heat_input_kj_per_mm",
       "threshold": 0.9,
-      "timestamp_ms": 14700.0,
+      "timestamp_ms": 9700.0,
       "value": 0.0
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 10080.0,
+      "value": 0.836817473517521
+     },
+     {
+      "duration_ms": 30.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 10100.0,
+      "value": 0.8346295736600677
+     },
+     {
+      "duration_ms": 230.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 10140.0,
+      "value": 0.7717314392375855
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 10380.0,
+      "value": 0.8497022732258753
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 10400.0,
+      "value": 0.8283341235633824
+     },
+     {
+      "duration_ms": 20.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 10430.0,
+      "value": 0.8918511640770431
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 10470.0,
+      "value": 0.8662745794003495
+     },
+     {
+      "duration_ms": 50.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 10500.0,
+      "value": 0.791763447238332
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 10560.0,
+      "value": 0.8791827966760265
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 10580.0,
+      "value": 0.8484370880539177
+     },
+     {
+      "duration_ms": 40.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 10660.0,
+      "value": 0.8653141272138352
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 10860.0,
+      "value": 0.882784424948579
+     },
+     {
+      "duration_ms": 30.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 10970.0,
+      "value": 0.85383320530355
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 11020.0,
+      "value": 0.8658621299977474
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 11050.0,
+      "value": 0.8939767209839985
+     },
+     {
+      "duration_ms": 10.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 11100.0,
+      "value": 0.8885621254301314
+     },
+     {
+      "duration_ms": 40.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 11130.0,
+      "value": 0.8954849322247203
+     },
+     {
+      "duration_ms": 20.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 11200.0,
+      "value": 0.8181858184807267
+     },
+     {
+      "duration_ms": 30.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 11240.0,
+      "value": 0.8636904705395546
+     },
+     {
+      "duration_ms": 60.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 11280.0,
+      "value": 0.8243216650982771
+     },
+     {
+      "duration_ms": 30.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 11350.0,
+      "value": 0.8861927136300675
+     },
+     {
+      "duration_ms": 210.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 11390.0,
+      "value": 0.8275304075414611
+     },
+     {
+      "duration_ms": 510.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 11610.0,
+      "value": 0.8528382974798675
+     },
+     {
+      "duration_ms": 30.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 12130.0,
+      "value": 0.7672808834783796
+     },
+     {
+      "duration_ms": 340.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 12190.0,
+      "value": 0.8783337064122201
+     },
+     {
+      "duration_ms": 20.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 12540.0,
+      "value": 0.8280923305895013
+     },
+     {
+      "duration_ms": 20.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 12570.0,
+      "value": 0.882574226327238
+     },
+     {
+      "duration_ms": 120.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 12610.0,
+      "value": 0.8072977605582434
+     },
+     {
+      "duration_ms": 20.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 12740.0,
+      "value": 0.8319445043462178
+     },
+     {
+      "duration_ms": 2220.0,
+      "parameter": "heat_input_kj_per_mm",
+      "threshold": 0.9,
+      "timestamp_ms": 12770.0,
+      "value": 0.8441212726676133
      }
     ],
     "name": "heat_input",
     "passed": false,
-    "score": 0.727,
-    "summary": "41 heat input excursions vs WPS range 0.9\u20131.5 kJ/mm"
+    "score": 0.433,
+    "summary": "85 heat input excursions vs WPS range 0.9\u20131.5 kJ/mm"
    },
    "interpass": {
     "excursions": [
@@ -639,7 +896,7 @@
   },
   "computed_at_ms": "__SCRUBBED__",
   "frame_count": 1500,
-  "overall_score": 0.754,
+  "overall_score": 0.652,
   "passed": false,
   "session_id": "al_nominal_s0",
   "wps_range_kj_per_mm": [

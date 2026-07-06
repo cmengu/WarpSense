@@ -22,6 +22,7 @@ from pathlib import Path
 from typing import AsyncGenerator, Optional
 
 import joblib
+import zlib
 from sqlalchemy.orm import Session as OrmSession
 
 from warpsense.db.models import SessionModel, WeldQualityReportModel
@@ -127,7 +128,7 @@ def _build_al_feature_cache() -> None:
     for welder_id, arc_type, heat, angle_dev, arc_ratio, n_sessions in _CORPUS:
         for i in range(n_sessions):
             session_id = f"sess_{welder_id}_{i+1:03d}"
-            rng = _random.Random(i * 37 + abs(hash(arc_type)) % 997)
+            rng = _random.Random(i * 37 + zlib.crc32(arc_type.encode()) % 997)
             h = heat * (1.0 + rng.gauss(0, 0.025))
             a = angle_dev * (1.0 + rng.gauss(0, 0.04))
             r = max(0.40, min(1.00, arc_ratio + rng.gauss(0, 0.01)))
