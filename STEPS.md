@@ -384,7 +384,20 @@ real electrical dynamics at all → architecture problem exposed early — fix n
 
 ---
 
-### STEP 7 — World-model architecture ⬜
+### STEP 7 — World-model architecture ✅ (2026-07-06)
+
+> Done: `architecture/{encoder,odefunc,decoder,world_model}.py` +
+> `tests/test_world_model_step7.py` (11 tests). Done-when met: forward+backward
+> on a tiny mock batch on CPU through the adjoint dopri5 path, gradients reach
+> stems/encoder/odefunc/decoder; heat-head input dim pinned == 4 (plus a
+> behavioural check: perturbing z_free leaves heat_diss_hat bit-identical).
+> Controlledness pinned by test: same z0, edited u(t) → different trajectory.
+> `N_FEATURES = 11` added to config.py, pinned against `SessionFeatures`.
+> `encoder.load_pretrained_trunk()` maps the Step 6 nn.GRU names onto the
+> GRUCell (warm-start wiring done here, exercised by Step 8's train.py).
+> u(t) is built from NORMALISED controls, so the physics-residual constants
+> are placeholders squared until Gate 1 fits them — pre-registered.
+> Counterfactual hook: `WeldWorldModel.forward(..., controls=edited)`.
 
 ```python
 # architecture/stems.py     — per-channel Conv1d stems, mask-aware sum (shared w/ GRU)

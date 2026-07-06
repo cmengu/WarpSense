@@ -43,6 +43,12 @@ CONTROL_CHANNELS = CHANNELS[:5]
 LATENT_DIM = 32  # sweep {16, 32, 64} at Gate 2 (Step 12)
 PHYS_DIMS = 4    # z[0:4] = z_phys; heat-diss decoder reads ONLY these dims
 
+# The 11 engineered features from warpsense/features/session_feature_extractor.py
+# (SessionFeatures.to_vector()). Consumed three ways with zero changes to the
+# extractor: L_aux targets (Step 8), quality-head fusion input (Step 7), and
+# Gate 2 probe targets (Step 12). A test pins this against the dataclass.
+N_FEATURES = 11
+
 SEED = 1337
 SENSOR_HZ = 100  # ESP32 fixed sample rate; dt = 1/SENSOR_HZ seconds
 
