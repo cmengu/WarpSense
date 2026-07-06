@@ -7,7 +7,8 @@ from pydantic import BaseModel
 from typing import Literal
 
 from warpsense.contracts.shared_enums import RiskLevel
-from warpsense.api.sessions import get_db, get_session_frames_raw
+from warpsense.api.sessions import get_db
+from warpsense.db.frames import get_session_frames_raw
 from warpsense.services.prediction_service import predict_warp_risk
 
 

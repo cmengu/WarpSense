@@ -26,7 +26,7 @@ import zlib
 from sqlalchemy.orm import Session as OrmSession
 
 from warpsense.db.models import SessionModel, WeldQualityReportModel
-from warpsense.api.sessions import get_session_frames_raw
+from warpsense.db.frames import get_session_frames_raw
 from warpsense.agents.warpsense_graph import WarpSenseGraph
 from warpsense.features.session_feature_extractor import (
     SessionFeatureExtractor,
@@ -155,7 +155,7 @@ def get_al_feature_cache() -> dict[str, SessionFeatures]:
 
 
 # IMPORTANT: Do NOT re-implement frame queries here.
-# Use `routes.sessions.get_session_frames_raw(session_id, db, limit=1500)` which already:
+# Use `db.frames.get_session_frames_raw(session_id, db, limit=1500)` which already:
 # - Returns dicts in ascending timestamp_ms order
 # - Uses copy.deepcopy to avoid JSON ref aliasing
 # - Mirrors the contract expected by SessionFeatureExtractor.extract()
