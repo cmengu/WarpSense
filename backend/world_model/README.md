@@ -2,7 +2,7 @@
 
 Working plan and step statuses: `STEPS.md` at repo root (single source of truth).
 Gates and rationale: `FUTURE_PLANS_WORLD_MODELS.md`. This README explains the
-*fundamentals* behind Steps 1–6 — what each piece is, and why it exists — for
+*fundamentals* behind Steps 1–7 — what each piece is, and why it exists — for
 someone who has never touched the subject.
 
 ## The problem, before any code
@@ -27,6 +27,7 @@ Step 3  a model                ↔  a boring baseline the fancy model must beat
 Step 4  a simulator            ↔  a calibration gate before its data counts
 Step 5  a feasibility number   ↔  GroupKFold + a kill criterion fixed in advance
 Step 6  pretraining            ↔  a mean-predictor floor it had to beat
+Step 7  the world model itself ↔  its load-bearing wiring pinned by tests
 ```
 
 ---
@@ -250,17 +251,121 @@ head is honest-but-weak (macro-F1 0.14 under the imbalance) — recorded, and
 irrelevant to the warm start since it doesn't transfer. Artifact:
 `experiments/checkpoints/polito_pretrain_8a68998bf644.pt`.
 
+## Step 7 — The world model itself (`architecture/`)
+
+Everything before this was equipment. Step 7 is the machine the project is
+named after, and the motive comes straight from the GRU baseline's blind spot.
+The baseline is one pipe: sensor table → running summary → the summary is
+handed **directly to the answer heads** → verdict. It never commits to any
+notion of *what state the weld is in* — so it cannot say what the depth was at
+second 7, and it cannot answer "what if the welder had corrected the angle?",
+because there is nothing to replay. Step 7 builds the machine that *does*
+commit: an internal **state of the weld** at every instant, plus rules for how
+that state evolves under the welder's actions. Three parts — an inspector, a
+physics engine, and a panel of gauges.
+
+**The inspector (`encoder.py`) — produce the starting condition.** Something
+must first answer "what was the situation when this weld began?" — plate
+fit-up, starting temperature, none of it directly sensed. The encoder reads
+the stem embeddings **backwards** — last frame first — so that by the time it
+reaches frame 0 it has seen the whole story, and its description of the start
+is written with hindsight, like an inspector who watches the entire tape
+before writing the report's opening line. Internally it is nearly the Step 3
+trunk (same stems, same 64-number working memory — deliberately, so the Step 6
+Polito weights snap straight in via `load_pretrained_trunk()`), with one
+addition: between frames, the memory is nudged by `h += dt · f(h)` — a **Euler
+step**, the "position += speed × time" of numerical integration — bridging the
+10 ms gaps as continuous drift rather than nothing. Its output is not an
+answer but a **distribution** over a 32-number starting state `z0`: a best
+guess plus a spread per number, sampled during training (the VAE
+reparameterisation trick) so the model cannot pretend to certainty it doesn't
+have.
+
+**The physics engine (`odefunc.py`) — evolve the condition.** The core idea in
+one sentence: instead of learning "given this frame, update the summary" (the
+GRU's move), learn **how fast the weld's condition is changing** — a rate:
+
+```
+dz/dt = f_θ( z,  u(t) )          f_θ: a small MLP, (32 + 5) → 64 → 64 → 32
+         │     │
+   current     what the welder is DOING right now: volts, amps,
+   condition   both angles, travel speed — interpolated between frames
+```
+
+Knowing the rate at every instant, a standard ODE solver (`torchdiffeq`) adds
+it up over the weld — exactly like integrating speed to get position — and
+out comes `z_t` at every frame: the trajectory.
+
+The load-bearing word is **controlled**. The plan docs originally wrote
+`dz/dt = f_θ(z, t)` — no welder input. That version can still fit data, but
+only by smuggling the entire future action sequence into `z0`, and then
+"what if the amps were higher at second 7?" is *unaskable* — there is no input
+to edit. With `u(t)` as a live input, the counterfactual is trivial: keep the
+same `z0`, edit the action buffer, re-integrate, compare depth curves. That is
+Gate 2's monotonicity battery, and it is architecturally possible *only*
+because of this wiring — so a test pins it (same `z0`, edited `u(t)`, the
+trajectories must differ). Solver choice is pragmatic, not clever: adaptive
+`dopri5` through the **adjoint** method in training (backprop through ~1500
+solver steps would store everything and blow up memory; the adjoint
+re-integrates backwards instead — compute for memory), fixed-step `rk4` at
+inference (predictable latency, the 500 ms p95 budget).
+
+**The grounding vise (`z_phys`) — keep four numbers honest.** Left alone, the
+32 latent numbers become an inscrutable soup and "physics-informed" becomes
+decoration. So dims 0–3 are declared *thermal state* and squeezed from two
+sides. Side one, a physics residual: their learned rate is penalised when it
+disagrees with a crude heat balance — energy in ∝ volts × amps, energy out ∝
+how hot things already are (Newtonian cooling). Side two, wiring: the
+heat-dissipation gauge below may read **only** those four dims. Heat
+information must flow through `z_phys` or reconstruction fails; it has nowhere
+to go but "actually track heat." The two constants in the heat law are
+simulator placeholders until Gate 1 fits them against sectioned coupons —
+worse, `u(t)` is built from *normalised* controls, so they are placeholders
+squared. Pre-registered; nobody mistakes the pre-Gate-1 physics loss for
+physics.
+
+**The gauges (`decoder.py`) — deliberately dumb readers.** Five heads read the
+trajectory, and every one is a two-layer MLP (`Linear → tanh → Linear`, hidden
+64) — a **multi-layer perceptron**, the plainest network there is: weighted
+sums, squash, weighted sums. No attention, nothing clever, and that is the
+design: if a reader were powerful it could solve the task on its own from a
+mediocre latent, the "state" would become decorative, and replaying it under
+edited actions would produce nonsense. Weak readers force the intelligence
+into the trajectory. The five: `heat_diss_hat[t]` from `z[:, :4]` **only**
+(the vise's second jaw — input width literally 4, pinned by a test that also
+checks perturbing `z_free` leaves it bit-identical); `other5_hat[t]`, the five
+control channels reconstructed (what nails the trajectory to the actual
+session); `depth_hat[t]`, the per-frame fusion-depth curve — *the* new output;
+`quality_probs` from the final state concatenated with the existing 11
+engineered features (PHOENIX-style fusion — reuse, don't reimplement); and
+`feats_hat`, predicting those same 11 features (free supervision for Step 8).
+
+**`world_model.py`** assembles the three parts into `WeldWorldModel` — same
+normalizer-buffers-in-the-checkpoint discipline as the GRU baseline, an
+`infer(SessionTensor)` surface mirroring `GRUBaseline.predict`, and the
+counterfactual hook exposed as `forward(..., controls=edited_buffer)`.
+
+**What "done" means here — and doesn't.** Step 7's done-when was deliberately
+modest: one tiny mock batch flows forward and backward on CPU through the
+adjoint path, gradients reach all four components, and the wiring that must
+never silently regress is pinned by tests (heat-head input == 4;
+controlledness; the Polito-trunk → GRUCell name mapping; quality head width
+== 32 + 11). No claim of learning anything is made or possible — every weight
+is random until Step 8 trains it, and every believable number still waits on
+Gates 0/1. The anti-self-deception mechanism this time is the humblest one:
+the architecture's promises are encoded as tests, so the machine we eventually
+evaluate is provably the machine described here.
+
 ---
 
 ## Where this leaves the plan
 
-Steps 1–6 done; both cheap gates passed with pre-registered criteria. Next in
-code: Step 7 (the **controlled** Neural ODE — `dz/dt = f_θ(z, u(t), t)`, where
-`u(t)` is the interpolated control channels; autonomous `f_θ(z, t)` would make
-counterfactuals architecturally impossible) and Step 8 (training loop,
-warm-started from the Step 6 artifact). Steps 9+ are blocked on Gate 0 — real
-data collection (30 sessions + 8 sectioned coupons), the longest lead time in
-the plan and the only thing no amount of code substitutes for.
+Steps 1–7 done; both cheap gates passed with pre-registered criteria; the
+world-model machine is built, wired, and pinned — but untrained. Next in code:
+Step 8 (training loop — symlog targets, free-nats KL, sigmoid fade-in of the
+loss terms, warm-started from the Step 6 artifact). Steps 9+ are blocked on
+Gate 0 — real data collection (30 sessions + 8 sectioned coupons), the longest
+lead time in the plan and the only thing no amount of code substitutes for.
 
 Evidence discipline (D11): every run appends to `experiments/runs.csv`; every
 gate outcome is recorded in `experiments/gate_status.md` as number vs
