@@ -75,9 +75,10 @@ def test_defect_alert_oxide_inclusion_passes_component():
 
 def test_interpass_below_minimum_flags():
     cfg = {"interpass_min_ms": 45000}
-    f1 = MagicMock(amps=150, timestamp_ms=0)
-    f2 = MagicMock(amps=0, timestamp_ms=10000)
-    f3 = MagicMock(amps=150, timestamp_ms=20000)
+    # Arc state is now volts AND amps (signal.arc.is_arc_on), so fixtures set both.
+    f1 = MagicMock(amps=150, volts=22, timestamp_ms=0)
+    f2 = MagicMock(amps=0, volts=0, timestamp_ms=10000)
+    f3 = MagicMock(amps=150, volts=22, timestamp_ms=20000)
     r = calculate_interpass_component([f1, f2, f3], cfg)
     assert len(r.excursions) >= 1
 

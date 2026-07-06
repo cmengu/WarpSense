@@ -1,5 +1,6 @@
 # Python
 __pycache__/
+.import_linter_cache/
 *.py[cod]
 *$py.class
 *.so

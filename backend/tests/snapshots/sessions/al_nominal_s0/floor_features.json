@@ -1,10 +1,10 @@
 {
- "amps_stddev": 81.8666222227512,
- "angle_max_deviation": 26.35465493666581,
- "cyclogram_area": 9.5273,
- "heat_diss_stddev": 81.93035050217077,
- "north_south_delta_avg": 4.493326680053315,
+ "amps_stddev": 81.74319225319847,
+ "angle_max_deviation": 25.06812903098701,
+ "cyclogram_area": 9.2843,
+ "heat_diss_stddev": 95.20375779313592,
+ "north_south_delta_avg": 5.393918721959068,
  "porosity_event_count": 0,
- "travel_speed_stddev": 67.64646448267912,
- "volts_range": 23.06259158602872
+ "travel_speed_stddev": 50.02692165688216,
+ "volts_range": 22.979953744572953
 }

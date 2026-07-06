@@ -16,6 +16,7 @@ from warpsense.contracts.frame import Frame
 from warpsense.contracts.scoring import ScoreRule, SessionScore
 from warpsense.contracts.session import Session
 from warpsense.contracts.thresholds import WeldTypeThresholds
+from warpsense.signal.windows import WQI_WINDOW_FRAMES
 
 
 # Fallback thresholds for tests/callers that don't pass thresholds
@@ -67,7 +68,7 @@ def score_frames_windowed(
     thresholds: Optional[WeldTypeThresholds],
     session_metadata: Dict[str, Any],
     angle_target_deg: float = 45,
-    window_size: int = 50,
+    window_size: int = WQI_WINDOW_FRAMES,
 ) -> List[Dict[str, Any]]:
     """
     Score frames in tumbling windows. Returns [{frame_start, frame_end, wqi}, ...].

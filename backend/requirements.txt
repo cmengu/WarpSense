@@ -30,6 +30,7 @@ google-auth==2.49.1
 google-auth-httplib2==0.3.0
 google-generativeai==0.8.6
 googleapis-common-protos==1.73.0
+grimp==3.15
 groq==0.37.1
 grpcio==1.78.0
 grpcio-status==1.71.2
@@ -42,6 +43,7 @@ httpx==0.28.1
 huggingface_hub==1.7.1
 humanfriendly==10.0
 idna==3.11
+import-linter==2.13
 importlib_metadata==8.7.1
 importlib_resources==6.5.2
 iniconfig==2.3.0

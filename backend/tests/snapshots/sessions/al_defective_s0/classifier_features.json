@@ -1,15 +1,15 @@
 {
- "amps_cv": 0.03895290880473085,
- "angle_deviation_mean": 17.173773858837603,
- "angle_max_drift_1s": 46.42432406233025,
+ "amps_cv": 0.03993671607141317,
+ "angle_deviation_mean": 17.427369322361034,
+ "angle_max_drift_1s": 49.10099538270339,
  "arc_on_ratio": 0.52,
- "heat_diss_max_spike": 6.861210863485634,
- "heat_diss_mean": 1.059875370257081,
- "heat_input_cv": 0.04182224352103915,
- "heat_input_drop_severity": 6.0751732425851515,
- "heat_input_mean": 2800.259592724244,
- "heat_input_min_rolling": 2778.8100720194734,
+ "heat_diss_max_spike": 4.585361274759683,
+ "heat_diss_mean": 0.5990212505552779,
+ "heat_input_cv": 0.04184504346873152,
+ "heat_input_drop_severity": 4.72277184036011,
+ "heat_input_mean": 2800.579354431993,
+ "heat_input_min_rolling": 2778.1719602600997,
  "quality_label": null,
  "session_id": "al_defective_s0",
- "voltage_cv": 0.013684446579996911
+ "voltage_cv": 0.013842369837026068
 }

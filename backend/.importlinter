@@ -1,0 +1,65 @@
+; Import contracts for the warpsense/ package.
+; Run: venv/bin/lint-imports  (from backend/)
+; Enforced in the suite by tests/test_import_contracts.py.
+; Each contract mirrors an invariant stated in a folder README —
+; if you need to break one, change the README in the same PR.
+
+[importlinter]
+root_package = warpsense
+
+; config/ and observability/ are deliberately unconstrained (cross-cutting).
+
+[importlinter:contract:layers]
+name = warpsense layered architecture (high imports low, never the reverse)
+type = layers
+containers =
+    warpsense
+layers =
+    api
+    services
+    analysis
+    agents | floor
+    classifier
+    features
+    signal | realtime
+    db
+    contracts
+; contracts/ ORM models inherit from the SQLAlchemy declarative Base, a
+; leaf module with no upward imports — the one blessed exception.
+ignore_imports =
+    warpsense.contracts.* -> warpsense.db.base
+
+[importlinter:contract:services-not-api]
+name = services never imports api (upward import fixed in PR 3)
+type = forbidden
+source_modules =
+    warpsense.services
+forbidden_modules =
+    warpsense.api
+
+[importlinter:contract:signal-leaf]
+name = signal imports only contracts and third-party (signal/README)
+type = forbidden
+source_modules =
+    warpsense.signal
+forbidden_modules =
+    warpsense.api
+    warpsense.services
+    warpsense.analysis
+    warpsense.agents
+    warpsense.floor
+    warpsense.classifier
+    warpsense.features
+    warpsense.realtime
+    warpsense.db
+
+[importlinter:contract:analysis-pure]
+name = analysis owns no I/O — no db, api, services, realtime (analysis/README)
+type = forbidden
+source_modules =
+    warpsense.analysis
+forbidden_modules =
+    warpsense.api
+    warpsense.services
+    warpsense.db
+    warpsense.realtime

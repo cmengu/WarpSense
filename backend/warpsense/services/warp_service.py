@@ -22,13 +22,14 @@ from pathlib import Path
 from typing import AsyncGenerator, Optional
 
 import joblib
+import zlib
 from sqlalchemy.orm import Session as OrmSession
 
 from warpsense.db.models import SessionModel, WeldQualityReportModel
-from warpsense.api.sessions import get_session_frames_raw
+from warpsense.db.frames import get_session_frames_raw
 from warpsense.agents.warpsense_graph import WarpSenseGraph
+from warpsense.analysis import analyze
 from warpsense.features.session_feature_extractor import (
-    SessionFeatureExtractor,
     SessionFeatures,
     generate_feature_dataset,
 )
@@ -127,7 +128,7 @@ def _build_al_feature_cache() -> None:
     for welder_id, arc_type, heat, angle_dev, arc_ratio, n_sessions in _CORPUS:
         for i in range(n_sessions):
             session_id = f"sess_{welder_id}_{i+1:03d}"
-            rng = _random.Random(i * 37 + abs(hash(arc_type)) % 997)
+            rng = _random.Random(i * 37 + zlib.crc32(arc_type.encode()) % 997)
             h = heat * (1.0 + rng.gauss(0, 0.025))
             a = angle_dev * (1.0 + rng.gauss(0, 0.04))
             r = max(0.40, min(1.00, arc_ratio + rng.gauss(0, 0.01)))
@@ -154,7 +155,7 @@ def get_al_feature_cache() -> dict[str, SessionFeatures]:
 
 
 # IMPORTANT: Do NOT re-implement frame queries here.
-# Use `routes.sessions.get_session_frames_raw(session_id, db, limit=1500)` which already:
+# Use `db.frames.get_session_frames_raw(session_id, db, limit=1500)` which already:
 # - Returns dicts in ascending timestamp_ms order
 # - Uses copy.deepcopy to avoid JSON ref aliasing
 # - Mirrors the contract expected by SessionFeatureExtractor.extract()
@@ -189,20 +190,17 @@ async def analyse_session(session_id: str, db: OrmSession) -> WeldQualityReportM
     # enforces the real minimum (>= 100 arc-on frames after filtering volts/amps),
     # and raw frame count is not a reliable proxy.
 
-    # 2. Extract features
-    extractor = SessionFeatureExtractor()
-    features = extractor.extract(session_id, frames)
-
-    # 3. Classify
+    # 2-4. Extract features, classify, assess — the pure pipeline (analysis/).
+    # analyze() blocks on network I/O inside graph.assess (Groq), so it
+    # MUST NOT run on the event loop thread.
     classifier = get_classifier()
-    prediction = classifier.predict(features)
-
-    # 4. Assess (CF5)
-    # WarpSenseGraph.assess() is synchronous and includes blocking network I/O (Groq).
-    # In an async FastAPI server, this MUST NOT run on the event loop thread.
     graph = get_graph()
     loop = asyncio.get_running_loop()
-    report = await loop.run_in_executor(None, lambda: graph.assess(prediction, features))
+    result = await loop.run_in_executor(
+        None,
+        lambda: analyze(session_id, frames, classifier=classifier, graph=graph),
+    )
+    report = result.report
 
     # 5. Persist (upsert: delete existing then insert)
     existing = db.query(WeldQualityReportModel).filter_by(session_id=session_id).first()
@@ -297,21 +295,22 @@ async def analyse_session_stream(session_id: str, db: OrmSession) -> AsyncGenera
             if not frames:
                 raise ValueError(f"Session {session_id} has no frames")
 
-            # 3. Extract features
-            extractor = SessionFeatureExtractor()
-            features = extractor.extract(session_id, frames)
-
-            # 4. Classify
-            classifier = get_classifier()
-            prediction = classifier.predict(features)
-
-            # 5. Assess with per-stage progress — runs in thread executor; blocks until complete.
+            # 3-5. The pure pipeline (analysis/) with per-stage progress —
+            #    runs in thread executor; blocks until complete.
             #    Events 2–8 are emitted by _progress_cb via call_soon_threadsafe.
+            classifier = get_classifier()
             graph = get_graph()
-            report = await loop.run_in_executor(
+            result = await loop.run_in_executor(
                 None,
-                lambda: graph.assess_with_progress(prediction, features, _progress_cb),
+                lambda: analyze(
+                    session_id,
+                    frames,
+                    classifier=classifier,
+                    graph=graph,
+                    progress_cb=_progress_cb,
+                ),
             )
+            report = result.report
 
             # 6. Persist (upsert: delete existing then insert)
             existing = db.query(WeldQualityReportModel).filter_by(session_id=session_id).first()
