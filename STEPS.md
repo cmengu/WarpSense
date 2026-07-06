@@ -360,7 +360,15 @@ re-run BEFORE building any world model. Record number in `gate_status.md`.
 
 ---
 
-### STEP 6 — Gate 0.5: Polito pre-training (parallel, optional accelerator) ⬜
+### STEP 6 — Gate 0.5: Polito pre-training (parallel, optional accelerator) ✅ PASS (2026-07-06)
+
+> Done: `training/pretrain_polito.py` + `tests/test_world_model_step6.py` (6 tests).
+> Held-out masked-recon MSE 0.00083 vs 0.074 mean-baseline (~90×) → kill criterion
+> cleared. Transfer artifact `experiments/checkpoints/polito_pretrain_8a68998bf644.pt`
+> = {stems[volts], stems[amps], trunk}; trunk weights are GRUCell-shaped for the
+> Step 7 encoder (pinned by test). Fault head weak (macro-F1 0.14 under 79/1,897
+> imbalance) — pretrain-only scaffolding, does not transfer. Force stem omitted:
+> would not transfer, and the two channels that do are the point.
 
 ```python
 # training/pretrain_polito.py
