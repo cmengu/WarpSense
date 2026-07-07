@@ -253,6 +253,46 @@ irrelevant to the warm start since it doesn't transfer. Artifact:
 
 ## Step 7 — The world model itself (`architecture/`)
 
+### In plain English
+
+Step 7 is the actual world model — the machine the whole project is named
+after. Everything in Steps 1–6 was preparation. The old GRU baseline just
+watches sensors and blurts out a verdict; it never forms an idea of *what
+state the weld is in*, so it can't answer "what was the depth at second 7?"
+or "what if the welder had done something different?". Step 7 builds a model
+that keeps an internal picture of the weld at every moment, and rules for how
+that picture changes as the welder acts. Three parts:
+
+1. **The inspector** (`encoder.py`) — figures out the *starting* condition of
+   the weld (plate fit-up, starting temperature — things no sensor measures
+   directly). It reads the recording backwards so it sees the whole weld
+   before describing the start, and it outputs a guess *with uncertainty*,
+   not a single confident number.
+
+2. **The physics engine** (`odefunc.py`) — instead of learning "new frame in,
+   update the summary," it learns *how fast the weld's condition is changing*
+   given the current condition and what the welder is doing right now (volts,
+   amps, angles, travel speed). A standard maths solver adds that rate up
+   over time — like turning speed into position — giving the weld's state at
+   every instant. The crucial design choice is that the welder's actions are
+   a live input: to ask "what if the amps were higher?", you just edit the
+   actions and replay. A test locks this in so it can't silently break.
+
+3. **The gauges** (`decoder.py`) — five deliberately simple readers that turn
+   the state into outputs: heat dissipation, the control signals, the
+   per-frame depth curve (the headline new output), the pass/fail quality
+   verdict, and the 11 engineered features. They're kept dumb on purpose so
+   all the intelligence is forced into the state itself. Four state numbers
+   are pinned to actually mean "thermal state" via a crude heat-balance
+   penalty plus wiring that makes the heat gauge read *only* those four.
+
+"Done" for Step 7 is honest and modest: data flows through it forwards and
+backwards on CPU, gradients reach all parts, and the key wiring is pinned by
+tests. Nothing is trained yet — every weight is random until Step 8 (the
+training loop) trains it.
+
+### In full
+
 Everything before this was equipment. Step 7 is the machine the project is
 named after, and the motive comes straight from the GRU baseline's blind spot.
 The baseline is one pipe: sensor table → running summary → the summary is
