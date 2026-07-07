@@ -50,6 +50,12 @@ from world_model.simulator.weld_sim import C_THERMAL_J_PER_K, K_COOLING_PER_S
 N_CONTROLS = len(CONTROL_CHANNELS)
 ARC_EFFICIENCY = 0.8  # eta — same GMAW transfer efficiency the Goldak source uses
 
+# Training-grade solver tolerances. torchdiffeq's defaults (rtol 1e-7 / atol
+# 1e-9) are publication-grade and ~20× slower; at 1e-4/1e-5 the trajectory
+# agrees to 4 decimals while a T=500 adjoint batch drops from ~85 s to ~4.5 s
+# on CPU (measured, Step 8). Inside SGD noise, far outside the latency budget.
+RTOL, ATOL = 1e-4, 1e-5
+
 
 class ControlSignal:
     """
@@ -120,6 +126,7 @@ def integrate(odefunc: ControlledODEFunc, z0: torch.Tensor, t_grid: torch.Tensor
     odefunc.bind_control(control)
     if adjoint:
         z = odeint_adjoint(odefunc, z0, t_grid, method="dopri5",
+                           rtol=RTOL, atol=ATOL,
                            adjoint_params=tuple(odefunc.parameters()))
     else:
         z = odeint(odefunc, z0, t_grid, method="rk4")

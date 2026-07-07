@@ -55,7 +55,10 @@ from world_model.training.train_gru import class_weights, seed_everything
 
 CHECKPOINTS_DIR = EXPERIMENTS_DIR / "checkpoints"
 FULL_RUN_EPOCHS = 300  # the Step 11 schedule the fade breakpoints assume
-TINY_NUM_FRAMES = 300  # ~3 s of weld; ODE cost is linear in T
+# Keep ≥ 250: mock stitch sessions cycle 220 frames arc-on / 30 arc-off, and
+# below one full cycle the corpus contains NO arc-off transitions — the heat
+# channel stays ~0 and z_phys has nothing to learn from. ODE cost is linear in T.
+TINY_NUM_FRAMES = 300
 
 
 def session_features_11(session: SessionTensor) -> torch.Tensor | None:
