@@ -28,6 +28,8 @@ Step 4  a simulator            ↔  a calibration gate before its data counts
 Step 5  a feasibility number   ↔  GroupKFold + a kill criterion fixed in advance
 Step 6  pretraining            ↔  a mean-predictor floor it had to beat
 Step 7  the world model itself ↔  its load-bearing wiring pinned by tests
+Step 8  the training loop      ↔  losses scheduled so recon shapes the latent
+                                  before the classifier can warp it
 ```
 
 ---
@@ -470,16 +472,29 @@ the pre-registered order, and the Polito warm start lands in the assembled
 model. Every believable number still waits on Gates 0/1; the full 300-epoch
 run is Step 11, after the corpus exists.
 
+**Result (mock, plumbing only — D4):** on 60 sessions × 500 frames × 40
+epochs (240 optimizer steps, warm-started), recon fell 0.876 → 0.388, and
+z_phys rates measured over arc-on vs arc-off spans on three held-out stitch
+sessions differ consistently per dim — dim 2 rises ~3× faster while the arc
+is on; dim 1 sits flat during arc-on and rises at arc-off, exactly the shape
+of the heat-dissipation spike it must explain. The grounding vise grips.
+Checkpoint: `experiments/checkpoints/world_model_mock_e53276125ad0.pt`. One
+performance finding worth recording: torchdiffeq's default solver tolerances
+(rtol 1e-7) are publication-grade and made one T=500 training batch cost
+~85 s on CPU; training-grade 1e-4/1e-5 agrees to 4 decimals at ~4.5 s (~19×)
+and is now the default in `odefunc.integrate()`.
+
 ---
 
 ## Where this leaves the plan
 
-Steps 1–7 done; both cheap gates passed with pre-registered criteria; the
-world-model machine is built, wired, and pinned — but untrained. Next in code:
-Step 8 (training loop — symlog targets, free-nats KL, sigmoid fade-in of the
-loss terms, warm-started from the Step 6 artifact). Steps 9+ are blocked on
-Gate 0 — real data collection (30 sessions + 8 sectioned coupons), the longest
-lead time in the plan and the only thing no amount of code substitutes for.
+Steps 1–8 done; both cheap gates passed with pre-registered criteria; the
+world-model machine is built, wired, pinned, and its training loop is proven
+to move the pieces the right way at plumbing scale. That is where the code
+can go on its own: Steps 9+ are blocked on Gate 0 — real data collection
+(30 sessions + 8 sectioned coupons), the longest lead time in the plan and
+the only thing no amount of code substitutes for. The full training run
+(Step 11) waits on the calibrated corpus that follows it.
 
 Evidence discipline (D11): every run appends to `experiments/runs.csv`; every
 gate outcome is recorded in `experiments/gate_status.md` as number vs

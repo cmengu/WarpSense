@@ -4,10 +4,11 @@ A physics-informed latent state estimator for aluminium MIG welds. It estimates 
 internal weld state — primarily **fusion-zone depth** — at every instant of a pass,
 from six scalar sensor channels, with calibrated uncertainty.
 
-> **Status: built through Step 7; pre-Gate-0 on real data.** Steps 1–7 are
-> implemented and both cheap gates passed (1.5 observability ceiling, 0.5 Polito
-> pre-training) — but no real arc-weld data has been collected, so nothing is
-> validated against physical welds. See [§10](#10-status).
+> **Status: built and trainable through Step 8; pre-Gate-0 on real data.**
+> Steps 1–8 are implemented and both cheap gates passed (1.5 observability
+> ceiling, 0.5 Polito pre-training); the training loop demonstrably moves the
+> pieces at mock scale — but no real arc-weld data has been collected, so
+> nothing is validated against physical welds. See [§10](#10-status).
 
 Companions: `STEPS.md` (step plan + statuses — single source of truth),
 `backend/world_model/README.md` (the fundamentals from first principles),
