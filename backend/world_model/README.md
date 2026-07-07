@@ -396,6 +396,80 @@ Gates 0/1. The anti-self-deception mechanism this time is the humblest one:
 the architecture's promises are encoded as tests, so the machine we eventually
 evaluate is provably the machine described here.
 
+## Step 8 — Training loop (`training/`)
+
+**The problem it solves:** Step 7 built the machine; every weight in it is
+random. Step 8 is the procedure that turns data into weights — and for this
+model that is genuinely a *procedure*, not just "call Adam": five loss terms
+pull the latent in different directions, they arrive on different scales, and
+the ORDER in which they switch on decides whether the latent forms around the
+physics or warps around three quality labels.
+
+**Taming scale (`training/symlog.py`).** The reconstruction targets live on
+wildly different scales — volts ~20, amps ~180, angles ~15 — and squared error
+lets the biggest unit bully the loss. Every recon target goes through
+**symlog** (`sign(x)·log(1+|x|)`, DreamerV3's trick): ~identity near zero,
+logarithmic for large values, inverted by symexp when a consumer wants real
+units back. Two more guards from the same family: the KL term is floored at
+**1 free nat** — below the floor the gradient dies, so the encoder's posterior
+is never squeezed into the prior before the decoder has learned to use z0
+(the classic "posterior collapse" failure) — and the quality cross-entropy is
+divided by a running 5th–95th percentile of its own recent values
+(**PercentileNorm**), so its drifting scale can't out-shout the recon losses.
+Scale-down only; a small loss is never amplified.
+
+**The schedule (`training/losses.py`).** Five terms, blended per the locked
+plan:
+
+```python
+L.recon                                   # always on — the trajectory must
+                                          #   track the session before anything
+                                          #   else is meaningful
++ fade(epoch,  50, 150) * 0.10 * L.physics  # grounding, once trajectories exist
++ fade(epoch, 150, 250) * 1.00 * L.quality  # classifier LAST — reads a formed
+                                            #   state instead of warping it
++ fade(epoch,   0, 100) * 0.05 * L.aux      # 11 engineered features: cheap,
+                                            #   well-scaled, free supervision
++ 0.001 * L.kl                              # fixed N(0,1) prior, free-nats floor
+```
+
+`fade` is a smooth sigmoid ramp, not a step — no loss-surface cliff at the
+switch-on epoch. The breakpoints are written for the full 300-epoch run
+(Step 11); shorter runs scale them by `epochs/300` so the shape and ordering
+survive. One subtlety that matters: recon targets use the **pre-dropout**
+sensor mask. Channel dropout (p=0.15) hides channels from the model's *input*,
+but the loss still demands their reconstruction — inferring a hidden channel
+from the others is precisely the pressure that makes dropout training work,
+not lost signal.
+
+**The loop (`training/train.py`).** Warm start first (D5): the newest Polito
+transfer artifact is loaded into the assembled model — trunk into the encoder's
+GRUCell via the name mapping Step 6 pinned, volts/amps stems copied by
+dictionary key. Then the same lifecycle as the GRU baseline (seed everything,
+split by session, fit the normalizer on train only, inverse-frequency class
+weights) with two additions: the 11 engineered features are computed once per
+session up front (they serve as both the L_aux target and the quality head's
+fusion input), and every eval block appends a `runs.csv` row carrying the full
+loss mix in its note (D11). A practical note baked into the defaults: one
+training step costs ~50× a GRU step (adjoint dopri5 through ~hundreds of
+solver steps), so mock sessions are trimmed with `--num-frames` — but never
+below 250 frames, because the mock stitch cycle is 220 arc-on / 30 arc-off and
+a shorter window contains **no arc-off transition at all**: the heat channel
+stays ~0 and z_phys has nothing to learn from. That floor was found the honest
+way — a first run at 200 frames produced inert z_phys traces, and the diagnosis
+is now encoded in the default.
+
+**What "done" means here — and doesn't.** Two checks, both plumbing-scale
+(mock data, so wiring proof, never a result — D4): the recon loss curve must
+trend down over a tiny run, and the z_phys traces plotted over a session
+(`viz/timeline.py`) must visibly rise with arc-on and decay at arc-off — the
+first behavioural evidence that the grounding vise actually grips. Contract
+tests pin the pieces that must not silently regress: symlog/symexp invert,
+the free-nats floor kills the KL gradient below 1 nat, the fades switch on in
+the pre-registered order, and the Polito warm start lands in the assembled
+model. Every believable number still waits on Gates 0/1; the full 300-epoch
+run is Step 11, after the corpus exists.
+
 ---
 
 ## Where this leaves the plan
