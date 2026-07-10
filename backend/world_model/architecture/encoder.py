@@ -27,9 +27,8 @@ import torch
 import torch.nn as nn
 
 from world_model.architecture.stems import STEM_DIM
+from world_model.architecture.trunk import HIDDEN_DIM  # transfer contract: one value
 from world_model.config import LATENT_DIM
-
-HIDDEN_DIM = 64  # must match pretrain_polito.HIDDEN_DIM (transfer contract)
 
 # nn.GRU (Polito trunk) parameter name → nn.GRUCell (this encoder) name
 _TRUNK_TO_CELL = {

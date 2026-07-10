@@ -129,7 +129,7 @@ def test_physics_residual_is_finite_and_reaches_odefunc():
 
 def test_encoder_loads_polito_trunk():
     """The D5 warm start: Step 6's nn.GRU trunk maps onto the encoder's GRUCell."""
-    from world_model.training.pretrain_polito import PolitoPretrainModel
+    from world_model.pretraining.masked_recon import PolitoPretrainModel
     pretrained = PolitoPretrainModel(hidden_dim=HIDDEN_DIM)
     sd = pretrained.transfer_state_dict()
     encoder = ODERNNEncoder()

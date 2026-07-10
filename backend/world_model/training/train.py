@@ -161,7 +161,7 @@ def train(train_sessions: list[SessionTensor], val_sessions: list[SessionTensor]
         print(f"warm start (D5): {', '.join(loaded)}")
     else:
         print("WARNING: no Polito transfer artifact — random init "
-              "(run world_model.training.pretrain_polito first)")
+              "(run world_model.pretraining.masked_recon first)")
 
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     weights = class_weights(train_sessions).to(device)

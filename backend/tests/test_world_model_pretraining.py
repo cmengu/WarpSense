@@ -130,3 +130,53 @@ def test_mask_timesteps_matches_step6_semantics():
     assert 0.05 < hidden.float().mean() < 0.30
     assert not input_mask[hidden].any()
     assert input_mask[~hidden].all()
+
+
+# ------------------------------------------------- checkpoint contract (C2)
+
+def test_checkpoint_contract_round_trip(tmp_path):
+    """save → load → rebuild encoder → weights identical, and the Step 7
+    ODE-RNN encoder accepts the artifact — the full consumer chain."""
+    from world_model.architecture.encoder import ODERNNEncoder
+    from world_model.pretraining.common import (
+        build_encoder, load_transfer_checkpoint, save_transfer_checkpoint)
+
+    torch.manual_seed(3)
+    enc = StemTrunkEncoder(["volts", "amps"])
+    path = tmp_path / "jepa_test.pt"
+    save_transfer_checkpoint(path, enc, objective="jepa",
+                             config={"epochs": 1}, extras={"note": "test"})
+
+    ckpt = load_transfer_checkpoint(path)
+    assert ckpt["objective"] == "jepa" and ckpt["note"] == "test"
+    rebuilt = build_encoder(ckpt)
+    for k, v in enc.transfer_state_dict().items():
+        assert torch.equal(rebuilt.state_dict()[k], v), k
+    ODERNNEncoder().load_pretrained_trunk(ckpt["transfer_state_dict"])
+
+
+def test_load_infers_masked_recon_for_precontract_step6_artifact():
+    if not STEP6_CKPT.exists():
+        pytest.skip("Step 6 checkpoint not present")
+    from world_model.pretraining.common import build_encoder, load_transfer_checkpoint
+    ckpt = load_transfer_checkpoint(STEP6_CKPT)
+    assert ckpt["objective"] == "masked_recon"
+    assert build_encoder(ckpt).hidden_dim == ckpt["hidden_dim"]
+
+
+def test_contract_rejects_unknown_objective_and_shadowing_extras(tmp_path):
+    from world_model.pretraining.common import save_transfer_checkpoint
+    enc = StemTrunkEncoder(["volts", "amps"])
+    with pytest.raises(ValueError, match="unknown objective"):
+        save_transfer_checkpoint(tmp_path / "x.pt", enc, "dreamer", config={})
+    with pytest.raises(ValueError, match="shadow"):
+        save_transfer_checkpoint(tmp_path / "x.pt", enc, "jepa", config={},
+                                 extras={"config": {}})
+
+
+def test_deprecated_pretrain_polito_shim_still_exports():
+    """The documented CLI/module path must keep working until callers migrate."""
+    from world_model.training.pretrain_polito import (  # noqa: F401
+        HIDDEN_DIM as shim_hidden, PolitoPretrainModel as shim_model)
+    from world_model.pretraining.masked_recon import PolitoPretrainModel
+    assert shim_model is PolitoPretrainModel and shim_hidden == HIDDEN_DIM

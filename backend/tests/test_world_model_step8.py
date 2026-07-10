@@ -123,7 +123,7 @@ def test_compute_losses_terms_finite_and_grads_reach_all_components(mock_session
 
 def test_polito_warm_start_lands_in_world_model():
     """D5 end-to-end: transfer artifact → assembled model, stems AND trunk."""
-    from world_model.training.pretrain_polito import PolitoPretrainModel
+    from world_model.pretraining.masked_recon import PolitoPretrainModel
     sd = PolitoPretrainModel(hidden_dim=HIDDEN_DIM).transfer_state_dict()
     model = WeldWorldModel()
     loaded = load_polito_transfer(model, sd)

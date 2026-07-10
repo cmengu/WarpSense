@@ -217,7 +217,7 @@ channels carry the signal at all?* A mini-gate buys an early, cheap **no**;
 only real coupons (Gates 1/5) can buy the expensive **yes**. The 0.109 mm
 ceiling is provisional until Gate 1 calibration.
 
-## Step 6 — Gate 0.5, Polito pre-training (`training/pretrain_polito.py`)
+## Step 6 — Gate 0.5, Polito pre-training (`pretraining/masked_recon.py`, formerly `training/pretrain_polito.py`)
 
 **The problem it solves:** mock data is *too clean* — a model can ace it and
 fall over on real arc noise. The repo's only real sensor data is Polito:
