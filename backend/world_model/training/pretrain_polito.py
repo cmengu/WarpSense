@@ -53,44 +53,41 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from world_model.config import CHANNEL_INDEX, EXPERIMENTS_DIR, SEED, TINY
-from world_model.architecture.stems import STEM_DIM, ChannelStems
+from world_model.architecture.stems import STEM_DIM
+from world_model.architecture.trunk import HIDDEN_DIM, StemTrunkEncoder
 from world_model.data.batch import collate_sessions
 from world_model.data.loader_polito import load_polito_sessions
 from world_model.data.schema import SessionTensor
 from world_model.data.splits import split_sessions
+from world_model.data.windows import mask_timesteps as _mask_timesteps
 
 CHECKPOINTS_DIR = EXPERIMENTS_DIR / "checkpoints"
 RUNS_CSV = EXPERIMENTS_DIR / "runs.csv"
 
 PRETRAIN_CHANNELS = ["volts", "amps"]
-HIDDEN_DIM = 64          # must match the world-model encoder cell (Step 7)
 MASK_FRACTION = 0.15
 
 
-class PolitoPretrainModel(nn.Module):
-    """Stems (volts, amps) + GRU trunk + two pretrain-only heads."""
+class PolitoPretrainModel(StemTrunkEncoder):
+    """The shared stems+trunk encoder plus two masked-recon-only heads.
+
+    Subclasses StemTrunkEncoder (rather than wrapping it) so parameter names
+    and RNG creation order are identical to the pre-refactor class: existing
+    checkpoints load bit-for-bit and seeded runs reproduce exactly.
+    """
 
     def __init__(self, hidden_dim: int = HIDDEN_DIM):
-        super().__init__()
-        self.stems = ChannelStems(PRETRAIN_CHANNELS)
-        self.trunk = nn.GRU(STEM_DIM, hidden_dim, batch_first=True)
+        super().__init__(PRETRAIN_CHANNELS, hidden_dim)
         self.recon_head = nn.Linear(hidden_dim, len(PRETRAIN_CHANNELS))
         self.fault_head = nn.Linear(hidden_dim, 1)
 
     def forward(self, x: torch.Tensor, mask: torch.Tensor) -> dict[str, torch.Tensor]:
         """x, mask: [B, T, 2] (volts, amps only). Returns recon + fault logit."""
-        h = self.stems(x, mask)          # [B, T, STEM_DIM]
-        out, _ = self.trunk(h)           # [B, T, HIDDEN]
+        out = self.encode(x, mask)       # [B, T, HIDDEN]
         return {
             "recon": self.recon_head(out),            # [B, T, 2]
             "fault_logit": self.fault_head(out[:, -1]).squeeze(-1),  # [B]
         }
-
-    def transfer_state_dict(self) -> dict[str, torch.Tensor]:
-        """The artifact Step 8 loads: volts/amps stems + trunk. Heads excluded."""
-        keep = ("stems.", "trunk.")
-        return {k: v.clone() for k, v in self.state_dict().items()
-                if k.startswith(keep)}
 
 
 def _two_channel_batch(sessions: list[SessionTensor]) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
@@ -99,18 +96,6 @@ def _two_channel_batch(sessions: list[SessionTensor]) -> tuple[torch.Tensor, tor
     cols = [CHANNEL_INDEX[c] for c in PRETRAIN_CHANNELS]
     fault = torch.tensor([float(s.meta["fault"]) for s in sessions])
     return batch.x[:, :, cols], batch.mask[:, :, cols], fault
-
-
-def _mask_timesteps(mask: torch.Tensor, fraction: float,
-                    generator: torch.Generator) -> tuple[torch.Tensor, torch.Tensor]:
-    """
-    Hide `fraction` of frames (whole timesteps, both channels) from the input.
-    Returns (input_mask, hidden) where hidden [B,T] marks frames to reconstruct.
-    """
-    B, T, _ = mask.shape
-    hidden = torch.rand(B, T, generator=generator) < fraction
-    input_mask = mask & ~hidden.unsqueeze(-1)
-    return input_mask, hidden
 
 
 def seed_everything(seed: int) -> None:
