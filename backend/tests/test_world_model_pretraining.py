@@ -174,6 +174,73 @@ def test_contract_rejects_unknown_objective_and_shadowing_extras(tmp_path):
                                  extras={"config": {}})
 
 
+# ------------------------------------------------------- JEPA components (C3)
+
+def _jepa_step(model, seed=0):
+    """One representative JEPA loss computation on random data."""
+    from world_model.data.windows import mask_contiguous
+    torch.manual_seed(seed)
+    x = torch.rand(4, 60, 2)
+    mask = torch.ones(4, 60, 2, dtype=torch.bool)
+    input_mask, hidden = mask_contiguous(mask, (0.25, 0.5),
+                                         torch.Generator().manual_seed(seed))
+    pred = model(x * input_mask, input_mask)
+    tgt = model.target_encode(x, mask)
+    return ((pred - tgt) ** 2)[hidden].mean()
+
+
+def test_jepa_target_never_receives_gradients():
+    """Collapse guard #1: loss.backward() must train online + predictor only."""
+    from world_model.pretraining.jepa import JEPAPretrainModel
+    model = JEPAPretrainModel(["volts", "amps"])
+    _jepa_step(model).backward()
+    assert all(p.grad is None for p in model.target.parameters())
+    assert all(p.grad is not None for p in model.stems.parameters())
+    assert all(p.grad is not None for p in model.trunk.parameters())
+    assert all(p.grad is not None for p in model.predictor.parameters())
+
+
+def test_jepa_ema_update_moves_target_at_decay_rate():
+    """Collapse guard #2: target starts = online, then trails it by EMA."""
+    from world_model.pretraining.jepa import JEPAPretrainModel
+    model = JEPAPretrainModel(["volts", "amps"], ema_decay=0.9)
+    online = model.trunk.weight_ih_l0
+    target = model.target.trunk.weight_ih_l0
+    assert torch.equal(target, online)          # exact copy at init
+    before = target.clone()
+    with torch.no_grad():
+        online.add_(1.0)                        # student moves...
+    model.ema_update()
+    expected = 0.9 * before + 0.1 * online      # ...target follows at 1-decay
+    assert torch.allclose(target, expected)
+
+
+def test_jepa_transfer_checkpoint_is_online_encoder_only(tmp_path):
+    """The saved artifact must carry stems+trunk of the ONLINE encoder and
+    nothing of the predictor/target — contract-identical to masked_recon."""
+    from world_model.pretraining.common import (
+        build_encoder, load_transfer_checkpoint, save_transfer_checkpoint)
+    from world_model.pretraining.jepa import JEPAPretrainModel
+
+    model = JEPAPretrainModel(["volts", "amps"])
+    keys = set(model.transfer_state_dict())
+    assert not any(k.startswith(("predictor.", "target.")) for k in keys)
+    assert keys == set(StemTrunkEncoder(["volts", "amps"]).transfer_state_dict())
+
+    path = tmp_path / "jepa.pt"
+    save_transfer_checkpoint(path, model, objective="jepa", config={})
+    rebuilt = build_encoder(load_transfer_checkpoint(path))
+    for k, v in model.transfer_state_dict().items():
+        assert torch.equal(rebuilt.state_dict()[k], v), k
+
+
+def test_jepa_predictor_output_shape():
+    from world_model.pretraining.jepa import JEPAPretrainModel
+    model = JEPAPretrainModel(["volts", "amps"])
+    out = model(torch.rand(2, 50, 2), torch.ones(2, 50, 2, dtype=torch.bool))
+    assert out.shape == (2, 50, HIDDEN_DIM)
+
+
 def test_deprecated_pretrain_polito_shim_still_exports():
     """The documented CLI/module path must keep working until callers migrate."""
     from world_model.training.pretrain_polito import (  # noqa: F401
