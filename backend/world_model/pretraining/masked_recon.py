@@ -7,6 +7,7 @@ warm-starts the world model (STEPS.md Step 6, D5).
 CLI (from backend/; the old training.pretrain_polito path still works via shim):
   python -m world_model.pretraining.masked_recon --tiny
   python -m world_model.pretraining.masked_recon --epochs 30 --device mps
+  python -m world_model.pretraining.masked_recon --window 300  # C4-C7 control diet
 
 This is Gate 0.5. Two purposes:
   1. Warm start: the ONLY real data in the repo today is Polito (spot welding,
@@ -59,6 +60,7 @@ from world_model.data.batch import collate_sessions
 from world_model.data.loader_polito import load_polito_sessions
 from world_model.data.schema import SessionTensor
 from world_model.data.splits import split_sessions
+from world_model.data.windows import TrainWindows, stack_windows
 from world_model.data.windows import mask_timesteps as _mask_timesteps
 
 CHECKPOINTS_DIR = EXPERIMENTS_DIR / "checkpoints"
@@ -196,6 +198,82 @@ def pretrain(train: list[SessionTensor], val: list[SessionTensor],
     return model, history
 
 
+# ------------------------------------------------ window diet (C4-C7 spec)
+# The C7 head-to-head must change exactly one variable — the objective — so
+# masked recon gets re-trained on the SAME TrainWindows diet JEPA trains on
+# (window=300, stride=50). TrainWindows carries no labels by type, so this
+# path is recon-only: the fault head stays untrained scaffolding. The Step-6
+# whole-session run above remains the historical reference.
+
+@torch.no_grad()
+def evaluate_windows(model: PolitoPretrainModel, windows: TrainWindows,
+                     batch_size: int = 64, seed: int = SEED,
+                     device: str = "cpu") -> dict:
+    """Held-out masked-recon MSE on windows (vs mean-predictor baseline)."""
+    model.eval()
+    gen = torch.Generator().manual_seed(seed + 1)  # fixed eval mask, ≠ train stream
+    sq_err = sq_err_mean = n_recon = 0.0
+    for i in range(0, len(windows), batch_size):
+        x, mask = stack_windows(windows, range(i, min(i + batch_size, len(windows))))
+        input_mask, hidden = _mask_timesteps(mask, MASK_FRACTION, gen)
+        x, mask = x.to(device), mask.to(device)
+        out = model(x * input_mask.to(device), input_mask.to(device))
+        target = hidden.unsqueeze(-1).to(device) & mask
+        if target.any():
+            err = (out["recon"] - x)[target]
+            sq_err += float((err ** 2).sum())
+            ch_mean = (x * mask).sum(dim=(0, 1)) / mask.sum(dim=(0, 1)).clamp(min=1)
+            sq_err_mean += float(((x - ch_mean)[target] ** 2).sum())
+            n_recon += float(target.sum())
+    return {
+        "n_windows": len(windows),
+        "recon_mse": sq_err / max(n_recon, 1),
+        "recon_mse_mean_baseline": sq_err_mean / max(n_recon, 1),
+    }
+
+
+def pretrain_windows(train: list[SessionTensor], val: list[SessionTensor],
+                     epochs: int, window: int = 300, stride: int = 50,
+                     batch_size: int = 64, lr: float = 1e-3, device: str = "cpu",
+                     seed: int = SEED, eval_every: int = 5
+                     ) -> tuple[PolitoPretrainModel, dict]:
+    seed_everything(seed)
+    model = PolitoPretrainModel().to(device)
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+
+    train_ds = TrainWindows(train, window=window, stride=stride, channels=PRETRAIN_CHANNELS)
+    val_ds = TrainWindows(val, window=window, stride=stride, channels=PRETRAIN_CHANNELS)
+    mask_gen = torch.Generator().manual_seed(seed)
+    order = list(range(len(train_ds)))
+    shuffle_rng = random.Random(seed)
+    history = {"loss": []}
+    for epoch in range(epochs):
+        model.train()
+        shuffle_rng.shuffle(order)
+        ep_loss, n_batches = 0.0, 0
+        for i in range(0, len(order), batch_size):
+            x, mask = stack_windows(train_ds, order[i:i + batch_size])
+            input_mask, hidden = _mask_timesteps(mask, MASK_FRACTION, mask_gen)
+            x, mask = x.to(device), mask.to(device)
+            input_mask = input_mask.to(device)
+            out = model(x * input_mask, input_mask)
+            target = hidden.unsqueeze(-1).to(device) & mask
+            loss = (F.mse_loss(out["recon"], x, reduction="none")[target].mean()
+                    if target.any() else torch.zeros((), device=device))
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+            ep_loss += float(loss.detach()); n_batches += 1
+        history["loss"].append(ep_loss / max(n_batches, 1))
+
+        if (epoch + 1) % eval_every == 0 or epoch == epochs - 1:
+            m = evaluate_windows(model, val_ds, seed=seed, device=device)
+            print(f"epoch {epoch + 1:3d}  loss {history['loss'][-1]:.5f}  "
+                  f"val recon MSE {m['recon_mse']:.5f} "
+                  f"(mean-baseline {m['recon_mse_mean_baseline']:.5f})")
+    return model, history
+
+
 def main():
     from world_model.eval.eval_world_model import append_run
 
@@ -205,6 +283,10 @@ def main():
     p.add_argument("--epochs", type=int, default=30)
     p.add_argument("--device", default="cpu", choices=["cpu", "mps", "cuda"])
     p.add_argument("--seed", type=int, default=SEED)
+    p.add_argument("--window", type=int, default=None,
+                   help="train on TrainWindows of this length (the C4-C7 "
+                        "one-variable diet) instead of whole sessions")
+    p.add_argument("--stride", type=int, default=50)
     args = p.parse_args()
     limit = TINY["n_sessions"] if args.tiny else args.limit
     epochs = TINY["epochs"] if args.tiny else args.epochs
@@ -214,6 +296,37 @@ def main():
     splits = split_sessions(sessions, seed=args.seed)
     n_fault = sum(int(s.meta["fault"]) for s in sessions)
     print({k: len(v) for k, v in splits.items()}, f"faults={n_fault}/{len(sessions)}")
+
+    if args.window:
+        from world_model.pretraining.common import save_transfer_checkpoint
+
+        model, history = pretrain_windows(
+            splits["train"], splits["val"], epochs=epochs, window=args.window,
+            stride=args.stride, device=args.device, seed=args.seed)
+        test_ds = TrainWindows(splits["test"], window=args.window,
+                               stride=args.stride, channels=PRETRAIN_CHANNELS)
+        m = evaluate_windows(model, test_ds, seed=args.seed, device=args.device)
+        learned = m["recon_mse"] < 0.5 * m["recon_mse_mean_baseline"]
+        print(f"TEST recon MSE {m['recon_mse']:.5f} "
+              f"(mean-baseline {m['recon_mse_mean_baseline']:.5f})  "
+              f"{'learned' if learned else 'KILL — no better than mean predictor'}")
+
+        config = dict(model="masked_recon_windows", epochs=epochs, limit=limit,
+                      hidden=HIDDEN_DIM, mask_fraction=MASK_FRACTION,
+                      window=args.window, stride=args.stride, seed=args.seed)
+        # probe macro-F1 is C5's job; note stays comma-free (runs.csv)
+        config_hash = append_run(
+            "masked_recon_windows", config, args.seed, split="test",
+            metrics=dict(n=m["n_windows"], quality_f1_macro=None,
+                         fusion_mae_mm=None, per_class_recall=None),
+            note=(f"window diet; recon_mse={m['recon_mse']:.5f} "
+                  f"mean_baseline={m['recon_mse_mean_baseline']:.5f} "
+                  f"gate={'pass' if learned else 'KILL'}"))
+        ckpt = CHECKPOINTS_DIR / f"masked_recon_windows_{config_hash}.pt"
+        save_transfer_checkpoint(ckpt, model, objective="masked_recon",
+                                 config=config, extras={"test_metrics": m})
+        print(f"transfer artifact: {ckpt}")
+        return
 
     model, history = pretrain(splits["train"], splits["val"], epochs=epochs,
                               device=args.device, seed=args.seed)

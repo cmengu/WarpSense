@@ -22,3 +22,5 @@ timestamp_utc,model,config_hash,seed,split,note,n,quality_f1_macro,fusion_mae_mm
 2026-07-07T13:35:59+00:00,world_model,575f79f37749,1337,val,epoch=35 recon=0.4007 physics=0.0420 quality=1.0887 aux=0.2390 kl=20.3023 mock/plumbing,8,0.2222,,{"GOOD": 1.0; "MARGINAL": 0.0; "DEFECTIVE": 0.0}
 2026-07-07T13:38:14+00:00,world_model,575f79f37749,1337,val,epoch=40 recon=0.3875 physics=0.0367 quality=1.1410 aux=0.1844 kl=18.2603 mock/plumbing,8,0.2222,,{"GOOD": 0.0; "MARGINAL": 1.0; "DEFECTIVE": 0.0}
 2026-07-07T13:38:14+00:00,world_model,e53276125ad0,1337,test,mock/plumbing final,11,0.2593,,{"GOOD": 0.0; "MARGINAL": 1.0; "DEFECTIVE": 0.0}
+2026-07-14T15:18:12+00:00,jepa_pretrain,9aef89f77681,1337,test,jepa latent_mse=0.00223 mean_baseline=0.02047 embed_std=0.1133 collapse=no,450,,,{}
+2026-07-14T15:20:45+00:00,masked_recon_windows,a9b465848603,1337,test,window diet; recon_mse=0.00140 mean_baseline=0.07293 gate=pass,450,,,{}

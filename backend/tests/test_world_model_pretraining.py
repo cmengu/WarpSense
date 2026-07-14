@@ -241,6 +241,79 @@ def test_jepa_predictor_output_shape():
     assert out.shape == (2, 50, HIDDEN_DIM)
 
 
+# ------------------------------------------------- JEPA training loop (C4)
+
+def test_mask_contiguous_multi_block_exact_count_and_bounds():
+    """n_blocks blocks, disjoint and non-touching, totalling within ratio_range."""
+    mask = torch.ones(8, 200, 2, dtype=torch.bool)
+    gen = torch.Generator().manual_seed(0)
+    input_mask, hidden = mask_contiguous(mask, (0.40, 0.50), gen, n_blocks=4)
+    for b in range(8):
+        row = hidden[b].int()
+        n_runs = int(((row[1:] - row[:-1]) == 1).sum()) + int(row[0])
+        assert n_runs == 4, f"sample {b}: {n_runs} blocks"
+        total = int(row.sum())
+        assert 4 * (int(0.40 * 200) // 4) <= total <= int(0.50 * 200)
+    assert not input_mask[hidden].any()
+    assert input_mask[~hidden].all()
+
+
+def test_jepa_training_loop_saves_contract_checkpoint(tmp_path):
+    """The C4 seam test: a (tiny) JEPA training run must yield a checkpoint
+    that round-trips through the contract and is indistinguishable from a
+    masked-recon one except for objective='jepa'."""
+    from world_model.pretraining.common import (
+        build_encoder, load_transfer_checkpoint, save_transfer_checkpoint)
+    from world_model.pretraining.jepa import evaluate, pretrain_jepa
+    from world_model.data.windows import TrainWindows
+
+    model, history = pretrain_jepa(
+        _sessions(n=4), _sessions(n=2, seed=1), epochs=2,
+        window=100, stride=100, batch_size=4, eval_every=10)
+    assert len(history["loss"]) == 2
+    assert all(np.isfinite(v) for v in history["loss"])
+
+    val_ds = TrainWindows(_sessions(n=2, seed=1), window=100, stride=100,
+                          channels=["volts", "amps"])
+    m = evaluate(model, val_ds)
+    assert m["embed_std"] > 1e-3, "embeddings collapsed to a constant"
+    assert np.isfinite(m["latent_mse"])
+
+    path = tmp_path / "jepa_c4.pt"
+    save_transfer_checkpoint(path, model, objective="jepa", config={"epochs": 2})
+    ckpt = load_transfer_checkpoint(path)
+    assert ckpt["objective"] == "jepa"
+    assert set(ckpt["transfer_state_dict"]) == \
+        set(StemTrunkEncoder(["volts", "amps"]).transfer_state_dict())
+    rebuilt = build_encoder(ckpt)
+    for k, v in model.transfer_state_dict().items():
+        assert torch.equal(rebuilt.state_dict()[k], v), k
+
+
+def test_masked_recon_window_diet_trains_and_saves(tmp_path):
+    """The control-group path: masked recon on the same TrainWindows diet
+    must train (recon-only, no labels) and save through the same contract."""
+    from world_model.pretraining.common import (
+        load_transfer_checkpoint, save_transfer_checkpoint)
+    from world_model.pretraining.masked_recon import (
+        evaluate_windows, pretrain_windows)
+    from world_model.data.windows import TrainWindows
+
+    model, history = pretrain_windows(
+        _sessions(n=4), _sessions(n=2, seed=1), epochs=2,
+        window=100, stride=100, batch_size=4, eval_every=10)
+    assert all(np.isfinite(v) for v in history["loss"])
+
+    test_ds = TrainWindows(_sessions(n=2, seed=1), window=100, stride=100,
+                           channels=["volts", "amps"])
+    m = evaluate_windows(model, test_ds)
+    assert np.isfinite(m["recon_mse"]) and m["recon_mse_mean_baseline"] > 0
+
+    path = tmp_path / "mr_windows.pt"
+    save_transfer_checkpoint(path, model, objective="masked_recon", config={})
+    assert load_transfer_checkpoint(path)["objective"] == "masked_recon"
+
+
 def test_deprecated_pretrain_polito_shim_still_exports():
     """The documented CLI/module path must keep working until callers migrate."""
     from world_model.training.pretrain_polito import (  # noqa: F401

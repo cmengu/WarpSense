@@ -24,10 +24,11 @@ Sessions shorter than one window are skipped.
 The two masking recipes (both: hide whole frames, all channels at once):
   mask_timesteps  — hide a scattered `fraction` of frames (the BERT recipe;
                     moved verbatim from training/pretrain_polito.py).
-  mask_contiguous — hide ONE contiguous block covering a fraction of frames
-                    drawn from `ratio_range` (the I-JEPA recipe: predicting a
-                    missing REGION from context is harder than infilling
-                    scattered single frames, which local smoothness solves).
+  mask_contiguous — hide `n_blocks` disjoint contiguous blocks totalling a
+                    fraction of frames drawn from `ratio_range` (the I-JEPA
+                    recipe: predicting missing REGIONS from context is harder
+                    than infilling scattered single frames, which local
+                    smoothness solves). n_blocks=1 is one solid block.
 Both return (input_mask, hidden): input_mask is what the encoder may see,
 hidden [B, T] marks the frames the objective must account for.
 """
@@ -89,6 +90,13 @@ class ProbeWindows(TrainWindows):
         return x, mask, labels, i
 
 
+def stack_windows(dataset: TrainWindows, indices) -> tuple[torch.Tensor, torch.Tensor]:
+    """Collate window items into (x[B,W,C], mask[B,W,C]) batch tensors."""
+    items = [dataset[i] for i in indices]
+    return (torch.stack([x for x, _ in items]),
+            torch.stack([m for _, m in items]))
+
+
 def mask_timesteps(mask: torch.Tensor, fraction: float,
                    generator: torch.Generator) -> tuple[torch.Tensor, torch.Tensor]:
     """
@@ -102,19 +110,35 @@ def mask_timesteps(mask: torch.Tensor, fraction: float,
 
 
 def mask_contiguous(mask: torch.Tensor, ratio_range: tuple[float, float] = (0.25, 0.5),
-                    generator: torch.Generator | None = None
-                    ) -> tuple[torch.Tensor, torch.Tensor]:
+                    generator: torch.Generator | None = None,
+                    n_blocks: int = 1) -> tuple[torch.Tensor, torch.Tensor]:
     """
-    Hide ONE contiguous block of frames per sample (the JEPA target region).
-    Block length is a per-sample fraction of T drawn uniformly from ratio_range;
-    its start position is uniform over what fits.
+    Hide `n_blocks` disjoint contiguous blocks of frames per sample (the JEPA
+    target regions). The TOTAL hidden fraction of T is drawn per sample from
+    ratio_range and split evenly across blocks; block b is placed uniformly
+    inside its own 1/n_blocks segment of the window, with one visible frame
+    reserved between segments so the blocks never touch (exactly n_blocks
+    separate regions, always).
+
+    n_blocks=1 is the original one-block recipe, draw-for-draw identical.
+    Multi-block (I-JEPA uses ~4 targets) hides the same total amount in
+    several places, so the model must understand the dynamics at several
+    scattered regions instead of bridging one gap.
     """
     B, T, _ = mask.shape
     lo, hi = ratio_range
     frac = lo + (hi - lo) * torch.rand(B, generator=generator)
-    length = (frac * T).long().clamp(min=1, max=T)
-    start = (torch.rand(B, generator=generator) * (T - length + 1).float()).long()
+    total = (frac * T).long().clamp(min=n_blocks, max=T)
+    block_len = (total // n_blocks).clamp(min=1)
     t = torch.arange(T).unsqueeze(0)                       # [1, T]
-    hidden = (t >= start.unsqueeze(1)) & (t < (start + length).unsqueeze(1))
+    hidden = torch.zeros(B, T, dtype=torch.bool)
+    for b in range(n_blocks):
+        seg_start = b * T // n_blocks
+        seg_end = (b + 1) * T // n_blocks
+        gap = 1 if b < n_blocks - 1 else 0     # keep neighbouring blocks apart
+        length = block_len.clamp(max=seg_end - gap - seg_start)
+        span = (seg_end - gap - seg_start - length + 1).float()
+        start = seg_start + (torch.rand(B, generator=generator) * span).long()
+        hidden |= (t >= start.unsqueeze(1)) & (t < (start + length).unsqueeze(1))
     input_mask = mask & ~hidden.unsqueeze(-1)
     return input_mask, hidden
