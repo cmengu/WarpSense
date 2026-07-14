@@ -204,11 +204,41 @@ Tests pin: target never receives gradients; EMA moves the target at exactly
 `1−decay`; the saved artifact contains only the online encoder and round-trips
 through `common.py`; predictor output shape matches the embedding shape.
 
+### The C4 training loop (done 2026-07-14)
+
+`pretraining/jepa.py` now carries the run path: `TrainWindows` (300/50) →
+`mask_contiguous` with the new generic `n_blocks` param (default 4 blocks
+totalling 40–50% hidden; `--n-blocks 1` is the smoke configuration) → target
+encodes the full window without gradients → online encoder + predictor guess
+the hidden-frame embeddings → latent MSE → optimizer step → `ema_update()`.
+CLI mirrors masked_recon (`python -m world_model.pretraining.jepa --tiny`);
+checkpoints save through the contract with `objective="jepa"`.
+
+Two **collapse dials** in `evaluate()`, because JEPA's failure mode is a loss
+that looks great while the encoder says the same thing about every weld:
+
+- `embed_std` — how spread out the target embeddings are. Collapse drags it
+  to zero.
+- `latent_mse_mean_baseline` — the score of predicting the average embedding
+  everywhere. Healthy: latent MSE well under it. Collapse: both race to zero
+  together.
+
+`masked_recon.py --window 300` is the matching **control diet**: masked recon
+re-trained on the same windows (recon-only — `TrainWindows` physically has no
+labels), so the C7 head-to-head changes exactly one variable. Note the JEPA
+raw training loss *rises* across epochs by design: the EMA target keeps
+getting richer, so the answer key gets harder — read health off the val
+latent MSE vs its mean-baseline, not the loss curve.
+
+Tiny-preset smoke results (200 welds, 20 epochs, committed to `runs.csv`):
+JEPA test latent MSE 0.00223 vs 0.02047 baseline, embed_std rising 0.028 →
+0.113 (no collapse); masked-recon windows 0.00140 vs 0.07293.
+
 ## What's next
 
-- **C4** — the JEPA training loop (mask_contiguous → predict → latent MSE →
-  ema_update), CLI, and probe comparison vs masked_recon; saves through the
-  same contract with `objective="jepa"`.
+- **C5** — `eval/compare_pretrains.py`: the ruler (freeze → embed
+  ProbeWindows → mean-pool per weld → linear probe → macro-F1) applied
+  identically to both contenders' checkpoints.
 
 ## Decisions from the 2026-07-14 grilling (C4–C7 spec)
 
