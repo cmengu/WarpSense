@@ -209,3 +209,41 @@ through `common.py`; predictor output shape matches the embedding shape.
 - **C4** — the JEPA training loop (mask_contiguous → predict → latent MSE →
   ema_update), CLI, and probe comparison vs masked_recon; saves through the
   same contract with `objective="jepa"`.
+
+## Decisions from the 2026-07-14 grilling (C4–C7 spec)
+
+- **Both objectives train on the same diet**: `TrainWindows`, window=300,
+  stride=50. Masked recon is re-trained on windows so the C7 head-to-head
+  changes exactly one variable (the objective). The Step-6 whole-session
+  checkpoint is kept as a historical reference column only. Polito welds are
+  uniformly T=1000 frames (verified), so 300/50 gives 15 windows per weld
+  (~29.6k samples from 1,976 welds).
+- **Why keep masked recon at all**: it's the control group. JEPA's wins are
+  from internet-scale data + big Transformers; this is 2k welds + a 16k-param
+  GRU, masked recon already passed Gate 0.5 here, and JEPA has a failure mode
+  (collapse) that yields a low loss and a useless encoder — undetectable
+  without a comparison point.
+- **window=300 is inherited (Gate 1.5), not chosen** — declared revisitable.
+  Pre-registered diagnostics: too short ⇒ JEPA loss plateaus high, probe ≈
+  baseline, 300→600 helps; too long ⇒ overfitting + noisy probes, 600→1000
+  hurts. Readout: C5 probe score vs window length, pick the knee.
+- **C5 = the ruler**: any transfer checkpoint → freeze encoder → embed
+  ProbeWindows → mean-pool per weld → linear probe (GroupKFold by session) →
+  macro-F1. Identical treatment for every contender; C6/C7 are C5 applied
+  repeatedly.
+- **C6 protocol**: one knob at a time from the default config — masking
+  ratio/style, EMA vs shared-weights, window length {300, 600, 1000} (~8
+  configs); 1 seed for the sweep, 3 seeds for finalists. Runs once as a study.
+- **Testing seams (confirmed)**: zero new seams. Everything C4–C7 needs is
+  testable at two existing boundaries: (1) the transfer-checkpoint contract in
+  `pretraining/common.py` — a JEPA run must produce a checkpoint that
+  round-trips through the contract and is indistinguishable from a masked-recon
+  one except `objective="jepa"`; new tests join
+  `backend/tests/test_world_model_pretraining.py`. Same seam covers C5: two
+  contract checkpoints in, one comparable score per checkpoint out. (2) the
+  `--tiny` CLI smoke — run the whole loop on the tiny preset, assert it
+  completes and saves a valid checkpoint. Below those, only genuinely new
+  functions get direct behavior tests (multi-block masking: exactly n blocks,
+  ratio bounds hold; mean-pooling: one vector per weld; GroupKFold: no session
+  straddles folds). C6/C7 are experiments, not code — no tests beyond what
+  C5's harness carries; their outputs are `runs.csv` rows and doc updates.
