@@ -314,6 +314,85 @@ def test_masked_recon_window_diet_trains_and_saves(tmp_path):
     assert load_transfer_checkpoint(path)["objective"] == "masked_recon"
 
 
+# ------------------------------------------------- probe comparison (C5)
+
+def _fault_sessions(n=8, T=200, seed=0):
+    rng = np.random.default_rng(seed)
+    return [
+        SessionTensor(
+            x=rng.random((T, len(CHANNELS))).astype(np.float32),
+            mask=np.ones((T, len(CHANNELS)), dtype=bool),
+            meta={"session_id": f"w{i}", "source": "mock", "fault": i % 2},
+        )
+        for i in range(n)
+    ]
+
+
+def test_embed_welds_mean_pools_one_vector_per_weld():
+    from world_model.eval.compare_pretrains import embed_welds
+    torch.manual_seed(0)
+    enc = StemTrunkEncoder(["volts", "amps"])
+    sessions = _fault_sessions(n=6)
+    X, y, groups = embed_welds(enc, sessions, window=100, stride=50)
+    assert X.shape == (6, HIDDEN_DIM)          # exactly one vector per weld
+    assert list(y) == [i % 2 for i in range(6)]
+    assert list(groups) == list(range(6))
+    # a weld shorter than one window contributes no row and is dropped
+    short = sessions + _fault_sessions(n=1, T=50, seed=1)
+    X2, y2, _ = embed_welds(enc, short, window=100, stride=50)
+    assert X2.shape[0] == 6 and len(y2) == 6
+
+
+def test_probe_no_group_straddles_folds():
+    """The GroupKFold guarantee, exercised with multiple rows per group."""
+    from world_model.eval.compare_pretrains import probe_macro_f1
+    rng = np.random.default_rng(0)
+    groups = np.repeat(np.arange(10), 2)       # 2 rows per weld
+    y = (groups % 2).astype(float)
+    X = rng.normal(size=(20, 8)) + y[:, None]
+    result = probe_macro_f1(X, y, groups, n_splits=5)
+    seen = set()
+    for fold_groups in result["test_groups_per_fold"]:
+        assert not (seen & fold_groups), "a weld straddles folds"
+        seen |= fold_groups
+    assert seen == set(range(10))
+    assert np.isfinite(result["macro_f1"])
+
+
+def test_probe_survives_single_class_training_folds():
+    """Rare-positive reality (tiny val = 1 fault in 33 welds): a training
+    fold holding one class must degrade to a constant prediction, not crash."""
+    from world_model.eval.compare_pretrains import probe_macro_f1
+    rng = np.random.default_rng(0)
+    y = np.zeros(10); y[0] = 1.0                # one positive weld
+    X = rng.normal(size=(10, 8))
+    result = probe_macro_f1(X, y, np.arange(10), n_splits=5)
+    assert np.isfinite(result["macro_f1"])
+
+
+def test_compare_scores_one_row_per_checkpoint(tmp_path):
+    """The C5 seam test: given contract checkpoints from different
+    objectives, the harness returns one comparable score per checkpoint."""
+    from world_model.eval.compare_pretrains import score_checkpoint, score_random_floor
+    from world_model.pretraining.common import save_transfer_checkpoint
+
+    torch.manual_seed(1)
+    paths = []
+    for objective in ("masked_recon", "jepa"):
+        enc = StemTrunkEncoder(["volts", "amps"])
+        path = tmp_path / f"{objective}.pt"
+        save_transfer_checkpoint(path, enc, objective=objective, config={})
+        paths.append(path)
+
+    sessions = _fault_sessions(n=8)
+    rows = [score_random_floor(sessions, window=100, stride=50)] + \
+        [score_checkpoint(p, sessions, window=100, stride=50) for p in paths]
+    assert [r["objective"] for r in rows] == ["none", "masked_recon", "jepa"]
+    for r in rows:
+        assert np.isfinite(r["macro_f1"]) and 0.0 <= r["macro_f1"] <= 1.0
+        assert r["n_welds"] == 8 and r["n_positive"] == 4
+
+
 def test_deprecated_pretrain_polito_shim_still_exports():
     """The documented CLI/module path must keep working until callers migrate."""
     from world_model.training.pretrain_polito import (  # noqa: F401

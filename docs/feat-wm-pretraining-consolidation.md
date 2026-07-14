@@ -234,11 +234,36 @@ Tiny-preset smoke results (200 welds, 20 epochs, committed to `runs.csv`):
 JEPA test latent MSE 0.00223 vs 0.02047 baseline, embed_std rising 0.028 →
 0.113 (no collapse); masked-recon windows 0.00140 vs 0.07293.
 
+### The C5 ruler (done 2026-07-14)
+
+`eval/compare_pretrains.py` measures any transfer checkpoint the same way:
+load through the contract → freeze the encoder → embed `ProbeWindows` →
+mean-pool per weld (window vector = the GRU hidden state at the last frame;
+weld vector = mean of its window vectors) → logistic-regression probe under
+GroupKFold by session → macro-F1, pooled across held-out folds (pooling keeps
+the number stable when a fold holds none of the 79 rare faults). A
+randomly-initialised encoder is scored alongside as the floor every contender
+must clear — "probe ≈ floor" is also the pre-registered too-short-window
+symptom.
+
+The probe is deliberately LINEAR: if the fault signal isn't already laid out
+in the embedding, a linear model can't dig it out — a stronger probe would
+measure the classifier, not the encoder. `--split val` is for model
+selection (C6, picking JEPA's entrant); `--split test` is touched exactly
+once, for the C7 verdict.
+
+Real-data edge case baked in: with rare positives a training fold can hold a
+single class; the probe degrades to a constant prediction for that fold and
+warns when positives < folds ("under-powered"), instead of crashing — found
+by the tiny smoke (val = 33 welds, 1 faulty), not by the synthetic tests.
+
 ## What's next
 
-- **C5** — `eval/compare_pretrains.py`: the ruler (freeze → embed
-  ProbeWindows → mean-pool per weld → linear probe → macro-F1) applied
-  identically to both contenders' checkpoints.
+- **C6** — collapse ablations (experiments/notebook/): one knob at a time —
+  masking ratio/style, EMA vs shared-weights, window length {300, 600, 1000};
+  every config scored by the C5 ruler on `--split val`.
+- **C7** — the head-to-head: entrant picked on val, verdict on test, 3 seeds,
+  tie → incumbent.
 
 ## Decisions from the 2026-07-14 grilling (C4–C7 spec)
 

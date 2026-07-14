@@ -24,3 +24,6 @@ timestamp_utc,model,config_hash,seed,split,note,n,quality_f1_macro,fusion_mae_mm
 2026-07-07T13:38:14+00:00,world_model,e53276125ad0,1337,test,mock/plumbing final,11,0.2593,,{"GOOD": 0.0; "MARGINAL": 1.0; "DEFECTIVE": 0.0}
 2026-07-14T15:18:12+00:00,jepa_pretrain,9aef89f77681,1337,test,jepa latent_mse=0.00223 mean_baseline=0.02047 embed_std=0.1133 collapse=no,450,,,{}
 2026-07-14T15:20:45+00:00,masked_recon_windows,a9b465848603,1337,test,window diet; recon_mse=0.00140 mean_baseline=0.07293 gate=pass,450,,,{}
+2026-07-14T15:35:33+00:00,probe_compare,21269cc13943,1337,val,linear probe; objective=none ckpt=(random init) fold_std=0.1280 positives=1/33,33,0.2826,,{}
+2026-07-14T15:35:33+00:00,probe_compare,7657895286f3,1337,val,linear probe; objective=jepa ckpt=jepa_pretrain_9aef89f77681.pt fold_std=0.1270 positives=1/33,33,0.2979,,{}
+2026-07-14T15:35:33+00:00,probe_compare,e2a589af19b9,1337,val,linear probe; objective=masked_recon ckpt=masked_recon_windows_a9b465848603.pt fold_std=0.1280 positives=1/33,33,0.2826,,{}
