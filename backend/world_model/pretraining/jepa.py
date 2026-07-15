@@ -54,7 +54,8 @@ import torch.nn as nn
 from world_model.architecture.trunk import HIDDEN_DIM, TRANSFER_PREFIXES, StemTrunkEncoder
 from world_model.config import SEED, TINY
 from world_model.data.schema import SessionTensor
-from world_model.data.windows import TrainWindows, mask_contiguous, stack_windows
+from world_model.data.windows import (
+    TrainWindows, mask_contiguous, mask_timesteps, stack_windows)
 from world_model.pretraining.masked_recon import (
     CHECKPOINTS_DIR, PRETRAIN_CHANNELS, seed_everything)
 
@@ -65,6 +66,18 @@ WINDOW = 300     # C4-C7 spec: inherited from Gate 1.5, revisited by C6
 STRIDE = 50
 N_BLOCKS = 4     # I-JEPA-style multi-target; 1 = one solid block (smoke config)
 RATIO_RANGE = (0.40, 0.50)   # TOTAL hidden fraction, split across blocks
+MASK_STYLES = ("contiguous", "scattered")   # scattered = BERT-legacy C6 arm
+
+
+def sample_mask(mask: torch.Tensor, ratio_range: tuple[float, float],
+                generator: torch.Generator, n_blocks: int,
+                mask_style: str = "contiguous") -> tuple[torch.Tensor, torch.Tensor]:
+    """One switch for the C6 masking-style knob: contiguous blocks (the JEPA
+    default) or scattered per-frame dropout (BERT legacy; hides the midpoint
+    of ratio_range as independent frames, n_blocks is ignored)."""
+    if mask_style == "scattered":
+        return mask_timesteps(mask, sum(ratio_range) / 2, generator)
+    return mask_contiguous(mask, ratio_range, generator, n_blocks)
 
 
 class JEPAPretrainModel(StemTrunkEncoder):
@@ -124,7 +137,8 @@ def _jepa_batch_loss(model: JEPAPretrainModel, x: torch.Tensor, mask: torch.Tens
 @torch.no_grad()
 def evaluate(model: JEPAPretrainModel, windows: TrainWindows, batch_size: int = 64,
              seed: int = SEED, device: str = "cpu", n_blocks: int = N_BLOCKS,
-             ratio_range: tuple[float, float] = RATIO_RANGE) -> dict:
+             ratio_range: tuple[float, float] = RATIO_RANGE,
+             mask_style: str = "contiguous") -> dict:
     """Held-out latent MSE + the two collapse dials (see module docstring)."""
     model.eval()
     gen = torch.Generator().manual_seed(seed + 1)  # fixed eval mask, ≠ train stream
@@ -134,7 +148,7 @@ def evaluate(model: JEPAPretrainModel, windows: TrainWindows, batch_size: int = 
     n_frames = 0.0
     for i in range(0, len(windows), batch_size):
         x, mask = stack_windows(windows, range(i, min(i + batch_size, len(windows))))
-        input_mask, hidden = mask_contiguous(mask, ratio_range, gen, n_blocks)
+        input_mask, hidden = sample_mask(mask, ratio_range, gen, n_blocks, mask_style)
         x, mask = x.to(device), mask.to(device)
         input_mask, hidden = input_mask.to(device), hidden.to(device)
         pred = model(x * input_mask, input_mask)
@@ -162,7 +176,8 @@ def pretrain_jepa(train: list[SessionTensor], val: list[SessionTensor], epochs: 
                   lr: float = 1e-3, n_blocks: int = N_BLOCKS,
                   ratio_range: tuple[float, float] = RATIO_RANGE,
                   ema_decay: float = EMA_DECAY, device: str = "cpu",
-                  seed: int = SEED, eval_every: int = 5
+                  seed: int = SEED, eval_every: int = 5,
+                  mask_style: str = "contiguous"
                   ) -> tuple[JEPAPretrainModel, dict]:
     seed_everything(seed)
     model = JEPAPretrainModel(PRETRAIN_CHANNELS, ema_decay=ema_decay).to(device)
@@ -181,7 +196,8 @@ def pretrain_jepa(train: list[SessionTensor], val: list[SessionTensor], epochs: 
         ep_loss, n_batches = 0.0, 0
         for i in range(0, len(order), batch_size):
             x, mask = stack_windows(train_ds, order[i:i + batch_size])
-            input_mask, hidden = mask_contiguous(mask, ratio_range, mask_gen, n_blocks)
+            input_mask, hidden = sample_mask(mask, ratio_range, mask_gen,
+                                             n_blocks, mask_style)
             loss = _jepa_batch_loss(model, x.to(device), mask.to(device),
                                     input_mask.to(device), hidden.to(device))
             optimizer.zero_grad()
@@ -193,7 +209,8 @@ def pretrain_jepa(train: list[SessionTensor], val: list[SessionTensor], epochs: 
 
         if (epoch + 1) % eval_every == 0 or epoch == epochs - 1:
             m = evaluate(model, val_ds, seed=seed, device=device,
-                         n_blocks=n_blocks, ratio_range=ratio_range)
+                         n_blocks=n_blocks, ratio_range=ratio_range,
+                         mask_style=mask_style)
             print(f"epoch {epoch + 1:3d}  loss {history['loss'][-1]:.5f}  "
                   f"val latent MSE {m['latent_mse']:.5f} "
                   f"(mean-baseline {m['latent_mse_mean_baseline']:.5f})  "
@@ -219,6 +236,12 @@ def main():
                    help="masked blocks per window; 1 = smoke configuration")
     p.add_argument("--ratio", type=float, nargs=2, default=list(RATIO_RANGE),
                    metavar=("LO", "HI"), help="total hidden fraction range")
+    p.add_argument("--ema-decay", type=float, default=EMA_DECAY,
+                   help="target EMA decay; 0.0 = shared-weights ablation "
+                        "(target copies the online encoder every step)")
+    p.add_argument("--mask-style", default="contiguous", choices=MASK_STYLES,
+                   help="contiguous blocks (JEPA default) or scattered "
+                        "per-frame masking (BERT legacy; C6 ablation)")
     args = p.parse_args()
     limit = TINY["n_sessions"] if args.tiny else args.limit
     epochs = TINY["epochs"] if args.tiny else args.epochs
@@ -229,17 +252,20 @@ def main():
     splits = split_sessions(sessions, seed=args.seed)
     print({k: len(v) for k, v in splits.items()},
           f"window={args.window} stride={args.stride} "
-          f"n_blocks={args.n_blocks} ratio={ratio_range}")
+          f"n_blocks={args.n_blocks} ratio={ratio_range} "
+          f"mask_style={args.mask_style} ema_decay={args.ema_decay}")
 
     model, history = pretrain_jepa(
         splits["train"], splits["val"], epochs=epochs, window=args.window,
         stride=args.stride, n_blocks=args.n_blocks, ratio_range=ratio_range,
+        ema_decay=args.ema_decay, mask_style=args.mask_style,
         device=args.device, seed=args.seed)
 
     test_ds = TrainWindows(splits["test"], window=args.window, stride=args.stride,
                            channels=PRETRAIN_CHANNELS)
     m = evaluate(model, test_ds, seed=args.seed, device=args.device,
-                 n_blocks=args.n_blocks, ratio_range=ratio_range)
+                 n_blocks=args.n_blocks, ratio_range=ratio_range,
+                 mask_style=args.mask_style)
     collapsed = m["embed_std"] < 1e-3
     print(f"TEST latent MSE {m['latent_mse']:.5f} "
           f"(mean-baseline {m['latent_mse_mean_baseline']:.5f})  "
@@ -249,7 +275,8 @@ def main():
     config = dict(model="jepa_pretrain", epochs=epochs, limit=limit,
                   hidden=HIDDEN_DIM, window=args.window, stride=args.stride,
                   n_blocks=args.n_blocks, ratio_range=list(ratio_range),
-                  ema_decay=EMA_DECAY, seed=args.seed)
+                  mask_style=args.mask_style,
+                  ema_decay=args.ema_decay, seed=args.seed)
     # probe macro-F1 is C5's job — the quality column stays empty here; the
     # note field must stay comma-free (runs.csv is comma-joined)
     config_hash = append_run(
