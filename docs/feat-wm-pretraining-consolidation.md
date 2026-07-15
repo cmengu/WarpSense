@@ -257,13 +257,60 @@ single class; the probe degrades to a constant prediction for that fold and
 warns when positives < folds ("under-powered"), instead of crashing — found
 by the tiny smoke (val = 33 welds, 1 faulty), not by the synthetic tests.
 
+### The C6 study (done 2026-07-16)
+
+One knob at a time from the C4 default (window=300, stride=50, 4 blocks
+totalling 40–50% hidden, EMA 0.996), seed 1337, 30 epochs, full Polito data;
+every checkpoint scored by the C5 ruler on `--split val` (287 welds, 13
+faulty). Driver: `experiments/notebook/c6_collapse_ablations.py` (the
+`c6_essential.py` variant ran the final three configs after two restarts).
+
+| config | knob | val macro-F1 (± fold) | train-time dials |
+|---|---|---|---|
+| (random init) | — the floor | 0.4734 ± 0.0387 | — |
+| default | — | **0.4888 ± 0.0394** | MSE 0.012 vs baseline 0.156, std 0.36 |
+| oneblock | 1 mask block | 0.4852 ± 0.0585 | MSE 0.048 vs 0.204, std 0.40 |
+| sharedweights | EMA → 0.0 | 0.4813 ± 0.0335 | MSE 0.017 vs 0.170, std 0.34 |
+| w600 | window 600 | 0.4784 ± 0.0372 | MSE 0.019 vs 0.137, std 0.32 |
+| w1000 | window 1000 | 0.4646 ± 0.0573 | MSE 0.012 vs 0.080, std 0.24 |
+
+Three configs (scattered 0.15, ratio 0.15–0.25, ratio 0.55–0.65) were **cut
+by decision mid-study**: with the default already at the probe floor,
+fine-tuning the masking ratio cannot answer the question the study is for,
+and machine time was the binding constraint. Re-run them only if C7 makes
+JEPA look worth tuning.
+
+What the numbers say:
+
+1. **No config separates from the random floor.** Every JEPA encoder predicts
+   hidden-block embeddings far better than the mean baseline (7–17× lower
+   latent MSE) — it genuinely learns weld dynamics — yet none of that is
+   linearly readable as fault information. The failure is not collapse
+   (embed_std healthy everywhere); the representation is just
+   fault-irrelevant.
+2. **Window length is exonerated.** The pre-registered too-short symptom
+   (probe ≈ floor at 300) was present, but 600 didn't help and 1000 scored
+   *below* the floor. There is no knee to pick — the knob doesn't matter.
+   Caveat: Polito welds are uniformly T=1000, so window=1000 degenerates to
+   one window per weld (1,381 training samples, 9-minute run) and its probe
+   is the noisiest of the sweep.
+3. **The EMA target is not load-bearing at this scale.** With shared weights
+   (decay 0.0) the encoder did not collapse in 30 epochs (embed_std 0.34,
+   MSE 10× under baseline). At 16k parameters on 2k welds, the classic JEPA
+   failure mode simply didn't bite — and preventing it was never the
+   bottleneck.
+
+**Verdict for C7:** the entrant is the **default config** (best val probe,
+0.4888), but the expectation set by this study is that masked recon retains
+the crown — JEPA at this scale shows no probe-visible advantage over an
+untrained encoder. C7's job is to make that official on `--split test`
+(3 seeds, tie → incumbent), and the interesting comparison is masked recon
+vs the floor, not JEPA vs masked recon.
+
 ## What's next
 
-- **C6** — collapse ablations (experiments/notebook/): one knob at a time —
-  masking ratio/style, EMA vs shared-weights, window length {300, 600, 1000};
-  every config scored by the C5 ruler on `--split val`.
-- **C7** — the head-to-head: entrant picked on val, verdict on test, 3 seeds,
-  tie → incumbent.
+- **C7** — the head-to-head: entrant = default JEPA (picked on val, C6),
+  verdict on test, 3 seeds, tie → incumbent.
 
 ## Decisions from the 2026-07-14 grilling (C4–C7 spec)
 
