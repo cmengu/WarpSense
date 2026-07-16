@@ -1,0 +1,7 @@
+name,args,returncode,wall_min,checkpoint,final
+jepa_s1337,(reused from C6 default),0,,jepa_pretrain_e7f0e92d7625.pt,TEST latent MSE 0.01247 (mean-baseline 0.15559)  embed std 0.3559  collapse: no
+jepa_s1338,--seed 1338,0,,jepa_pretrain_0b1928f64c3a.pt,TEST latent MSE 0.01837 (mean-baseline 0.20820)  embed std 0.4208  collapse: no
+jepa_s1339,--seed 1339,0,,jepa_pretrain_a0af0e76939f.pt,TEST latent MSE 0.02370 (mean-baseline 0.27103)  embed std 0.4697  collapse: no
+mr_s1337,--window 300 --seed 1337,0,,masked_recon_windows_6a0b09b6c113.pt,TEST recon MSE 0.00081 (mean-baseline 0.07216)  learned
+mr_s1338,--window 300 --seed 1338,0,,masked_recon_windows_44889df44347.pt,TEST recon MSE 0.00076 (mean-baseline 0.07358)  learned
+mr_s1339,--window 300 --seed 1339,0,,masked_recon_windows_1464012e1949.pt,TEST recon MSE 0.00085 (mean-baseline 0.07179)  learned

@@ -45,3 +45,17 @@ timestamp_utc,model,config_hash,seed,split,note,n,quality_f1_macro,fusion_mae_mm
 2026-07-15T16:17:07+00:00,jepa_pretrain,f5fd0a07777f,1337,test,jepa latent_mse=0.01894 mean_baseline=0.13684 embed_std=0.3246 collapse=no,2772,,,{}
 2026-07-15T16:17:34+00:00,probe_compare,a7f58f9501b2,1337,val,linear probe; objective=none ckpt=(random init) fold_std=0.0387 positives=13/287,287,0.4734,,{}
 2026-07-15T16:17:34+00:00,probe_compare,c1a81b440047,1337,val,linear probe; objective=jepa ckpt=jepa_pretrain_f5fd0a07777f.pt fold_std=0.0372 positives=13/287,287,0.4784,,{}
+2026-07-16T07:50:22+00:00,jepa_pretrain,0b1928f64c3a,1338,test,jepa latent_mse=0.01837 mean_baseline=0.20820 embed_std=0.4208 collapse=no,4155,,,{}
+2026-07-16T07:51:29+00:00,jepa_pretrain,a0af0e76939f,1339,test,jepa latent_mse=0.02370 mean_baseline=0.27103 embed_std=0.4697 collapse=no,4410,,,{}
+2026-07-16T08:15:20+00:00,masked_recon_windows,6a0b09b6c113,1337,test,window diet; recon_mse=0.00081 mean_baseline=0.07216 gate=pass,4620,,,{}
+2026-07-16T08:16:19+00:00,masked_recon_windows,44889df44347,1338,test,window diet; recon_mse=0.00076 mean_baseline=0.07358 gate=pass,4155,,,{}
+2026-07-16T08:43:51+00:00,masked_recon_windows,1464012e1949,1339,test,window diet; recon_mse=0.00085 mean_baseline=0.07179 gate=pass,4410,,,{}
+2026-07-16T08:44:30+00:00,probe_compare,9e4e09fc3de6,1337,test,linear probe; objective=none ckpt=(random init) fold_std=0.0456 positives=11/308,308,0.4967,,{}
+2026-07-16T08:44:30+00:00,probe_compare,75af316307e2,1337,test,linear probe; objective=jepa ckpt=jepa_pretrain_e7f0e92d7625.pt fold_std=0.0484 positives=11/308,308,0.5064,,{}
+2026-07-16T08:44:30+00:00,probe_compare,617f99459984,1337,test,linear probe; objective=masked_recon ckpt=masked_recon_windows_6a0b09b6c113.pt fold_std=0.0526 positives=11/308,308,0.4903,,{}
+2026-07-16T08:44:41+00:00,probe_compare,2760b4382360,1338,test,linear probe; objective=none ckpt=(random init) fold_std=0.0705 positives=12/277,277,0.4449,,{}
+2026-07-16T08:44:41+00:00,probe_compare,2caca98b6ff4,1338,test,linear probe; objective=jepa ckpt=jepa_pretrain_0b1928f64c3a.pt fold_std=0.0798 positives=12/277,277,0.5284,,{}
+2026-07-16T08:44:41+00:00,probe_compare,16cba9ac113b,1338,test,linear probe; objective=masked_recon ckpt=masked_recon_windows_44889df44347.pt fold_std=0.0563 positives=12/277,277,0.4473,,{}
+2026-07-16T08:44:53+00:00,probe_compare,eb6a422e3758,1339,test,linear probe; objective=none ckpt=(random init) fold_std=0.0623 positives=13/294,294,0.5020,,{}
+2026-07-16T08:44:53+00:00,probe_compare,5d06d2338673,1339,test,linear probe; objective=jepa ckpt=jepa_pretrain_a0af0e76939f.pt fold_std=0.0666 positives=13/294,294,0.5189,,{}
+2026-07-16T08:44:53+00:00,probe_compare,6e9f1eece8aa,1339,test,linear probe; objective=masked_recon ckpt=masked_recon_windows_1464012e1949.pt fold_std=0.0690 positives=13/294,294,0.5167,,{}

@@ -307,10 +307,58 @@ untrained encoder. C7's job is to make that official on `--split test`
 (3 seeds, tie → incumbent), and the interesting comparison is masked recon
 vs the floor, not JEPA vs masked recon.
 
+### The C7 head-to-head (done 2026-07-16)
+
+The decisive comparison (issue #15): JEPA default config vs masked recon on
+the window diet (300/50, 30 epochs, full Polito), 3 seeds each, scored by
+the C5 ruler on `--split test` — touched once. Driver:
+`experiments/notebook/c7_headtohead.py`; per-seed scoring logs in
+`notebook/logs/c7_test_scoring_s*.log`.
+
+**A protocol discovery, made before any test-split look:** `--seed` is
+salted into the split hash (`data/splits.py`), so seeds 1338/1339 train on a
+*different train/test partition* than 1337. Scoring all six checkpoints on
+the seed-1337 test split (the original plan) would have been asymmetric —
+the 1338/1339 encoders pretrained on most of those welds (no labels leak,
+pretraining is label-free, but the 1337 models never saw *their* test
+welds). Fix, using existing code only: **seed-matched pairs** — for each
+seed, one `compare_pretrains --seed <s> --split test` call scoring that
+seed's JEPA + masked recon + random floor on the test split neither encoder
+trained on. The verdict metric is the paired JEPA−masked-recon difference
+across seeds.
+
+| seed | test welds (faulty) | floor | JEPA | masked recon | JEPA − MR |
+|---|---|---|---|---|---|
+| 1337 | 308 (11) | 0.4967 ± 0.0456 | 0.5064 ± 0.0484 | 0.4903 ± 0.0526 | +0.016 |
+| 1338 | 277 (12) | 0.4449 ± 0.0705 | 0.5284 ± 0.0798 | 0.4473 ± 0.0563 | +0.081 |
+| 1339 | 294 (13) | 0.5020 ± 0.0623 | 0.5189 ± 0.0666 | 0.5167 ± 0.0690 | +0.002 |
+
+(macro-F1 ± fold std; all encoders trained healthily — JEPA latent MSE
+9–11× under mean-baseline with no collapse, masked recon ~90× under.)
+
+**Verdict: tie → the incumbent masked recon keeps the Step 9+ warm-start
+slot.** JEPA finished ahead on all three seeds directionally (mean +0.033),
+but not beyond seed noise: the three paired differences spread 0.002–0.081
+(std ≈ 0.042), two of the three sit far inside fold noise (±0.05–0.08), and
+the 95% interval on the mean difference crosses zero comfortably. The
+pre-registered rule ("masked recon keeps the slot unless JEPA clearly beats
+it") therefore reads tie.
+
+The deeper C7 finding matches C6: **neither objective separates from the
+random-init floor with confidence** (masked recon mean −floor +0.004; JEPA
++0.037, all within noise). Both encoders demonstrably learn weld dynamics —
+the pretraining metrics are far under their baselines — but on ~2k welds
+with 79 faults, none of it is linearly readable as fault information. The
+warm-start value of pretraining (Gate 0.5's actual claim) is untouched by
+this; what C7 rules out is the *pretraining objective* being a lever worth
+tuning at Polito scale. The old fault-head 0.14 stays a footnote — a
+different ruler.
+
 ## What's next
 
-- **C7** — the head-to-head: entrant = default JEPA (picked on val, C6),
-  verdict on test, 3 seeds, tie → incumbent.
+- C0–C7 complete. The pretraining objective for the Step 9+ world-model
+  warm-start is settled: **masked recon** (incumbent retained). Step 11+
+  full-scale details sharpen after Gate 0 lands real arc-weld data.
 
 ## Decisions from the 2026-07-14 grilling (C4–C7 spec)
 
