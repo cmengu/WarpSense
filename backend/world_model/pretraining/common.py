@@ -10,7 +10,8 @@ Step 8's warm-start at a JEPA checkpoint is the ENTIRE migration.
 
 Checkpoint payload:
   transfer_state_dict — stems.* + trunk.* weights (trunk.py contract keys)
-  objective           — "masked_recon" | "jepa" | ... (which recipe trained it)
+  objective           — "masked_recon" | "jepa" | "supervised_depth" | ...
+                        (which recipe trained it)
   channels            — stem names, so the encoder can be rebuilt exactly
   stem_dim, hidden_dim— shape parameters, same purpose
   config              — the training config dict (hyperparams, data limits)
@@ -28,7 +29,7 @@ import torch
 from world_model.architecture.stems import STEM_DIM
 from world_model.architecture.trunk import StemTrunkEncoder
 
-KNOWN_OBJECTIVES = ("masked_recon", "jepa")
+KNOWN_OBJECTIVES = ("masked_recon", "jepa", "supervised_depth")
 
 
 def save_transfer_checkpoint(path: Path, encoder: StemTrunkEncoder, objective: str,
