@@ -27,6 +27,31 @@ For newcomers — how one simulated session is built, frame by frame (100 Hz):
   corpus generator for Steps 5 and 10. Whole regions of that parameter space
   (e.g. plate-thickness extremes) get reserved as the OOD split (D9).
 
+How wide is "randomised"? — RandomisationRanges (C8 trap T3, decision D1)
+
+  Domain randomisation only works if the real world lands INSIDE the training
+  distribution. The original ranges failed that test on one axis: they varied
+  six physical quantities but left `drift` and `noise` at their dataclass
+  defaults, so every session in the corpus shared one identical sensor-noise
+  signature — a single point, which real hardware is guaranteed to miss.
+
+  The fix is a RandomisationRanges object: the ranges are now an explicit,
+  recorded PARAMETER of the corpus rather than constants buried in the sampler.
+  A corpus is reproducible from (seed, ranges), and the ranges round-trip
+  through meta["params"]["ranges"] so any stored session says exactly which
+  distribution produced it.
+
+  Two are predefined:
+    LEGACY_RANGES (the default) — the pre-C8 ranges, with drift/noise NOT
+      randomised. Keeping this the default is what makes earlier corpora
+      (Gate 1.5, C4–C7) reproduce bit-for-bit: same seed, same draws, same
+      order, no extra rng consumption.
+    WIDE_RANGES (opt-in, D1) — the six physical half-widths ×1.5 around
+      unchanged midpoints, plus per-session drift and noise drawn log-uniform
+      over [0.5×, 2.0×] their defaults, independently per key.
+
+  Pass one explicitly: sample_params(seed, ranges=WIDE_RANGES).
+
 Any metric computed on this data is meaningful only after Gate 1 calibrates
 the simulator against real sectioned coupons (STEPS.md Step 9).
 """
@@ -69,23 +94,126 @@ class SimParams:
         volts=0.4, amps=4.0, speed=12.0, work_angle=2.5, travel_angle=2.0))
     noise: dict = field(default_factory=lambda: dict(
         volts=0.15, amps=1.5, speed=4.0, angle=0.4, heat_diss=1.5))
+    # which randomisation distribution produced this session (see RandomisationRanges)
+    ranges: dict = field(default_factory=lambda: LEGACY_RANGES.as_dict())
 
 
-def sample_params(seed: int, session_id: str | None = None) -> SimParams:
-    """Domain-randomised parameters (Steps 5/10). One rng per session — reproducible."""
+# The dataclass defaults above, as plain dicts — the 1.0× anchor that
+# WIDE_RANGES' log-uniform multipliers scale.
+DEFAULT_DRIFT = dict(volts=0.4, amps=4.0, speed=12.0, work_angle=2.5, travel_angle=2.0)
+DEFAULT_NOISE = dict(volts=0.15, amps=1.5, speed=4.0, angle=0.4, heat_diss=1.5)
+
+
+def _widen(lo: float, hi: float, factor: float = 1.5) -> tuple[float, float]:
+    """Scale a range's half-width by `factor`, leaving its midpoint alone (D1)."""
+    mid, half = (lo + hi) / 2.0, (hi - lo) / 2.0
+    return (mid - half * factor, mid + half * factor)
+
+
+@dataclass(frozen=True)
+class RandomisationRanges:
+    """The distribution sample_params() draws from — a recorded parameter, not a constant.
+
+    Each physical field is an inclusive (low, high) uniform range. `drift_scale`
+    and `noise_scale` are (low, high) MULTIPLIER ranges applied log-uniformly to
+    DEFAULT_DRIFT / DEFAULT_NOISE, independently per key; `None` means "don't
+    randomise that dict at all", which is the pre-C8 behaviour and therefore the
+    default. `name` is carried purely so a stored corpus is self-describing.
+    """
+
+    name: str
+    volts: tuple[float, float]
+    amps: tuple[float, float]
+    travel_speed_mm_per_min: tuple[float, float]
+    plate_thickness_mm: tuple[float, float]
+    ambient_c: tuple[float, float]
+    stitch_on_s: tuple[float, float]
+    stitch_off_s: tuple[float, float]
+    drift_scale: tuple[float, float] | None = None
+    noise_scale: tuple[float, float] | None = None
+
+    def as_dict(self) -> dict:
+        """JSON/asdict-friendly form — lists, so it survives a serialisation round-trip."""
+        d = asdict(self)
+        return {k: (list(v) if isinstance(v, tuple) else v) for k, v in d.items()}
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "RandomisationRanges":
+        """Inverse of as_dict(): rebuild the ranges recorded in a persisted corpus."""
+        kw = {k: (tuple(v) if isinstance(v, (list, tuple)) else v) for k, v in d.items()}
+        return cls(**kw)
+
+
+# Pre-C8 ranges, drift/noise left at their dataclass defaults. Default on
+# purpose: every existing corpus (Gate 1.5, C4–C7) must reproduce exactly.
+LEGACY_RANGES = RandomisationRanges(
+    name="legacy",
+    volts=(18.0, 26.0),
+    amps=(90.0, 200.0),
+    travel_speed_mm_per_min=(150.0, 450.0),
+    plate_thickness_mm=(3.0, 10.0),
+    ambient_c=(10.0, 35.0),
+    stitch_on_s=(1.5, 3.0),
+    stitch_off_s=(0.2, 0.6),
+)
+
+# C8/D1: half-widths ×1.5 around unchanged midpoints, plus per-session
+# drift and noise over [0.5×, 2.0×] their defaults.
+WIDE_RANGES = RandomisationRanges(
+    name="wide_c8",
+    volts=_widen(*LEGACY_RANGES.volts),
+    amps=_widen(*LEGACY_RANGES.amps),
+    travel_speed_mm_per_min=_widen(*LEGACY_RANGES.travel_speed_mm_per_min),
+    plate_thickness_mm=_widen(*LEGACY_RANGES.plate_thickness_mm),
+    ambient_c=_widen(*LEGACY_RANGES.ambient_c),
+    stitch_on_s=_widen(*LEGACY_RANGES.stitch_on_s),
+    stitch_off_s=_widen(*LEGACY_RANGES.stitch_off_s),
+    drift_scale=(0.5, 2.0),
+    noise_scale=(0.5, 2.0),
+)
+
+
+def _log_uniform_scaled(rng: random.Random, base: dict,
+                        lo_hi: tuple[float, float]) -> dict:
+    """Scale every value in `base` by its own log-uniform draw from [lo, hi].
+
+    Log-uniform (not uniform) so that halving and doubling are equally likely —
+    a noise level is a scale, and 0.5× should be as reachable as 2×.
+    """
+    lo, hi = lo_hi
+    log_lo, log_hi = math.log(lo), math.log(hi)
+    return {k: v * math.exp(rng.uniform(log_lo, log_hi)) for k, v in base.items()}
+
+
+def sample_params(seed: int, session_id: str | None = None,
+                  ranges: RandomisationRanges | None = None) -> SimParams:
+    """Domain-randomised parameters (Steps 5/10). One rng per session — reproducible.
+
+    `ranges` defaults to LEGACY_RANGES, which draws exactly the pre-C8 values in
+    exactly the pre-C8 order and consumes no extra rng — so old seeds still give
+    old corpora. Pass WIDE_RANGES for the C8/D1 distribution.
+    """
+    r = ranges or LEGACY_RANGES
     rng = random.Random(seed)
     stitch = rng.random() < 0.5
-    return SimParams(
+    p = SimParams(
         session_id=session_id or f"goldak_{seed:05d}",
         seed=seed,
-        volts=rng.uniform(18.0, 26.0),
-        amps=rng.uniform(90.0, 200.0),
-        travel_speed_mm_per_min=rng.uniform(150.0, 450.0),
-        plate_thickness_mm=rng.uniform(3.0, 10.0),
-        ambient_c=rng.uniform(10.0, 35.0),
-        stitch_on_s=rng.uniform(1.5, 3.0) if stitch else None,
-        stitch_off_s=rng.uniform(0.2, 0.6) if stitch else None,
+        volts=rng.uniform(*r.volts),
+        amps=rng.uniform(*r.amps),
+        travel_speed_mm_per_min=rng.uniform(*r.travel_speed_mm_per_min),
+        plate_thickness_mm=rng.uniform(*r.plate_thickness_mm),
+        ambient_c=rng.uniform(*r.ambient_c),
+        stitch_on_s=rng.uniform(*r.stitch_on_s) if stitch else None,
+        stitch_off_s=rng.uniform(*r.stitch_off_s) if stitch else None,
+        ranges=r.as_dict(),
     )
+    # Drawn last so enabling them cannot shift the physical draws above.
+    if r.drift_scale is not None:
+        p.drift = _log_uniform_scaled(rng, DEFAULT_DRIFT, r.drift_scale)
+    if r.noise_scale is not None:
+        p.noise = _log_uniform_scaled(rng, DEFAULT_NOISE, r.noise_scale)
+    return p
 
 
 def _arc_on_schedule(p: SimParams) -> np.ndarray:

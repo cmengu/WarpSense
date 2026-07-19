@@ -8,7 +8,7 @@
  * RectAreaLightUniformsLib.init() lives here so it runs when TorchWithHeatmap3D loads
  * on replay page (without loading TorchViz3D).
  *
- * @see docs/ISSUE_TORCH_VIZ3D_VISUAL_LEGITIMACY.md
+ * @see docs/issues/ISSUE_TORCH_VIZ3D_VISUAL_LEGITIMACY.md
  */
 
 import { useRef, useMemo } from 'react';

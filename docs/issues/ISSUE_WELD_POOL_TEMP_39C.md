@@ -15,7 +15,7 @@ Session B shows 39°C weld pool temp in the compare view — room temperature, p
 
 ## Evidence
 
-![Session B weld pool temp 39°C](assets/weld-pool-temp-39c.png)
+![Session B weld pool temp 39°C](../assets/weld-pool-temp-39c.png)
 
 *(Attach screenshot to `docs/assets/weld-pool-temp-39c.png`. Anyone picking this up should see the bug immediately without reproducing.)*
 

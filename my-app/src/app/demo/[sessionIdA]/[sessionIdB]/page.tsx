@@ -13,7 +13,7 @@ import { getFrameAtTimestamp, extractCenterTemperatureWithCarryForward } from '@
 import type { Session } from '@/types/session';
 
 // Dynamic import — R3F Canvas requires DOM/WebGL; ssr: false avoids SSR hydration issues.
-// Per WEBGL_CONTEXT_LOSS.md: max 2 instances per page.
+// Per docs/errors/WEBGL_CONTEXT_LOSS.md: max 2 instances per page.
 const TorchWithHeatmap3D = dynamic(
   () => import('@/components/welding/TorchWithHeatmap3D').then((m) => m.default),
   {

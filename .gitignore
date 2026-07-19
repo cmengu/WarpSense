@@ -79,3 +79,13 @@ coverage/
 
 # Public datasets (downloaded, not committed)
 data/public/
+
+# Internal working docs (local only, not for the public repo)
+FUTURE_PLANS_WORLD_MODELS.md
+LEARNING_LOG.md
+STEPS.md
+WORLD_MODEL_IMPLEMENTATION_REFERENCE.md
+docs/business/
+
+# world-model: test-generated corpus manifests (regenerable bit-for-bit from seed+ranges)
+backend/world_model/experiments/corpora/

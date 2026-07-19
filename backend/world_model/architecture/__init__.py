@@ -1,1 +1,1 @@
-"""architecture/ holds neural building blocks — per-channel stems today, encoder/ODE/decoders in Step 7."""
+"""architecture/ holds the neural building blocks — per-channel stems (Step 3), and the Step 7 world model: backward ODE-RNN encoder, controlled ODE dynamics, five-head decoder, assembled in world_model.WeldWorldModel."""

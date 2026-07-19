@@ -60,7 +60,7 @@ cd my-app && npm test -- --no-watch --passWithNoTests
 cd backend && source venv/bin/activate && python scripts/verify_steps_with_db.py
 ```
 
-See **docs/VERIFICATION_REPORT_STEPS_1_TO_13.md** for full verification commands and data-check details.
+See **docs/archive/VERIFICATION_REPORT_STEPS_1_TO_13.md** for full verification commands and data-check details.
 
 ---
 
@@ -74,3 +74,4 @@ See **docs/VERIFICATION_REPORT_STEPS_1_TO_13.md** for full verification commands
 | **backend/SETUP.md** | Backend setup (venv, deps, env vars) |
 | **backend/README.md** | Backend API overview |
 | **backend/ENV_SETUP.md** | DATABASE_URL and .env details |
+| **docs/ops/DEPLOY.md** | Production Docker deploy |

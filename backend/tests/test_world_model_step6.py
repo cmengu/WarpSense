@@ -12,7 +12,7 @@ import torch
 
 from world_model.config import POLITO_DIR
 from world_model.architecture.stems import STEM_DIM
-from world_model.training.pretrain_polito import (
+from world_model.pretraining.masked_recon import (
     HIDDEN_DIM,
     PRETRAIN_CHANNELS,
     PolitoPretrainModel,

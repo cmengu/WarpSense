@@ -6,3 +6,56 @@ timestamp_utc,model,config_hash,seed,split,note,n,quality_f1_macro,fusion_mae_mm
 2026-07-04T01:56:39+00:00,gru_baseline,70651f879d66,1337,test,mock/plumbing final,28,0.8643,,{"GOOD": 1.0; "MARGINAL": 0.7333333333333333; "DEFECTIVE": 1.0}
 2026-07-04T23:53:14+00:00,oracle_ceiling_gbdt,79e1952a6301,1337,groupkfold,gate1.5 PASS,29000,,0.1094,{}
 2026-07-06T03:40:27+00:00,polito_pretrain,8a68998bf644,1337,test,polito fault-bit; recon_mse=0.00083 mean_baseline=0.07430 gate0.5=pass,308,0.1423,,{"tp": 9; "fp": 260; "fn": 2; "tn": 37}
+2026-07-07T02:16:22+00:00,world_model,afb8b8ffb9a4,1337,val,epoch=5 recon=0.4311 physics=0.2119 quality=1.2218 aux=13.9155 kl=3.5031 mock/plumbing,6,0.0000,,{"GOOD": 0.0; "MARGINAL": 0.0; "DEFECTIVE": 0.0}
+2026-07-07T02:28:24+00:00,world_model,afb8b8ffb9a4,1337,val,epoch=10 recon=0.3710 physics=0.1077 quality=1.0984 aux=9.8144 kl=11.4427 mock/plumbing,6,0.2222,,{"GOOD": 1.0; "MARGINAL": 0.0; "DEFECTIVE": 0.0}
+2026-07-07T02:28:24+00:00,world_model,4a3d565a6a48,1337,test,mock/plumbing final,5,0.1905,,{"GOOD": 1.0; "MARGINAL": 0.0; "DEFECTIVE": 0.0}
+2026-07-07T02:43:42+00:00,world_model,71087d81824d,1337,val,epoch=5 recon=0.7162 physics=0.2873 quality=1.3606 aux=15.0709 kl=1.3223 mock/plumbing,4,0.0000,,{"GOOD": 0.0; "MARGINAL": 0.0; "DEFECTIVE": 0.0}
+2026-07-07T13:10:13+00:00,world_model,71087d81824d,1337,val,epoch=10 recon=0.5644 physics=0.3195 quality=1.1659 aux=12.7095 kl=2.9273 mock/plumbing,4,0.0000,,{"GOOD": 0.0; "MARGINAL": 0.0; "DEFECTIVE": 0.0}
+2026-07-07T13:15:35+00:00,world_model,71087d81824d,1337,val,epoch=12 recon=0.5385 physics=0.2758 quality=1.1381 aux=11.4967 kl=7.9505 mock/plumbing,4,0.0000,,{"GOOD": 0.0; "MARGINAL": 0.0; "DEFECTIVE": 0.0}
+2026-07-07T13:15:36+00:00,world_model,20b80db1b8f9,1337,test,mock/plumbing final,4,0.0000,,{"GOOD": 0.0; "MARGINAL": 0.0; "DEFECTIVE": 0.0}
+2026-07-07T13:22:54+00:00,world_model,575f79f37749,1337,val,epoch=5 recon=0.5158 physics=0.3544 quality=1.4654 aux=12.4100 kl=7.7194 mock/plumbing,8,0.0000,,{"GOOD": 0.0; "MARGINAL": 0.0; "DEFECTIVE": 0.0}
+2026-07-07T13:24:47+00:00,world_model,575f79f37749,1337,val,epoch=10 recon=0.4842 physics=1.1080 quality=1.1898 aux=2.4306 kl=16.5262 mock/plumbing,8,0.0000,,{"GOOD": 0.0; "MARGINAL": 0.0; "DEFECTIVE": 0.0}
+2026-07-07T13:26:55+00:00,world_model,575f79f37749,1337,val,epoch=15 recon=0.4749 physics=0.1838 quality=1.0913 aux=0.3499 kl=13.7459 mock/plumbing,8,0.2222,,{"GOOD": 0.0; "MARGINAL": 1.0; "DEFECTIVE": 0.0}
+2026-07-07T13:29:10+00:00,world_model,575f79f37749,1337,val,epoch=20 recon=0.4797 physics=0.0939 quality=1.1294 aux=0.3481 kl=13.7587 mock/plumbing,8,0.2222,,{"GOOD": 1.0; "MARGINAL": 0.0; "DEFECTIVE": 0.0}
+2026-07-07T13:31:23+00:00,world_model,575f79f37749,1337,val,epoch=25 recon=0.4366 physics=0.0671 quality=1.0904 aux=0.2242 kl=17.4246 mock/plumbing,8,0.2222,,{"GOOD": 0.0; "MARGINAL": 1.0; "DEFECTIVE": 0.0}
+2026-07-07T13:33:44+00:00,world_model,575f79f37749,1337,val,epoch=30 recon=0.3928 physics=0.0510 quality=1.0877 aux=0.2065 kl=18.5325 mock/plumbing,8,0.2222,,{"GOOD": 0.0; "MARGINAL": 1.0; "DEFECTIVE": 0.0}
+2026-07-07T13:35:59+00:00,world_model,575f79f37749,1337,val,epoch=35 recon=0.4007 physics=0.0420 quality=1.0887 aux=0.2390 kl=20.3023 mock/plumbing,8,0.2222,,{"GOOD": 1.0; "MARGINAL": 0.0; "DEFECTIVE": 0.0}
+2026-07-07T13:38:14+00:00,world_model,575f79f37749,1337,val,epoch=40 recon=0.3875 physics=0.0367 quality=1.1410 aux=0.1844 kl=18.2603 mock/plumbing,8,0.2222,,{"GOOD": 0.0; "MARGINAL": 1.0; "DEFECTIVE": 0.0}
+2026-07-07T13:38:14+00:00,world_model,e53276125ad0,1337,test,mock/plumbing final,11,0.2593,,{"GOOD": 0.0; "MARGINAL": 1.0; "DEFECTIVE": 0.0}
+2026-07-14T15:18:12+00:00,jepa_pretrain,9aef89f77681,1337,test,jepa latent_mse=0.00223 mean_baseline=0.02047 embed_std=0.1133 collapse=no,450,,,{}
+2026-07-14T15:20:45+00:00,masked_recon_windows,a9b465848603,1337,test,window diet; recon_mse=0.00140 mean_baseline=0.07293 gate=pass,450,,,{}
+2026-07-14T15:35:33+00:00,probe_compare,21269cc13943,1337,val,linear probe; objective=none ckpt=(random init) fold_std=0.1280 positives=1/33,33,0.2826,,{}
+2026-07-14T15:35:33+00:00,probe_compare,7657895286f3,1337,val,linear probe; objective=jepa ckpt=jepa_pretrain_9aef89f77681.pt fold_std=0.1270 positives=1/33,33,0.2979,,{}
+2026-07-14T15:35:33+00:00,probe_compare,e2a589af19b9,1337,val,linear probe; objective=masked_recon ckpt=masked_recon_windows_a9b465848603.pt fold_std=0.1280 positives=1/33,33,0.2826,,{}
+2026-07-15T01:54:06+00:00,jepa_pretrain,8b0abc8222ff,1337,test,jepa latent_mse=0.00003 mean_baseline=0.00307 embed_std=0.0471 collapse=no,450,,,{}
+2026-07-15T01:58:08+00:00,jepa_pretrain,8b0abc8222ff,1337,test,jepa latent_mse=0.00003 mean_baseline=0.00307 embed_std=0.0471 collapse=no,450,,,{}
+2026-07-15T02:00:58+00:00,jepa_pretrain,5e94a2adf47e,1337,test,jepa latent_mse=0.01297 mean_baseline=0.11709 embed_std=0.3030 collapse=no,450,,,{}
+2026-07-15T02:03:17+00:00,jepa_pretrain,97fb154f1a6b,1337,test,jepa latent_mse=0.00062 mean_baseline=0.00513 embed_std=0.0545 collapse=no,4620,,,{}
+2026-07-15T10:54:56+00:00,jepa_pretrain,3b1dae02ab53,1337,test,jepa latent_mse=0.04764 mean_baseline=0.20442 embed_std=0.3986 collapse=no,4620,,,{}
+2026-07-15T10:55:29+00:00,jepa_pretrain,e7f0e92d7625,1337,test,jepa latent_mse=0.01247 mean_baseline=0.15559 embed_std=0.3559 collapse=no,4620,,,{}
+2026-07-15T10:56:37+00:00,probe_compare,a7f58f9501b2,1337,val,linear probe; objective=none ckpt=(random init) fold_std=0.0387 positives=13/287,287,0.4734,,{}
+2026-07-15T10:56:37+00:00,probe_compare,3f585eae970f,1337,val,linear probe; objective=jepa ckpt=jepa_pretrain_3b1dae02ab53.pt fold_std=0.0585 positives=13/287,287,0.4852,,{}
+2026-07-15T10:56:37+00:00,probe_compare,aba498adfeab,1337,val,linear probe; objective=jepa ckpt=jepa_pretrain_e7f0e92d7625.pt fold_std=0.0394 positives=13/287,287,0.4888,,{}
+2026-07-15T16:07:08+00:00,jepa_pretrain,f155d9486fd3,1337,test,jepa latent_mse=0.01708 mean_baseline=0.17032 embed_std=0.3354 collapse=no,4620,,,{}
+2026-07-15T16:07:48+00:00,probe_compare,a7f58f9501b2,1337,val,linear probe; objective=none ckpt=(random init) fold_std=0.0387 positives=13/287,287,0.4734,,{}
+2026-07-15T16:07:48+00:00,probe_compare,64a9499871b2,1337,val,linear probe; objective=jepa ckpt=jepa_pretrain_f155d9486fd3.pt fold_std=0.0335 positives=13/287,287,0.4813,,{}
+2026-07-15T16:16:31+00:00,jepa_pretrain,94b453d27c67,1337,test,jepa latent_mse=0.01205 mean_baseline=0.08022 embed_std=0.2355 collapse=no,308,,,{}
+2026-07-15T16:16:56+00:00,probe_compare,a7f58f9501b2,1337,val,linear probe; objective=none ckpt=(random init) fold_std=0.0387 positives=13/287,287,0.4734,,{}
+2026-07-15T16:16:56+00:00,probe_compare,518b6c168e2b,1337,val,linear probe; objective=jepa ckpt=jepa_pretrain_94b453d27c67.pt fold_std=0.0573 positives=13/287,287,0.4646,,{}
+2026-07-15T16:17:07+00:00,jepa_pretrain,f5fd0a07777f,1337,test,jepa latent_mse=0.01894 mean_baseline=0.13684 embed_std=0.3246 collapse=no,2772,,,{}
+2026-07-15T16:17:34+00:00,probe_compare,a7f58f9501b2,1337,val,linear probe; objective=none ckpt=(random init) fold_std=0.0387 positives=13/287,287,0.4734,,{}
+2026-07-15T16:17:34+00:00,probe_compare,c1a81b440047,1337,val,linear probe; objective=jepa ckpt=jepa_pretrain_f5fd0a07777f.pt fold_std=0.0372 positives=13/287,287,0.4784,,{}
+2026-07-16T07:50:22+00:00,jepa_pretrain,0b1928f64c3a,1338,test,jepa latent_mse=0.01837 mean_baseline=0.20820 embed_std=0.4208 collapse=no,4155,,,{}
+2026-07-16T07:51:29+00:00,jepa_pretrain,a0af0e76939f,1339,test,jepa latent_mse=0.02370 mean_baseline=0.27103 embed_std=0.4697 collapse=no,4410,,,{}
+2026-07-16T08:15:20+00:00,masked_recon_windows,6a0b09b6c113,1337,test,window diet; recon_mse=0.00081 mean_baseline=0.07216 gate=pass,4620,,,{}
+2026-07-16T08:16:19+00:00,masked_recon_windows,44889df44347,1338,test,window diet; recon_mse=0.00076 mean_baseline=0.07358 gate=pass,4155,,,{}
+2026-07-16T08:43:51+00:00,masked_recon_windows,1464012e1949,1339,test,window diet; recon_mse=0.00085 mean_baseline=0.07179 gate=pass,4410,,,{}
+2026-07-16T08:44:30+00:00,probe_compare,9e4e09fc3de6,1337,test,linear probe; objective=none ckpt=(random init) fold_std=0.0456 positives=11/308,308,0.4967,,{}
+2026-07-16T08:44:30+00:00,probe_compare,75af316307e2,1337,test,linear probe; objective=jepa ckpt=jepa_pretrain_e7f0e92d7625.pt fold_std=0.0484 positives=11/308,308,0.5064,,{}
+2026-07-16T08:44:30+00:00,probe_compare,617f99459984,1337,test,linear probe; objective=masked_recon ckpt=masked_recon_windows_6a0b09b6c113.pt fold_std=0.0526 positives=11/308,308,0.4903,,{}
+2026-07-16T08:44:41+00:00,probe_compare,2760b4382360,1338,test,linear probe; objective=none ckpt=(random init) fold_std=0.0705 positives=12/277,277,0.4449,,{}
+2026-07-16T08:44:41+00:00,probe_compare,2caca98b6ff4,1338,test,linear probe; objective=jepa ckpt=jepa_pretrain_0b1928f64c3a.pt fold_std=0.0798 positives=12/277,277,0.5284,,{}
+2026-07-16T08:44:41+00:00,probe_compare,16cba9ac113b,1338,test,linear probe; objective=masked_recon ckpt=masked_recon_windows_44889df44347.pt fold_std=0.0563 positives=12/277,277,0.4473,,{}
+2026-07-16T08:44:53+00:00,probe_compare,eb6a422e3758,1339,test,linear probe; objective=none ckpt=(random init) fold_std=0.0623 positives=13/294,294,0.5020,,{}
+2026-07-16T08:44:53+00:00,probe_compare,5d06d2338673,1339,test,linear probe; objective=jepa ckpt=jepa_pretrain_a0af0e76939f.pt fold_std=0.0666 positives=13/294,294,0.5189,,{}
+2026-07-16T08:44:53+00:00,probe_compare,6e9f1eece8aa,1339,test,linear probe; objective=masked_recon ckpt=masked_recon_windows_1464012e1949.pt fold_std=0.0690 positives=13/294,294,0.5167,,{}

@@ -1,6 +1,6 @@
 """
 Regression: weld pool temp must never show room temp (< 200°C) on arc-active frames.
-See docs/ISSUE_WELD_POOL_TEMP_39C.md. Floor 200°C matches acceptance criteria.
+See docs/issues/ISSUE_WELD_POOL_TEMP_39C.md. Floor 200°C matches acceptance criteria.
 """
 from data.mock_sessions import (
     generate_expert_session,

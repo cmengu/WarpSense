@@ -5,8 +5,8 @@
  * arc under-light). Single source of truth for thermal color mapping.
  * Matches heatmapFragment.glsl anchor colors (green → orange → red).
  *
- * @see docs/ISSUE_THERMAL_GRADIENT_GREEN_ORANGE_RED.md
- * @see docs/ISSUE_TORCH_VIZ3D_VISUAL_LEGITIMACY.md
+ * @see docs/issues/ISSUE_THERMAL_GRADIENT_GREEN_ORANGE_RED.md
+ * @see docs/issues/ISSUE_TORCH_VIZ3D_VISUAL_LEGITIMACY.md
  */
 
 import * as THREE from 'three';

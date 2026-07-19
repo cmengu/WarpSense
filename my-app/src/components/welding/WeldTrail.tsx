@@ -7,7 +7,7 @@
  * for X-axis; falls back to timestamp-linear when all frames have null travel_speed.
  * Pre-allocates 10000 points; second useEffect updates via .array.set().
  *
- * @see docs/ISSUE_WELD_TRAIL.md
+ * @see docs/issues/ISSUE_WELD_TRAIL.md
  */
 
 import { useRef, useCallback, useMemo, useEffect, useState } from 'react';

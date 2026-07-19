@@ -202,7 +202,7 @@ When reviewing PRs that add or modify 3D / WebGL code:
 
 When implementing 3D / React Three Fiber features, tell AI:
 
-> "Use at most 1–2 Canvas instances per page. Browsers limit WebGL contexts (~8–16 per tab). Add webglcontextlost listeners and show a 'Refresh to restore' overlay. Use a loading fallback for dynamic 3D imports. See documentation/WEBGL_CONTEXT_LOSS.md."
+> "Use at most 1–2 Canvas instances per page. Browsers limit WebGL contexts (~8–16 per tab). Add webglcontextlost listeners and show a 'Refresh to restore' overlay. Use a loading fallback for dynamic 3D imports. See docs/errors/WEBGL_CONTEXT_LOSS.md."
 
 ---
 

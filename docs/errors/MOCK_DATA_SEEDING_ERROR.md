@@ -85,7 +85,7 @@ curl -X POST http://localhost:8000/api/dev/seed-mock-sessions
 
 When setting up a new environment or helping someone debug "Internal Server Error" on seed:
 
-> "If seed returns 500, check for `UndefinedColumn` in the response. Run `alembic upgrade head` in the backend directory. See documentation/MOCK_DATA_SEEDING_ERROR.md."
+> "If seed returns 500, check for `UndefinedColumn` in the response. Run `alembic upgrade head` in the backend directory. See docs/errors/MOCK_DATA_SEEDING_ERROR.md."
 
 ---
 

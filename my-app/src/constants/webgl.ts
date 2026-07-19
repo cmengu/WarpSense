@@ -5,7 +5,7 @@
  * Replay/Demo use 2 TorchWithHeatmap3D = 2 Canvases. HeatmapPlate3D deprecated
  * in replay (thermal now on metal in TorchWithHeatmap3D).
  *
- * @see documentation/WEBGL_CONTEXT_LOSS.md
+ * @see docs/errors/WEBGL_CONTEXT_LOSS.md
  * @see .cursor/issues/webgl-context-lost-consistent-project-wide.md
  */
 

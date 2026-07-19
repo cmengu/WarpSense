@@ -1,0 +1,4 @@
+name,args,returncode,wall_min,checkpoint,final
+sharedweights,--ema-decay 0.0,0,45.6,jepa_pretrain_f155d9486fd3.pt,TEST latent MSE 0.01708 (mean-baseline 0.17032)  embed std 0.3354  collapse: no
+w600,--window 600,0,55.6,jepa_pretrain_f5fd0a07777f.pt,TEST latent MSE 0.01894 (mean-baseline 0.13684)  embed std 0.3246  collapse: no
+w1000,--window 1000,0,9.4,jepa_pretrain_94b453d27c67.pt,TEST latent MSE 0.01205 (mean-baseline 0.08022)  embed std 0.2355  collapse: no
