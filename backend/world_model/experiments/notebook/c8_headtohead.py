@@ -100,6 +100,12 @@ CHECKPOINTS = NOTEBOOK.parent / "checkpoints"
 PYTHON = str(BACKEND / "venv" / "bin" / "python")
 N_WORKERS = 2
 THREADS_PER_WORKER = "4"
+# Compute device for every training/scoring subprocess. An env seam rather than a
+# CLI flag because TrainRun.cli_args is a frozen property with no argparse in
+# reach — and because the ONLY thing that should vary between the laptop dry-run
+# and the A100 execution is `C8_DEVICE=cuda`, not the command line the manifest
+# records.
+DEVICE = os.environ.get("C8_DEVICE", "cpu")
 
 # The three seeds C7 used; every arm is trained once per seed and scored in
 # seed-matched pairs (see the module docstring).
@@ -146,6 +152,7 @@ class TrainRun:
     def cli_args(self) -> list[str]:
         """The full extra-arg list handed to the training module."""
         return ["--seed", str(self.seed), "--epochs", "30",
+                "--device", DEVICE,
                 "--corpus-seed", str(CORPUS_SEED),
                 "--corpus-sessions", str(N_SESSIONS), *self.corpus_args]
 
@@ -545,7 +552,7 @@ def decisive_scoring_commands(by_arm: dict[str, dict[int, str]],
                     continue
                 cmd = [PYTHON, "-m", "world_model.eval.compare_pretrains",
                        ca, cb, "--dual-eval", "--split", "test",
-                       "--seed", str(seed)]
+                       "--seed", str(seed), "--device", DEVICE]
                 variant = sim_variant.get(comp.challenger)
                 if variant is not None and MR_RANDOM not in pair:
                     cmd += ["--sim-eval", "goldak", "--sim-variant", variant,
