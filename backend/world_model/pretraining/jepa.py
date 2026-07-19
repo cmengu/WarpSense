@@ -57,7 +57,7 @@ from world_model.data.schema import SessionTensor
 from world_model.data.windows import (
     TrainWindows, mask_contiguous, mask_timesteps, stack_windows)
 from world_model.pretraining.masked_recon import (
-    CHECKPOINTS_DIR, PRETRAIN_CHANNELS, seed_everything)
+    CHECKPOINTS_DIR, PRETRAIN_CHANNELS, add_corpus_args, load_corpus, seed_everything)
 
 EMA_DECAY = 0.996
 PREDICTOR_DIM = 128
@@ -219,7 +219,6 @@ def pretrain_jepa(train: list[SessionTensor], val: list[SessionTensor], epochs: 
 
 
 def main():
-    from world_model.data.loader_polito import load_polito_sessions
     from world_model.data.splits import split_sessions
     from world_model.eval.eval_world_model import append_run
     from world_model.pretraining.common import save_transfer_checkpoint
@@ -242,13 +241,15 @@ def main():
     p.add_argument("--mask-style", default="contiguous", choices=MASK_STYLES,
                    help="contiguous blocks (JEPA default) or scattered "
                         "per-frame masking (BERT legacy; C6 ablation)")
+    add_corpus_args(p)
     args = p.parse_args()
     limit = TINY["n_sessions"] if args.tiny else args.limit
     epochs = TINY["epochs"] if args.tiny else args.epochs
     ratio_range = tuple(args.ratio)
 
-    print(f"loading Polito welds (limit={limit})")
-    sessions = load_polito_sessions(limit=limit)
+    # JEPA is window-diet and label-free on both corpora, so the corpus swap
+    # needs no other change here (C8 §6 runs JEPA on goldak-wide only).
+    sessions, corpus_config = load_corpus(args)
     splits = split_sessions(sessions, seed=args.seed)
     print({k: len(v) for k, v in splits.items()},
           f"window={args.window} stride={args.stride} "
@@ -277,6 +278,7 @@ def main():
                   n_blocks=args.n_blocks, ratio_range=list(ratio_range),
                   mask_style=args.mask_style,
                   ema_decay=args.ema_decay, seed=args.seed)
+    config.update(corpus_config)   # empty for polito → C4-C7 hashes unchanged
     # probe macro-F1 is C5's job — the quality column stays empty here; the
     # note field must stay comma-free (runs.csv is comma-joined)
     config_hash = append_run(

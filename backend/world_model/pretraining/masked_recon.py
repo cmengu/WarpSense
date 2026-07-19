@@ -57,6 +57,9 @@ import torch.nn.functional as F
 from world_model.config import CHANNEL_INDEX, EXPERIMENTS_DIR, SEED, TINY
 from world_model.architecture.trunk import HIDDEN_DIM, StemTrunkEncoder
 from world_model.data.batch import collate_sessions
+from world_model.data.corpus_goldak import (
+    DEFAULT_N_SESSIONS, load_goldak_sessions, save_corpus_manifest)
+from world_model.data.corpus_random import load_random_sessions
 from world_model.data.loader_polito import load_polito_sessions
 from world_model.data.schema import SessionTensor
 from world_model.data.splits import split_sessions
@@ -68,6 +71,9 @@ RUNS_CSV = EXPERIMENTS_DIR / "runs.csv"
 
 PRETRAIN_CHANNELS = ["volts", "amps"]
 MASK_FRACTION = 0.15
+# The C4-C7 window diet, repeated here so the goldak path (which has no
+# whole-session option) has a default that matches jepa.py's WINDOW.
+DEFAULT_WINDOW = 300
 
 
 class PolitoPretrainModel(StemTrunkEncoder):
@@ -274,6 +280,80 @@ def pretrain_windows(train: list[SessionTensor], val: list[SessionTensor],
     return model, history
 
 
+# ------------------------------------------------------- corpus flag (C8 #21)
+# Which data an objective pretrains on became a variable in C8: Polito is real
+# but the wrong process (resistance spot welds, 2 of 6 channels), while the
+# Goldak simulator produces the target process with all six channels. These two
+# helpers are shared verbatim by jepa.py so the flag means the same thing on
+# both objectives.
+#
+# Two invariants they exist to protect:
+#   - Default stays "polito", and when it IS polito nothing at all is added to
+#     the run config — the config hash (and therefore every checkpoint filename
+#     and runs.csv row) of a C4-C7 reproduction is unchanged.
+#   - Goldak sessions carry no fault bit, so the goldak path is window-diet
+#     only. Training still slices PRETRAIN_CHANNELS (volts, amps), which keeps
+#     the encoder — and hence the transfer checkpoint — structurally identical
+#     to a Polito one. The corpus is then the single variable that changed,
+#     which is what makes the C8 comparison readable.
+#
+# C8 #23 adds a third choice, "random": the spectrum-matched control (T4/D2). It
+# is a per-channel phase-randomised surrogate of goldak-wide — same shape, same
+# volume, same per-channel power spectrum, no causal structure — so it takes the
+# same fault-free window-diet path as goldak. Beating it (not white noise) is what
+# tells structure from volume; see world_model.data.corpus_random.
+
+CORPUS_CHOICES = ("polito", "goldak", "random")
+
+
+def add_corpus_args(p: argparse.ArgumentParser) -> None:
+    """Attach --corpus and its goldak-only knobs to a pretraining CLI."""
+    p.add_argument("--corpus", default="polito", choices=CORPUS_CHOICES,
+                   help="pretraining corpus; polito (default, unchanged "
+                        "C4-C7 behaviour), goldak simulated arc welds, or random "
+                        "(the T4 spectrum-matched control over goldak-wide)")
+    p.add_argument("--corpus-variant", default="wide", choices=("wide", "narrow"),
+                   help="goldak only: wide = C8/D1 widened ranges, narrow = "
+                        "the pre-C8 ranges (the T3 under-randomisation detector)")
+    p.add_argument("--corpus-sessions", type=int, default=None,
+                   help="goldak only: number of simulated sessions "
+                        f"(default {DEFAULT_N_SESSIONS})")
+    p.add_argument("--corpus-seed", type=int, default=None,
+                   help="goldak only: base seed; session i uses seed+i")
+
+
+def load_corpus(args) -> tuple[list[SessionTensor], dict]:
+    """→ (sessions, config_extras). config_extras is EMPTY for polito.
+
+    Also writes the goldak corpus manifest (seed + ranges + size), so the exact
+    distribution behind a checkpoint is on disk next to the run that used it.
+    """
+    if args.corpus == "polito":
+        limit = TINY["n_sessions"] if args.tiny else args.limit
+        print(f"loading Polito welds (limit={limit}) — the only REAL data in the repo")
+        return load_polito_sessions(limit=limit), {}
+
+    if args.corpus == "random":
+        n_sessions = TINY["n_sessions"] if args.tiny else args.corpus_sessions
+        sessions, spec = load_random_sessions(
+            n_sessions=n_sessions, source_seed=args.corpus_seed)
+        print(f"generated {len(sessions)} spectrum-matched control sessions "
+              f"({spec.name} fingerprint={spec.fingerprint()}) — the T4 control "
+              f"over {spec.source.name}")
+        return sessions, {"corpus": spec.name, "corpus_fingerprint": spec.fingerprint(),
+                          "corpus_seed": spec.source.seed, "corpus_sessions": spec.n_sessions,
+                          "corpus_phase_seed": spec.phase_seed}
+
+    n_sessions = TINY["n_sessions"] if args.tiny else args.corpus_sessions
+    sessions, spec = load_goldak_sessions(
+        variant=args.corpus_variant, n_sessions=n_sessions, seed=args.corpus_seed)
+    manifest = save_corpus_manifest(spec)
+    print(f"simulated {len(sessions)} goldak sessions "
+          f"({spec.name} fingerprint={spec.fingerprint()}); manifest: {manifest}")
+    return sessions, {"corpus": spec.name, "corpus_fingerprint": spec.fingerprint(),
+                      "corpus_seed": spec.seed, "corpus_sessions": spec.n_sessions}
+
+
 def main():
     from world_model.eval.eval_world_model import append_run
 
@@ -287,15 +367,21 @@ def main():
                    help="train on TrainWindows of this length (the C4-C7 "
                         "one-variable diet) instead of whole sessions")
     p.add_argument("--stride", type=int, default=50)
+    add_corpus_args(p)
     args = p.parse_args()
     limit = TINY["n_sessions"] if args.tiny else args.limit
     epochs = TINY["epochs"] if args.tiny else args.epochs
 
-    print(f"loading Polito welds (limit={limit}) — the only REAL data in the repo")
-    sessions = load_polito_sessions(limit=limit)
+    sessions, corpus_config = load_corpus(args)
     splits = split_sessions(sessions, seed=args.seed)
-    n_fault = sum(int(s.meta["fault"]) for s in sessions)
-    print({k: len(v) for k, v in splits.items()}, f"faults={n_fault}/{len(sessions)}")
+    if args.corpus == "polito":
+        n_fault = sum(int(s.meta["fault"]) for s in sessions)
+        print({k: len(v) for k, v in splits.items()}, f"faults={n_fault}/{len(sessions)}")
+    else:
+        # simulated sessions have no fault bit — the window diet is the only
+        # path that does not need one, so it is forced (and defaulted) here.
+        print({k: len(v) for k, v in splits.items()}, f"corpus={args.corpus}")
+        args.window = args.window or DEFAULT_WINDOW
 
     if args.window:
         from world_model.pretraining.common import save_transfer_checkpoint
@@ -314,6 +400,8 @@ def main():
         config = dict(model="masked_recon_windows", epochs=epochs, limit=limit,
                       hidden=HIDDEN_DIM, mask_fraction=MASK_FRACTION,
                       window=args.window, stride=args.stride, seed=args.seed)
+        # empty for polito, so C4-C7 config hashes (and checkpoint names) hold
+        config.update(corpus_config)
         # probe macro-F1 is C5's job; note stays comma-free (runs.csv)
         config_hash = append_run(
             "masked_recon_windows", config, args.seed, split="test",
