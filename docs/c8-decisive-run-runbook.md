@@ -35,10 +35,13 @@ venv/bin/pip install -r requirements.txt     # torch build: see GPU note below
 # sanity: the whole C8 surface
 venv/bin/python -m pytest tests/test_c8_*.py -q        # expect 201 passed
 
-# 3. dry-run sanity on CPU at toy scale (~10 min): proves the pipeline
-#    composes on this box before you commit GPU-hours
-venv/bin/python -m world_model.pretraining.masked_recon \
-    --corpus goldak --tiny --device cpu --seed 0
+# 3. REHEARSAL on CPU at toy scale (~15 min): executes the ENTIRE driver —
+#    train, Gate C8-0, scoring, seed pooling, adjudication, ledger — with toy
+#    corpora, 2 seeds, and scoring on --split val, so the one pre-registered
+#    test-split touch is NOT spent. Every output is stamped REHEARSAL.
+#    Expect a complete 9-row §7 ledger (no "not-run" rows) at the end; then
+#    delete the rehearsal checkpoints/logs it leaves (all regenerable).
+C8_REHEARSAL=1 venv/bin/python -m world_model.experiments.notebook.c8_headtohead
 
 # 4. the decisive run
 export C8_DEVICE=cuda      # every training/scoring subprocess inherits this
@@ -69,9 +72,10 @@ either leave it (the models are small; sharing is fine) or split by editing
 
 ## Afterwards
 
-- The per-TH ledger + gate table are the inputs to **#28** (the C8 verdict
-  record). Parsing the scoring logs into the `diffs`/`mdes` maps for
-  `adjudicate_all()` is the one piece of wiring the compute-bearing run supplies
-  (see the note at the end of `main()`).
+- The driver now runs fully wired end to end: each scoring subprocess writes a
+  paired-diff JSON (`--json-out`), the driver pools them across seeds (C7's
+  mean-Δ convention with a combined CI), adjudicates TH1–TH5, and writes
+  `c8_ledger.json` + `gate_status.md`. The ledger and gate table are the direct
+  inputs to **#28** (the C8 verdict record) — no manual parsing remains.
 - Commit `c8_manifest.csv`, the gate table, and the logs you want to keep on a
   results branch; corpora manifests regenerate and stay gitignored.

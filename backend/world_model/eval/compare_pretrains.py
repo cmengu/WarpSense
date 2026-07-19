@@ -67,6 +67,7 @@ CLI (from backend/):
 """
 
 import argparse
+import json
 from pathlib import Path
 
 import numpy as np
@@ -1456,7 +1457,9 @@ def stamp_caveat(report: dict) -> dict:
 def t1_result(*, arm: str, checkpoint: str, corpus: str,
               real_report: dict, real_eval: str,
               sim_report: dict | None = None, sim_eval: str | None = None,
-              is_floor: bool = False) -> dict:
+              is_floor: bool = False,
+              heldout_report: dict | None = None,
+              sim_probe_report: dict | None = None) -> dict:
     """
     One arm's T1-disciplined result: its real-domain number, and — for a
     sim-trained arm — the simulated number bound to it as an inseparable pair.
@@ -1481,6 +1484,16 @@ def t1_result(*, arm: str, checkpoint: str, corpus: str,
         res["sim"] = {"report": stamp_caveat(sim_report), "eval": sim_eval,
                       "n": int(sim_report["n"]), "caveat": T1_CAVEAT}
         res["paired"] = True
+    # Retention-only halves for the §7 paired diffs (driver's --json-out path).
+    # Underscored because they carry NO headline discipline: `_heldout` lets a
+    # full-Polito arm also be paired on the symmetric held-out geometry
+    # (TH1/TH5 fault), and `_sim_probe` lets the incumbent be paired on the
+    # sim-heldout depth geometry (TH1 depth) without granting it a T1 sim
+    # headline — `sim_headline` and `t1_rankings` never read these keys.
+    if heldout_report is not None:
+        res["_heldout"] = heldout_report
+    if sim_probe_report is not None:
+        res["_sim_probe"] = stamp_caveat(sim_probe_report)
     return res
 
 
@@ -1534,6 +1547,104 @@ def t1_rankings(results: list[dict]) -> dict:
     }
 
 
+def _pairable_halves(result: dict, split: str) -> dict:
+    """
+    The geometry → report map one arm contributes to the §7 paired diffs.
+
+    Geometry names match `power_gate` / the driver's `Comparison.geometry`
+    exactly, so the driver can index a diff straight off the comparison plan.
+    Only reports that exist are returned — pairing code never sees a None.
+    """
+    halves: dict[str, dict] = {}
+    real = result["real"]
+    if real["eval"] == "full-polito":
+        halves["full-polito"] = real["report"]
+    else:
+        halves["symmetric-heldout"] = real["report"]
+    if result.get("_heldout") is not None:
+        halves["symmetric-heldout"] = result["_heldout"]
+    if result["sim"] is not None:
+        halves["sim-heldout"] = result["sim"]["report"]
+    elif result.get("_sim_probe") is not None:
+        halves["sim-heldout"] = result["_sim_probe"]
+    return halves
+
+
+def t1_paired_matrix(results: list[dict], *, split: str = "val",
+                     n_boot: int = N_BOOT, seed: int = SEED) -> dict:
+    """
+    Every §7-pairable between-arm difference in one structure — the machine half
+    of the decisive run, consumed by the driver through --json-out.
+
+    For each unordered pair of arms and each geometry BOTH were scored on, the
+    paired diff on the SAME welds: fault-bit geometries (full-polito,
+    symmetric-heldout) through `paired_auc_diff`, the depth geometry
+    (sim-heldout) through `paired_mae_diff` on the probes' out-of-fold
+    predictions. The floor is excluded — no §7 comparison names it. Each
+    geometry also reports its design MDE (from any participating report; they
+    share the design), which is what TH5's power cross-check consumes.
+
+    Depth diffs are simulated numbers, so each one carries the T1 caveat — the
+    pairing discipline follows the number into the JSON.
+    """
+    arms = [r for r in results if not r["is_floor"]]
+    halves = {r["checkpoint"]: _pairable_halves(r, split) for r in arms}
+    pairs: list[dict] = []
+    mdes: dict[str, dict] = {}
+    for i, ra in enumerate(arms):
+        for rb in arms[i + 1:]:
+            ha, hb = halves[ra["checkpoint"]], halves[rb["checkpoint"]]
+            for geom in sorted(set(ha) & set(hb)):
+                rep_a, rep_b = ha[geom], hb[geom]
+                if geom == "sim-heldout":
+                    if not np.array_equal(rep_a["y"], rep_b["y"]):
+                        raise ValueError(
+                            f"paired diff on {geom} needs identical targets — "
+                            f"y arrays differ between "
+                            f"{ra['checkpoint']} and {rb['checkpoint']}")
+                    diff = paired_mae_diff(rep_a["y"], rep_a["preds"],
+                                           rep_b["preds"], n_boot=n_boot,
+                                           seed=seed)
+                    diff["t1_caveat"] = T1_CAVEAT
+                else:
+                    if not np.array_equal(rep_a["labels"], rep_b["labels"]):
+                        raise ValueError(
+                            f"paired diff on {geom} needs identical welds — "
+                            f"label arrays differ between "
+                            f"{ra['checkpoint']} and {rb['checkpoint']}")
+                    diff = paired_auc_diff(rep_a["scores"], rep_b["scores"],
+                                           rep_a["labels"], n_boot=n_boot,
+                                           seed=seed)
+                pairs.append({
+                    "a": {"arm": ra["arm"], "checkpoint": ra["checkpoint"],
+                          "corpus": ra["corpus"]},
+                    "b": {"arm": rb["arm"], "checkpoint": rb["checkpoint"],
+                          "corpus": rb["corpus"]},
+                    "geometry": geom, "diff": diff,
+                })
+                if geom not in mdes:
+                    design = rep_a.get("design", {})
+                    mdes[geom] = {"metric": design.get("metric"),
+                                  "mde": design.get("mde"),
+                                  "n": rep_a.get("n")}
+    return {"pairs": pairs, "mdes": mdes}
+
+
+def _json_scalars(obj):
+    """Recursively keep only JSON-encodable scalars/containers; drop arrays."""
+    if isinstance(obj, dict):
+        return {k: _json_scalars(v) for k, v in obj.items()
+                if not isinstance(v, np.ndarray)}
+    if isinstance(obj, (list, tuple)):
+        return [_json_scalars(v) for v in obj
+                if not isinstance(v, np.ndarray)]
+    if isinstance(obj, (np.floating, np.integer)):
+        return obj.item()
+    if isinstance(obj, np.bool_):
+        return bool(obj)
+    return obj
+
+
 def _domain_report(encoder, sessions: list, label_key: str, *,
                    window: int = WINDOW, stride: int = STRIDE,
                    device: str = "cpu", seed: int = SEED,
@@ -1559,7 +1670,8 @@ def t1_reports_for_encoder(encoder, *, arm: str, checkpoint: str, corpus: str,
                            is_floor: bool = False, window: int = WINDOW,
                            stride: int = STRIDE, device: str = "cpu",
                            seed: int = SEED, n_boot: int = N_BOOT,
-                           n_perm: int = N_PERM) -> dict:
+                           n_perm: int = N_PERM,
+                           pair_retention: bool = False) -> dict:
     """
     Score one already-built encoder into a T1 result — the seam the checkpoint
     driver and the untrained floor both enter through.
@@ -1583,9 +1695,30 @@ def t1_reports_for_encoder(encoder, *, arm: str, checkpoint: str, corpus: str,
                                     window=window, stride=stride, device=device,
                                     seed=seed, n_boot=n_boot, n_perm=n_perm)
         sim_eval = "held-out-sim"
+    # `pair_retention` (driver's --json-out path) additionally scores the
+    # geometries §7 pairs arms on but T1's headline discipline skips: a
+    # full-Polito arm on the symmetric held-out split (TH1/TH5 fault), and the
+    # incumbent on the sim held-out set (TH1 depth). Off by default — the T1
+    # reporting surface is unchanged unless the driver asks.
+    heldout_report = sim_probe_report = None
+    if pair_retention and not is_floor:
+        if real_eval != f"held-out-{split}":
+            heldout_report = _domain_report(
+                encoder, real_heldout, real_label_key, window=window,
+                stride=stride, device=device, seed=seed, n_boot=n_boot,
+                n_perm=n_perm)
+        else:
+            heldout_report = real_report
+        if sim_sessions is not None and sim_report is None:
+            sim_probe_report = _domain_report(
+                encoder, sim_sessions, sim_label_key, window=window,
+                stride=stride, device=device, seed=seed, n_boot=n_boot,
+                n_perm=n_perm)
     return t1_result(arm=arm, checkpoint=checkpoint, corpus=corpus,
                      real_report=real_report, real_eval=real_eval,
-                     sim_report=sim_report, sim_eval=sim_eval, is_floor=is_floor)
+                     sim_report=sim_report, sim_eval=sim_eval, is_floor=is_floor,
+                     heldout_report=heldout_report,
+                     sim_probe_report=sim_probe_report)
 
 
 def score_checkpoint_t1(path: Path, *, real_full: list, real_heldout: list,
@@ -1594,7 +1727,8 @@ def score_checkpoint_t1(path: Path, *, real_full: list, real_heldout: list,
                         sim_label_key: str = DEPTH_KEY, split: str = "val",
                         window: int = WINDOW, stride: int = STRIDE,
                         device: str = "cpu", seed: int = SEED,
-                        n_boot: int = N_BOOT, n_perm: int = N_PERM) -> dict:
+                        n_boot: int = N_BOOT, n_perm: int = N_PERM,
+                        pair_retention: bool = False) -> dict:
     """
     One checkpoint → one T1 result. Reads the arm's corpus off its config (which
     decides its real eval set), builds the frozen encoder, and scores it on both
@@ -1610,7 +1744,7 @@ def score_checkpoint_t1(path: Path, *, real_full: list, real_heldout: list,
         real_full=real_full, real_heldout=real_heldout, sim_sessions=sim_sessions,
         real_label_key=real_label_key, sim_label_key=sim_label_key, split=split,
         window=window, stride=stride, device=device, seed=seed,
-        n_boot=n_boot, n_perm=n_perm)
+        n_boot=n_boot, n_perm=n_perm, pair_retention=pair_retention)
 
 
 def score_floor_t1(*, real_full: list, real_heldout: list,
@@ -1773,7 +1907,8 @@ def _run_dual_eval(args, p):
     common = dict(real_full=all_sessions, real_heldout=heldout,
                   sim_sessions=sim_sessions, split=args.split,
                   window=args.window, stride=args.stride, device=args.device,
-                  seed=args.seed, n_boot=args.n_boot, n_perm=args.n_perm)
+                  seed=args.seed, n_boot=args.n_boot, n_perm=args.n_perm,
+                  pair_retention=args.json_out is not None)
     results = [] if args.no_random else [score_floor_t1(
         real_full=all_sessions, real_heldout=heldout, split=args.split,
         window=args.window, stride=args.stride, device=args.device,
@@ -1782,6 +1917,23 @@ def _run_dual_eval(args, p):
 
     rankings = t1_rankings(results)
     print(format_t1_rows(results, rankings))
+
+    if args.json_out is not None:
+        # The machine half of the run (driver ticket #27): every §7-pairable
+        # between-arm diff plus each geometry's design MDE, as scalars. The
+        # driver pools these across seeds and adjudicates; nothing here decides.
+        matrix = t1_paired_matrix(results, split=args.split,
+                                  n_boot=args.n_boot, seed=args.seed)
+        payload = _json_scalars({
+            "split": args.split, "seed": args.seed,
+            "sim_eval": args.sim_eval, "sim_variant": args.sim_variant,
+            "checkpoints": [str(c) for c in args.checkpoints],
+            "gate": gate, **matrix,
+        })
+        out = Path(args.json_out)
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(json.dumps(payload, indent=1))
+        print(f"paired-diff JSON: {out} ({len(matrix['pairs'])} pairs)")
 
     config = dict(model="probe_compare_t1", split=args.split, limit=limit,
                   window=args.window, stride=args.stride, seed=args.seed)
@@ -1861,6 +2013,10 @@ def main():
                    help="goldak only: which corpus variant to score the sim half on")
     p.add_argument("--sim-sessions", type=int, default=None,
                    help="number of simulated evaluation sessions to generate")
+    p.add_argument("--json-out", default=None, metavar="PATH",
+                   help="(dual-eval only) write the §7 paired-diff matrix + "
+                        "design MDEs as JSON for the c8_headtohead driver; "
+                        "also scores the extra geometries pairing needs")
     p.add_argument("--sim-seed", type=int, default=None,
                    help="base seed for the simulated evaluation corpus")
     args = p.parse_args()

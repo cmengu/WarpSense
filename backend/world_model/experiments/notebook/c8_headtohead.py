@@ -75,6 +75,8 @@ the decision machinery is verified without spending that compute.
 """
 
 import csv
+import json
+import math
 import os
 import re
 import subprocess
@@ -107,16 +109,30 @@ THREADS_PER_WORKER = "4"
 # records.
 DEVICE = os.environ.get("C8_DEVICE", "cpu")
 
+# C8_REHEARSAL=1 executes the WHOLE driver — training, scoring, JSON, pooling,
+# adjudication — at toy scale to prove the plumbing before GPU-hours are spent.
+# Three deliberate downgrades, and only these: tiny corpora/epochs, two seeds
+# instead of three (enough to exercise pooling), and — the load-bearing one —
+# scoring on --split val, so the single pre-registered touch of the test split
+# is NOT spent on a rehearsal. Every rehearsal output is stamped REHEARSAL and
+# must never be read as a C8 number.
+REHEARSAL = os.environ.get("C8_REHEARSAL", "") not in ("", "0")
+
 # The three seeds C7 used; every arm is trained once per seed and scored in
-# seed-matched pairs (see the module docstring).
-SEEDS: tuple[int, int, int] = (1337, 1338, 1339)
+# seed-matched pairs (see the module docstring). Rehearsal keeps two so the
+# cross-seed pooling is still exercised.
+SEEDS: tuple[int, ...] = (1337, 1338) if REHEARSAL else (1337, 1338, 1339)
 
 # The simulated corpora are generated once at this base seed so every arm sees the
 # SAME dataset; --seed then varies only the split partition and model init. Session
 # i draws seed CORPUS_SEED + i inside the loaders.
 CORPUS_SEED = 20260719
 # ~20k simulated sessions per corpus (spec §6 item 2 / §4).
-N_SESSIONS = 20000
+N_SESSIONS = 60 if REHEARSAL else 20000
+EPOCHS = "3" if REHEARSAL else "30"
+# The split the decisive scoring touches. val in rehearsal — the ONE
+# pre-registered test look (TestSplitGuard) is not spent on plumbing proof.
+SCORING_SPLIT = "val" if REHEARSAL else "test"
 
 # Arm labels — used as dict keys throughout so a comparison names an arm, never a
 # raw checkpoint path.
@@ -151,7 +167,7 @@ class TrainRun:
     @property
     def cli_args(self) -> list[str]:
         """The full extra-arg list handed to the training module."""
-        return ["--seed", str(self.seed), "--epochs", "30",
+        return ["--seed", str(self.seed), "--epochs", EPOCHS,
                 "--device", DEVICE,
                 "--corpus-seed", str(CORPUS_SEED),
                 "--corpus-sessions", str(N_SESSIONS), *self.corpus_args]
@@ -535,8 +551,15 @@ def decisive_scoring_commands(by_arm: dict[str, dict[int, str]],
     reused Polito arms enter here for TH1 with no retraining.
     """
     guard.touch("C8 decisive scoring — the one pre-registered test-split pass")
-    # sim-variant to score each pairing's simulated half on (None ⇒ real-only).
-    sim_variant = {MR_WIDE: "wide", MR_NARROW: "narrow"}
+    # A pair gets a simulated half exactly when some §7 row judges it on the
+    # sim-heldout geometry — TH1/TH2/TH3 depth (MR_WIDE vs each incumbent) and
+    # TH5 depth (JEPA_WIDE vs MR_WIDE). The evaluation set is the goldak-WIDE
+    # held-out split in every case: all sim-heldout challengers train on wide,
+    # and narrow/random only ever appear as incumbents being scored on the
+    # challenger's held-out set. (The first rehearsal caught the earlier
+    # challenger-keyed variant map silently starving TH2- and TH5-depth.)
+    needs_sim = {(c.challenger, inc) for c in COMPARISON_PLAN
+                 if c.geometry == SIM_HELDOUT for inc in c.incumbents}
     seen: set[tuple[str, str]] = set()
     cmds: list[list[str]] = []
     for comp in COMPARISON_PLAN:
@@ -551,15 +574,146 @@ def decisive_scoring_commands(by_arm: dict[str, dict[int, str]],
                 if ca is None or cb is None:
                     continue
                 cmd = [PYTHON, "-m", "world_model.eval.compare_pretrains",
-                       ca, cb, "--dual-eval", "--split", "test",
-                       "--seed", str(seed), "--device", DEVICE]
-                variant = sim_variant.get(comp.challenger)
-                if variant is not None and MR_RANDOM not in pair:
-                    cmd += ["--sim-eval", "goldak", "--sim-variant", variant,
+                       ca, cb, "--dual-eval", "--split", SCORING_SPLIT,
+                       "--seed", str(seed), "--device", DEVICE,
+                       "--json-out", str(scoring_json_path(
+                           comp.challenger, inc, seed))]
+                if REHEARSAL:
+                    cmd.append("--tiny")
+                if pair in needs_sim:
+                    cmd += ["--sim-eval", "goldak", "--sim-variant", "wide",
                             "--sim-seed", str(CORPUS_SEED),
                             "--sim-sessions", str(N_SESSIONS)]
                 cmds.append(cmd)
     return cmds
+
+
+def scoring_json_path(challenger: str, incumbent: str, seed: int) -> Path:
+    """Where one (pair, seed) scoring run writes its paired-diff JSON.
+
+    A pure function of the pair — built identically when the command is
+    constructed and when the ledger collects, so there is no name to drift.
+    """
+    return LOGS / f"c8_pairs_{challenger}__{incumbent}_s{seed}.json"
+
+
+def pool_seed_diffs(diffs: list[dict], family: str) -> dict:
+    """
+    One decision-grade diff from the seed-matched runs — C7's convention
+    ("mean Δ across the 3 seeds") made explicit and given a CI.
+
+    Each seed trains and scores on a DIFFERENT split partition (data/splits.py
+    salts the seed), so the seed-level diffs are treated as independent
+    estimates of the same effect: equal-weight mean delta, combined SE
+    sqrt(Σ se_i²)/k (fixed-effect, equal weights), normal CI. `excludes_zero`
+    then answers pooled-CI-excludes-zero — the §7 gate — while `per_seed`
+    keeps every seed-level delta on the record.
+    """
+    if not diffs:
+        raise ValueError("pool_seed_diffs needs at least one seed-level diff")
+    key = "delta_mae" if family == DEPTH else "delta_auc"
+    deltas = [float(d[key]) for d in diffs]
+    ses = [float(d["boot_se"]) for d in diffs]
+    k = len(diffs)
+    delta = sum(deltas) / k
+    se = math.sqrt(sum(s ** 2 for s in ses)) / k
+    lo, hi = delta - 1.96 * se, delta + 1.96 * se
+    pooled = {
+        key: delta, "boot_se": se, "boot_lo": lo, "boot_hi": hi,
+        "excludes_zero": bool(lo > 0 or hi < 0),
+        "n_seeds": k, "per_seed": deltas,
+    }
+    if any("t1_caveat" in d for d in diffs):
+        pooled["t1_caveat"] = diffs[0].get("t1_caveat")
+    return pooled
+
+
+def collect_decisive_inputs(by_arm: dict[str, dict[int, str]]) -> tuple[dict, dict]:
+    """
+    Load every scoring run's JSON and assemble `adjudicate_all`'s two inputs:
+    diffs keyed (th_id, family) and MDEs for the TH5 rows.
+
+    Matching is by checkpoint basename (the one identity both sides share),
+    and the sign is repaired when a JSON recorded the pair with the incumbent
+    as arm A — `paired_*_diff` is antisymmetric, so flipping is a negation of
+    the delta and a mirror of the CI. TH4 must beat BOTH SSL arms, so its diff
+    is the BINDING one: whichever incumbent yields the smaller pooled delta.
+    A (th, family) whose JSONs are missing is simply absent from `diffs`;
+    `adjudicate_all` records it as not-run rather than inventing a verdict.
+    """
+    diffs: dict[tuple[str, str], dict] = {}
+    mdes: dict[tuple[str, str], float] = {}
+    for comp in COMPARISON_PLAN:
+        per_incumbent: list[dict] = []
+        for inc in comp.incumbents:
+            seed_diffs: list[dict] = []
+            seed_mdes: list[float] = []
+            for seed in SEEDS:
+                path = scoring_json_path(comp.challenger, inc, seed)
+                if (not path.exists()
+                        or seed not in by_arm.get(comp.challenger, {})
+                        or seed not in by_arm.get(inc, {})):
+                    continue
+                payload = json.loads(path.read_text())
+                ck_ch = Path(by_arm[comp.challenger][seed]).name
+                ck_in = Path(by_arm[inc][seed]).name
+                for pair in payload["pairs"]:
+                    if pair["geometry"] != comp.geometry:
+                        continue
+                    names = (pair["a"]["checkpoint"], pair["b"]["checkpoint"])
+                    if names == (ck_ch, ck_in):
+                        d = dict(pair["diff"])
+                    elif names == (ck_in, ck_ch):
+                        d = _flip_diff(pair["diff"], comp.family)
+                    else:
+                        continue
+                    seed_diffs.append(d)
+                    geom_mde = payload.get("mdes", {}).get(comp.geometry, {})
+                    if geom_mde.get("mde") is not None:
+                        seed_mdes.append(float(geom_mde["mde"]))
+                    break
+            if seed_diffs:
+                pooled = pool_seed_diffs(seed_diffs, comp.family)
+                pooled["incumbent"] = inc
+                if seed_mdes:
+                    pooled["mde"] = sum(seed_mdes) / len(seed_mdes)
+                per_incumbent.append(pooled)
+        if len(per_incumbent) == len(comp.incumbents) and per_incumbent:
+            binding = min(per_incumbent,
+                          key=lambda d: diff_delta(d, comp.family))
+            diffs[(comp.th_id, comp.family)] = binding
+            if comp.tie_rule:
+                mdes[(comp.th_id, comp.family)] = binding.get(
+                    "mde", float("nan"))
+    return diffs, mdes
+
+
+def _flip_diff(diff: dict, family: str) -> dict:
+    """Antisymmetric flip: the pair was recorded incumbent-first."""
+    key = "delta_mae" if family == DEPTH else "delta_auc"
+    out = dict(diff)
+    out[key] = -float(diff[key])
+    out["boot_lo"], out["boot_hi"] = -float(diff["boot_hi"]), -float(diff["boot_lo"])
+    if "hm_lo" in diff and "hm_hi" in diff:
+        out["hm_lo"], out["hm_hi"] = -float(diff["hm_hi"]), -float(diff["hm_lo"])
+    return out
+
+
+def format_ledger(ledger: list[dict]) -> str:
+    """§7 work-item 8: the number-vs-threshold ledger, one row per TH claim."""
+    tag = "REHEARSAL — NOT DECISIVE — " if REHEARSAL else ""
+    out = [f"{tag}C8 verdict ledger (§7, tie rule in force)"]
+    out.append(f"{'id':<5} {'family':<6} {'geometry':<18} {'Δ':>9} "
+               f"{'margin':>7}  verdict")
+    for r in ledger:
+        delta = f"{r['delta']:+.4f}" if "delta" in r else "—"
+        margin = ("CI≠0" if r.get("margin") is None and r["verdict"] != "not-run"
+                  else f"{r['margin']:.4f}" if r.get("margin") is not None
+                  else "—")
+        out.append(f"{r['id']:<5} {r.get('family', '—'):<6} "
+                   f"{r['geometry']:<18} {delta:>9} {margin:>7}  {r['verdict']}")
+        out.append(f"      {r['note']}" if r.get("note") else "")
+    return "\n".join(line for line in out if line)
 
 
 def main() -> None:
@@ -573,6 +727,12 @@ def main() -> None:
     from world_model.data.splits import split_sessions
     from world_model.eval.compare_pretrains import LABEL_KEY
 
+    if REHEARSAL:
+        print("=" * 72)
+        print("C8 REHEARSAL MODE — toy corpora/epochs, 2 seeds, scoring on "
+              "--split val. NOTHING below is a C8 number; the pre-registered "
+              "test-split touch is NOT spent.")
+        print("=" * 72)
     rows = train_all()
     for r in rows:
         print(r)
@@ -601,7 +761,12 @@ def main() -> None:
         n_full=len(all_sessions),
         n_held_pos=sum(int(s.meta[LABEL_KEY]) for s in held),
         n_held=len(held))
-    print("\n" + _GATE_RENDERER(gate) + "\n")   # → gate_status.md (§7 work-item 8)
+    gate_text = _GATE_RENDERER(gate)
+    print("\n" + gate_text + "\n")
+    tag = "REHEARSAL — NOT DECISIVE\n\n" if REHEARSAL else ""
+    (NOTEBOOK / "gate_status.md").write_text(
+        f"{tag}# Gate C8-0 — recorded before the decisive scoring\n\n"
+        f"```\n{gate_text}\n```\n")   # §7 work-item 8
 
     # STEP 3 — the SINGLE pre-registered touch of --split test. The guard makes a
     # second look raise; blocked comparisons are still scored for the record but
@@ -612,13 +777,23 @@ def main() -> None:
         print("$ " + " ".join(cmd))
         subprocess.run(cmd, cwd=BACKEND, env={**os.environ})
 
-    # STEP 4/5 — adjudicate_all() applies TH1-TH5 with the tie rule against the
-    # paired diffs parsed from the scoring logs, then should_run_finetuning() gates
-    # the follow-up on TH1's primary (depth) target. Parsing the logs into the
-    # `diffs`/`mdes` maps is the last wiring the compute-bearing run supplies; the
-    # adjudication itself is fully implemented and tested above.
-    print("\n[adjudicate_all(diffs, mdes) → per-TH ledger with the tie rule; "
-          "should_run_finetuning(ledger) gates the fine-tuning follow-up on TH1.]")
+    # STEP 4/5 — pool the seed-matched paired diffs out of the scoring JSONs,
+    # apply TH1-TH5 with the tie rule, and record the ledger. This is the wiring
+    # the module docstring called "the last the compute-bearing run supplies".
+    diffs, mdes = collect_decisive_inputs(by_arm)
+    ledger = adjudicate_all(diffs, mdes)
+    print("\n" + format_ledger(ledger))
+    ledger_path = NOTEBOOK / "c8_ledger.json"
+    ledger_path.write_text(json.dumps(
+        {"rehearsal": REHEARSAL, "split": SCORING_SPLIT, "seeds": list(SEEDS),
+         "ledger": ledger,
+         "diffs": {f"{th}/{fam}": d for (th, fam), d in diffs.items()}},
+        indent=1))
+    print(f"\nledger: {ledger_path}")
+    ft = should_run_finetuning(ledger)
+    print(f"fine-tuning follow-up (gated on TH1 depth): "
+          f"{'RUN' if ft else 'DO NOT RUN'}"
+          + (" [rehearsal — not binding]" if REHEARSAL else ""))
 
 
 if __name__ == "__main__":
