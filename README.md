@@ -14,7 +14,7 @@
 
 **Multi-agent weld-quality system** — catches Lack-of-Fusion / Lack-of-Penetration defects from a 4-channel ESP32 sensor stream, reasons against AWS D1.1 / ISO 5817 / IACS Rec.47 via hybrid RAG, and returns a structured disposition with corrective actions.
 
-![WarpSense — WeldView live session comparison](docs/weldview-cover.png)
+![WarpSense — WeldView live session comparison](docs/weldview-demo.gif)
 
 </div>
 

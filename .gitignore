@@ -79,3 +79,10 @@ coverage/
 
 # Public datasets (downloaded, not committed)
 data/public/
+
+# Local AI/dev tooling (not part of the public project)
+.claude/
+agent
+cto
+monitor
+output.log
