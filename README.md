@@ -14,13 +14,9 @@
 
 **Multi-agent weld-quality system** — catches Lack-of-Fusion / Lack-of-Penetration defects from a 4-channel ESP32 sensor stream, reasons against AWS D1.1 / ISO 5817 / IACS Rec.47 via hybrid RAG, and returns a structured disposition with corrective actions.
 
-**FNR = 0.000 across all 24 eval scenarios — no LOF/LOP defect was ever missed.**
-
-<!-- 📸 HIGHEST-IMPACT TODO: paste a UI screenshot or demo GIF on the line below — a recruiter looks at an image before reading a word.   e.g.   ![WarpSense UI](docs/demo.gif) -->
+![WarpSense — WeldView live session comparison](docs/weldview-cover.png)
 
 </div>
-
-> Every architecture decision here is measured, not assumed. Three things worth talking through: why **FNR, not F1**, gates this system; how a **measured retrieval number** justified rebuilding the RAG layer; and how a design review **killed the first version of my next-phase plan** before I wrote a line of it.
 
 ---
 
@@ -72,9 +68,9 @@ Across 24 deterministic scenarios — perfect separation, zero missed defects. (
 
 The safety override sits *below* the LLM: a JSON parse failure or empty response falls back to threshold-based disposition, so the ~8% parse-fallback rate never produces a missed defect.
 
-### Phase 3 — World Model of the Weld *(designed — build gated on real-data collection)*
+### Phase 3 — World Model of the Weld *(in build — real weld data collected)*
 
-> **Status: design complete, pre-Gate-0.** No world-model code or real weld data exists yet — the first milestone is real-data collection. Nothing here is validated against physical welds.
+> **Status: Gate 0 cleared — real-world weld data is now in hand, and the build is underway.** Fusion-depth estimates still reach no UI until validated against physically sectioned coupons; the safety floor stays untouched throughout.
 
 Phases 1–2 return a verdict *after* the weld, with no cause. But the variable that actually decides whether a weld holds — **fusion-zone depth** — can't be read by any surface sensor. Phase 3 is a physics-informed latent state estimator (Neural-ODE encoder over a structured latent where heat-transfer physics is *forced* to bind) that infers fusion depth as a hidden state, moment by moment, with calibrated uncertainty — running as a second opinion beside the safety floor, never replacing it.
 
@@ -100,7 +96,7 @@ Python · scikit-learn · LangGraph · LangChain · ChromaDB · BM25 · Groq (ll
 
 ## Data
 
-The 10 demo sessions are **synthetic** (`backend/data/mock_sessions.py`), generated to the ESP32 schema — volts, amps, torch angle, heat-dissipation — not captured from real welds. Collecting real welds is Gate 0 of the Phase 3 roadmap.
+The 10 demo sessions are **synthetic** (`backend/data/mock_sessions.py`), generated to the ESP32 schema — volts, amps, torch angle, heat-dissipation — not captured from real welds. Real-world weld data has since been collected (Gate 0 of the Phase 3 roadmap) and drives the world-model build.
 
 ## Quick start
 
