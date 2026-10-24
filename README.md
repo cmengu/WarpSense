@@ -2,23 +2,19 @@
 
 # WarpSense
 
-![Python](https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white)
-![scikit-learn](https://img.shields.io/badge/scikit--learn-F7931E?logo=scikitlearn&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
-![LangGraph](https://img.shields.io/badge/LangGraph-1C3C3C?logo=langchain&logoColor=white)
-![Next.js](https://img.shields.io/badge/Next.js-000000?logo=nextdotjs&logoColor=white)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?logo=postgresql&logoColor=white)
-&nbsp;
-![FNR](https://img.shields.io/badge/FNR-0.000-brightgreen)
-![eval](https://img.shields.io/badge/eval-24%2F24_passed-brightgreen)
-
 **Multi-agent weld-quality system** — catches Lack-of-Fusion / Lack-of-Penetration defects from a 4-channel ESP32 sensor stream, reasons against AWS D1.1 / ISO 5817 / IACS Rec.47 via hybrid RAG, and returns a structured disposition with corrective actions.
 
 ![WarpSense — WeldView live session comparison](docs/weldview-demo.gif)
 
+<sub>WeldView: two weld sessions side by side as 3D torch views on one shared timeline, with each session's alerts in the feed. Demo sessions are synthetic — see [Data](#data).</sub>
+
 </div>
 
 ---
+
+## Why
+
+Lack-of-Fusion and Lack-of-Penetration defects sit inside the joint, invisible to the naked eye, until the joint fails under load. Catching them today means destructive testing or ultrasonic inspection after the weld is done. WarpSense reads the electrical and heat signals *during* the weld and tells the supervisor what went wrong and how to fix it — before the steel leaves the shipyard.
 
 ## Architecture
 
@@ -97,6 +93,13 @@ Python · scikit-learn · LangGraph · LangChain · ChromaDB · BM25 · Groq (ll
 ## Data
 
 The 10 demo sessions are **synthetic** (`backend/data/mock_sessions.py`), generated to the ESP32 schema — volts, amps, torch angle, heat-dissipation — not captured from real welds. Real-world weld data has since been collected (Gate 0 of the Phase 3 roadmap) and drives the world-model build.
+
+**Headline numbers and what they were measured on:**
+
+- **FNR 0.000** (zero missed defects) — on the 10 synthetic demo sessions, with train = eval. A sanity check, not a generalisation claim.
+- **24/24 eval scenarios passed** — hand-built feature vectors in [`backend/evals/eval_scenarios.py`](backend/evals/eval_scenarios.py) (8 rework, 8 pass, 4 false-positive-risk, 4 false-negative-risk), not sensor recordings.
+
+Neither number is yet a result on real welds; Phase 3's kill gates are where that gets tested.
 
 ## Quick start
 
