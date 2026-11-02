@@ -18,19 +18,12 @@ Lack-of-Fusion and Lack-of-Penetration defects sit inside the joint, invisible t
 
 ## Architecture
 
-```mermaid
-flowchart LR
-    A[ESP32 stream<br/>4 channels · 1500 frames] --> B[Feature extractor<br/>11 LOF/LOP features]
-    B --> C[Gradient-boosted<br/>classifier]
-    C --> D{Safety override<br/>RISK band?}
-    D -->|yes| E[REWORK_REQUIRED]
-    D -->|no| F[LangGraph specialists<br/>Thermal · Geometry · Process]
-    G[(Hybrid RAG<br/>BM25 + Chroma + RRF)] -. domain context .-> F
-    F --> H[Quality report<br/>PASS · CONDITIONAL · REWORK]
-    E --> H
-```
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/how-it-works-dark.svg">
+  <img alt="Sensor data becomes features, then runs through a classifier and three AI agents to a quality report. A separate route of fixed thresholds runs from the features straight to the report, and a risk-band reading there forces a rework verdict whatever the agents concluded." src="docs/how-it-works-light.svg">
+</picture>
 
-The deterministic **safety override** sits between the classifier and the LLM layer — it alone can force `REWORK_REQUIRED`, which is why no LLM failure ever produces a missed defect.
+The thresholds are checked before any model runs, then enforced when the report is assembled, so `REWORK_REQUIRED` holds even if an agent disagrees or fails.
 
 ---
 
